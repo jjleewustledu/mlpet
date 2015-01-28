@@ -1,0 +1,71 @@
+Tom Videen <tom@npg.wustl.edu> 
+01/23/2007 04:25 PM
+To
+DerdeynC@mir.wustl.edu
+cc
+
+bcc
+
+Subject
+Re: nonquant processing
+
+
+
+History:
+
+This message has been replied to.
+
+
+Colin,
+
+What I did with the last one was to process it with a coss name. 
+Attached are the commands I ran last time. Some of these are interactive 
+and require explanation.
+
+I don't know if you have down any of the coss processing but either I or 
+John can easily run it. Let me know what you wish.
+
+Tom
+
+DerdeynC@mir.wustl.edu wrote:
+
+> What is the script or steps for processing a nonquantitative OEF study, 
+> like is done with COSS?
+# Processing a non-COSS study using COSS commands
+# Assumes you start in the directory where the HO and OO are
+
+set PID = p6918
+
+mkdir cs99-001-1
+cd cs99-001-1
+
+cp ../${PID}ho1.v cs99-001-ho1.v
+cp ../${PID}oo1.v cs99-001-oo1.v
+
+cos_start 99 001 1
+source cos-99-001-1
+gauss cs99-001-ho1.v 0.3
+gauss cs99-001-oo1.v 0.3
+cos_scale_images
+cos_align_oo2ho
+cos_align_ho2ref
+cos_ratio 40
+cos_get_voi
+cos_display_voi
+cos_proc_voi
+cos_pic
+cos_report
+
+mv cs99-001-ho1_g3.t88    ../${PID}ho1_g3.t88
+mv cs99-001-oo1_g3.t88    ../${PID}oo1_g3.t88
+mv cs99-001-mask.t88      ../${PID}mask.t88
+mv cs99-001-oo1ho1_g3.t88 ../${PID}oo1ho1_g3.t88
+mv cs99-001.gif           ../${PID}_pic.gif
+mv cs99-001-report.gif    ../${PID}_report.gif
+mv cs99-001-mca.voi       ../${PID}_mca.voi
+mv cs99-001-1-processing.log ../${PID}_processing.log
+
+mv cs99-001-oo1_to_ho1.air		 ../${PID}-oo1_to_ho1.air
+mv cs99-001-ho1_to_meanpet.air		 ../${PID}-ho1_to_meanpet.air
+mv cs99-001-oo1_to_meanpet.air		 ../${PID}-oo1_to_meanpet.air
+
