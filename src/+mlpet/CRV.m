@@ -69,6 +69,7 @@ classdef CRV < mlpet.AbstractBetaCurve
         function this = readdata(this)
             tab = readtable(this.fqfilename, 'FileType', 'text', 'ReadVariableNames', false, 'Delimiter', ' ','HeaderLines', 2);
             this.times_  = tab.Var1';
+            this.taus_   = ones(size(this.times_));
             this.counts_ = tab.Var2';
             this.counts_(1) = this.counts_(3); % legacy defect of .crv format:  first two points are artifacts
             this.counts_(2) = this.counts_(3);

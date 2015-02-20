@@ -26,6 +26,9 @@ classdef IWellData < mlio.IOInterface
         counts
         countInterpolants
         header
+        
+        useBequerels
+        noclobber
     end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

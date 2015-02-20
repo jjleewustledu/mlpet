@@ -28,7 +28,7 @@ classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus & mlpet.IDecayCorrection
             p = this.decayCorrection_.pie;
         end
         function f = get.wellFqfilename(this)
-            f = this.decayCorrection_.wellFqfilename;
+            f = fullfile(this.filepath, [str2pnum(this.fileprefix) '.wel']);
         end
         function w = get.wellFactor(this)
             w = this.decayCorrection_.wellFactor;
@@ -52,11 +52,9 @@ classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus & mlpet.IDecayCorrection
             assert(~isa(ecat, 'mlpet.DecayCorrectedEcat'));
             assert( isnumeric(pie));
             
-            this.decayCorrection_ = mlpet.DecayCorrection( ...
-                fullfile(this.filepath, [str2pnum(this.fileprefix) '.wel']), ...
-                this.guessIsotope, ...
-                pie);
-            this.counts = this.decayCorrection_.correctedScannerCounts(this.counts, this.times, this.taus);
+            this.decayCorrection_ = mlpet.DecayCorrection(this, pie);
+            this.counts = this.decayCorrection_.correctedCounts(this.counts, this.times);
+            this = this.updateFileprefix;
  		end 
     end 
     
@@ -64,6 +62,15 @@ classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus & mlpet.IDecayCorrection
     
     properties (Access = 'private')
         decayCorrection_
+    end
+    
+    methods (Access = 'private')
+        function this = updateFileprefix(this)            
+            this.nifti_.fileprefix = [this.nifti_.fileprefix '_decayCorrect'];
+            if (this.useBequerels)                
+                this.nifti_.fileprefix = [this.nifti_.fileprefix '_Bq'];
+            end
+        end
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

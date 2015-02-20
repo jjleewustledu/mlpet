@@ -62,56 +62,43 @@ classdef DecayCorrection < mlpet.IDecayCorrection
             %          this = this@mlpet.DecayCorrection('p1234', '15O')
 
             p = inputParser;
-            addRequired(p, 'fileLocation', @ischar);
-            addRequired(p, 'isotope',      @(x) lstrfind(x, this.ISOTOPES));
-            addOptional(p, 'pie', nan,     @isnumeric);
+            addRequired(p, 'client',   @(x) isa(x, 'mlpet.IWellData'));
+            addOptional(p, 'pie', nan, @isnumeric);
             parse(p, varargin{:});
             
-            this.petio_ = mlpet.PETIO(p.Results.fileLocation);
+            this.client_ = p.Results.client;
+            this.petio_ = mlpet.PETIO(p.Results.client.wellFqfilename);
             this = this.readWellMatrix;
             this.pie = p.Results.pie;
-            this.isotope = p.Results.isotope;
+            this.isotope = this.client_.guessIsotope;
             
             fprintf('mlpet.DecayCorrection:  pie = %f, well-factor = %f\n', this.pie, this.wellFactor);
         end
-        function cnts = correctedBetaCounts(this, cnts, varargin)
-            %% CORRECTEDBETACOUNTS corrects positron decay, converts to well-couunts
-            %  Usage:  counts = this.correctedBetaCounts(counts[, times, taus]) % numeric counts            
+        function cnts = correctedCounts(this, cnts, varargin)
+            %% CORRECTEDCOUNTS corrects positron decay, converts to well-couunts
+            %  Usage:  counts = this.correctedBetaCounts(counts[, times, denom]) % numeric counts  
             
             p = inputParser;
-            addRequired(p, 'cnts',                    @isnumeric);
-            addOptional(p, 'times', 1:length(cnts),   @isnumeric);
-            addOptional(p, 'taus',  ones(size(cnts)), @isnumeric);
+            addRequired(p, 'cnts',                      @isnumeric);
+            addOptional(p, 'times', this.client_.times, @isnumeric);
             parse(p, cnts, varargin{:});
             
-            cnts = this.wellFactor * p.Results.cnts .* exp(this.lambda * p.Results.times) ./ p.Results.taus;
-        end
-        function cnts = correctedWellCounts(this, cnts, varargin)
-            %% CORRECTEDWELLCOUNTS corrects positron decay, maintains well-couunts
-            %  Usage:  counts = this.correctedWellCounts(counts[, times, taus]) % numeric counts            
-            
-            p = inputParser;
-            p = inputParser;
-            addRequired(p, 'cnts',                    @isnumeric);
-            addOptional(p, 'times', 1:length(cnts),   @isnumeric);
-            addOptional(p, 'taus',  ones(size(cnts)), @isnumeric);
-            parse(p, cnts, varargin{:});
-            
-            cnts = p.Results.cnts .* exp(this.lambda * p.Results.times) ./ p.Results.taus;
-        end
-        function cnts = correctedScannerCounts(this, cnts, varargin)
-            %% CORRECTEDSCANNERCOUNTS corrects positron decay, converts to well-couunts
-            %  Usage:  counts = this.correctedScannerCounts(counts[, times, taus]) % numeric counts            
-            
-            p = inputParser;
-            p = inputParser;
-            addRequired(p, 'cnts',                    @isnumeric);
-            addOptional(p, 'times', 1:length(cnts),   @isnumeric);
-            addOptional(p, 'taus',  ones(size(cnts)), @isnumeric);
-            parse(p, cnts, varargin{:});
-            
-            for t = 1:size(cnts,4)
-                cnts(:,:,:,t) = 60 * this.pie * cnts(:,:,:,t) .* exp(this.lambda * p.Results.times(t)) ./ p.Results.taus(t);
+            denom = ones(size(cnts));
+            if (this.client_.useBequerels)
+                denom = this.client_.taus; 
+            end 
+            if (isa(this.client_, 'mlpet.IScannerData'))
+                fprintf('DecayCorrection.correctedCounts received mlpet.IScannerData\n');
+                cnts = correctedScannerCounts(this, cnts, p.Results.times, denom);
+            elseif (isa(this.client_, 'mlpet.IBetaCurve'))
+                fprintf('DecayCorrection.correctedCounts received mlpet.IBetaCurve\n');
+                cnts = correctedBetaCounts(   this, cnts, p.Results.times, denom);
+            elseif (isa(this.client_, 'mlpet.IWellData'))
+                fprintf('DecayCorrection.correctedCounts received mlpet.IWellData\n');
+                cnts = correctedWellCounts(   this, cnts, p.Results.times, denom);
+            else
+                error('mlpet:unsupportedTypeClass', ...
+                      'DecayCorrection.correctedCounts does not support clients of type %s', class(this.client_));
             end
         end
     end
@@ -119,6 +106,8 @@ classdef DecayCorrection < mlpet.IDecayCorrection
     %% PRIVATE
     
     properties (Access = 'private')
+        client_
+        
         petio_
         isotope_
         wellMatrix_
@@ -137,6 +126,17 @@ classdef DecayCorrection < mlpet.IDecayCorrection
         end
         function l    = lambda(this)
             l = log(2) / this.halfLife;
+        end
+        function cnts = correctedBetaCounts(this, cnts, times, denom)
+            cnts = this.wellFactor * cnts .* exp(this.lambda * times) ./ denom;
+        end
+        function cnts = correctedWellCounts(this, cnts, times, denom)
+            cnts = cnts .* exp(this.lambda * times) ./ denom;
+        end
+        function cnts = correctedScannerCounts(this, cnts, times, denom)
+            for t = 1:size(cnts,4)
+                cnts(:,:,:,t) = 60 * this.pie * cnts(:,:,:,t) .* exp(this.lambda * times(t)) ./ denom(t);
+            end
         end
     end
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

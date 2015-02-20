@@ -1,4 +1,4 @@
-classdef TSC < mlpet.AbstractScannerData & mlpet.IDecayCorrection
+classdef TSC < mlpet.AbstractWellData
 	%% TSC objectifies Mintun-Markham *.tsc files for use with glucose metabolism calculations.   
     %  Tsc files record scanner-array events, correct for positron half-life and adjust scanner-array events to yield well-counter units.
 	%  $Revision$ 
@@ -15,300 +15,154 @@ classdef TSC < mlpet.AbstractScannerData & mlpet.IDecayCorrection
         COUNTS_UNITS = 'scanner events'
     end
     
-	properties
-        STUDY_CODES = {'g' 'cg' 'gluc'};
-        isotope = '11C'
-        petGluc_decayCorrect
-        gluTxlsx
-        mask
-        
-        pie = 4.88; % 3D [11C] scans from 2012
-    end
-    
-    properties (Dependent)          
-        scanIndex % integer, e.g., last char in 'p1234ho1'
-        tracer % char, e.g., 'ho'
-        length % integer, number valid frames
-        scanDuration % sec  
-        dt % sec        
-        times
-        timeInterpolants
-        counts
-        countInterpolants
-        header
-        
-        taus
-        timeMidpoints
-        injectionTime
-        useBequerels = false 
-        
-        nifti
-        recFqfilename 
-        
-        
-        
-        dtaDuration   
-        
-        pnumber           
+    properties (Dependent)
+        pnumberPath
+        pnumber
         fslPath  
-        scanPath
         petPath
-        procPath
-        
-        maskFqFilename
-        glucFqFilename
-        recFqFilename      
+        scanPath
+        procPath  
     end
     
-    methods %% GET  
-         
-        function dd = get.dtaDuration(this)
-            assert(~isempty(this.dtaDuration_));
-            dd = this.dtaDuration_;
+    methods %% GET 
+        function p   = get.pnumberPath(this)
+            names = regexp(this.filepath, '(?<pnumberPath>\S+/p\d{4,8}\w+)/\S+', 'names');
+            p = names.pnumberPath;
         end
-        function t = get.taus(this)
-            assert(~isempty(this.taus_));
-            t = this.taus_;
-        end
-        
         function p   = get.pnumber(this)
-            p = str2pnum(this.filepath);
-        end     
+            p = str2pnum(this.pnumberPath);
+        end   
         function pth = get.fslPath(this)
-            pth = fullfile(this.filepath, 'fsl', '');
+            pth = fullfile(this.pnumberPath, 'fsl', '');
         end 
+        function pth = get.petPath(this)
+            pth = fullfile(this.pnumberPath, 'PET', '');
+        end
         function pth = get.scanPath(this)
             pth = fullfile(this.petPath, ['scan' num2str(this.scanIndex)], '');
         end
-        function pth = get.petPath(this)
-            pth = fullfile(this.filepath, 'PET', '');
-        end
         function pth = get.procPath(this)
-            pth = fullfile(this.filepath, 'jjl_proc', '');
+            pth = fullfile(this.pnumberPath, 'jjl_proc', '');
         end
-        
-        function f   = get.maskFqFilename(this)
-            f = sprintf('brain_finalsurfs_on_%str1.nii.gz', this.pnumber);
-            f = fullfile(this.fslPath, f);
-        end
-        function f   = get.glucFqFilename(this)
-            f = sprintf('%sgluc%i.nii.gz', this.pnumber, this.scanIndex);
-            f = fullfile(this.scanPath, f);
-        end
-        function f   = get.recFqFilename(this)
-            f = sprintf('%sgluc%i.img.rec', this.pnumber, this.scanIndex);
-            f = fullfile(this.scanPath, f);
-        end        
+         
     end
     
     methods (Static)
+        function this = loadGluT(pnumPth, scanIdx)
+            assert(lexist(pnumPth, 'dir'));
+            pnum = str2pnum(pnumPth);
+            if (isnumeric(scanIdx)); scanIdx = num2str(scanIdx); end
+            
+            ecatLoc = fullfile(pnumPth, 'PET', ['scan' scanIdx], [pnum 'gluc' scanIdx '.nii.gz']);
+            tscLoc  = fullfile(pnumPth, 'jjl_proc', [pnum 'wb' scanIdx '.tsc']);
+            dtaLoc  = fullfile(pnumPth, 'jjl_proc', [pnum 'g'  scanIdx '.dta']);
+            this = mlpet.TSC.load(tscLoc, ecatLoc, dtaLoc, 4.88);            
+        end
+        function this = load(tscLoc, ecatLoc, dtaLoc, pie)
+            this = mlpet.TSC(tscLoc, ecatLoc, dtaLoc, pie);
+        end
     end
 
 	methods 	
- 		function this = TSC(varargin)
+ 		function this = TSC(tscLoc, ecatLoc, dtaLoc, pie)
             %% TSC
- 			%  Usage:  this = TSC(fileprefix[, path]) 
-            %          this = TSC('p1234cg1', '/path/to/p1234data')
+ 			%  Usage:  this = TSC(tsc_file_location, ecat_file_location,  dta_file_location, pie_factor) 
+            %          this = TSC('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta', 4.88)
+            %          this = TSC('/p1234data/jjl_proc/p1234wb1', '/p1234data/PET/scan1/p1234gluc1', '/p1234data/jjl_proc/p1234g1', 4.88)
+            %          this = TSC('p1234wb1', '../PET/scan1/p1234gluc1', 'p1234g1', 4.88)
 
-            this = this@mlpet.AbstractLegacyBetaCurve(varargin{:});
+            this = this@mlpet.AbstractWellData(tscLoc);
             
-            import mlfourd.*;
-            this.injectionTime = this.getInjectionTime;
-            this.mask      = this.makeMask( ...
-                                 NIfTI.load(this.maskFqFilename));
-            [this.petGluc_decayCorrect,this.times_,this.taus_] = ...
-                             this.decayCorrect( ...
-                                 this.maskPet( ...
-                                     NIfTI.load(this.glucFqFilename), this.mask));
-            this.counts_ = this.plotPet();
-            this.dtaDuration_ = this.getDtaDuration;            
-            this.gluTxlsx = mlarbelaez.GluTxlsx; 			 
- 		end 	 
-        function counts = plotPet(this, nii, msk)
-            %% PLOTPET plots the time-evolution of the PET data summed over all positions from the tomogram
-            %  Usage:  counts = plotPet(PET_NIfTI, mask_NIfTI) 
-            %          ^ double vector                       
-
-            assert(isa(nii,    'mlfourd.NIfTI'));
-            assert(isa(msk, 'mlfourd.NIfTI'));
-            assert(4 == length(nii.size), 'plotPet:  PET NIfTI has no temporal data');
-            nii_size = nii.size;
-            assert(all(nii_size(1:3) == msk.size));
-
-            counts = zeros(1,nii.size(4));
-            for t = 1:nii.size(4)
-                counts(t) = sum(sum(sum(nii.img(:,:,:,t) .* msk.img, 1), 2), 3);
+            import mlpet.* mlfourd.*;
+            this.mask_ = this.makeMask;
+            this.dta_ = DTA(dtaLoc);
+            this.decayCorrectedEcat_ = this.maskEcat( ...
+                                       DecayCorrectedEcat( ...
+                                       EcatExactHRPlus(ecatLoc), pie), this.mask_);
+            
+            this.times_  = this.decayCorrectedEcat_.times;  
+            this.taus_   = this.decayCorrectedEcat_.taus; 
+            this.counts_ = this.squeezeVoxels(this.decayCorrectedEcat_);  
+            this.header_ = this.decayCorrectedEcat_.header;
+            if (~lexist(this.fqfilename) || ~this.noclobber)
+                this.save;
             end
-            figure;
-            plot(counts);
-            title([nii.fileprefix ' && ' msk.fileprefix], 'Interpreter', 'none');
-            xlabel('time-frame/arbitrary');
-            if (~this.useBequerels); ylabel('counts/time-frame');
-            else                  ylabel('activity/Bq'); end
         end
-        function counts = printTsc(this, fqfn, label, counts, mask)
-            %% PRINTTSC ...
-            %  Usage:  printTsc(label, counts, mask)
-            %                   ^ string
-            %                          ^ double, PETcnts
-            %                                  ^ boolean NIfTI
-            
-            fid = fopen(fqfn, 'w');
+        function msk  = makeMask(this)
+            msk = mlfourd.NIfTI.load(this.maskFqfilename);
+            msk.img = abs(msk.img) > eps;
+            msk.fileprefix = [msk.fileprefix '_mask'];
+        end
+        function ecat = maskEcat(~, ecat, msk)
+            %% MASKPET accepts PET and mask NIfTIs and masks each time-frame of PET by the mask
+            %  Usage:  pet_masked_nifti = maskPet(pet_nifti, mask_nifti) 
+
+            assert(isa(ecat, 'mlpet.EcatExactHRPlus'));
+            assert(isa(msk, 'mlfourd.NIfTI'));
+            assert(3 == length(msk.size), 'mlpet:unsupportedDataSize', 'TSC.makeMask.mask.size -> % i', msk.size); %#ok<*MCNPN>
+
+            nii = ecat.nifti;
+            for t = 1:nii.size(4)
+                nii.img(:,:,:,t) = nii.img(:,:,:,t) .* msk.img;
+            end
+            nii.fileprefix = [nii.fileprefix '_masked'];
+            ecat.nifti = nii;
+        end        
+        function cnts = squeezeVoxels(this, ecat)
+            assert(isa(ecat, 'mlpet.EcatExactHRPlus'));
+            Nt = ecat.nifti.size(4);
+            cnts = zeros(1, Nt);
+            for t = 1:Nt
+                cnts(t) = sum(sum(sum(this.decayCorrectedEcat_.nifti.img(:,:,:,t), 1), 2), 3); end
+        end
+        function        plot(this)            
+            figure;
+            plot(this.times, this.counts);
+            title([this.decayCorrectedEcat_.fileprefix ' && ' this.mask_.fileprefix], 'Interpreter', 'none');
+            xlabel('acquisition-time/sec');
+            if (~this.useBequerels); ylabel('counts/acquisition-frame');
+            else                     ylabel('activity/Bq'); end
+        end
+        function this = save(this)
+            fid = fopen(this.fqfilename, 'w');
             
             Nf = this.getNf;
-            if (getenv('VERBOSE'))
-                fprintf('printTsc:  using pie->%f\n', this.pie); end
-            Npixels = mask.dipsum;
+            Npixels = this.mask_.dipsum;
             
             % \pi \equiv \frac{wellcnts/cc/sec}{PETcnts/pixel/min}
             % wellcnts/cc = \pi \frac{PETcnts}{pixel} \frac{sec}{min}
-            
-            counts = this.pie * (counts/Npixels) * 60;
-            fprintf(fid, '%s\n', label);
+                 
+            this.counts_ = 60 * this.decayCorrectedEcat_.pie * (this.counts_/Npixels);
+            fprintf(fid, '%s,  %s, %s, pie = %f\n', ...
+                    this.dta_.filename, this.mask_.filename, this.decayCorrectedEcat_.nifti.filename, this.decayCorrectedEcat_.pie);
             fprintf(fid, '    %i,    %i\n', Nf, 3);
             for f = 1:Nf
-                fprintf(fid, '%12.1f %12.1f %14.2f\n', this.times(f), this.taus(f), counts(f));
+                fprintf(fid, '%12.1f %12.1f %14.2f\n', this.times(f), this.taus(f), this.counts(f));
             end
             fprintf(fid, 'bool(brain.finalsurfs)\n\n');
             
             fclose(fid);
-        end   
-        function msk = makeMask(~, nii)
-            
-            assert(isa(nii, 'mlfourd.NIfTI'));
-            assert(3 == length(nii.size), 'mlpet:dataFormatNotSupported', 'Glucnoflow.makeMask.nii.size -> % i', nii.size); %#ok<*MCNPN>
-            
-            msk = mlfourd.NIfTI(nii);
-            msk.fileprefix = [nii.fileprefix '_mask'];
-            msk.img = abs(msk.img) > eps;
-        end
-        function [nii,times,taus] = decayCorrect(this, nii)
-            %% DECAYCORRECT ... 
-            %  Usage:  [nifti,times,durations] = decayCorrect(nifti);
-            %                 ^     ^ double
-            %  Uses:  this.isotope, this.injectionTime 
-            %         ^ char:  "15O", "11C"
-            %                       ^ float, sec
-
-            sz = nii.size;
-            NN = 70; % time-resolution used internally for calculations; truncated to nii.size(4)
-            switch (this.isotope)
-                case '15O'        
-                    halfLife           = 122.1;
-                    lambda             = log(2) / halfLife; % lambda \equiv 1/tau, tau = 1st-order rate constant 
-                    times              = zeros(1,NN);
-                    taus               = zeros(1,NN);
-                    img                = zeros(sz(1),sz(2),sz(3),NN);
-                    img(:,:,:,1:sz(4)) = nii.img;
-                    nii.pixdim(4)      = 2;
-
-                    times( 1:31) = this.injectionTime +      2*([2:32] - 2);
-                    times(32:NN) = this.injectionTime + 60 + 6*([33:NN+1] - 32);
-
-                    taus( 1:30) = 2;
-                    taus(31:NN) = 6;
-
-                    if (this.useBequerels)
-                        scaling = [2 6]; %#ok<*UNRCH> % duration of sampling
-                    else
-                        scaling = [1 1];
-                    end
-
-                    for t = 1:30
-                        img(:,:,:,t) = img(:,:,:,t) * exp(lambda * times(t)) / scaling(1); end
-                    for t = 31:NN
-                        img(:,:,:,t) = img(:,:,:,t) * exp(lambda * times(t)) / scaling(2); end
-
-                case '11C'
-                    halfLife           = 20.334*60;
-                    lambda             = log(2) / halfLife;
-                    times              = zeros(1,NN);
-                    taus               = zeros(1,NN);
-                    img                = zeros(sz(1),sz(2),sz(3),NN);
-                    img(:,:,:,1:sz(4)) = nii.img;
-                    nii.pixdim(4)      = 30;
-
-                    times( 1:17) = this.injectionTime +         30*([ 2:18] -  2); %#ok<*NBRAK>
-                    times(18:25) = this.injectionTime + 480  +  60*([19:26] - 18);
-                    times(26:41) = this.injectionTime + 960  + 120*([27:42] - 26);
-                    times(42:49) = this.injectionTime + 2880 + 180*([43:50] - 42);
-                    times(50:NN) = this.injectionTime + 4320 + 240*([51:NN+1] - 50);
-
-                    taus( 1:16) = 30;
-                    taus(17:24) = 60;
-                    taus(25:40) = 120;
-                    taus(41:48) = 180;
-                    taus(49:NN) = 240;        
-
-                    if (this.useBequerels)
-                        scaling = [30 60 120 180 240]; % duration of sampling
-                    else
-                        scaling = [1 1 1 1 1];
-                    end
-
-                    for t = 1:16
-                        img(:,:,:,t) = img(:,:,:,t) * exp(lambda * times(t)) / scaling(1); end
-                    for t = 17:24
-                        img(:,:,:,t) = img(:,:,:,t) * exp(lambda * times(t)) / scaling(2); end
-                    for t = 25:40
-                        img(:,:,:,t) = img(:,:,:,t) * exp(lambda * times(t)) / scaling(3); end
-                    for t = 41:48
-                        img(:,:,:,t) = img(:,:,:,t) * exp(lambda * times(t)) / scaling(4); end
-                    for t = 49:NN
-                        img(:,:,:,t) = img(:,:,:,t) * exp(lambda * times(t)) / scaling(5); end
-
-                otherwise
-                    error('mfiles:unsupportedPropertyValue', 'decayCorrect did not recognize %s', this.isotope);
-            end
-
-            nii.img = img(:,:,:,1:sz(4));
-            times   = times(1:sz(4));
-            taus    = taus( 1:sz(4));
-            nii.fileprefix = [nii.fileprefix '_decayCorrect'];
-            if (this.useBequerels)
-                nii.fileprefix = [nii.fileprefix '_Bq']; end
-        end
-        function pet = maskPet(~, pet, msk)
-            %% MASKPET accepts PET and mask NIfTIs and masks each time-frame of PET by the mask
-            %  Usage:  pet_masked_nifti = maskPet(pet_nifti, mask_nifti) 
-
-            assert(isa(pet, 'mlfourd.NIfTI'));
-            assert(isa(msk, 'mlfourd.NIfTI'));
-            assert(3 == length(msk.size));
-
-            for t = 1:pet.size(4)
-                pet.img(:,:,:,t) = pet.img(:,:,:,t) .* msk.img;
-            end
-            pet.fileprefix = [pet.fileprefix '_masked'];
         end
     end 
 
     %% PRIVATE
     
     properties (Access = 'private')
-        dtaDuration_
-        taus_
+        mask_
+        dta_
+        decayCorrectedEcat_
     end
     
     methods (Access = 'private')
-        function stime = getInjectionTime(this)
-            try
-                tp = mlio.TextParser.load(this.recFqFilename);
-                stime = tp.parseAssignedNumeric('Start time');
-            catch ME
-                fprintf('Glucnoflow.getInjectionTime failed for %s pet-index %i', this.petPath, this.scanIndex);
-                handexcept(ME);
-            end
-        end 
-        function t = getDtaDuration(this)
-            dta = mlpet.DTA( ...
-                      sprintf('%sg%i', this.pnumber, this.scanIndex), this.procPath);
-            t = dta.times(dta.length);
-        end
+        function f   = maskFqfilename(this)
+            f = sprintf('brain_finalsurfs_on_%str1.nii.gz', this.pnumber);
+            f = fullfile(this.fslPath, f);
+        end  
         function nf = getNf(this)
-            nf = min([length(this.times) length(this.taus)]);
+            nf = length(this.times);
+            dd = this.dta_.times(this.dta_.length);
             for f = 1:nf
-                if (this.times(f) + this.taus(f) > this.dtaDuration)
+                if (this.times(f) + this.taus(f) > dd)
                     nf = f - 1;
                     break; 
                 end

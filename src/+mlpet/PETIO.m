@@ -9,6 +9,10 @@ classdef PETIO < mlio.AbstractIO
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
  	%  $Id$ 
  	 
+    properties (Constant)
+        SCAN_INDEX_EXPR = 'p\d+[a-zA-Z]+(?<idx>\d)_?\w*'
+        TRACER_EXPR = 'p\d+(?<tracer>[a-zA-Z]+)\d_?\w*'
+    end
 
 	properties (Dependent)
         scanIndex
@@ -17,18 +21,12 @@ classdef PETIO < mlio.AbstractIO
     
     methods % GET
         function idx = get.scanIndex(this)
-            if (length(this.fileprefix) < 6)
-                idx = nan; 
-                return
-            end
-            idx = str2double(this.fileprefix(end));
+            names = regexp(this.fileprefix, this.SCAN_INDEX_EXPR, 'names');
+            idx = str2double(names.idx);
         end
-        function id = get.tracer(this)            
-            if (length(this.fileprefix) < 6)
-                id = ''; 
-                return
-            end
-            id = this.fileprefix(6:end-1);
+        function t = get.tracer(this) 
+            names = regexp(this.fileprefix, this.TRACER_EXPR, 'names');
+            t = names.tracer;
         end
     end
     
@@ -44,7 +42,7 @@ classdef PETIO < mlio.AbstractIO
             addRequired(p, 'fileLocation', @this.wellFormedFileLocation);
             parse(p, fileLoc);
             
-            [p,f,s] = fileparts(p.Results.fileLocation);
+            [p,f,s] = gzfileparts(p.Results.fileLocation);
             if (isempty(p)); p = pwd; end
             this.filepath   = p;
             this.fileprefix = f;

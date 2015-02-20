@@ -12,6 +12,7 @@ classdef AbstractWellData < mlpet.IWellData
  	 
     properties
         dt = 1 % sec, for timeInterpolants
+        useBequerels = false % boolean for dividing accumulated counts by sampling durations of each time-frame to obtain 1/sec  
     end
     
 	properties (Dependent)        
@@ -23,6 +24,7 @@ classdef AbstractWellData < mlpet.IWellData
         fqfileprefix
         fqfn
         fqfp
+        noclobber
         
         scanIndex   
         tracer
@@ -33,6 +35,9 @@ classdef AbstractWellData < mlpet.IWellData
         counts
         countInterpolants
         header
+        
+        taus
+        timeMidpoints
     end 
     
     methods %% GET, SET 
@@ -59,6 +64,9 @@ classdef AbstractWellData < mlpet.IWellData
         end
         function f = get.fqfp(this)
             f = this.petio_.fqfp;
+        end
+        function f = get.noclobber(this)
+            f = this.petio_.noclobber;
         end
         
         function idx  = get.scanIndex(this)
@@ -108,6 +116,17 @@ classdef AbstractWellData < mlpet.IWellData
             if (isstruct(h))
                 this.header_ = h; end            
         end
+        
+        function t = get.taus(this)
+            assert(~isempty(this.taus_));
+            t = this.taus_;
+        end
+        function tmp = get.timeMidpoints(this)
+            tmp = this.times;
+            for t = 2:this.length
+                tmp(t) = (this.times_(t-1) + this.times_(t))/2;
+            end
+        end
     end
     
 	methods 
@@ -124,19 +143,6 @@ classdef AbstractWellData < mlpet.IWellData
             this.petio_.fqfilename = fqfn;
             this.save;
         end
-    end 
-    
-    %% PROTECTED
-    
-    properties (Access = 'protected')
-        petio_
-        
-        times_
-        counts_
-        header_
-    end     
-    
-    methods (Access = 'protected')
         function i = guessIsotope(this)
             if (lstrfind(this.tracer, {'ho' 'oo' 'oc' 'co'}))
                 i = '15O';
@@ -149,7 +155,18 @@ classdef AbstractWellData < mlpet.IWellData
             error('mlpet:indeterminatePropertyValue', ...
                 'AbstractWellData.guessIsotope could not recognize the isotope of %s', this.fileprefix);
         end
-    end
+    end 
+    
+    %% PROTECTED
+    
+    properties (Access = 'protected')
+        petio_
+        
+        times_
+        taus_
+        counts_
+        header_
+    end     
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
 end

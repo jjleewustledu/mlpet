@@ -12,7 +12,7 @@ classdef AbstractScannerData < mlpet.IScannerData
     
     properties  
         dt = 1 % sec, for timeInterpolants
-        useBequerels = false % boolean for dividing by sampling durations of each time-frame to obtain 1/sec  
+        useBequerels = false % boolean for dividing accumulated counts by sampling durations of each time-frame to obtain 1/sec  
     end
 	
     properties (Dependent)
@@ -24,11 +24,12 @@ classdef AbstractScannerData < mlpet.IScannerData
         fqfileprefix
         fqfn
         fqfp
+        noclobber      
         
-        scanIndex   
-        tracer
-        length
-        scanDuration % sec  
+        scanIndex % integer, e.g., last char in 'p1234ho1'
+        tracer % char, e.g., 'ho'
+        length % integer, number valid frames
+        scanDuration % sec   
         times
         timeInterpolants
         counts
@@ -68,20 +69,17 @@ classdef AbstractScannerData < mlpet.IScannerData
         function f = get.fqfp(this)
             f = this.nifti_.fqfp;
         end
+        function f = get.noclobber(this)
+            f = this.nifti_.noclobber;
+        end
         
         function idx  = get.scanIndex(this)
-            if (length(this.fileprefix) < 6)
-                idx = nan; 
-                return
-            end
-            idx = str2double(this.fileprefix(end));
+            names = regexp(this.fileprefix, mlpet.PETIO.SCAN_INDEX_EXPR, 'names');
+            idx = str2double(names.idx);
         end
-        function id  = get.tracer(this)
-            if (length(this.fileprefix) < 6)
-                id = ''; 
-                return
-            end
-            id = this.fileprefix(6:end-1);
+        function t    = get.tracer(this)
+            names = regexp(this.fileprefix, mlpet.PETIO.TRACER_EXPR, 'names');
+            t = names.tracer;
         end
         function l    = get.length(this)
             assert(~isempty(this.times_));
@@ -146,6 +144,10 @@ classdef AbstractScannerData < mlpet.IScannerData
             assert(~isempty(this.nifti_));
             n = this.nifti_;
         end
+        function this = set.nifti(this, nii)
+            assert(isa(nii, 'mlfourd.NIfTI'));
+            this.nifti_ = nii;
+        end
         function f = get.recFqfilename(this)
             f = sprintf('%s.img.rec', this.fqfileprefix);
         end
@@ -165,20 +167,6 @@ classdef AbstractScannerData < mlpet.IScannerData
             this.nifti_.fqfilename = fqfn;
             this.save;
         end
-    end 
-    
-    %% PROTECTED
-    
-    properties (Access = 'protected')
-        nifti_
-        
-        times_
-        taus_
-        counts_
-        header_
-    end
-
-    methods (Access = 'protected')
         function i = guessIsotope(this)
             if (lstrfind(this.tracer, {'ho' 'oo' 'oc' 'co'}))
                 i = '15O';
@@ -191,6 +179,17 @@ classdef AbstractScannerData < mlpet.IScannerData
             error('mlpet:indeterminatePropertyValue', ...
                 'AbstractScannerData.guessIsotope could not recognize the isotope of %s', this.fileprefix);
         end
+    end 
+    
+    %% PROTECTED
+    
+    properties (Access = 'protected')
+        nifti_
+        
+        times_
+        taus_
+        counts_
+        header_
     end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

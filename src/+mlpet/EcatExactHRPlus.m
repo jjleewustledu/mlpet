@@ -85,11 +85,7 @@ classdef EcatExactHRPlus < mlpet.AbstractScannerData
             this.times_ = this.header.start;
         end
         function this = readTaus(this)
-            if (this.useBequerels)
-                this.taus_ = this.header.duration;
-            else
-                this.taus_ = ones(1, length(this.header.duration)); 
-            end
+            this.taus_ = this.header.duration;
         end
         function this = readNifti(this)
             this.nifti_ = mlfourd.NIfTI.load(this.fqfilename);

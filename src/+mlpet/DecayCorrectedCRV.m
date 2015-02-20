@@ -30,7 +30,7 @@ classdef DecayCorrectedCRV < mlpet.CRV & mlpet.IDecayCorrection
             p = this.decayCorrection_.pie;
         end
         function f = get.wellFqfilename(this)
-            f = this.decayCorrection_.wellFqfilename;
+            f = fullfile(this.filepath, [str2pnum(this.fileprefix) '.wel']);
         end
         function w = get.wellFactor(this)
             w = this.decayCorrection_.wellFactor;
@@ -53,10 +53,8 @@ classdef DecayCorrectedCRV < mlpet.CRV & mlpet.IDecayCorrection
             assert( isa(crv, 'mlpet.CRV'));
             assert(~isa(crv, 'mlpet.DecayCorrectedCRV'));
             
-            this.decayCorrection_ = mlpet.DecayCorrection( ...
-                fullfile(this.filepath, [str2pnum(this.fileprefix) '.wel']), ...
-                this.guessIsotope);
-            this.counts = this.decayCorrection_.correctedBetaCounts(this.counts, this.times);
+            this.decayCorrection_ = mlpet.DecayCorrection(this);
+            this.counts = this.decayCorrection_.correctedCounts(this.counts, this.times);
         end 
     end 
     

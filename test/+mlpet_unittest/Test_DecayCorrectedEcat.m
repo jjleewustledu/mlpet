@@ -24,7 +24,7 @@ classdef Test_DecayCorrectedEcat < matlab.unittest.TestCase
             this.assertEqual(this.testObj.counts, newObj.counts);
         end
         function test_ctor(this)
-            this.assertEqual(this.testObj.fqfilename, fullfile(this.unittest_home, 'p8047gluc1.nii.gz'));
+            this.assertEqual(this.testObj.fqfilename, fullfile(this.unittest_home, 'p8047gluc1_decayCorrect.nii.gz'));
             this.assertEqual(this.testObj.scanIndex, 1);
             this.assertEqual(this.testObj.tracer, 'gluc');
             this.assertEqual(this.testObj.length, 44);
@@ -35,8 +35,8 @@ classdef Test_DecayCorrectedEcat < matlab.unittest.TestCase
             this.assertEqual(this.testObj.times(44), 3420);
         end
         function test_taus(this)
-            this.assertEqual(this.testObj.taus(4), 1);
-            this.assertEqual(this.testObj.taus(44), 1);
+            this.assertEqual(this.testObj.taus(4), 30);
+            this.assertEqual(this.testObj.taus(44), 180);
         end
         function test_injectionTime(this)
             this.assertEqual(this.testObj.injectionTime, 18.9330);

@@ -14,76 +14,91 @@ classdef Test_TSC < matlab.unittest.TestCase
  	%  $Id$ 
  	 
 
-	properties  		 
+	properties  
+        unittest_home = '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL/jjl_proc'		 
         pnumPath 
+        scanPath
         procPath
         tscFqfilename 
+        dtaFqfilename
+        ecatFqfilename
         testObj
  	end 
 
 	methods (Test) 
- 		function test_afun(this)
- 			import mlpet.*;
- 			this.assumeEqual(1,1);
- 			this.verifyEqual(1,1);
- 			this.assertEqual(1,1);
+        function test_loadGluT(this)
+            newObj = mlpet.TSC.loadGluT(this.pnumPath, 1);
+            this.assertEqual(this.testObj.counts, newObj.counts);
         end
         function test_ctor(this)
+            this.assertEqual(this.testObj.pnumberPath, '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL');
+            this.assertEqual(this.testObj.pnumber,     'p8047');
+            this.assertEqual(this.testObj.fslPath,     '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL/fsl');
+            this.assertEqual(this.testObj.petPath,     '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL/PET');
+            this.assertEqual(this.testObj.scanPath,    '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL/PET/scan1');
+            this.assertEqual(this.testObj.procPath,    '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL/jjl_proc');
         end
-        function test_injectionTime(this)
+        function test_save(this)            
+            ca = mlio.TextIO.textfileToCell(this.tscFqfilename);
+            this.assertTrue(strcmp('p8047g1.dta,  brain_finalsurfs_on_p8047tr1_mask.nii.gz, p8047gluc1_decayCorrect_masked.nii.gz, pie = 4.880000', strtrim(ca{1})));
+            this.assertTrue(strcmp('44,    3', strtrim(ca{2})));
+            this.assertTrue(strcmp('3420.0        180.0   206710720.00', strtrim(ca{46})));
         end
-        function test_petGluc_decayCorrect(this)
-        end
-        function test_gluTxlsx(this)
-        end
-        function test_mask(this)
-        end
-        function test_scanDuration(this)
+        function test_makeMask(this)
+            msk = this.testObj.makeMask;
+            this.assertTrue(strcmp('brain_finalsurfs_on_p8047tr1_mask', msk.fileprefix));
         end
         function test_times(this)
-        end
-        function test_timeInterpolants(this)
-        end
-        function test_dtaDuration(this)
-        end
-        function test_fqFilenames(this)
+            this.assertEqual(this.testObj.times(4), 90);
+            this.assertEqual(this.testObj.times(44), 3420);
         end
         function test_taus(this)
+            this.assertEqual(this.testObj.taus(4), 30);
+            this.assertEqual(this.testObj.taus(44), 180);
+        end
+        function test_scanDuration(this)
+            this.assertEqual(this.testObj.scanDuration, 3420);
         end
         function test_counts(this)
-        end
-        function test_countInterpolants(this)
+            this.assertEqual(this.testObj.counts(4),   12161744896, 'RelTol', 1e-10);
+            this.assertEqual(this.testObj.counts(44), 130065383424, 'RelTol', 1e-10);
         end
         function test_header(this)
+            this.assertEqual(this.testObj.header.injectionTime, 18.9330);
+            this.assertEqual(this.testObj.header.numberOfFrames, 45);
+            this.assertEqual(this.testObj.header.string(1:14), 'rec p8047gluc1');
+            this.assertEqual(this.testObj.header.start(44), 3420);
+            this.assertEqual(this.testObj.header.duration(44), 180);
         end
-        function test_headerString(this)
-        end
-        function test_length(this)
-        end
-        function test_printTsc(this)
-            this.testObj.printTsc(this.tscFqfilename, 'Test_TSC.test_printTsc');   
-            ca = mlio.TextIO.textfileToCell(this.tscFqfilename);
-            this.assertTrue(strcmp('', ca{1}));
-            this.assertTrue(strcmp('    43,    3', ca{2}));
-            this.assertTrue(strcmp('      3258.9        180.0      727936.19', ca{45}));
-        end
- 	end 
+%         function test_save(this)
+%             this.testObj.printTsc(this.tscFqfilename, 'Test_TSC.test_printTsc');   
+%             ca = mlio.TextIO.textfileToCell(this.tscFqfilename);
+%             this.assertTrue(strcmp('', ca{1}));
+%             this.assertTrue(strcmp('    43,    3', ca{2}));
+%             this.assertTrue(strcmp('      3258.9        180.0      727936.19', ca{45}));
+%        end
+    end
 
  	methods (TestClassSetup) 
  		function setupDTA(this) 
-            this.pnumPath = '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL';
-            this.procPath = fullfile(this.pnumPath, 'jjl_proc', '');
-            this.tscFqfilename = fullfile(this.procPath, 'p8047wb1.tsc');
-            cd(this.pnumPath);
- 			this.testObj = mlpet.TSC('p8047wb1', this.pnumpath); 
  		end 
-    end 
-    
+    end
+
  	methods 		  
  		function this = Test_TSC(varargin) 
  			this = this@matlab.unittest.TestCase(varargin{:}); 
+            
+            this.pnumPath = '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL';
+            this.scanPath = fullfile(this.pnumPath, 'PET', 'scan1', '');
+            this.procPath = fullfile(this.pnumPath, 'jjl_proc', '');
+            this.tscFqfilename = fullfile(this.procPath, 'p8047wb1.tsc');
+            this.dtaFqfilename = fullfile(this.procPath, 'p8047g1.dta');
+            this.ecatFqfilename = fullfile(this.scanPath, 'p8047gluc1.nii.gz');
+            cd(this.unittest_home);
+ 			this.testObj = mlpet.TSC( ...
+                this.tscFqfilename, this.ecatFqfilename, this.dtaFqfilename, 4.88); 
  		end 
- 	end 
+    end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
 end
