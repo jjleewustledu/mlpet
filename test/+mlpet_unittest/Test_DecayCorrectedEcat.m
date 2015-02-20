@@ -28,11 +28,11 @@ classdef Test_DecayCorrectedEcat < matlab.unittest.TestCase
             this.assertEqual(this.testObj.scanIndex, 1);
             this.assertEqual(this.testObj.tracer, 'gluc');
             this.assertEqual(this.testObj.length, 44);
-            this.assertEqual(this.testObj.scanDuration, 3420);
+            this.assertEqual(this.testObj.scanDuration, 3.438933000000000e+03);
         end
         function test_times(this)
-            this.assertEqual(this.testObj.times(4), 90);
-            this.assertEqual(this.testObj.times(44), 3420);
+            this.assertEqual(this.testObj.times(4),  1.089330000000000e+02, 'RelTol', 1e-6);
+            this.assertEqual(this.testObj.times(44), 3.438933000000000e+03, 'RelTol', 1e-6);
         end
         function test_taus(this)
             this.assertEqual(this.testObj.taus(4), 30);
@@ -42,8 +42,8 @@ classdef Test_DecayCorrectedEcat < matlab.unittest.TestCase
             this.assertEqual(this.testObj.injectionTime, 18.9330);
         end
         function test_counts(this)
-            this.assertEqual(this.testObj.counts(64,64,32,4), single(1.6424975e+05));
-            this.assertEqual(this.testObj.counts(64,64,32,44), single(1.2486928e+06));
+            this.assertEqual(this.testObj.counts(64,64,32,4),  single(1.6602603e+05));
+            this.assertEqual(this.testObj.counts(64,64,32,44), single(1.2621968e+06));
         end
         function test_header(this)
             this.assertEqual(this.testObj.header.injectionTime, 18.933);

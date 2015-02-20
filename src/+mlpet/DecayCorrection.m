@@ -88,13 +88,13 @@ classdef DecayCorrection < mlpet.IDecayCorrection
                 denom = this.client_.taus; 
             end 
             if (isa(this.client_, 'mlpet.IScannerData'))
-                fprintf('DecayCorrection.correctedCounts received mlpet.IScannerData\n');
+                %fprintf('DecayCorrection.correctedCounts received mlpet.IScannerData\n');
                 cnts = correctedScannerCounts(this, cnts, p.Results.times, denom);
             elseif (isa(this.client_, 'mlpet.IBetaCurve'))
-                fprintf('DecayCorrection.correctedCounts received mlpet.IBetaCurve\n');
+                %fprintf('DecayCorrection.correctedCounts received mlpet.IBetaCurve\n');
                 cnts = correctedBetaCounts(   this, cnts, p.Results.times, denom);
             elseif (isa(this.client_, 'mlpet.IWellData'))
-                fprintf('DecayCorrection.correctedCounts received mlpet.IWellData\n');
+                %fprintf('DecayCorrection.correctedCounts received mlpet.IWellData\n');
                 cnts = correctedWellCounts(   this, cnts, p.Results.times, denom);
             else
                 error('mlpet:unsupportedTypeClass', ...

@@ -69,7 +69,10 @@ classdef TSC < mlpet.AbstractWellData
  			%  Usage:  this = TSC(tsc_file_location, ecat_file_location,  dta_file_location, pie_factor) 
             %          this = TSC('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta', 4.88)
             %          this = TSC('/p1234data/jjl_proc/p1234wb1', '/p1234data/PET/scan1/p1234gluc1', '/p1234data/jjl_proc/p1234g1', 4.88)
-            %          this = TSC('p1234wb1', '../PET/scan1/p1234gluc1', 'p1234g1', 4.88)
+            %          this = TSC('p1234wb1', '../PET/scan1/p1234gluc1', 'p1234g1', 4.88)   
+            %
+            % N.B.:  \pi \equiv \frac{wellcnts/cc/sec}{PETcnts/pixel/min}
+            %        wellcnts/cc = \pi \frac{PETcnts}{pixel} \frac{sec}{min}
 
             this = this@mlpet.AbstractWellData(tscLoc);
             
@@ -82,8 +85,10 @@ classdef TSC < mlpet.AbstractWellData
             
             this.times_  = this.decayCorrectedEcat_.times;  
             this.taus_   = this.decayCorrectedEcat_.taus; 
-            this.counts_ = this.squeezeVoxels(this.decayCorrectedEcat_);  
-            this.header_ = this.decayCorrectedEcat_.header;
+            this.counts_ = this.squeezeVoxels(this.decayCorrectedEcat_, this.mask_);  
+            this.header_ = this.decayCorrectedEcat_.header;         
+                 
+            
             if (~lexist(this.fqfilename) || ~this.noclobber)
                 this.save;
             end
@@ -108,12 +113,14 @@ classdef TSC < mlpet.AbstractWellData
             nii.fileprefix = [nii.fileprefix '_masked'];
             ecat.nifti = nii;
         end        
-        function cnts = squeezeVoxels(this, ecat)
+        function cnts = squeezeVoxels(this, ecat, msk)
             assert(isa(ecat, 'mlpet.EcatExactHRPlus'));
             Nt = ecat.nifti.size(4);
             cnts = zeros(1, Nt);
             for t = 1:Nt
-                cnts(t) = sum(sum(sum(this.decayCorrectedEcat_.nifti.img(:,:,:,t), 1), 2), 3); end
+                cnts(t) = sum(sum(sum(this.decayCorrectedEcat_.nifti.img(:,:,:,t), 1), 2), 3); 
+            end
+            cnts = cnts/msk.dipsum;
         end
         function        plot(this)            
             figure;
@@ -124,23 +131,15 @@ classdef TSC < mlpet.AbstractWellData
             else                     ylabel('activity/Bq'); end
         end
         function this = save(this)
-            fid = fopen(this.fqfilename, 'w');
-            
+            fid = fopen(this.fqfilename, 'w');            
             Nf = this.getNf;
-            Npixels = this.mask_.dipsum;
-            
-            % \pi \equiv \frac{wellcnts/cc/sec}{PETcnts/pixel/min}
-            % wellcnts/cc = \pi \frac{PETcnts}{pixel} \frac{sec}{min}
-                 
-            this.counts_ = 60 * this.decayCorrectedEcat_.pie * (this.counts_/Npixels);
             fprintf(fid, '%s,  %s, %s, pie = %f\n', ...
                     this.dta_.filename, this.mask_.filename, this.decayCorrectedEcat_.nifti.filename, this.decayCorrectedEcat_.pie);
             fprintf(fid, '    %i,    %i\n', Nf, 3);
             for f = 1:Nf
                 fprintf(fid, '%12.1f %12.1f %14.2f\n', this.times(f), this.taus(f), this.counts(f));
             end
-            fprintf(fid, 'bool(brain.finalsurfs)\n\n');
-            
+            fprintf(fid, 'bool(brain.finalsurfs)\n\n');            
             fclose(fid);
         end
     end 

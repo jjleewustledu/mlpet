@@ -41,42 +41,35 @@ classdef Test_TSC < matlab.unittest.TestCase
         function test_save(this)            
             ca = mlio.TextIO.textfileToCell(this.tscFqfilename);
             this.assertTrue(strcmp('p8047g1.dta,  brain_finalsurfs_on_p8047tr1_mask.nii.gz, p8047gluc1_decayCorrect_masked.nii.gz, pie = 4.880000', strtrim(ca{1})));
-            this.assertTrue(strcmp('44,    3', strtrim(ca{2})));
-            this.assertTrue(strcmp('3420.0        180.0   206710720.00', strtrim(ca{46})));
+            this.assertTrue(strcmp('43,    3', strtrim(ca{2})));
+            this.assertTrue(strcmp('3258.9        180.0      727936.19', strtrim(ca{45})));
         end
         function test_makeMask(this)
             msk = this.testObj.makeMask;
             this.assertTrue(strcmp('brain_finalsurfs_on_p8047tr1_mask', msk.fileprefix));
         end
         function test_times(this)
-            this.assertEqual(this.testObj.times(4), 90);
-            this.assertEqual(this.testObj.times(44), 3420);
+            this.assertEqual(this.testObj.times(4),  108.933,  'RelTol', 1e-6);
+            this.assertEqual(this.testObj.times(43), 3258.933, 'RelTol', 1e-6);
         end
         function test_taus(this)
             this.assertEqual(this.testObj.taus(4), 30);
-            this.assertEqual(this.testObj.taus(44), 180);
+            this.assertEqual(this.testObj.taus(43), 180);
         end
         function test_scanDuration(this)
-            this.assertEqual(this.testObj.scanDuration, 3420);
+            this.assertEqual(this.testObj.scanDuration, 3.438933000000000e+03);
         end
         function test_counts(this)
-            this.assertEqual(this.testObj.counts(4),   12161744896, 'RelTol', 1e-10);
-            this.assertEqual(this.testObj.counts(44), 130065383424, 'RelTol', 1e-10);
+            this.assertEqual(this.testObj.counts(4),   single(66726.38), 'RelTol', 1e-6);
+            this.assertEqual(this.testObj.counts(43), single(727936.19), 'RelTol', 1e-6);
         end
         function test_header(this)
             this.assertEqual(this.testObj.header.injectionTime, 18.9330);
             this.assertEqual(this.testObj.header.numberOfFrames, 45);
             this.assertEqual(this.testObj.header.string(1:14), 'rec p8047gluc1');
-            this.assertEqual(this.testObj.header.start(44), 3420);
-            this.assertEqual(this.testObj.header.duration(44), 180);
+            this.assertEqual(this.testObj.header.start(43), 3240);
+            this.assertEqual(this.testObj.header.duration(43), 180);
         end
-%         function test_save(this)
-%             this.testObj.printTsc(this.tscFqfilename, 'Test_TSC.test_printTsc');   
-%             ca = mlio.TextIO.textfileToCell(this.tscFqfilename);
-%             this.assertTrue(strcmp('', ca{1}));
-%             this.assertTrue(strcmp('    43,    3', ca{2}));
-%             this.assertTrue(strcmp('      3258.9        180.0      727936.19', ca{45}));
-%        end
     end
 
  	methods (TestClassSetup) 

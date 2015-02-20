@@ -23,14 +23,14 @@ classdef Test_EcatExactHRPlus < matlab.unittest.TestCase
             this.assertEqual(this.testObj.fqfilename, fullfile(this.unittest_home, 'p7267ho1.nii.gz'));
             this.assertEqual(this.testObj.scanIndex, 1);
             this.assertEqual(this.testObj.length, 60);
-            this.assertEqual(this.testObj.scanDuration, 118);
+            this.assertEqual(this.testObj.scanDuration, 1.593330000000000e+02);
         end
         function test_times(this)
-            this.assertEqual(this.testObj.times(4), 6);
-            this.assertEqual(this.testObj.times(60), 118);
+            this.assertEqual(this.testObj.times(4), 47.332999999999998);
+            this.assertEqual(this.testObj.times(60), 1.593330000000000e+02);
         end
         function test_timeInterpolants(this)
-            this.assertEqual(this.testObj.timeInterpolants(119), 118);
+            this.assertEqual(this.testObj.timeInterpolants(119), 1.593330000000000e+02);
         end
         function test_counts(this)
             this.assertEqual(this.testObj.counts(64,64,32,4), single(-92));

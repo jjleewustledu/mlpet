@@ -82,7 +82,7 @@ classdef EcatExactHRPlus < mlpet.AbstractScannerData
             end
         end
         function this = readTimes(this)
-            this.times_ = this.header.start;
+            this.times_ = this.header.start + this.header.injectionTime; % decay corrections must be to time of injection
         end
         function this = readTaus(this)
             this.taus_ = this.header.duration;
