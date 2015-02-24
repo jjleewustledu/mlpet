@@ -48,7 +48,23 @@ classdef TSC < mlpet.AbstractWellData
     end
     
     methods (Static)
+        function this = import(tscLoc)    
+            %% IMPORT
+ 			%  Usage:  this = TSC.import(tsc_file_location) 
+            %          this = TSC.import('/path/to/p1234data/jjl_proc/p1234wb1.tsc')
+            %          this = TSC.import('/path/to/p1234data/jjl_proc/p1234wb1')
+            %          this = TSC.import('p1234wb1')     
+            
+            import mlpet.* mlfourd.*;
+            
+            this = mlpet.TSC(tscLoc);
+            this = this.readtsc;
+        end
         function this = loadGluT(pnumPth, scanIdx)
+            %% LOADGLUT
+ 			%  Usage:  this = TSC.loadGluT(pnumber_path, scan_index) 
+            %          this = TSC.loadGluT('/path/to/p1234data', 1)
+            
             assert(lexist(pnumPth, 'dir'));
             pnum = str2pnum(pnumPth);
             if (isnumeric(scanIdx)); scanIdx = num2str(scanIdx); end
@@ -59,24 +75,15 @@ classdef TSC < mlpet.AbstractWellData
             this = mlpet.TSC.load(tscLoc, ecatLoc, dtaLoc, 4.88);            
         end
         function this = load(tscLoc, ecatLoc, dtaLoc, pie)
-            this = mlpet.TSC(tscLoc, ecatLoc, dtaLoc, pie);
-        end
-    end
-
-	methods 	
- 		function this = TSC(tscLoc, ecatLoc, dtaLoc, pie)
-            %% TSC
- 			%  Usage:  this = TSC(tsc_file_location, ecat_file_location,  dta_file_location, pie_factor) 
-            %          this = TSC('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta', 4.88)
-            %          this = TSC('/p1234data/jjl_proc/p1234wb1', '/p1234data/PET/scan1/p1234gluc1', '/p1234data/jjl_proc/p1234g1', 4.88)
-            %          this = TSC('p1234wb1', '../PET/scan1/p1234gluc1', 'p1234g1', 4.88)   
-            %
-            % N.B.:  \pi \equiv \frac{wellcnts/cc/sec}{PETcnts/pixel/min}
-            %        wellcnts/cc = \pi \frac{PETcnts}{pixel} \frac{sec}{min}
-
-            this = this@mlpet.AbstractWellData(tscLoc);
+            %% LOAD
+ 			%  Usage:  this = TSC.load(tsc_file_location, ecat_file_location,  dta_file_location, pie_factor) 
+            %          this = TSC.load('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta', 4.88)
+            %          this = TSC.load('/p1234data/jjl_proc/p1234wb1', '/p1234data/PET/scan1/p1234gluc1', '/p1234data/jjl_proc/p1234g1', 4.88)
+            %          this = TSC.load('p1234wb1', '../PET/scan1/p1234gluc1', 'p1234g1', 4.88) 
             
             import mlpet.* mlfourd.*;
+            
+            this = TSC(tscLoc);
             this.mask_ = this.makeMask;
             this.dta_ = DTA(dtaLoc);
             this.decayCorrectedEcat_ = this.maskEcat( ...
@@ -86,12 +93,30 @@ classdef TSC < mlpet.AbstractWellData
             this.times_  = this.decayCorrectedEcat_.times;  
             this.taus_   = this.decayCorrectedEcat_.taus; 
             this.counts_ = this.squeezeVoxels(this.decayCorrectedEcat_, this.mask_);  
-            this.header_ = this.decayCorrectedEcat_.header;         
-                 
+            this.header_ = this.decayCorrectedEcat_.header;                 
             
             if (~lexist(this.fqfilename) || ~this.noclobber)
                 this.save;
             end
+        end
+    end
+
+	methods 	
+ 		function this = TSC(tscLoc)
+            %% TSC
+ 			%  Usage:  this = TSC(tsc_file_location, ecat_file_location,  dta_file_location, pie_factor) 
+            %          this = TSC('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta', 4.88)
+            %          this = TSC('/p1234data/jjl_proc/p1234wb1', '/p1234data/PET/scan1/p1234gluc1', '/p1234data/jjl_proc/p1234g1', 4.88)
+            %          this = TSC('p1234wb1', '../PET/scan1/p1234gluc1', 'p1234g1', 4.88)   
+ 			%  Usage:  this = TSC(tsc_file_location) 
+            %          this = TSC('/path/to/p1234data/jjl_proc/p1234wb1.tsc')
+            %          this = TSC('/path/to/p1234data/jjl_proc/p1234wb1')
+            %          this = TSC('p1234wb1')   
+            %
+            % N.B.:  \pi \equiv \frac{wellcnts/cc/sec}{PETcnts/pixel/min}
+            %        wellcnts/cc = \pi \frac{PETcnts}{pixel} \frac{sec}{min}
+
+            this = this@mlpet.AbstractWellData(tscLoc);            
         end
         function msk  = makeMask(this)
             msk = mlfourd.NIfTI.load(this.maskFqfilename);
@@ -127,8 +152,9 @@ classdef TSC < mlpet.AbstractWellData
             plot(this.times, this.counts);
             title([this.decayCorrectedEcat_.fileprefix ' && ' this.mask_.fileprefix], 'Interpreter', 'none');
             xlabel('acquisition-time/sec');
-            if (~this.useBequerels); ylabel('counts/acquisition-frame');
-            else                     ylabel('activity/Bq'); end
+            ylabel('activity/Bq');
+            if (~this.useBequerels)
+                ylabel('counts/acquisition-frame'); end
         end
         function this = save(this)
             fid = fopen(this.fqfilename, 'w');            
@@ -166,6 +192,26 @@ classdef TSC < mlpet.AbstractWellData
                     break; 
                 end
             end
+        end
+        function this = readtsc(this)
+            fid = fopen(this.fqfilename);
+            this = this.readheader(fid);
+            this = this.readdata(fid);
+            fclose(fid);            
+        end
+        function this = readheader(this, fid)
+            ts = textscan(fid, '%s', 1, 'Delimiter', '\n');
+            ts = ts{1}; 
+            this.header_.string = ts{1};
+            ts = textscan(fid, '%f %f', 1, 'Delimiter', '\n');
+            this.header_.rows = ts{1};
+            this.header_.cols = ts{2};
+        end
+        function this = readdata(this, fid)            
+            ts = textscan(fid, '%f %f %f', 'Delimiter', ' ', 'MultipleDelimsAsOne', true);
+            this.times_  = ts{1}';
+            this.taus_   = ts{2}';
+            this.counts_ = ts{3}';
         end
     end
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

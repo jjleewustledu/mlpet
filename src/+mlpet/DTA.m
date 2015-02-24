@@ -2,6 +2,61 @@ classdef DTA < mlpet.AbstractWellData
 	%% DTA objectifies direct arterial sampling recorded in Videen *.dta files.   
     %  Dta files record well-counter events, corrected for positron half-life.  
     %  Cf. man dta, makedta, blood, metproc
+    %
+    %  DTA FILE STRUCTURE
+    %
+    %    First  line  is  a  4-character  code string followed by text.  The second and third lines are column
+    %    headers for the blood points.  The fourth line has the number of curves in this file.
+    % 
+    %    _________________________________________________________________
+    %    @01@ blood.f,v 1.6 1995/05/10 on p1376
+    %       Corrected     Syringe Weight      Sample Time    Measured   Per
+    %     Sec   Counts     Dry      Wet      Drawn  Counted    Counts   Sec
+    %           3
+    %    _________________________________________________________________
+    % 
+    %    For each blood curve:
+    %    _________________________________________________________________
+    %    Type of Scan                Scan ID          (I1, 1X, A4)
+    %    Start Time (s)              Scan Length (s)  (2F9.0)
+    %    Peak Bank Pairs (thousands)                  (F10.4)
+    %    Oxygen Content (ml/ml)      Hematocrit (%)   (2F10.4)
+    %    Number of Blood Points                       (I)
+    %    Corrected Time, Corrected Counts, Dry Wt, Wet Wt, Sample
+    %       Time, Count Time, Counts, Count Period    (6F, I, F)
+    %          .
+    %          .
+    %          .
+    %    _________________________________________________________________
+    %    Notes:
+    % 
+    %    1) Corrected Time = sample time (seconds after injection;
+    %       shifted);
+    % 
+    %    2) Corrected Counts = decay-corrected wellcounts/(ml*sec);
+    %       Decay correction is to the time of injection;
+    %       Conversion is from counts/(g*time) to counts/(ml*sec);
+    %       (using density of whole blood or plasma, as appropriate)
+    %       (time is the period given in the last column)
+    % 
+    %    3) For scantype=1, if the hematocrit is not 0, then the
+    %       last point in the blood curve is the well counts for
+    %       plasma taken from the same sample as the whole blood in
+    %       the next to last point;
+    % 
+    %    4) Scan ID is the last 3-4 characters of the scan file name;
+    %       e.g., for p1000ho1.img, the scan ID would be ho1;
+    % 
+    %    5) Scan Types: (aka ntype)
+    %       1 = O-15 Oxygen Metabolism Study  (oo)
+    %       2 = O-15 Water Blood Flow Study   (ho)
+    %       3 = O-15 Blood Volume Study       (co)
+    %       4 = C-11 Butanol Blood Flow Study (bu)
+    %       5 = F-18 Study
+    %       6 = Misc. Study
+    %       7 = O-15 Oxygen Steady-State Study (oo)
+    %       8 = O-15 Oxygen Steady-Inhalation plasma curve (oo)
+    %       9 = O-15 Oxygen Steady-Inhalation whole-blood  (oo)
 
 	%  $Revision$ 
  	%  was created $Date$ 
@@ -14,7 +69,7 @@ classdef DTA < mlpet.AbstractWellData
     properties (Constant)
         EXTENSION = '.dta'        
         TIMES_UNITS = 'sec'
-        COUNTS_UNITS = 'well-counter events'
+        COUNTS_UNITS = 'well-counter events/mL/sec'
     end
     
     properties        
@@ -55,10 +110,20 @@ classdef DTA < mlpet.AbstractWellData
     methods (Access = 'private')
         function this = readdta(this)
             fid = fopen(this.fqfilename);
-            this = this.readheader(fid);
+            if (str2double(this.fileprefix(2:5)) > 6000)
+                this = this.readheader2(fid);
+            else
+                this = this.readheader(fid);
+            end
             this = this.readdata(fid);           
-        end        
+        end           
         function this = readheader(this, fid)
+            textscan(fid, '%s', 8, 'Delimiter', '\n');
+            
+            len = textscan(fid, '%d', 1, 'Delimiter', '\n'); 
+            this.header_.length = len{1};
+        end
+        function this = readheader2(this, fid)
             str = textscan(fid, '%s', 1, 'Delimiter', '\n');            
             str = str{1}; str = str{1};
             h = regexp(str, ...
@@ -79,7 +144,8 @@ classdef DTA < mlpet.AbstractWellData
         function this = readdata(this, fid)            
             ts = textscan(fid, '%f %f %f %f %f %f %f %f', 'Delimiter', ' ', 'MultipleDelimsAsOne', true);
             this.times_ = ts{1}';
-            this.taus_ = ones(size(this.times_));
+            this.taus_ = this.times_(2:end) - this.times_(1:end-1);
+            this.taus_(this.length) = this.taus_(end);
             this.counts_ = ts{2}';
             this.syringeWeightDry = ts{3}';
             this.syringeWeightWet = ts{4}';

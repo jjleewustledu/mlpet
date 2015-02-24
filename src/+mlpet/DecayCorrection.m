@@ -84,9 +84,6 @@ classdef DecayCorrection < mlpet.IDecayCorrection
             parse(p, cnts, varargin{:});
             
             denom = ones(size(cnts));
-            if (this.client_.useBequerels)
-                denom = this.client_.taus; 
-            end 
             if (isa(this.client_, 'mlpet.IScannerData'))
                 %fprintf('DecayCorrection.correctedCounts received mlpet.IScannerData\n');
                 cnts = correctedScannerCounts(this, cnts, p.Results.times, denom);

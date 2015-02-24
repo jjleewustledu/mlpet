@@ -26,11 +26,13 @@ classdef Test_TSC < matlab.unittest.TestCase
  	end 
 
 	methods (Test) 
+        function test_import(this)
+        end
         function test_loadGluT(this)
             newObj = mlpet.TSC.loadGluT(this.pnumPath, 1);
             this.assertEqual(this.testObj.counts, newObj.counts);
         end
-        function test_ctor(this)
+        function test_load(this)
             this.assertEqual(this.testObj.pnumberPath, '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL');
             this.assertEqual(this.testObj.pnumber,     'p8047');
             this.assertEqual(this.testObj.fslPath,     '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL/fsl');
@@ -88,7 +90,7 @@ classdef Test_TSC < matlab.unittest.TestCase
             this.dtaFqfilename = fullfile(this.procPath, 'p8047g1.dta');
             this.ecatFqfilename = fullfile(this.scanPath, 'p8047gluc1.nii.gz');
             cd(this.unittest_home);
- 			this.testObj = mlpet.TSC( ...
+ 			this.testObj = mlpet.TSC.load( ...
                 this.tscFqfilename, this.ecatFqfilename, this.dtaFqfilename, 4.88); 
  		end 
     end
