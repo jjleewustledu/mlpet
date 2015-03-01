@@ -71,7 +71,7 @@ classdef AbstractLegacyBetaCurve < mlpet.ILegacyBetaCurve
         end
         function c    = get.countInterpolants(this)
             assert(~isempty(this.counts_));
-            c = spline(this.times_, this.counts_, this.timeInterpolants);
+            c = pchip(this.times_, this.counts_, this.timeInterpolants);
             c = c(1:length(this.timeInterpolants));
         end
         function h    = get.header(this)

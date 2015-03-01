@@ -27,7 +27,7 @@ classdef IWellData < mlio.IOInterface
         countInterpolants
         header
         
-        useBequerels
+        useBecquerels
         noclobber
     end 
 

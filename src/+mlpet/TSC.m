@@ -22,6 +22,8 @@ classdef TSC < mlpet.AbstractWellData
         petPath
         scanPath
         procPath  
+        
+        becquerelInterpolants
     end
     
     methods %% GET 
@@ -43,8 +45,10 @@ classdef TSC < mlpet.AbstractWellData
         end
         function pth = get.procPath(this)
             pth = fullfile(this.pnumberPath, 'jjl_proc', '');
+        end        
+        function bi  = get.becquerelInterpolants(this)
+            bi = pchip(this.times, this.counts ./ this.taus, this.timeInterpolants);
         end
-         
     end
     
     methods (Static)

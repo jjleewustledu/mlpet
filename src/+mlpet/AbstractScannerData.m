@@ -12,7 +12,7 @@ classdef AbstractScannerData < mlpet.IScannerData
     
     properties  
         dt = 1 % sec, for timeInterpolants
-        useBequerels = false % boolean for dividing accumulated counts by sampling durations of each time-frame to obtain 1/sec  
+        useBecquerels = false % boolean for dividing accumulated counts by sampling durations of each time-frame to obtain 1/sec  
     end
 	
     properties (Dependent)
@@ -116,7 +116,7 @@ classdef AbstractScannerData < mlpet.IScannerData
                 return
             end
             im = squeeze(this.nifti_.img)';
-            c  = spline(this.times, im, this.timeInterpolants);
+            c  = pchip(this.times, im, this.timeInterpolants);
         end
         function h    = get.header(this)
             assert(~isempty(this.header_));

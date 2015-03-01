@@ -12,7 +12,7 @@ classdef AbstractWellData < mlpet.IWellData
  	 
     properties
         dt = 1 % sec, for timeInterpolants
-        useBequerels = false % boolean for dividing accumulated counts by sampling durations of each time-frame to obtain 1/sec  
+        useBecquerels = false % boolean for dividing accumulated counts by sampling durations of each time-frame to obtain 1/sec  
     end
     
 	properties (Dependent)        
@@ -105,7 +105,7 @@ classdef AbstractWellData < mlpet.IWellData
         end
         function c    = get.countInterpolants(this)
             assert(~isempty(this.counts_));
-            c = spline(this.times_, this.counts_, this.timeInterpolants);
+            c = pchip(this.times_, this.counts_, this.timeInterpolants);
             c = c(1:length(this.timeInterpolants));
         end
         function h    = get.header(this)

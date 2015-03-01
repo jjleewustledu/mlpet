@@ -67,7 +67,7 @@ classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus & mlpet.IDecayCorrection
     methods (Access = 'private')
         function this = updateFileprefix(this)            
             this.nifti_.fileprefix = [this.nifti_.fileprefix '_decayCorrect'];
-            if (this.useBequerels)                
+            if (this.useBecquerels)                
                 this.nifti_.fileprefix = [this.nifti_.fileprefix '_Bq'];
             end
         end

@@ -13,7 +13,7 @@ classdef IScannerData < mlpet.IWellData
         taus
         timeMidpoints
         injectionTime
-        useBequerels
+        useBecquerels
         
         nifti
         recFqfilename 

@@ -107,15 +107,15 @@ classdef DTA < mlpet.AbstractWellData
     
     %% PRIVATE
     
+    properties
+        READ_HEADER2_EXP = '(?<pnumber>p\d{4})\s+\w*\s*\w*\s*(?<dateScan>\d+-\d+-\d+)\s+(?<studyCode>\w+)(?<petIndex>\d)\s+(?<dateProcessing>\d+(/|-)\d+(/|-)\d+)\s+(?<author>\w+)'
+    end
+    
     methods (Access = 'private')
         function this = readdta(this)
             fid = fopen(this.fqfilename);
-            if (str2double(this.fileprefix(2:5)) > 6000)
-                this = this.readheader2(fid);
-            else
-                this = this.readheader(fid);
-            end
-            this = this.readdata(fid);           
+            this = this.readheader2(fid);
+            this = this.readdata(fid);
         end           
         function this = readheader(this, fid)
             textscan(fid, '%s', 8, 'Delimiter', '\n');
@@ -126,9 +126,7 @@ classdef DTA < mlpet.AbstractWellData
         function this = readheader2(this, fid)
             str = textscan(fid, '%s', 1, 'Delimiter', '\n');            
             str = str{1}; str = str{1};
-            h = regexp(str, ...
-                '(?<pnumber>p\d{4})\s+(?<dateScan>\d+-\d+-\d+)\s+(?<studyCode>\w+)(?<petIndex>\d)\s+(?<dateProcessing>\d+/\d+/\d+)\s+(?<author>\w+)', ...
-                'names');
+            h = regexp(str, this.READ_HEADER2_EXP, 'names');
             h.petIndex = str2double(h.petIndex);
             h.string = strtrim(str);
             this.header_ = h;
@@ -139,7 +137,7 @@ classdef DTA < mlpet.AbstractWellData
         end
         function assertHeader(this)            
             assert(strncmp(this.fileprefix, this.header.pnumber, 5));
-            assert(strcmp(this.fileprefix(end), num2str(this.header.petIndex)));
+            %assert(strcmp(this.fileprefix(end), num2str(this.header.petIndex)));
         end
         function this = readdata(this, fid)            
             ts = textscan(fid, '%f %f %f %f %f %f %f %f', 'Delimiter', ' ', 'MultipleDelimsAsOne', true);

@@ -39,7 +39,7 @@ classdef Test_EcatExactHRPlus < matlab.unittest.TestCase
         function test_countInterpolants(this)
             obj = this.testObj;
             obj.counts = obj.counts(64,64,32,:);
-            this.assertEqual(obj.countInterpolants(4), single(-91.9418640));
+            this.assertEqual(obj.countInterpolants(4), single(-1.3850000e+02));
         end
         function test_header(this)
             this.assertEqual(this.testObj.header.injectionTime, 41.333);
