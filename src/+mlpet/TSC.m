@@ -73,7 +73,7 @@ classdef TSC < mlpet.AbstractWellData
             pnum = str2pnum(pnumPth);
             if (isnumeric(scanIdx)); scanIdx = num2str(scanIdx); end
             
-            ecatLoc = fullfile(pnumPth, 'PET', ['scan' scanIdx], [pnum 'gluc' scanIdx '.nii.gz']);
+            ecatLoc = fullfile(pnumPth, 'PET', ['scan' scanIdx], [pnum 'gluc' scanIdx '_mcf.nii.gz']);
             tscLoc  = fullfile(pnumPth, 'jjl_proc', [pnum 'wb' scanIdx '.tsc']);
             dtaLoc  = fullfile(pnumPth, 'jjl_proc', [pnum 'g'  scanIdx '.dta']);
             this = mlpet.TSC.load(tscLoc, ecatLoc, dtaLoc, 4.88);            
@@ -124,8 +124,14 @@ classdef TSC < mlpet.AbstractWellData
         end
         function msk  = makeMask(this)
             msk = mlfourd.NIfTI.load(this.maskFqfilename);
-            msk.img = abs(msk.img) > eps;
-            msk.fileprefix = [msk.fileprefix '_mask'];
+            assert(0 == msk.dipmin);
+            if (msk.dipmax > 1)
+                msk.img = abs(msk.img) > eps;
+            end
+            if (~lstrfind(msk.fileprefix, 'mask') && ...
+                ~lstrfind(msk.fileprefix, 'msk'))
+                msk.fileprefix = [msk.fileprefix '_mask'];
+            end
         end
         function ecat = maskEcat(~, ecat, msk)
             %% MASKPET accepts PET and mask NIfTIs and masks each time-frame of PET by the mask
@@ -169,7 +175,7 @@ classdef TSC < mlpet.AbstractWellData
             for f = 1:Nf
                 fprintf(fid, '%12.1f %12.1f %14.2f\n', this.times(f), this.taus(f), this.counts(f));
             end
-            fprintf(fid, 'bool(brain.finalsurfs)\n\n');            
+            fprintf(fid, '%s\n\n', this.maskFilename);   
             fclose(fid);
         end
     end 
@@ -183,9 +189,11 @@ classdef TSC < mlpet.AbstractWellData
     end
     
     methods (Access = 'private')
+        function f   = maskFilename(this)
+            f = sprintf('aparc_a2009s+aseg_mask_on_%sgluc%i_mcf.nii.gz', this.pnumber, this.scanIndex);
+        end
         function f   = maskFqfilename(this)
-            f = sprintf('brain_finalsurfs_on_%str1.nii.gz', this.pnumber);
-            f = fullfile(this.fslPath, f);
+            f = fullfile(this.fslPath, this.maskFilename);
         end  
         function nf = getNf(this)
             nf = length(this.times);
@@ -207,7 +215,7 @@ classdef TSC < mlpet.AbstractWellData
             ts = textscan(fid, '%s', 1, 'Delimiter', '\n');
             ts = ts{1}; 
             this.header_.string = ts{1};
-            ts = textscan(fid, '%f %f', 1, 'Delimiter', '\n');
+            ts = textscan(fid, '%f, %f', 1, 'Delimiter', '\n');
             this.header_.rows = ts{1};
             this.header_.cols = ts{2};
         end

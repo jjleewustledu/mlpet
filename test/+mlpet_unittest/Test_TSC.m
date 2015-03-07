@@ -42,13 +42,13 @@ classdef Test_TSC < matlab.unittest.TestCase
         end
         function test_save(this)            
             ca = mlio.TextIO.textfileToCell(this.tscFqfilename);
-            this.assertTrue(strcmp('p8047g1.dta,  brain_finalsurfs_on_p8047tr1_mask.nii.gz, p8047gluc1_decayCorrect_masked.nii.gz, pie = 4.880000', strtrim(ca{1})));
+            this.assertTrue(strcmp('p8047g1.dta,  aparc_a2009s+aseg_mask_on_p8047gluc1_mcf.nii.gz, p8047gluc1_decayCorrect_masked.nii.gz, pie = 4.880000', strtrim(ca{1})));
             this.assertTrue(strcmp('43,    3', strtrim(ca{2})));
-            this.assertTrue(strcmp('3258.9        180.0      727936.19', strtrim(ca{45})));
+            this.assertTrue(strcmp('3258.9        180.0      860142.44', strtrim(ca{45})));
         end
         function test_makeMask(this)
             msk = this.testObj.makeMask;
-            this.assertTrue(strcmp('brain_finalsurfs_on_p8047tr1_mask', msk.fileprefix));
+            this.assertTrue(strcmp('aparc_a2009s+aseg_mask_on_p8047gluc1_mcf', msk.fileprefix));
         end
         function test_times(this)
             this.assertEqual(this.testObj.times(4),  108.933,  'RelTol', 1e-6);
@@ -62,8 +62,8 @@ classdef Test_TSC < matlab.unittest.TestCase
             this.assertEqual(this.testObj.scanDuration, 3.438933000000000e+03);
         end
         function test_counts(this)
-            this.assertEqual(this.testObj.counts(4),   single(66726.38), 'RelTol', 1e-6);
-            this.assertEqual(this.testObj.counts(43), single(727936.19), 'RelTol', 1e-6);
+            this.assertEqual(this.testObj.counts(4),   single(66352.83), 'RelTol', 1e-6);
+            this.assertEqual(this.testObj.counts(43), single(860142.44), 'RelTol', 1e-6);
         end
         function test_header(this)
             this.assertEqual(this.testObj.header.injectionTime, 18.9330);

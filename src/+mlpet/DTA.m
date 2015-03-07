@@ -113,9 +113,16 @@ classdef DTA < mlpet.AbstractWellData
     
     methods (Access = 'private')
         function this = readdta(this)
-            fid = fopen(this.fqfilename);
-            this = this.readheader2(fid);
-            this = this.readdata(fid);
+            try
+                fid = fopen(this.fqfilename);
+                this = this.readheader2(fid);
+                this = this.readdata(fid);
+            catch ME
+                handwarning(ME);
+                fid = fopen(this.fqfilename);
+                this = this.readheader2(fid);
+                this = this.readdata_9col(fid);
+            end
         end           
         function this = readheader(this, fid)
             textscan(fid, '%s', 8, 'Delimiter', '\n');
@@ -154,13 +161,28 @@ classdef DTA < mlpet.AbstractWellData
             
             this.assertLength; 
         end
+        function this = readdata_9col(this, fid)            
+            ts = textscan(fid, '%f %f %f %f %f %f %f %f %f', 'Delimiter', ' ', 'MultipleDelimsAsOne', true);
+            this.times_ = ts{1}';
+            this.taus_ = this.times_(2:end) - this.times_(1:end-1);
+            this.taus_(this.length) = this.taus_(end);
+            this.counts_ = ts{2}';
+            this.syringeWeightDry = ts{3}';
+            this.syringeWeightWet = ts{4}';
+            this.sampleTimesDrawn = ts{5}';
+            this.sampleTimesCounted = ts{6}';
+            this.measuredCounts = ts{7}';
+            this.countPeriod = ts{8}';            
+            
+            this.assertLength; 
+        end
         function assertLength(this)            
             if (length(this.times_) ~= this.header.length) %#ok<*ALIGN>
                 error('mlpet:unexpectedDataLength', 'DTA.header.length -> %i, but length(.times_) -> %i', ...
-                      this.header.length, length(this.times_)); end
+                       this.header.length, length(this.times_)); end
             if (length(this.counts_) ~=  this.header.length)
                 error('mlpet:unexpectedDataLength', 'DTA.header.length -> %i, but length(.counts_) -> %i', ...
-                      this.header.length, length(this.counts_)); end
+                       this.header.length, length(this.counts_)); end
         end
     end
     
