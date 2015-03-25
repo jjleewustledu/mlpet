@@ -26,7 +26,7 @@ classdef DCV < mlpet.AbstractBetaCurve
     end
     
 	methods 
-  		function this = DCV(fileLoc)             
+  		function this = DCV(fileLoc)
  			%  Usage:  this = DCV(file_location) 
             %          this = DCV('/path/to/p1234data/p1234ho1.crv')
             %          this = DCV('/path/to/p1234data/p1234ho1')
@@ -83,11 +83,41 @@ classdef DCV < mlpet.AbstractBetaCurve
             
             this.header_ = h;
         end
-        function this = readdata(this, fid)            
+        function this = readdata(this, fid)
             ts = textscan(fid, '%f %f', 'Delimiter', ' ', 'MultipleDelimsAsOne', true);
             this.times_  = ts{1}';
             this.taus_   = ones(size(this.times_));
             this.counts_ = ts{2}';
+            this = this.cullZeros;
+            this = this.cullDropoff;
+            this = this.cullZeros;
+        end
+        function this = cullDropoff(this)
+            t_max = this.timeOfMax(this.counts_);
+            t_min = this.timeOfMin(this.counts_(floor(t_max):end));
+            this.counts_(t_min) = 0;
+        end
+        function t_max = timeOfMax(this, y)
+            for t = 1:length(this.times_)
+                if (this.counts_(t) == max(y))
+                    t_max = t;
+                    break
+                end
+            end
+        end
+        function t_min = timeOfMin(this, y)
+            for t = 1:length(this.times_)
+                if (this.counts_(t) == min(y))
+                    t_min = t;
+                    break
+                end
+            end
+        end
+        function this = cullZeros(this)
+            exclusions   = this.counts_ ~= 0;
+            this.counts_ = this.counts_(exclusions);
+            this.taus_   = this.taus_(exclusions);
+            this.times_  = this.times_(exclusions);
         end
     end
 
