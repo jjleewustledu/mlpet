@@ -31,13 +31,13 @@ classdef PETIO < mlio.AbstractIO
     end
     
     methods (Static)
-        function load(~)
-            error('mlpet:notImplemented', 'PETIO.load');
+        function this = load(fileLoc)
+            this = mlpet.PETIO(fileLoc);
         end
     end
 
 	methods 
-        function this = PETIO(fileLoc)            
+        function this = PETIO(fileLoc)
             p = inputParser;
             addRequired(p, 'fileLocation', @this.wellFormedFileLocation);
             parse(p, fileLoc);

@@ -12,9 +12,10 @@ classdef BayesianDCV
     properties (Dependent)
         dcv
         gammaFluid
+        
         bestFitParams
-        Q
         normalizedQ
+        Q
     end
 
     methods %% GET
@@ -27,11 +28,11 @@ classdef BayesianDCV
         function s = get.bestFitParams(this)
             s = this.gammaFluid.bestFitParams;
         end
-        function s = get.Q(this)
-            s = this.gammaFluid.Q;
-        end
         function s = get.normalizedQ(this)
             s = this.gammaFluid.normalizedQ;
+        end
+        function s = get.Q(this)
+            s = this.gammaFluid.Q;
         end
     end
 
@@ -58,7 +59,7 @@ classdef BayesianDCV
         end 
         function this = estimateParameters(this)
             this.gammaFluid_ = mlbayesian.BestGammaFluid(this.dcv.timeInterpolants, this.dcv.countInterpolants);  
-            this.gammaFluid_ = this.gammaFluid_.estimateParameters;
+            this.gammaFluid_ = this.gammaFluid_.estimateDcvParameters;
         end
         function plot(this)
             figure;

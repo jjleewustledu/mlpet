@@ -86,7 +86,8 @@ classdef DCV < mlpet.AbstractBetaCurve
         function this = readdata(this, fid)
             ts = textscan(fid, '%f %f', 'Delimiter', ' ', 'MultipleDelimsAsOne', true);
             this.times_  = ts{1}';
-            this.taus_   = ones(size(this.times_));
+            this.taus_   = this.times_(2:end) - this.times_(1:end-1);
+            this.taus_(length(this.times_)) = this.taus_(end);
             this.counts_ = ts{2}';
             this = this.cullZeros;
             this = this.cullDropoff;

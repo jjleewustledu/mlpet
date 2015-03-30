@@ -21,43 +21,20 @@ classdef Test_BayesianDCV < matlab.unittest.TestCase
  	end 
 
 	methods (Test) 
-        function test_ctor(this)
-            to = this.testObject;
-            this.assertEqual(to.prop, []);
-            this.assertEqual(to.meth, []);
-        end
         function test_createEstimate(this)
             bdcv = mlpet.BayesianDCV.createEstimate(this.dcvFilename);
-            egf  = bdcv.gammaFluid;
-            save(fullfile(this.testFolder, 'Test_BayesianDCV.egf.mat'), 'egf');
-            this.assertEqual(bdcv.gammaFluid.baseTitle, this.expectedGammaFluid.baseTitle);            
+            %egf  = bdcv.gammaFluid;
+            %save(fullfile(this.testFolder, 'Test_BayesianDCV.egf.mat'), 'egf');
+            this.assertEqual(bdcv.gammaFluid.baseTitle,        this.expectedGammaFluid.baseTitle);            
             this.assertEqual(bdcv.gammaFluid.timeInterpolants, this.expectedGammaFluid.timeInterpolants);  
-            this.assertEqual(bdcv.gammaFluid.dependentData, this.expectedGammaFluid.dependentData);
-            this.assertEqual(bdcv.bestFitParams, this.expectedBestFitParams, 'RelTol', 0.05);
-            this.assertEqual(bdcv.Q, this.expectedQ, 'RelTol', 0.05);
+            this.assertEqual(bdcv.gammaFluid.dependentData,    this.expectedGammaFluid.dependentData);
+            this.assertEqual(bdcv.bestFitParams,               this.expectedBestFitParams, 'RelTol', 0.05);
+            this.assertEqual(bdcv.Q,                           this.expectedQ, 'RelTol', 0.05);
+            this.assertEqual(bdcv.normalizedQ,                 this.expectedNormalizedQ, 'RelTol', 0.05);
         end
         function test_dcv(this)
             this.assertTrue(isa(this.testObj.dcv, 'mlpet.DCV'));
             this.assertEqual(this.testObj.dcv, this.dcv);
-        end
-        function test_gammaFluid(this)
-            this.assertEqual(this.testObj.gammaFluid, this.expectedGammaFluid);
-        end
-        function test_estimateParameters(this)
-            this.testObj.estimateParameters;
-            this.assertEqual(this.testObj.bestFitParams, this.expectedBestFitParams);
-        end
-        function test_modelSelection(this)
-            this.assertEqual(this.testObj.oddsRatio(1), []); %% p = 1;
-        end
-        function test_evidence(this)
-            this.assertEqual(this.testObj.evidence.nats, []);
-        end
-        function test_gof(this)
-            this.assertEqual(this.testObj.Qsquared, []);
-        end
-        function test_plot(this)
-            this.testObj.plot;
         end
  	end 
 
@@ -80,8 +57,9 @@ classdef Test_BayesianDCV < matlab.unittest.TestCase
     
     properties (Access = 'private')
         expectedBestFitParams = ...
-            [8.537764; 4.928954; -3.719312; 0; 0.442307; 1.099286; 3727210.506524; 32.811686]
-        expectedQ = []
+            [6.705462; 5.572888; 0.459081; 1.036406; 3667663.531791; 31.704192]
+        expectedQ           = 1.55039e+09
+        expectedNormalizedQ = 0.00167571069629573
         expectedGammaFluid
     end
     

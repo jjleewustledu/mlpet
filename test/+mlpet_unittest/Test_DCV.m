@@ -22,13 +22,13 @@ classdef Test_DCV < matlab.unittest.TestCase
         function test_ctor(this)
             this.assertEqual(this.testObj.fqfilename, fullfile(this.unittest_home, 'p7267ho1.dcv'));
             this.assertEqual(this.testObj.scanIndex, 1);
-            this.assertEqual(this.testObj.length, 121);
+            this.assertEqual(this.testObj.length, 117);
             this.assertEqual(this.testObj.scanDuration, 128);
         end
         function test_times(this)
             this.assertEqual(this.testObj.times(4), 4);
             this.assertEqual(this.testObj.times(116), 116);
-            this.assertEqual(this.testObj.times(121), 128);
+            this.assertEqual(this.testObj.times(117), 128);
         end
         function test_timeInterpolants(this)
             this.assertEqual(this.testObj.timeInterpolants(128), 128);
@@ -36,7 +36,7 @@ classdef Test_DCV < matlab.unittest.TestCase
         function test_counts(this)
             this.assertEqual(this.testObj.counts(4), 1363.3);
             this.assertEqual(this.testObj.counts(116), 29940.2);
-            this.assertEqual(this.testObj.counts(121), 32623.4);
+            this.assertEqual(this.testObj.counts(117), 32623.4);
         end
         function test_countInterpolants(this)
             this.assertEqual(this.testObj.countInterpolants(128), 32623.4);
