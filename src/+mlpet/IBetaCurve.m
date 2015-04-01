@@ -1,4 +1,4 @@
-classdef IBetaCurve < mlpet.IWellData 
+classdef (Abstract) IBetaCurve < mlpet.IWellData 
 	%% IWELLDATA   
 
 	%  $Revision$ 

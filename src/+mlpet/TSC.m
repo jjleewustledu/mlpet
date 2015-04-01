@@ -29,6 +29,9 @@ classdef TSC < mlpet.AbstractWellData
     methods %% GET 
         function p   = get.pnumberPath(this)
             names = regexp(this.filepath, '(?<pnumberPath>\S+/p\d{4,8}\w+)/\S+', 'names');
+            if (isempty(names))
+                names = regexp(this.filepath, '(?<pnumberPath>\S+/\S+p\d{4,8}\w+)/\S+', 'names');
+            end
             p = names.pnumberPath;
         end
         function p   = get.pnumber(this)

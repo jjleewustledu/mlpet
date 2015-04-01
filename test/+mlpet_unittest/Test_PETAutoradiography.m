@@ -1,8 +1,8 @@
-classdef Test_BayesianEcat < matlab.unittest.TestCase 
-	%% TEST_BAYESIANECAT  
+classdef Test_PETAutoradiography < matlab.unittest.TestCase 
+	%% TEST_PETAUTORADIOGRAPHY  
 
-	%  Usage:  >> results = run(mlpet_unittest.Test_BayesianEcat)
- 	%          >> result  = run(mlpet_unittest.Test_BayesianEcat, 'test_dt')
+	%  Usage:  >> results = run(mlpet_unittest.Test_PETAutoradiography)
+ 	%          >> result  = run(mlpet_unittest.Test_PETAutoradiography, 'test_dt')
  	%  See also:  file:///Applications/Developer/MATLAB_R2014b.app/help/matlab/matlab-unit-test-framework.html
 
 	%  $Revision$ 
@@ -27,8 +27,8 @@ classdef Test_BayesianEcat < matlab.unittest.TestCase
  	end 
 
  	methods (TestClassSetup) 
- 		function setupBayesianEcat(this) 
- 			this.testObj = mlpet.BayesianEcat; 
+ 		function setupPETAutoradiography(this) 
+ 			this.testObj = mlpet.PETAutoradiography; 
  		end 
  	end 
 

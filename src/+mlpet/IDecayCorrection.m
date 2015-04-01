@@ -1,4 +1,4 @@
-classdef IDecayCorrection  
+classdef (Abstract) IDecayCorrection  
 	%% IDECAYCORRECTION   
 
 	%  $Revision$ 

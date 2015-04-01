@@ -1,4 +1,4 @@
-classdef AbstractScannerData < mlpet.IScannerData 
+classdef (Abstract) AbstractScannerData < mlpet.IScannerData 
 	%% ABSTRACTSCANNERDATA   
     %  Yet abstract:  static method load, method save
 

@@ -1,4 +1,4 @@
-classdef IWellData < mlio.IOInterface 
+classdef (Abstract) IWellData < mlio.IOInterface 
 	%% IWELLDATA   
 
 	%  $Revision$ 

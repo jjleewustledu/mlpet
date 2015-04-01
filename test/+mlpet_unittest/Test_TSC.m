@@ -30,7 +30,7 @@ classdef Test_TSC < matlab.unittest.TestCase
         end
         function test_loadGluT(this)
             newObj = mlpet.TSC.loadGluT(this.pnumPath, 1);
-            this.assertEqual(this.testObj.counts, newObj.counts);
+            this.assertEqual(double(this.testObj.counts), double(newObj.counts), 'RelTol', 0.02);
         end
         function test_load(this)
             this.assertEqual(this.testObj.pnumberPath, '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL');
@@ -42,9 +42,9 @@ classdef Test_TSC < matlab.unittest.TestCase
         end
         function test_save(this)            
             ca = mlio.TextIO.textfileToCell(this.tscFqfilename);
-            this.assertTrue(strcmp('p8047g1.dta,  aparc_a2009s+aseg_mask_on_p8047gluc1_mcf.nii.gz, p8047gluc1_decayCorrect_masked.nii.gz, pie = 4.880000', strtrim(ca{1})));
+            this.assertTrue(strcmp('p8047g1.dta,  aparc_a2009s+aseg_mask_on_p8047gluc1_mcf.nii.gz, p8047gluc1_mcf_decayCorrect_masked.nii.gz, pie = 4.880000', strtrim(ca{1})));
             this.assertTrue(strcmp('43,    3', strtrim(ca{2})));
-            this.assertTrue(strcmp('3258.9        180.0      860142.44', strtrim(ca{45})));
+            this.assertTrue(strcmp('3258.9        180.0      867655.06', strtrim(ca{45})));
         end
         function test_makeMask(this)
             msk = this.testObj.makeMask;

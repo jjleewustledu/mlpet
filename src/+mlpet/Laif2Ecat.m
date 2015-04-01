@@ -1,7 +1,5 @@
-classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem 
-	%% BRAINWATERKERNEL
-    %  http://en.wikipedia.org/wiki/Generalized_gamma_distribution
-    %  N.B.  f(tau; a,d,p) = \Gamma^{-1}(d/p) (p/a^d) tau^(d-1) exp(-(tau/a)^p) with a > 0, d > 0, p > 0, t - t0 > 0.   
+classdef Laif2Ecat < mlbayesian.AbstractMcmcProblem 
+	%% LAIF2ECAT   
 
 	%  $Revision$ 
  	%  was created $Date$ 
@@ -9,30 +7,25 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
  	%  last modified $LastChangedDate$ 
  	%  and checked into repository $URL$,  
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
- 	%  $Id$   
-    
-	properties
+ 	%  $Id$ 
+ 	 
+
+	properties  		 
         showPlots = true	 
-        baseTitle = 'BrainWaterKernel'
+        baseTitle = 'Laif2Ecat'
         xLabel    = 'times/s'
         yLabel    = 'arbitrary'
-        
-        a  = 12
-        d  = 1
-        p  = 1.5
-        q0 = 1
-        t0 = 0
-    end 
-    
+ 	end 
+
     properties (Dependent)
-        inputFunction
+        countsDcv
         map
     end
     
     methods %% GET
-        function f = get.inputFunction(this)
-            assert(~isempty(this.inputFunction_));
-            f = this.inputFunction_;
+        function f = get.countsDcv(this)
+            assert(~isempty(this.countsDcv_));
+            f = this.countsDcv_;
         end
         function m = get.map(this)            
             m = containers.Map;
@@ -43,15 +36,18 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             m('q0')  = struct('fixed', 1, 'min',   1,    'mean', this.q0, 'max',  2e7);
             m('t0')  = struct('fixed', 1, 'min',   0,    'mean', this.t0, 'max', tf/2); 
         end
-    end
+    end    
     
     methods (Static)  
-        function this = runKernel(inputFn, times, counts)
-            this = mlpet.BrainWaterKernel(inputFn, times, counts);
+        function this = runAutoradiograph(countsDcv, times, counts)
+            this = mlpet.Laif2Ecat(countsDcv, times, counts);
             this = this.estimateParameters(this.map);
         end
-        function k    = kernel(a, d, p, q0, t0, times)            
-            idx_t0 = mlpet.BrainWaterKernel.indexOf(times, t0);  
+        function k    = autoradiograph(a, d, p, q0, t0, times)            
+            idx_t0 = mlpet.Laif2Ecat.indexOf(times, t0);  
+            
+            
+            
             cnorm  = q0 * ((p/a^d)/gamma(d/p));
             exp1   = exp(-(times/a).^p);
             k0     = abs(cnorm * times.^(d-1) .* exp1);
@@ -62,20 +58,20 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             assert(all(isreal(k)), 'BestGammaFluid.simulateDcv.residue was complex');
             assert(~any(isnan(k)), 'BestGammaFluid.simulateDcv.residue was NaN: %s', num2str(k));
         end
-        function dcv  = countsDcv(inputFunction, a, d, p, q0, t0, times)
-            kernel = mlpet.BrainWaterKernel.kernel(a, d, p, q0, t0, times);
-            dcv = abs(conv(inputFunction, kernel));
-            dcv = dcv(1:length(times));
+        function countsDcv  = dcEcat(inputFunction, a, d, p, q0, t0, times)
+            autoradiograph = mlpet.Laif2Ecat.autoradiograph(a, d, p, q0, t0, times);
+            countsDcv = abs(conv(inputFunction, autoradiograph));
+            countsDcv = countsDcv(1:length(times));
         end
         function this = simulateMcmc(inputFunction, a, d, p, q0, t0, times, map)
             
             import mlpet.*;            
-            dcv  = BrainWaterKernel.countsDcv(inputFunction, a, d, p, q0, t0, times);
-            this = BrainWaterKernel(inputFunction, times, dcv);
+            countsDcv  = Laif2Ecat.dcEcat(inputFunction, a, d, p, q0, t0, times);
+            this = Laif2Ecat(inputFunction, times, countsDcv);
             this = this.estimateParameters(map) %#ok<NOPRT>
             
             figure;
-            plot(times, this.estimateData, times, dcv, 'o');
+            plot(times, this.estimateData, times, countsDcv, 'o');
             legend('Bayesian estimate', 'simulated');
             title(sprintf('simulateMcmc expected:  a->%g, d->%g, p->%g, q0->%g, t0->%g, max(t)->%g', ...
                   a, d, p, q0, t0, max(times)));
@@ -83,24 +79,20 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             ylabel('arbitrary');
         end
     end
-
+    
 	methods 		  
- 		function this = BrainWaterKernel(inputFunc, varargin) 
- 			%% BRAINWATERKERNEL 
- 			%  Usage:  this = BrainWaterKernel(input_function[, dcv_times, dcv_counts]) 
+ 		function this = Laif2Ecat(varargin) 
+ 			%% LAIF2ECAT 
+ 			%  Usage:  this = Laif2Ecat() 
+
+ 			this = this@mlbayesian.AbstractMcmcProblem(varargin{:}); 
             
- 			this = this@mlbayesian.AbstractMcmcProblem(varargin{:});             
-            assert(isnumeric(inputFunc));
- 			 
-            this.inputFunction_ = inputFunc;
-            this.expectedBestFitParams_ = ...
-                [this.a this.d this.p this.q0 this.t0]';
-        end 
-        function k    = itsKernel(this)
-            k = mlpet.BrainWaterKernel.kernel(this.a, this.d, this.p, this.q0, this.t0, this.times);
+ 		end 
+        function k    = itsAutoradiograph(this)
+            k = mlpet.Laif2Ecat.autoradiograph(this.a, this.d, this.p, this.q0, this.t0, this.times);
         end
-        function d    = itsSimulatedDcv(this)
-            d = mlpet.BrainWaterKernel.countsDcv(this.inputFunction, this.a, this.d, this.p, this.q0, this.t0, this.times);
+        function d    = itsDcEcat(this)
+            d = mlpet.Laif2Ecat.dcEcat(this.inputFunction, this.a, this.d, this.p, this.q0, this.t0, this.times);
         end
         function this = estimateParameters(this, varargin) 
             ip = inputParser;
@@ -128,14 +120,14 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
                 this.finalParams(keys{5}));
         end
         function ed   = estimateDataFast(this, a, d, p, q0, t0)  
-            ed = this.countsDcv(this.inputFunction_, a, d, p, q0, t0, this.times);
+            ed = this.dcEcat(this.inputFunction_, a, d, p, q0, t0, this.times);
         end 
-    end 
+ 	end 
     
     %% PRIVATE
     
     properties (Access = 'private')
-        inputFunction_
+        countsDcv_
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

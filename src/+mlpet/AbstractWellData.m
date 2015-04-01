@@ -1,4 +1,4 @@
-classdef AbstractWellData < mlpet.IWellData   
+classdef (Abstract) AbstractWellData < mlpet.IWellData   
 	%% ABSTRACTWELLDATA   
     %  Yet abstract:  static method load, method save
 

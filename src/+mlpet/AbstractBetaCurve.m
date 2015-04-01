@@ -1,4 +1,4 @@
-classdef AbstractBetaCurve < mlpet.AbstractWellData & mlpet.IBetaCurve
+classdef (Abstract) AbstractBetaCurve < mlpet.AbstractWellData & mlpet.IBetaCurve
 	%% ABSTRACTBETACURVE 
     %  Yet abstract:  static method load, method save
 
