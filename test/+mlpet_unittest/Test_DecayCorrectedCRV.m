@@ -38,11 +38,18 @@ classdef Test_DecayCorrectedCRV < matlab.unittest.TestCase
             this.assertEqual(this.testObj.timeInterpolants(120), 120);
         end
         function test_counts(this)
-            this.assertEqual(this.testObj.counts(4),   4.745279345983164e+02, 'RelTol', 1e-10);
-            this.assertEqual(this.testObj.counts(120), 4.501036397725916e+04, 'RelTol', 1e-10);
+            this.assertEqual(this.testObj.counts(4),   41.941659412967688, 'RelTol', 1e-10);
+            this.assertEqual(this.testObj.counts(120), 3978.28919721223, 'RelTol', 1e-10);
         end
         function test_countInterpolants(this)
-            this.assertEqual(this.testObj.countInterpolants(120), 4.501036397725916e+04, 'RelTol', 1e-10);
+            this.assertEqual(this.testObj.countInterpolants(120), 3978.28919721223, 'RelTol', 1e-10);
+        end
+        function test_wellCounts(this)
+            this.assertEqual(this.testObj.wellCounts(4),   4.745279345983164e+02, 'RelTol', 1e-10);
+            this.assertEqual(this.testObj.wellCounts(120), 4.501036397725916e+04, 'RelTol', 1e-10);
+        end
+        function test_wellCountInterpolants(this)
+            this.assertEqual(this.testObj.wellCountInterpolants(120), 4.501036397725916e+04, 'RelTol', 1e-10);
         end
         function test_header(this)
             this.assertEqual(this.testObj.header.fqfilename, 'C:\data\p7267ho1.crv');
@@ -58,9 +65,6 @@ classdef Test_DecayCorrectedCRV < matlab.unittest.TestCase
         function test_halfLife(this)
             this.assertEqual(this.testObj.halfLife, 122.1);
         end
-        function test_pie(this)            
-            this.assertEqual(this.testObj.pie, nan);
-        end 
         function test_wellFactor(this)            
             this.assertEqual(this.testObj.wellFactor, 11.314);
         end

@@ -94,8 +94,7 @@ classdef TSC < mlpet.AbstractWellData
             this.mask_ = this.makeMask;
             this.dta_ = DTA(dtaLoc);
             this.decayCorrectedEcat_ = this.maskEcat( ...
-                                       DecayCorrectedEcat( ...
-                                       EcatExactHRPlus(ecatLoc), pie), this.mask_);
+                                       DecayCorrectedEcat.load(pie, ecatLoc), this.mask_);
             
             this.times_  = this.decayCorrectedEcat_.times;  
             this.taus_   = this.decayCorrectedEcat_.taus; 
@@ -126,41 +125,36 @@ classdef TSC < mlpet.AbstractWellData
             this = this@mlpet.AbstractWellData(tscLoc);            
         end
         function msk  = makeMask(this)
-            msk = mlfourd.NIfTI.load(this.maskFqfilename);
-            assert(0 == msk.dipmin);
-            if (msk.dipmax > 1)
-                msk.img = abs(msk.img) > eps;
-            end
+            msk = mlfourd.MaskingNIfTId.load(this.maskFqfilename);
             if (~lstrfind(msk.fileprefix, 'mask') && ...
                 ~lstrfind(msk.fileprefix, 'msk'))
                 msk.fileprefix = [msk.fileprefix '_mask'];
             end
         end
-        function ecat = maskEcat(~, ecat, msk)
+        function dcecat = maskEcat(~, dcecat, msk)
             %% MASKPET accepts PET and mask NIfTIs and masks each time-frame of PET by the mask
             %  Usage:  pet_masked_nifti = maskPet(pet_nifti, mask_nifti) 
 
-            assert(isa(ecat, 'mlpet.EcatExactHRPlus'));
-            assert(isa(msk, 'mlfourd.NIfTI'));
+            assert(isa(dcecat, 'mlpet.EcatExactHRPlus'));
+            assert(isa(msk, 'mlfourd.INIfTId'));
             assert(3 == length(msk.size), 'mlpet:unsupportedDataSize', 'TSC.makeMask.mask.size -> % i', msk.size); %#ok<*MCNPN>
 
-            nii = ecat.nifti;
-            for t = 1:nii.size(4)
-                nii.img(:,:,:,t) = nii.img(:,:,:,t) .* msk.img;
-            end
-            nii.fileprefix = [nii.fileprefix '_masked'];
-            ecat.nifti = nii;
+            dcecat = dcecat.masked(msk);
         end        
         function cnts = squeezeVoxels(this, ecat, msk)
+            %% SQUEEZEVOXELS integrates over space with masking, then divides amplitudes by the number of pixels;
+            %  cf. man pie
+            
             assert(isa(ecat, 'mlpet.EcatExactHRPlus'));
-            Nt = ecat.nifti.size(4);
+            Nt = ecat.size(4);
             cnts = zeros(1, Nt);
+            dcecat = this.decayCorrectedEcat_;
             for t = 1:Nt
-                cnts(t) = sum(sum(sum(this.decayCorrectedEcat_.nifti.img(:,:,:,t), 1), 2), 3); 
+                cnts(t) = sum(sum(sum(dcecat.wellCounts(:,:,:,t), 1), 2), 3) * (60/dcecat.taus(t)); 
             end
-            cnts = cnts/msk.dipsum;
+            cnts = cnts/mlfourd.MaskingNIfTId.sumall(msk);
         end
-        function        plot(this)            
+        function        plot(this)
             figure;
             plot(this.times, this.counts);
             title([this.decayCorrectedEcat_.fileprefix ' && ' this.mask_.fileprefix], 'Interpreter', 'none');
@@ -173,7 +167,7 @@ classdef TSC < mlpet.AbstractWellData
             fid = fopen(this.fqfilename, 'w');            
             Nf = this.getNf;
             fprintf(fid, '%s,  %s, %s, pie = %f\n', ...
-                    this.dta_.filename, this.mask_.filename, this.decayCorrectedEcat_.nifti.filename, this.decayCorrectedEcat_.pie);
+                    this.dta_.filename, this.mask_.filename, this.decayCorrectedEcat_.filename, this.decayCorrectedEcat_.pie);
             fprintf(fid, '    %i,    %i\n', Nf, 3);
             for f = 1:Nf
                 fprintf(fid, '%12.1f %12.1f %14.2f\n', this.times(f), this.taus(f), this.counts(f));
@@ -183,15 +177,15 @@ classdef TSC < mlpet.AbstractWellData
         end
     end 
 
-    %% PRIVATE
+    %% PROTECTED
     
-    properties (Access = 'private')
+    properties (Access = 'protected')
         mask_
         dta_
         decayCorrectedEcat_
     end
     
-    methods (Access = 'private')
+    methods (Access = 'protected')
         function f   = maskFilename(this)
             f = sprintf('aparc_a2009s+aseg_mask_on_%sgluc%i_mcf.nii.gz', this.pnumber, this.scanIndex);
         end
@@ -222,7 +216,7 @@ classdef TSC < mlpet.AbstractWellData
             this.header_.rows = ts{1};
             this.header_.cols = ts{2};
         end
-        function this = readdata(this, fid)            
+        function this = readdata(this, fid)
             ts = textscan(fid, '%f %f %f', 'Delimiter', ' ', 'MultipleDelimsAsOne', true);
             this.times_  = ts{1}';
             this.taus_   = ts{2}';

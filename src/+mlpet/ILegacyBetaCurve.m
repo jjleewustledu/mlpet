@@ -25,13 +25,16 @@ classdef ILegacyBetaCurve
         
         scanDuration % sec  
         times
-        timeInterpolants
         counts
-        countInterpolants
         header
         headerString
         length % number valid frames
     end 
+    
+    methods (Abstract)        
+        timeInterpolants(this)
+        countInterpolants(this)
+    end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
 end

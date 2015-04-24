@@ -1,4 +1,4 @@
-classdef (Abstract) AbstractWellData < mlpet.IWellData   
+classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface 
 	%% ABSTRACTWELLDATA   
     %  Yet abstract:  static method load, method save
 
@@ -31,9 +31,8 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData
         length
         scanDuration % sec  
         times
-        timeInterpolants
         counts
-        countInterpolants
+        wellCounts %% no need for well-factor; preserves notational consistency
         header
         
         taus
@@ -91,10 +90,6 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData
             assert(isnumeric(t));
             this.times_ = t;
         end
-        function t    = get.timeInterpolants(this)
-            assert(~isempty(this.times_));
-            t = this.times_(1):this.dt:this.times_(end);
-        end
         function c    = get.counts(this)
             assert(~isempty(this.counts_));
             c = this.counts_;
@@ -103,10 +98,8 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData
             assert(isnumeric(c));
             this.counts_ = c;
         end
-        function c    = get.countInterpolants(this)
-            assert(~isempty(this.counts_));
-            c = pchip(this.times_, this.counts_, this.timeInterpolants);
-            c = c(1:length(this.timeInterpolants));
+        function wc   = get.wellCounts(this)
+            wc = this.counts;
         end
         function h    = get.header(this)
             assert(~isempty(this.header_));
@@ -143,7 +136,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData
             this.petio_.fqfilename = fqfn;
             this.save;
         end
-        function i = guessIsotope(this)
+        function i    = guessIsotope(this)
             if (lstrfind(this.tracer, {'ho' 'oo' 'oc' 'co'}))
                 i = '15O';
                 return
@@ -155,13 +148,30 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData
             error('mlpet:indeterminatePropertyValue', ...
                 'AbstractWellData.guessIsotope could not recognize the isotope of %s', this.fileprefix);
         end
+        function t    = timeInterpolants(this, varargin)
+            assert(~isempty(this.times_));
+            t = this.times_(1):this.dt:this.times_(end);
+            
+            if (~isempty(varargin))
+                t = t(varargin{:}); end
+        end
+        function c    = countInterpolants(this, varargin)
+            assert(~isempty(this.counts_));
+            c = pchip(this.times_, this.counts_, this.timeInterpolants);
+            c = c(1:length(this.timeInterpolants));
+            
+            if (~isempty(varargin))
+                c = c(varargin{:}); end
+        end
+        function wc   = wellCountInterpolants(this, varargin)
+            wc = this.countInterpolants(varargin{:});
+        end
     end 
     
     %% PROTECTED
     
     properties (Access = 'protected')
-        petio_
-        
+        petio_        
         times_
         taus_
         counts_

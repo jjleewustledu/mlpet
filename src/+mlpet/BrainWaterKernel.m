@@ -17,10 +17,10 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
         xLabel    = 'times/s'
         yLabel    = 'arbitrary'
         
-        a  = 12
-        d  = 1
-        p  = 1.5
-        q0 = 1
+        a  = 22.719359
+        d  = 0.952150
+        p  = 0.738172
+        q0 = 5271688.678790
         t0 = 0
     end 
     
@@ -37,11 +37,11 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
         function m = get.map(this)            
             m = containers.Map;
             tf = this.timeFinal;
-            m('a')   = struct('fixed', 0, 'min',   2,    'mean', this.a,  'max', 16);
-            m('d')   = struct('fixed', 0, 'min',   eps,  'mean', this.d,  'max',  3);
-            m('p')   = struct('fixed', 0, 'min',   1,    'mean', this.p,  'max',  2); 
-            m('q0')  = struct('fixed', 1, 'min',   1,    'mean', this.q0, 'max',  2e7);
-            m('t0')  = struct('fixed', 1, 'min',   0,    'mean', this.t0, 'max', tf/2); 
+            m('a')  = struct('fixed', 0, 'min', 10,  'mean', this.a,  'max', 30);
+            m('d')  = struct('fixed', 0, 'min', 0.5, 'mean', this.d,  'max',  2);
+            m('p')  = struct('fixed', 0, 'min', 0.5, 'mean', this.p,  'max',  2); 
+            m('q0') = struct('fixed', 1, 'min', 1e6, 'mean', this.q0, 'max',  1e7);
+            m('t0') = struct('fixed', 1, 'min', 0,   'mean', this.t0, 'max', tf/2); 
         end
     end
     
@@ -50,21 +50,20 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             this = mlpet.BrainWaterKernel(inputFn, times, counts);
             this = this.estimateParameters(this.map);
         end
-        function k    = kernel(a, d, p, q0, t0, times)            
+        function k    = kernel(a, d, p, t0, times)            
             idx_t0 = mlpet.BrainWaterKernel.indexOf(times, t0);  
-            cnorm  = q0 * ((p/a^d)/gamma(d/p));
+            cnorm  = ((p/a^d)/gamma(d/p));
             exp1   = exp(-(times/a).^p);
             k0     = abs(cnorm * times.^(d-1) .* exp1);
             
             k             = zeros(1, length(times));
             k(idx_t0:end) = k0(1:end-idx_t0+1);
-            k             = k / sum(k);
             assert(all(isreal(k)), 'BestGammaFluid.simulateDcv.residue was complex');
             assert(~any(isnan(k)), 'BestGammaFluid.simulateDcv.residue was NaN: %s', num2str(k));
         end
         function dcv  = countsDcv(inputFunction, a, d, p, q0, t0, times)
-            kernel = mlpet.BrainWaterKernel.kernel(a, d, p, q0, t0, times);
-            dcv = abs(conv(inputFunction, kernel));
+            kernel = mlpet.BrainWaterKernel.kernel(a, d, p, t0, times);
+            dcv = q0 * abs(conv(inputFunction, kernel));
             dcv = dcv(1:length(times));
         end
         function this = simulateMcmc(inputFunction, a, d, p, q0, t0, times, map)
@@ -97,7 +96,7 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
                 [this.a this.d this.p this.q0 this.t0]';
         end 
         function k    = itsKernel(this)
-            k = mlpet.BrainWaterKernel.kernel(this.a, this.d, this.p, this.q0, this.t0, this.times);
+            k = mlpet.BrainWaterKernel.kernel(this.a, this.d, this.p, this.t0, this.times);
         end
         function d    = itsSimulatedDcv(this)
             d = mlpet.BrainWaterKernel.countsDcv(this.inputFunction, this.a, this.d, this.p, this.q0, this.t0, this.times);

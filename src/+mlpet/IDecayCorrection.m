@@ -12,9 +12,6 @@ classdef (Abstract) IDecayCorrection
 	properties (Abstract)
         isotope
         halfLife
-        pie
-        wellFqfilename
-        wellFactor
     end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

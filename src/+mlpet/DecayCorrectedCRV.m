@@ -14,9 +14,6 @@ classdef DecayCorrectedCRV < mlpet.CRV & mlpet.IDecayCorrection
 	properties (Dependent)        
         isotope
         halfLife
-        pie
-        wellFqfilename
-        wellFactor
     end 
     
     methods %% GET
@@ -25,15 +22,6 @@ classdef DecayCorrectedCRV < mlpet.CRV & mlpet.IDecayCorrection
         end
         function h = get.halfLife(this)
             h = this.decayCorrection_.halfLife;
-        end
-        function p = get.pie(this)
-            p = this.decayCorrection_.pie;
-        end
-        function f = get.wellFqfilename(this)
-            f = fullfile(this.filepath, [str2pnum(this.fileprefix) '.wel']);
-        end
-        function w = get.wellFactor(this)
-            w = this.decayCorrection_.wellFactor;
         end
     end    
     

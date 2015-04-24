@@ -1,5 +1,7 @@
 classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus & mlpet.IDecayCorrection  
-	%% DECAYCORRECTEDECAT   
+	%% DECAYCORRECTEDECAT implements mlpet.IScannerData for data from detection array of Ecat Exact HR+ scanners, then
+    %  applies decay correction for the half-life of the selected isotope.  Most useful properties will be
+    %  times, timeInterpolants, counts, countInterpolants.  It is also a NIfTIdecorator.
 
 	%  $Revision$ 
  	%  was created $Date$ 
@@ -9,12 +11,9 @@ classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus & mlpet.IDecayCorrection
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
  	%  $Id$ 
  	 
-	properties (Dependent)        
+	properties (Dependent) 
         isotope
         halfLife
-        pie
-        wellFqfilename
-        wellFactor
     end 
     
     methods %% GET
@@ -24,52 +23,50 @@ classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus & mlpet.IDecayCorrection
         function h = get.halfLife(this)
             h = this.decayCorrection_.halfLife;
         end
-        function p = get.pie(this)
-            p = this.decayCorrection_.pie;
-        end
-        function f = get.wellFqfilename(this)
-            f = fullfile(this.filepath, [str2pnum(this.fileprefix) '.wel']);
-        end
-        function w = get.wellFactor(this)
-            w = this.decayCorrection_.wellFactor;
-        end
     end    
     
     methods (Static)
-        function this = load(fileLoc, pie)
-            import mlpet.*;
-            this = DecayCorrectedEcat(EcatExactHRPlus(fileLoc), pie);
+        function this = load(pie, fileLoc)
+            this = mlpet.DecayCorrectedEcat(pie, mlfourd.NIfTId.load(fileLoc));
         end
     end
 
 	methods 		  
- 		function this = DecayCorrectedEcat(ecat, pie) 
+ 		function this = DecayCorrectedEcat(pie, cmp) 
  			%% DECAYCORRECTEDECAT 
- 			%  Usage:  this = DecayCorrectedEcat(EcatExactHRPlus_object, pie_factor) 
+ 			%  Usage:  this = DecayCorrectedEcat(pie_factor, INIfTId_object) 
 
- 			this = this@mlpet.EcatExactHRPlus(ecat.fqfilename); 
-            assert( isa(ecat, 'mlpet.EcatExactHRPlus'));
-            assert(~isa(ecat, 'mlpet.DecayCorrectedEcat'));
-            assert( isnumeric(pie));
+ 			this = this@mlpet.EcatExactHRPlus(pie, cmp); 
+            assert( isa(cmp, 'mlfourd.INIfTId'));
+            assert(~isa(cmp, 'mlpet.DecayCorrectedEcat'));
+            assert( isnumeric(pie) && isscalar(pie));
             
-            this.decayCorrection_ = mlpet.DecayCorrection(this, pie);
+            this.decayCorrection_ = mlpet.DecayCorrection(this);
             this.counts = this.decayCorrection_.correctedCounts(this.counts, this.times);
             this = this.updateFileprefix;
- 		end 
+            this = this.setTimeMidpoints_dc;
+        end 
     end 
     
-    %% PRIVATE
+    %% PROTECTED
     
-    properties (Access = 'private')
+    properties (Access = 'protected')
         decayCorrection_
     end
     
-    methods (Access = 'private')
+    methods (Access = 'protected')
         function this = updateFileprefix(this)            
-            this.nifti_.fileprefix = [this.nifti_.fileprefix '_decayCorrect'];
+            this.component_.fileprefix = [this.component_.fileprefix '_decayCorrect'];
             if (this.useBecquerels)                
-                this.nifti_.fileprefix = [this.nifti_.fileprefix '_Bq'];
+                this.component_.fileprefix = [this.component_.fileprefix '_Bq'];
             end
+        end
+        function this = setTimeMidpoints_dc(this)
+            k_decay = log(2) / this.halfLife;
+            this.timeMidpoints_ = this.times;
+            for t = 2:this.length
+                this.timeMidpoints_(t) = this.times(t-1) - (1/k_decay) * log(0.5*(exp(-k_decay*this.taus(t)) + 1));
+            end            
         end
     end
 

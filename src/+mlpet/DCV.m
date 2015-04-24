@@ -1,8 +1,8 @@
-classdef DCV < mlpet.AbstractBetaCurve 
+classdef DCV < mlpet.AbstractWellData
 	%% DCV objectifies Snyder-Videen *.dcv files, replacing the first two count measurements with the third,
     %  adding hand-measured counts at the end for assessment of detector drift.  Dcv files record beta-detector events,
     %  correct for positron half-life, deconvolve the dispersion of the cannulated arterial line and
-    %  adjust beta-detector events to yield well-counter units.
+    %  multiply beta-detector events by well-factors to yield well-counter units.
     %  Cf. man betadcv, metproc
 
 	%  $Revision$ 
@@ -32,7 +32,7 @@ classdef DCV < mlpet.AbstractBetaCurve
             %          this = DCV('/path/to/p1234data/p1234ho1')
             %          this = DCV('p1234ho1')
 
-            this = this@mlpet.AbstractBetaCurve(fileLoc);
+            this = this@mlpet.AbstractWellData(fileLoc);
             if (isempty(this.filesuffix))
                 this.petio_.filesuffix = this.EXTENSION; end
             this = this.readdcv;

@@ -1,4 +1,4 @@
-classdef (Abstract) IWellData < mlio.IOInterface 
+classdef (Abstract) IWellData
 	%% IWELLDATA   
 
 	%  $Revision$ 
@@ -22,14 +22,19 @@ classdef (Abstract) IWellData < mlio.IOInterface
         scanDuration % sec  
         dt % sec        
         times
-        timeInterpolants
         counts
-        countInterpolants
+        wellCounts
         header
         
         useBecquerels
         noclobber
     end 
+    
+    methods (Abstract)
+        timeInterpolants(this)
+        countInterpolants(this)
+        wellCountInterpolants(this)
+    end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
 end

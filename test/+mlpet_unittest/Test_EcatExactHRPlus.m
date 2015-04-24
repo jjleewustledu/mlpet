@@ -16,6 +16,7 @@ classdef Test_EcatExactHRPlus < matlab.unittest.TestCase
 	properties 
  		testObj 
         unittest_home = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet'
+        pie = 5.2038
  	end 
 
 	methods (Test) 
@@ -33,13 +34,22 @@ classdef Test_EcatExactHRPlus < matlab.unittest.TestCase
             this.assertEqual(this.testObj.timeInterpolants(119), 1.593330000000000e+02);
         end
         function test_counts(this)
-            this.assertEqual(this.testObj.counts(64,64,32,4), single(-92));
-            this.assertEqual(this.testObj.counts(64,64,32,60), single(-100));
+            this.assertEqual(this.testObj.counts(64,64,30,4), 63);
+            this.assertEqual(this.testObj.counts(64,64,30,60), 125);
         end
         function test_countInterpolants(this)
             obj = this.testObj;
-            obj.counts = obj.counts(64,64,32,:);
-            this.assertEqual(obj.countInterpolants(4), single(-1.3850000e+02));
+            obj.counts = obj.counts(64,64,30,:);
+            this.assertEqual(obj.countInterpolants(4), 36.5287927350427, 'RelTol', 1e-5);
+        end
+        function test_wellCounts(this)
+            this.assertEqual(this.testObj.wellCounts(64,64,30,4), 655.6788);
+            this.assertEqual(this.testObj.wellCounts(64,64,30,60), 1300.95);
+        end
+        function test_wellCountInterpolants(this)
+            obj = this.testObj;
+            obj.counts = obj.counts(64,64,30,:);
+            this.assertEqual(obj.wellCountInterpolants(4), 380.177063269231, 'RelTol', 1e-5);
         end
         function test_header(this)
             this.assertEqual(this.testObj.header.injectionTime, 41.333);
@@ -63,7 +73,7 @@ classdef Test_EcatExactHRPlus < matlab.unittest.TestCase
         function this = Test_EcatExactHRPlus
             this = this@matlab.unittest.TestCase;
             cd(this.unittest_home);
- 			this.testObj = mlpet.EcatExactHRPlus('p7267ho1'); 
+ 			this.testObj = mlpet.EcatExactHRPlus(this.pie, mlfourd.NIfTId.load('p7267ho1')); 
         end
     end
 

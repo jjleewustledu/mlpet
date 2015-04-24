@@ -22,9 +22,7 @@ classdef AbstractLegacyBetaCurve < mlpet.ILegacyBetaCurve
         fqfilename
         scanDuration % sec  
         times
-        timeInterpolants
         counts
-        countInterpolants
         header
         headerString
         length
@@ -57,10 +55,6 @@ classdef AbstractLegacyBetaCurve < mlpet.ILegacyBetaCurve
             assert(isnumeric(t));
             this.times_ = t;
         end
-        function t    = get.timeInterpolants(this)
-            assert(~isempty(this.times_));
-            t = this.times_(1):this.dt:this.times_(end);
-        end
         function c    = get.counts(this)
             assert(~isempty(this.counts_));
             c = this.counts_;
@@ -68,11 +62,6 @@ classdef AbstractLegacyBetaCurve < mlpet.ILegacyBetaCurve
         function this = set.counts(this, c)
             assert(isnumeric(c));
             this.counts_ = c;
-        end
-        function c    = get.countInterpolants(this)
-            assert(~isempty(this.counts_));
-            c = pchip(this.times_, this.counts_, this.timeInterpolants);
-            c = c(1:length(this.timeInterpolants));
         end
         function h    = get.header(this)
             assert(~isempty(this.header_));
@@ -109,10 +98,24 @@ classdef AbstractLegacyBetaCurve < mlpet.ILegacyBetaCurve
             this.fileprefix_  = p.Results.fileprefix;
             this.pathname_ = p.Results.filepath;
         end
-        function d = double(this)
+        function t    = timeInterpolants(this, idx)
+            assert(~isempty(this.times_));
+            t = this.times_(1):this.dt:this.times_(end);            
+            if (lexist('idx', 'var'))
+                t = t(idx); end
+        end
+        function c    = countInterpolants(this, varargin)
+            assert(~isempty(this.counts_));
+            c = pchip(this.times_, this.counts_, this.timeInterpolants);
+            c = c(1:length(this.timeInterpolants));
+            
+            if (~isempty(varargin))
+                c = c(varargin{:}); end
+        end
+        function d    = double(this)
             d = this.counts;
         end
-        function c = cell(this)
+        function c    = cell(this)
             warning('mlpet:deprecatedMethodFunction', ...
                 'AbstractLegacyBetaCurve.cell is deprecated and will be removed in future development');
             c = {this.times this.counts};

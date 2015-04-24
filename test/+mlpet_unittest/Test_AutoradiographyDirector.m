@@ -14,27 +14,68 @@ classdef Test_AutoradiographyDirector < matlab.unittest.TestCase
  	%  $Id$ 
 
 	properties 
- 		testObj 
+        testObj
+        testObj2
+        
+        dscMaskFn = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/perfusion_4dfp/perfMask.nii.gz';
+        dscFn     = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/perfusion_4dfp/ep2d_default_mcf.nii.gz';
+            
+        aifFn  = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet/p7267ho1.dcv';        
+        maskFn = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/bayesian_pet/aparc_a2009s+aseg_mask_on_p7267tr1.nii.gz';            
+        ecatFn = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/bayesian_pet/p7267ho1_mcf_revf1to7_masked.nii.gz';
+        pie       = 5.2038;
+        dcvShift  = 13
+        dscShift  = 13
+        ecatShift = 2
  	end 
 
 	methods (Test) 
- 		function test_afun(this) 
- 			import mlpet.*; 
- 			this.assumeEqual(1,1); 
- 			this.verifyEqual(1,1); 
- 			this.assertEqual(1,1); 
+ 		function test_plotInitialData(this)
+            this.testObj.plotInitialData;
  		end 
- 	end 
-
- 	methods (TestClassSetup) 
- 		function setupAutoradiographyDirector(this) 
- 			this.testObj = mlpet.AutoradiographyDirector; 
+ 		function test_plotInitialData2(this)
+            this.testObj2.plotInitialData;
  		end 
+ 		function test_plotParVars(this)
+            this.testObj.plotParVars('A0', [0.05 0.06 0.07 0.08 0.09 0.1 0.11 0.12 0.13 0.14 0.15 0.16 0.17 0.18 0.19 0.2]);
+            this.testObj.plotParVars('PS', [0.01 0.02 0.03 0.04 0.05]);
+            this.testObj.plotParVars('f',  [0.002 0.004 0.005 0.006 0.007 0.008 0.009 0.01 0.015 0.02]);
+            this.testObj.plotParVars('t0', [0 1 2 4 8 16 32]);
+        end 
+        function test_plotParVars2(this)
+            this.testObj2.plotParVars('A0', [0.05 0.06 0.07 0.08 0.09 0.1 0.11 0.12 0.13 0.14 0.15 0.16 0.17 0.18 0.19 0.2]);
+            this.testObj2.plotParVars('PS', [0.0001 0.001 0.01 0.02 0.03 0.04 0.05]);
+            this.testObj2.plotParVars('a',  [0.0001 0.001 0.01 0.05 0.1 0.5 1 2 4 8 16]);
+            this.testObj2.plotParVars('d',  [0.01 0.05 0.1 0.2 0.4 0.8 0.9 1 1.1 1.2 1.4 1.6 1.8 2 3 4 8]);
+            this.testObj2.plotParVars('f',  [0.002 0.004 0.005 0.006 0.007 0.008 0.009 0.01 0.015 0.02]);
+            this.testObj2.plotParVars('p',  [0.25 0.5 0.9 0.95 1 1.05 1.1 1.15 1.2 1.3 1.4 1.5 2 3 4]);
+            this.testObj2.plotParVars('q0', [1.25 2.5 5 10]*1e6);
+            this.testObj2.plotParVars('t0', [0 1 2 4 8 16 32]);
+        end
+        function test_simulateItsMcmc(this)
+            this.testObj.simulateItsMcmc;
+        end
+        function test_simulateItsMcmc2(this)
+            this.testObj2.simulateItsMcmc;
+        end
+        function test_runItsAutoradiography(this)
+            this.testObj.runItsAutoradiography;
+        end
+        function test_runItsAutoradiography2(this)
+            this.testObj2.runItsAutoradiography;
+        end
  	end 
 
- 	methods (TestClassTeardown) 
- 	end 
-
+    methods 
+        function this = Test_AutoradiographyDirector
+            this = this@matlab.unittest.TestCase;
+ 			this.testObj  = mlpet.AutoradiographyDirector.loadPET( ...
+                           this.maskFn, this.aifFn, this.pie, this.ecatFn, this.dcvShift, this.ecatShift);
+ 			this.testObj2 = mlpet.AutoradiographyDirector.loadDSC( ...
+                           this.maskFn, this.dscMaskFn, this.dscFn, this.pie, this.ecatFn, this.dscShift, this.ecatShift);
+        end
+    end
+    
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
  end 
 

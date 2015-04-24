@@ -8,6 +8,11 @@ classdef (Abstract) IBetaCurve < mlpet.IWellData
  	%  and checked into repository $URL$,  
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
  	%  $Id$ 
+    
+    properties (Abstract)        
+        wellFqfilename
+        wellFactor
+    end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
 end
