@@ -17,9 +17,9 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
         xLabel    = 'times/s'
         yLabel    = 'arbitrary'
         
-        a  = 22.719359
-        d  = 0.952150
-        p  = 0.738172
+        a  = 10.060445
+        d  = 1.132742
+        p  = 0.623448
         q0 = 5271688.678790
         t0 = 0
     end 

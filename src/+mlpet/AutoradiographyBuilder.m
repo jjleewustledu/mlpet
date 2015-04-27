@@ -15,7 +15,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
         LAMBDA = 0.95           % brain-blood equilibrium partition coefficient, mL/g
         LAMBDA_DECAY = 0.005677 % KLUDGE:  hard-coded [15O] half-life because propagating this.decayCorrection_ to static methods is difficult
         BRAIN_DENSITY = 1.05    % assumed mean brain density, g/mL
-        HERSCOVITCH_CORRECTION = false
+        HERSCOVITCH_CORRECTION = true
     end
 
     properties (Abstract)

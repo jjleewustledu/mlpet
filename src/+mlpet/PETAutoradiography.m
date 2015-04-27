@@ -22,11 +22,11 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
         xLabel    = 'times/s'
         yLabel    = 'concentration/(well-counts/mL/s)'
         
-        A0 = 0.068093
-        PS = 0.0173 % cm^3/s/g, [15O]H_2O
-        f  = 0.0096525 % mL/s/g,   [15O]H_2O
-        t0 = 0.007868
-    end 
+        A0 = 0.071930
+        PS = 0.025085 % cm^3/s/g, [15O]H_2O
+        f  = 0.00958 % mL/s/g,  [15O]H_2O
+        t0 = 0
+    end
 
     properties (Dependent)
         aif
@@ -57,11 +57,11 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
         function co = get.concentration_obs(this)
             co = this.dependentData;
         end
-        function m  = get.map(this)            
+        function m  = get.map(this)
             m = containers.Map;
-            m('A0') = struct('fixed', 1, 'min', this.priorLow(this.A0), 'mean', this.A0, 'max', this.priorHigh(this.A0));
-            m('PS') = struct('fixed', 1, 'min', 0.013,                  'mean', this.PS, 'max', 0.025333); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
-            m('f')  = struct('fixed', 0, 'min', 0.0053,                 'mean', this.f,  'max', 0.012467); % 
+            m('A0') = struct('fixed', 0, 'min', this.priorLow(this.A0), 'mean', this.A0, 'max', this.priorHigh(this.A0));
+            m('PS') = struct('fixed', 0, 'min', 0.013,                  'mean', this.PS, 'max', 0.025333); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
+            m('f')  = struct('fixed', 1, 'min', 0.0053,                 'mean', this.f,  'max', 0.012467); % 
             m('t0') = struct('fixed', 1, 'min', 0,                      'mean', this.t0, 'max', 15);
         end
     end
@@ -248,6 +248,14 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
                         args{v} = { this.A0 this.PS this.f  vars(v) this.times this.concentration_a }; end
             end
             this.plotParArgs(par, args, vars);
+        end
+        function ps   = adjustParams(this, ps)
+            manager = this.paramsManager;
+            if (ps(manager.paramsIndices('f'))  > ps(manager.paramsIndices('PS')))
+                tmp                             = ps(manager.paramsIndices('PS'));
+                ps(manager.paramsIndices('PS')) = ps(manager.paramsIndices('f'));
+                ps(manager.paramsIndices('f')) = tmp;
+            end
         end
     end 
     
