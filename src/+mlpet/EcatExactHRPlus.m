@@ -42,7 +42,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
         nPixels
     end 
 
-    methods %% GET, SET
+    methods %% GET
         
         %% IWellData
         

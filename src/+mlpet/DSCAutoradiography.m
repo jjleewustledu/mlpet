@@ -22,13 +22,13 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
         xLabel    = 'times/s'
         yLabel    = 'concentration/(well-counts/mL/s)'
         
-        A0 = 0.071930
-        PS = 0.025085 % cm^3/s/g, [15O]H_2O
-        a  = 10.060445
-        d  = 1.132742
-        f  = 0.00958 % mL/s/g, [15O]H_2O
-        p  = 0.623448
-        q0 = 5271688.678790
+        A0 = 0.065467
+        PS = 0.024099 % cm^3/s/mL, [15O]H_2O
+        a  = 5.779828
+        d  = 0.979067
+        f  = 0.501331 % mL/s/mL, [15O]H_2O
+        p  = 0.501331
+        q0 = 10031205.520974
         t0 = 0
     end 
 
@@ -65,12 +65,12 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             m = containers.Map;
             m('A0') = struct('fixed', 1, 'min', this.priorLow(this.A0), 'mean', this.A0, 'max',  this.priorHigh(this.A0));
             m('PS') = struct('fixed', 1, 'min', 0.013,                  'mean', this.PS, 'max',  0.025333); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
-            m('f')  = struct('fixed', 0, 'min', 0.0053,                 'mean', this.f,  'max',  0.012467); % 
+            m('f')  = struct('fixed', 1, 'min', 0.0053,                 'mean', this.f,  'max',  0.012467); % 
             m('t0') = struct('fixed', 1, 'min', 0,                      'mean', this.t0, 'max', 30);
             m('a')  = struct('fixed', 1, 'min', 5,                      'mean', this.a,  'max', 29);
             m('d')  = struct('fixed', 1, 'min', 0.5,                    'mean', this.d,  'max',  2);
             m('p')  = struct('fixed', 1, 'min', 0.5,                    'mean', this.p,  'max',  1.5); 
-            m('q0') = struct('fixed', 1, 'min', this.q0/10,             'mean', this.q0, 'max',  this.q0*10);
+            m('q0') = struct('fixed', 0, 'min', this.q0/4,              'mean', this.q0, 'max',  this.q0*4);
         end
     end
     
@@ -156,10 +156,11 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
         function this = runAutoradiography(conc_a, t, conc_obs)
             %% RUNAUTORADIOGRAPHY
             %  Usage:   DSCAutoradiography.runAutoradiography(arterial_counts, times, scanner_counts) 
-            %                                                 ^counts/s/mL     ^ s    ^ counts/s/g
+            %                                                 ^ well-counts/s/mL      ^
+            %                                                                  ^ s
             
             import mlpet.*;
-            this = DSCAutoradiography(conc_a, t, conc_obs*DSCAutoradiography.BRAIN_DENSITY);
+            this = DSCAutoradiography(conc_a, t, conc_obs);
             this = this.estimateParameters(this.map);            
         end
         function ci   = concentration_i(A0, PS, a, d, f, p, q0, t0, t, conc_a)

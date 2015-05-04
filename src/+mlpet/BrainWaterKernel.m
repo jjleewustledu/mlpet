@@ -17,10 +17,10 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
         xLabel    = 'times/s'
         yLabel    = 'arbitrary'
         
-        a  = 10.060445
-        d  = 1.132742
-        p  = 0.623448
-        q0 = 5271688.678790
+        a  = 6.191252
+        d  = 1.244725
+        p  = 0.551951
+        q0 = 5024186.390090
         t0 = 0
     end 
     
@@ -37,10 +37,10 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
         function m = get.map(this)            
             m = containers.Map;
             tf = this.timeFinal;
-            m('a')  = struct('fixed', 0, 'min', 10,  'mean', this.a,  'max', 30);
+            m('a')  = struct('fixed', 0, 'min', 5,   'mean', this.a,  'max', 20);
             m('d')  = struct('fixed', 0, 'min', 0.5, 'mean', this.d,  'max',  2);
-            m('p')  = struct('fixed', 0, 'min', 0.5, 'mean', this.p,  'max',  2); 
-            m('q0') = struct('fixed', 1, 'min', 1e6, 'mean', this.q0, 'max',  1e7);
+            m('p')  = struct('fixed', 0, 'min', 0.3, 'mean', this.p,  'max',  1.5); 
+            m('q0') = struct('fixed', 0, 'min', 1e5, 'mean', this.q0, 'max',  1e8);
             m('t0') = struct('fixed', 1, 'min', 0,   'mean', this.t0, 'max', tf/2); 
         end
     end

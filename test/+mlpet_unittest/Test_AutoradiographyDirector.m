@@ -16,18 +16,48 @@ classdef Test_AutoradiographyDirector < matlab.unittest.TestCase
 	properties 
         testObj
         testObj2
+        testObj3
         
-        dscMaskFn = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/perfusion_4dfp/perfMask.nii.gz';
-        dscFn     = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/perfusion_4dfp/ep2d_default_mcf.nii.gz';
-            
-        aifFn  = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet/p7267ho1.dcv';        
-        maskFn = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/bayesian_pet/aparc_a2009s+aseg_mask_on_p7267tr1.nii.gz';            
-        ecatFn = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/bayesian_pet/p7267ho1_mcf_revf1to7_masked.nii.gz';
+        workPath  = '/Volumes/SeagateBP3/cvl/np755/mm01-007_p7267_2008jun16/bayesian_pet'
         pie       = 5.2038;
         dcvShift  = 13
         dscShift  = 13
         ecatShift = 2
- 	end 
+    end 
+    
+    properties (Dependent)
+        dscMaskFn
+        dscFn
+        aifFn
+        maskFn
+        ecatFn
+        recFn
+        recFn0
+    end
+    
+    methods % GET
+        function fn = get.dscMaskFn(this)
+            fn = fullfile(this.workPath, 'ep2d_mask.nii.gz');
+        end
+        function fn = get.dscFn(this)
+            fn = fullfile(this.workPath, 'ep2d_default_mcf.nii.gz');
+        end
+        function fn = get.aifFn(this)
+            fn = fullfile(this.workPath, 'p7267ho1.dcv');
+        end
+        function fn = get.maskFn(this)
+            fn = fullfile(this.workPath, 'aparc_a2009s+aseg_mask_on_p7267tr1.nii.gz');
+        end
+        function fn = get.ecatFn(this)
+            fn = fullfile(this.workPath, 'p7267ho1_mcf_revf1to7_masked.nii.gz');
+        end
+        function fn = get.recFn(this)
+            fn = fullfile(this.workPath, 'p7267ho1_mcf_revf1to7_masked.img.rec');
+        end
+        function fn = get.recFn0(this)
+            fn = fullfile(this.workPath, 'p7267ho1.img.rec');
+        end
+    end
 
 	methods (Test) 
  		function test_plotInitialData(this)
@@ -64,15 +94,24 @@ classdef Test_AutoradiographyDirector < matlab.unittest.TestCase
         function test_runItsAutoradiography2(this)
             this.testObj2.runItsAutoradiography;
         end
+        function test_runItsAutoradiography3(this)
+            this.testObj3.runItsAutoradiography;
+        end
  	end 
 
     methods 
         function this = Test_AutoradiographyDirector
             this = this@matlab.unittest.TestCase;
+            
+            if (~lexist(this.recFn, 'file'))
+                mlbash(sprintf('cp %s %s', this.recFn0, this.recFn)); end
+            
  			this.testObj  = mlpet.AutoradiographyDirector.loadPET( ...
-                           this.maskFn, this.aifFn, this.pie, this.ecatFn, this.dcvShift, this.ecatShift);
+                            this.maskFn, this.aifFn, this.pie, this.ecatFn, this.dcvShift, this.ecatShift);
  			this.testObj2 = mlpet.AutoradiographyDirector.loadDSC( ...
-                           this.maskFn, this.dscMaskFn, this.dscFn, this.pie, this.ecatFn, this.dscShift, this.ecatShift);
+                            this.maskFn, this.dscMaskFn, this.dscFn, this.pie, this.ecatFn, this.dscShift, this.ecatShift);
+ 			this.testObj3 = mlpet.AutoradiographyDirector.loadVideen( ...
+                            this.maskFn, this.aifFn, this.pie, this.ecatFn, this.dcvShift, this.ecatShift);
         end
     end
     

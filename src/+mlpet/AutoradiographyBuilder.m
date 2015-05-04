@@ -12,9 +12,10 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
  	%  $Id$ 
     
     properties (Constant)
-        LAMBDA = 0.95           % brain-blood equilibrium partition coefficient, mL/g
+        LAMBDA = 0.95           % brain-blood equilibrium partition coefficient, mL/mL, Herscovitch, Raichle, JCBFM (1985) 5:65
         LAMBDA_DECAY = 0.005677 % KLUDGE:  hard-coded [15O] half-life because propagating this.decayCorrection_ to static methods is difficult
         BRAIN_DENSITY = 1.05    % assumed mean brain density, g/mL
+        RBC_FACTOR = 0.766      % per Tom Videen, metproc.inc, line 193
         HERSCOVITCH_CORRECTION = true
     end
 
@@ -79,8 +80,8 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
         function args = interpolateData
             args = {};
         end
-        function f    = mLsg_to_mLmin100g(f)
-            f = 100 * 60 * f;
+        function f    = invs_to_mLmin100g(f)
+            f = 100 * 60 * f / mlpet.AutoradiographyBuilder.BRAIN_DENSITY;
         end
     end
     
