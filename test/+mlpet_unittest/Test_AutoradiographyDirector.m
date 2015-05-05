@@ -20,9 +20,9 @@ classdef Test_AutoradiographyDirector < matlab.unittest.TestCase
         
         workPath  = '/Volumes/SeagateBP3/cvl/np755/mm01-007_p7267_2008jun16/bayesian_pet'
         pie       = 5.2038;
-        dcvShift  = 13
-        dscShift  = 13
-        ecatShift = 2
+        dcvShift  = 18
+        dscShift  = 18
+        ecatShift = 5
     end 
     
     properties (Dependent)
@@ -88,14 +88,17 @@ classdef Test_AutoradiographyDirector < matlab.unittest.TestCase
         function test_simulateItsMcmc2(this)
             this.testObj2.simulateItsMcmc;
         end
+        function test_simulateItsMcmc3(this)
+            this.testObj3.simulateItsMcmc;
+        end
         function test_runItsAutoradiography(this)
-            this.testObj.runItsAutoradiography;
+            this.testObj = this.testObj.runItsAutoradiography;
         end
         function test_runItsAutoradiography2(this)
-            this.testObj2.runItsAutoradiography;
+            this.testObj2 = this.testObj2.runItsAutoradiography;
         end
         function test_runItsAutoradiography3(this)
-            this.testObj3.runItsAutoradiography;
+            this.testObj3 = this.testObj3.runItsAutoradiography;
         end
  	end 
 

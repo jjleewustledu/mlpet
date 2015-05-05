@@ -40,6 +40,8 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
         wellCounts
         mask
         nPixels
+        
+        textParserRec
     end 
 
     methods %% GET
@@ -129,6 +131,10 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
                 n = sum(sum(sum(this.mask_.img)));
             end
         end
+        
+        function fp  = get.textParserRec(this)
+            fp = this.textParserRec_;
+        end
     end
     
     methods (Static)
@@ -140,10 +146,10 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
 	methods
  		function this = EcatExactHRPlus(pie, cmp) 
  			%% ECATEXACTHRPLUS 
- 			%  Usage:  this = EcatExactHRPlus(file_location) 
-            %          this = EcatExactHRPlus('/path/to/p1234data/p1234ho1.nii.gz')
-            %          this = EcatExactHRPlus('/path/to/p1234data/p1234ho1')
-            %          this = EcatExactHRPlus('p1234ho1') 
+ 			%  Usage:  this = EcatExactHRPlus(pie, file_location) 
+            %          this = EcatExactHRPlus(5.2038, '/path/to/p1234data/p1234ho1.nii.gz')
+            %          this = EcatExactHRPlus(5.2038, '/path/to/p1234data/p1234ho1')
+            %          this = EcatExactHRPlus(5.2038, 'p1234ho1') 
  			
             this = this@mlfourd.NIfTIdecorator(cmp);
             this = this.append_descrip('decorated by EcatExactHRPlus');
@@ -230,16 +236,18 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
         wellMatrix_
         pie_
         mask_
+        textParserRec_
     end
     
     methods (Access = 'protected')
         function this = readRec(this)
             try
-                tp = mlio.TextParser.load(this.recFqfilename);
+                tp = mlio.TextParser.loadx(this.recFqfilename, '.img.rec');
                 this = this.readHeader(tp);
                 this = this.readSchedule(tp);                
                 this = this.readTimes;
                 this = this.readTaus;
+                this.textParserRec_ = tp;
             catch ME
                 handexcept(ME);
             end

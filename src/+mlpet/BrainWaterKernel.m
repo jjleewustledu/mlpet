@@ -17,11 +17,11 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
         xLabel    = 'times/s'
         yLabel    = 'arbitrary'
         
-        a  = 6.191252
-        d  = 1.244725
-        p  = 0.551951
-        q0 = 5024186.390090
-        t0 = 0
+        a  = 10.833054
+        d  = 1.039375
+        p  = 0.602907
+        q0 = 4746923.420845
+        t0 = 0.304061
     end 
     
     properties (Dependent)
@@ -41,7 +41,7 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             m('d')  = struct('fixed', 0, 'min', 0.5, 'mean', this.d,  'max',  2);
             m('p')  = struct('fixed', 0, 'min', 0.3, 'mean', this.p,  'max',  1.5); 
             m('q0') = struct('fixed', 0, 'min', 1e5, 'mean', this.q0, 'max',  1e8);
-            m('t0') = struct('fixed', 1, 'min', 0,   'mean', this.t0, 'max', tf/2); 
+            m('t0') = struct('fixed', 0, 'min', 0,   'mean', this.t0, 'max', tf/2); 
         end
     end
     
@@ -130,6 +130,28 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             ed = this.countsDcv(this.inputFunction_, a, d, p, q0, t0, this.times);
         end 
     end 
+    
+    %% PROTECTED
+
+    methods (Static, Access = 'protected')
+        function [times,counts] = shiftDataLeft(times0, counts0, Dt)
+            idx_0  = floor(sum(double(times0 < Dt + times0(1))));
+            times  = times0(idx_0:end);
+            times  = times - times(1);
+            counts = counts0(idx_0:end);
+            counts = counts - min(counts);
+        end
+        function [times,counts] = shiftDataRight(times0, counts0, Dt)
+            lenDt  = ceil(Dt/(times0(2) - times0(1)));
+            newLen = length(counts0) + lenDt;
+            
+            times0 = times0 - times0(1) + Dt;
+            times  = [0:1:lenDt-1 times0];
+            counts = counts0(1) * ones(1,newLen);            
+            counts(end-length(counts0)+1:end) = counts0;
+            counts = counts - min(counts);
+        end
+    end
     
     %% PRIVATE
     

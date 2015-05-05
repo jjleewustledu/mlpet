@@ -22,6 +22,9 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
         dcvFilename  = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet/p7267ho1.dcv'
         test_plots = true
         test_mcmc  = true 
+        
+        dcvShift  = 18
+        dscShift  = 18
  	end 
 
     properties (Dependent)      
@@ -182,7 +185,11 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
             %  must match expected values to relative tolerance of 0.05.
             
             if (~this.test_mcmc); return; end
-            this.testObj = mlpet.BrainWaterKernel.runKernel(this.inputFunction0, this.dcv.timeInterpolants, this.dcv.countInterpolants);
+            
+            import mlpet.* mlpet_unittest.*;
+            [~,dscCurve] = Test_BrainWaterKernel.shiftDataLeft(this.dcv.timeInterpolants, this.inputFunction0, this.dscShift);
+            [t,dcvCurve] = Test_BrainWaterKernel.shiftDataLeft(this.dcv.timeInterpolants, this.dcv.countInterpolants, this.dcvShift);
+            this.testObj = BrainWaterKernel.runKernel(dscCurve, t, dcvCurve);
             o = this.testObj;            
             
             % \Pi \equiv \frac{wellcnts/mL/sec}{EcatCounts/pixel-mL/min}
@@ -190,8 +197,7 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
             % cf. man pie
             
             figure;
-            plot(o.times,        o.estimateData, ...
-                 this.dcv.times, this.dcv.counts, 'o');
+            plot(o.times, o.estimateData, t, dcvCurve, 'o');
             legend('Bayes. DCV', 'DCV');
             title('Test_BrainWaterKernel.test_laif0dcv', 'Interpreter', 'none');
             xlabel('time/s');
@@ -233,6 +239,26 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
         laif2
         inputFunction0_
         inputFunction2_
+    end
+    
+    methods (Static, Access = 'private')
+        function [times,counts] = shiftDataLeft(times0, counts0, Dt)
+            idx_0  = floor(sum(double(times0 < Dt + times0(1))));
+            times  = times0(idx_0:end);
+            times  = times - times(1);
+            counts = counts0(idx_0:end);
+            counts = counts - min(counts);
+        end
+        function [times,counts] = shiftDataRight(times0, counts0, Dt)
+            lenDt  = ceil(Dt/(times0(2) - times0(1)));
+            newLen = length(counts0) + lenDt;
+            
+            times0 = times0 - times0(1) + Dt;
+            times  = [0:1:lenDt-1 times0];
+            counts = counts0(1) * ones(1,newLen);            
+            counts(end-length(counts0)+1:end) = counts0;
+            counts = counts - min(counts);
+        end
     end
     
     methods (Access = 'private')

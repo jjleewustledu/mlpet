@@ -16,15 +16,19 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
  	%  $Id$ 
     
+    properties (Constant)
+        HERSCOVITCH_CORRECTION = false
+    end
+    
 	properties 
         showPlots = true	 
         baseTitle = 'PET Autoradiography'
         xLabel    = 'times/s'
         yLabel    = 'concentration/(well-counts/mL/s)'
         
-        A0 = 0.065467
+        A0 = 0.052661
         PS = 0.024918 % cm^3/s/mL, [15O]H_2O
-        f  = 0.011085 % mL/s/mL, [15O]H_2O
+        f  = 0.00956157346232341 % 0.00956157346232341 mL/s/mL, [15O]H_2O
         t0 = 0
     end
 
@@ -59,8 +63,8 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
         end
         function m  = get.map(this)
             m = containers.Map;
-            m('A0') = struct('fixed', 0, 'min', 0.01,   'mean', this.A0, 'max', 20);
-            m('PS') = struct('fixed', 0, 'min', 0.013,  'mean', this.PS, 'max', 0.025333); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
+            m('A0') = struct('fixed', 0, 'min', 0.01,   'mean', this.A0, 'max', 0.1);
+            m('PS') = struct('fixed', 1, 'min', 0.013,  'mean', this.PS, 'max', 0.025333); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
             m('f')  = struct('fixed', 1, 'min', 0.0053, 'mean', this.f,  'max', 0.012467); % 
             m('t0') = struct('fixed', 1, 'min', 0,      'mean', this.t0, 'max', 15);
         end

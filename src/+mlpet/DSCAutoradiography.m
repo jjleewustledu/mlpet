@@ -14,7 +14,11 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
  	%  last modified $LastChangedDate$ 
  	%  and checked into repository $URL$,  
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
- 	%  $Id$ 
+ 	%  $Id$     
+    
+    properties (Constant)
+        HERSCOVITCH_CORRECTION = false
+    end
     
 	properties 
         showPlots = true	 
@@ -22,13 +26,13 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
         xLabel    = 'times/s'
         yLabel    = 'concentration/(well-counts/mL/s)'
         
-        A0 = 0.065467
-        PS = 0.024099 % cm^3/s/mL, [15O]H_2O
-        a  = 5.779828
-        d  = 0.979067
-        f  = 0.501331 % mL/s/mL, [15O]H_2O
-        p  = 0.501331
-        q0 = 10031205.520974
+        A0 = 0.052661
+        PS = 0.022212 % cm^3/s/mL, [15O]H_2O
+        a  = 1.281674
+        d  = 0.999730
+        f  = 0.010791 % mL/s/mL, [15O]H_2O
+        p  = 0.326521
+        q0 = 11129135.906414
         t0 = 0
     end 
 
@@ -64,13 +68,13 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
         function m  = get.map(this)
             m = containers.Map;
             m('A0') = struct('fixed', 1, 'min', this.priorLow(this.A0), 'mean', this.A0, 'max',  this.priorHigh(this.A0));
-            m('PS') = struct('fixed', 1, 'min', 0.013,                  'mean', this.PS, 'max',  0.025333); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
-            m('f')  = struct('fixed', 1, 'min', 0.0053,                 'mean', this.f,  'max',  0.012467); % 
-            m('t0') = struct('fixed', 1, 'min', 0,                      'mean', this.t0, 'max', 30);
-            m('a')  = struct('fixed', 1, 'min', 5,                      'mean', this.a,  'max', 29);
-            m('d')  = struct('fixed', 1, 'min', 0.5,                    'mean', this.d,  'max',  2);
-            m('p')  = struct('fixed', 1, 'min', 0.5,                    'mean', this.p,  'max',  1.5); 
-            m('q0') = struct('fixed', 0, 'min', this.q0/4,              'mean', this.q0, 'max',  this.q0*4);
+            m('PS') = struct('fixed', 0, 'min', 0.013,                  'mean', this.PS, 'max',  0.025333); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
+            m('f')  = struct('fixed', 0, 'min', 0.0053,                 'mean', this.f,  'max',  0.012467); % 
+            m('t0') = struct('fixed', 1, 'min', 0,                      'mean', this.t0, 'max', 20);
+            m('a')  = struct('fixed', 0, 'min', 1,                      'mean', this.a,  'max', 30);
+            m('d')  = struct('fixed', 0, 'min', 0.5,                    'mean', this.d,  'max',  1.5);
+            m('p')  = struct('fixed', 0, 'min', 0.25,                   'mean', this.p,  'max',  1); 
+            m('q0') = struct('fixed', 0, 'min', this.priorLow(this.q0), 'mean', this.q0, 'max',  this.priorHigh(this.q0));
         end
     end
     
@@ -167,7 +171,11 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             import mlpet.*;
             lambda = DSCAutoradiography.LAMBDA;
             lambda_decay = DSCAutoradiography.LAMBDA_DECAY;
-            m      = 1 - exp(-PS/f);
+            if (PETAutoradiography.HERSCOVITCH_CORRECTION)
+                m  = 1 - exp(-PS/f);
+            else
+                m  = 1;
+            end
             conc_b = q0*conv(conc_a, DSCAutoradiography.kernel(a,d,p,t));
             conc_b = conc_b(1:length(t));
             ci0    = A0*m*f*abs(conv(conc_b, exp(-(m*f/lambda + lambda_decay)*t)));
@@ -276,10 +284,10 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
                        A0, PS, a, d, f, p, q0, t0, this.times, this.concentration_a);
         end
         function x    = priorLow(~, x)
-            x = 0.5*x;
+            x = 0.25*x;
         end
         function x    = priorHigh(~, x)
-            x = 2*x;
+            x = 4*x;
         end
         function        plotInitialData(this)
             figure;

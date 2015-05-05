@@ -17,9 +17,9 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
  	%  $Id$ 
     
     properties (Constant)        
-        time0 = 2*7  - 4; % interpolated times, minus AutoradiographyDirector's offset
-        timeF = 2*26 - 4;
-        ECAT_DTAU = 2;
+        time0 = 2*(7  - 2) % interpolated times, minus AutoradiographyDirector's offset
+        timeF = 2*(26 - 2)
+        PIE   = 5.2038;
     end
     
 	properties 
@@ -28,7 +28,7 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
         xLabel    = 'times/s'
         yLabel    = 'concentration/(well-counts/mL/s)'
         
-        A0 = 10.774507 
+        A0 = 0.034023
         f  = 0.00956157346232341 % mL/s/mL, [15O]H_2O
         af = 2.035279E-06
         bf = 2.096733E-02
@@ -65,10 +65,10 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
         end
         function m  = get.map(this)
             m = containers.Map;
-            m('A0') = struct('fixed', 0, 'min', this.priorLow(this.A0), 'mean', this.A0, 'max', this.priorHigh(this.A0));
-            m('af') = struct('fixed', 1, 'min', 1e-7,                   'mean', this.af, 'max', 1e-5); 
-            m('bf') = struct('fixed', 1, 'min', 1e-3,                   'mean', this.bf, 'max', 1e-1);
-            m('f')  = struct('fixed', 1, 'min', 0.0053,                 'mean', this.f,  'max', 0.012467); 
+            m('A0') = struct('fixed', 0, 'min', 0.01,   'mean', this.A0, 'max', 0.1);
+            m('af') = struct('fixed', 1, 'min', 1e-7,   'mean', this.af, 'max', 1e-5); 
+            m('bf') = struct('fixed', 1, 'min', 1e-3,   'mean', this.bf, 'max', 1e-1);
+            m('f')  = struct('fixed', 1, 'min', 0.0053, 'mean', this.f,  'max', 0.012467); 
         end
     end
     
@@ -131,13 +131,20 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
         end
         function ci   = concentration_i(A0, af, bf, f, t, conc_a)
             import mlpet.*;                        
-            ti0 = VideenAutoradiography.time0;
-            tiF = VideenAutoradiography.timeF;
-            petti = VideenAutoradiography.pett_i(f, t, conc_a);            
-            sumPetti = sum(petti(ti0:tiF)) * (t(2) - t(1));            
-            sumPettExpect = (-bf + sqrt(bf^2 + 4*6000*af*f))/(2*af); % from f = af*P^2 + bf*P, P <- int(c_i)
+            ti0      = VideenAutoradiography.time0;
+            tiF      = VideenAutoradiography.timeF;
+            petti    = VideenAutoradiography.pett_i(f, t, conc_a);            
+            sumPetti = sum(petti(ti0:tiF)) * (t(2) - t(1)); % well-counts     
+            ci       = A0 * petti * VideenAutoradiography.sumPettExpect(af, bf, f) / sumPetti;
+        end
+        function spe  = sumPettExpect(af, bf, f)
+            %% SUMPETTEXPECT
+            %  from CBF = af * P^2 + bf * P, P <- \int dt c_i; returning units of well-counts
             
-            ci = A0 * petti * (sumPettExpect/sumPetti);
+            import mlpet.*;
+            CBF = 6000 * f / VideenAutoradiography.BRAIN_DENSITY; 
+            spe = (-bf + sqrt(bf^2 + 4 * af * CBF)) / (2 * af);             
+            spe = 60 * VideenAutoradiography.PIE * spe;
         end
         function ci   = pett_i(f, t, conc_a)
             import mlpet.*;

@@ -16,7 +16,6 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
         LAMBDA_DECAY = 0.005677 % KLUDGE:  hard-coded [15O] half-life because propagating this.decayCorrection_ to static methods is difficult
         BRAIN_DENSITY = 1.05    % assumed mean brain density, g/mL
         RBC_FACTOR = 0.766      % per Tom Videen, metproc.inc, line 193
-        HERSCOVITCH_CORRECTION = true
     end
 
     properties (Abstract)
