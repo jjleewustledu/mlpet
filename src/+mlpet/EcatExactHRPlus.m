@@ -39,9 +39,11 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
         pie
         wellCounts
         mask
-        nPixels
+        nPixels      
         
         textParserRec
+        hdrInfoFqfilename
+        hdrinfoFqfilename
     end 
 
     methods %% GET
@@ -114,6 +116,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
             w = this.wellMatrix_(5,1); 
         end
         function p   = get.pie(this)
+            assert(isnumeric(this.pie_) && ~isempty(this.pie_));
             p = this.pie_;
         end
         function wc  = get.wellCounts(this)
@@ -130,26 +133,33 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
                 assert(0 == min(min(min(this.mask_.img))));
                 n = sum(sum(sum(this.mask_.img)));
             end
-        end
+        end   
         
         function fp  = get.textParserRec(this)
             fp = this.textParserRec_;
+            assert(isa(fp, 'mlio.TextParser'));
         end
+        function fn  = get.hdrInfoFqfilename(this)
+            fn = fullfile(this.component.filepath, [str2pnum(this.component.fileprefix) 'ho1_g3.hdr.info']);
+        end  
+        function fn  = get.hdrinfoFqfilename(this)
+            fn = fullfile(this.component.filepath, [str2pnum(this.component.fileprefix) 'ho1_g3.hdrinfo']);
+        end  
     end
     
     methods (Static)
-        function this = load(pie, varargin)
-            this = mlpet.EcatExactHRPlus(pie, mlfourd.NIfTId.load(varargin{:}));
+        function this = load(varargin)
+            this = mlpet.EcatExactHRPlus(mlfourd.NIfTId.load(varargin{:}));
         end
     end
     
 	methods
- 		function this = EcatExactHRPlus(pie, cmp) 
+ 		function this = EcatExactHRPlus(cmp) 
  			%% ECATEXACTHRPLUS 
- 			%  Usage:  this = EcatExactHRPlus(pie, file_location) 
-            %          this = EcatExactHRPlus(5.2038, '/path/to/p1234data/p1234ho1.nii.gz')
-            %          this = EcatExactHRPlus(5.2038, '/path/to/p1234data/p1234ho1')
-            %          this = EcatExactHRPlus(5.2038, 'p1234ho1') 
+ 			%  Usage:  this = EcatExactHRPlus(file_location) 
+            %          this = EcatExactHRPlus('/path/to/p1234data/p1234ho1.nii.gz')
+            %          this = EcatExactHRPlus('/path/to/p1234data/p1234ho1')
+            %          this = EcatExactHRPlus('p1234ho1') 
  			
             this = this@mlfourd.NIfTIdecorator(cmp);
             this = this.append_descrip('decorated by EcatExactHRPlus');
@@ -158,9 +168,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
             this = this.readRec;
             this = this.readWellMatrix; 
             this = this.setTimeMidpoints;
-            
-            assert(isnumeric(pie) && isscalar(pie));
-            this.pie_ = pie;
+            this = this.readPie;
  		end 
         function this = save(this)
             this.component_.fqfileprefix = sprintf('%s_%s', this.component_.fqfileprefix, datestr(now, 30));
@@ -314,6 +322,17 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
                 otherwise
                     error('mlpet:unsupportedArraySize', 'size(EcatExactHRPlus.petCounts2wellCounts.img) -> %s', mat2str(size(img)));
             end
+        end
+        function this = readPie(this)
+            if (lexist(this.hdrInfoFqfilename, 'file'))
+                tp = mlio.TextParser.loadx(this.hdrInfoFqfilename, '.hdr.info');
+            elseif (lexist(this.hdrinfoFqfilename, 'file'))
+                tp = mlio.TextParser.loadx(this.hdrinfoFqfilename, '.hdrinfo');
+            else
+                error('mlpet:fileNotFound', 'EcatExactHRPlus could find neither %s nor ', ...
+                      this.hdrInfoFqfilename, this.hdrinfoFqfilename);
+            end
+            this.pie_ = tp.parseAssignedNumeric('Pie Slope');
         end
     end
 

@@ -20,7 +20,6 @@ classdef Test_PETAutoradiography < matlab.unittest.TestCase
         maskFilename = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/bayesian_pet/aparc_a2009s+aseg_mask_on_p7267tr1.nii.gz'
         test_plots   = false
         test_mcmc    = true
-        PIE          = 5.2038
         DCV_SHIFT    = 13
         DCECAT_SHIFT = 2
         A_FLOW       = 5/60 % cc/sec
@@ -179,7 +178,7 @@ classdef Test_PETAutoradiography < matlab.unittest.TestCase
             import mlpet.* mlfourd.*;
             this.dcv = UncorrectedDCV(this.dcvFilename);
             this.mask = NIfTId.load(this.maskFilename);
-            this.ecat = EcatExactHRPlus.load(this.PIE, this.ecatFilename);         
+            this.ecat = EcatExactHRPlus.load(this.ecatFilename);         
             this = this.interpolateData;
             
             semilogy(this.times, this.concentration_a, ...
@@ -209,29 +208,15 @@ classdef Test_PETAutoradiography < matlab.unittest.TestCase
             
             this.ecat = this.ecat.masked(this.mask);
             this.ecat = this.ecat.volumeSummed;              
-            [t_a,c_a] = this.shiftDataLeft(this.dcv.times,  this.dcv.wellCounts,                    this.DCV_SHIFT);
-            [t_i,c_i] = this.shiftDataLeft(this.ecat.times, this.ecat.wellCounts/this.ecat.nPixels, this.DCECAT_SHIFT);            
+            import mlpet.*;
+            [t_a,c_a] = AutoradiographyBuilder.shiftDataLeft(this.dcv.times,  this.dcv.wellCounts,                    this.DCV_SHIFT);
+            [t_i,c_i] = AutoradiographyBuilder.shiftDataLeft(this.ecat.times, this.ecat.wellCounts/this.ecat.nPixels, this.DCECAT_SHIFT);            
             c_a = c_a - min(c_a);
             c_i = c_i - min(c_i);
             
             this.times_ = min(t_a(1), t_i(1)):this.dt:max(t_a(end), t_i(end));
             this.concentration_a_ = pchip(t_a, c_a, this.times_);
             this.concentration_obs_ = pchip(t_i, c_i, this.times_);
-        end
-        function [times,counts] = shiftDataLeft(~, times0, counts0, Dt)
-            idx_0  = floor(sum(double(times0 < Dt + times0(1))));
-            times  = times0(idx_0:end);
-            times  = times - times(1);
-            counts = counts0(idx_0:end);
-        end
-        function [times,counts] = shiftDataRight(~, times0, counts0, Dt)
-            lenDt  = ceil(Dt/(times0(2) - times0(1)));
-            newLen = length(counts0) + lenDt;
-            
-            times0 = times0 - times0(1) + Dt;
-            times  = [0:1:lenDt-1 times0];
-            counts = counts0(1) * ones(1,newLen);            
-            counts(end-length(counts0)+1:end) = counts0;
         end
         function t = dt(this)
             t = min(min(this.dcv.taus), min(this.ecat.taus));

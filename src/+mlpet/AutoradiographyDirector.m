@@ -26,10 +26,14 @@ classdef AutoradiographyDirector
         concentration_obs % double
     end
     
-    methods %% GET
+    methods %% GET/SET
         function a = get.product(this)
             assert(~isempty(this.builder_));
             a = this.builder_;
+        end
+        function this = set.product(this, bldr)
+            assert(isa(bldr, 'mlpet.AutoradiographyBuilder'));
+            this.builder_ = bldr;
         end
         function a = get.aif(this)
             a = this.builder_.aif;
@@ -52,55 +56,86 @@ classdef AutoradiographyDirector
     end
     
     methods (Static)
-        function this = loadPET(maskFn, aifFn, pie, ecatFn, varargin)
+        function this = loadPET(maskFn, aifFn, ecatFn, varargin)
             p = inputParser;
             addRequired(p, 'maskFn',       @(x) lexist(x, 'file'));
             addRequired(p, 'aifFn',        @(x) lexist(x, 'file'));
-            addRequired(p, 'pie',          @(x) isnumeric(x) && isscalar(x));
             addRequired(p, 'ecatFn',       @(x) lexist(x, 'file'));
-            addOptional(p, 'dcvShift',  0, @(x) isnumeric(x) && isscalar(x));
+            addOptional(p, 'dcvShift',  16, @(x) isnumeric(x) && isscalar(x));
             addOptional(p, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
-            parse(p, maskFn, aifFn, pie, ecatFn, varargin{:});
+            parse(p, maskFn, aifFn, ecatFn, varargin{:});
             
             import mlpet.*;           
             this = AutoradiographyDirector( ...
                    PETAutoradiography.load( ...
-                       p.Results.maskFn, p.Results.aifFn, p.Results.pie, p.Results.ecatFn, ...
+                       p.Results.maskFn, p.Results.aifFn, p.Results.ecatFn, ...
                        p.Results.dcvShift, p.Results.ecatShift));
         end
-        function this = loadDSC(maskFn, aifMaskFn, aifFn, pie, ecatFn, varargin)
+        function this = loadPETHersc(maskFn, aifFn, ecatFn, varargin)
+            p = inputParser;
+            addRequired(p, 'maskFn',       @(x) lexist(x, 'file'));
+            addRequired(p, 'aifFn',        @(x) lexist(x, 'file'));
+            addRequired(p, 'ecatFn',       @(x) lexist(x, 'file'));
+            addOptional(p, 'dcvShift',  16, @(x) isnumeric(x) && isscalar(x));
+            addOptional(p, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
+            parse(p, maskFn, aifFn, ecatFn, varargin{:});
+            
+            import mlpet.*;           
+            this = AutoradiographyDirector( ...
+                   PETHerscAutoradiography.load( ...
+                       p.Results.maskFn, p.Results.aifFn, p.Results.ecatFn, ...
+                       p.Results.dcvShift, p.Results.ecatShift));
+        end
+        function this = loadDSC(maskFn, aifMaskFn, aifFn, ecatFn, varargin)
             p = inputParser;
             addRequired(p, 'maskFn',       @(x) lexist(x, 'file'));
             addRequired(p, 'aifMaskFn',    @(x) lexist(x, 'file'));
             addRequired(p, 'aifFn',        @(x) lexist(x, 'file'));
-            addRequired(p, 'pie',          @(x) isnumeric(x) && isscalar(x));
             addRequired(p, 'ecatFn',       @(x) lexist(x, 'file'));
-            addOptional(p, 'dcvShift',  0, @(x) isnumeric(x) && isscalar(x));
+            addOptional(p, 'dscShift',  0, @(x) isnumeric(x) && isscalar(x));
             addOptional(p, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
-            parse(p, maskFn, aifMaskFn, aifFn, pie, ecatFn, varargin{:});
+            parse(p, maskFn, aifMaskFn, aifFn, ecatFn, varargin{:});
             
             import mlpet.*;           
             this = AutoradiographyDirector( ...
                    DSCAutoradiography.load( ...
-                       p.Results.maskFn, p.Results.aifMaskFn, p.Results.aifFn, p.Results.pie, p.Results.ecatFn, ...
-                       p.Results.dcvShift, p.Results.ecatShift));
+                       p.Results.maskFn, p.Results.aifMaskFn, p.Results.aifFn, p.Results.ecatFn, ...
+                       p.Results.dscShift, p.Results.ecatShift));
         end
-        function this = loadVideen(maskFn, aifFn, pie, ecatFn, varargin)
+        function this = loadDSCHersc(maskFn, aifMaskFn, aifFn, ecatFn, varargin)
+            p = inputParser;
+            addRequired(p, 'maskFn',       @(x) lexist(x, 'file'));
+            addRequired(p, 'aifMaskFn',    @(x) lexist(x, 'file'));
+            addRequired(p, 'aifFn',        @(x) lexist(x, 'file'));
+            addRequired(p, 'ecatFn',       @(x) lexist(x, 'file'));
+            addOptional(p, 'dscShift',  0, @(x) isnumeric(x) && isscalar(x));
+            addOptional(p, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
+            parse(p, maskFn, aifMaskFn, aifFn, ecatFn, varargin{:});
+            
+            import mlpet.*;           
+            this = AutoradiographyDirector( ...
+                   DSCHerscAutoradiography.load( ...
+                       p.Results.maskFn, p.Results.aifMaskFn, p.Results.aifFn, p.Results.ecatFn, ...
+                       p.Results.dscShift, p.Results.ecatShift));
+        end
+        function this = loadVideen(maskFn, aifFn, ecatFn, varargin)
             p = inputParser;
             addRequired(p, 'maskFn',       @(x) lexist(x, 'file'));
             addRequired(p, 'aifFn',        @(x) lexist(x, 'file'));
-            addRequired(p, 'pie',          @(x) isnumeric(x) && isscalar(x));
             addRequired(p, 'ecatFn',       @(x) lexist(x, 'file'));
-            addOptional(p, 'dcvShift',  0, @(x) isnumeric(x) && isscalar(x));
-            addOptional(p, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
-            parse(p, maskFn, aifFn, pie, ecatFn, varargin{:});
+            addOptional(p, 'dcvShift',  16, @(x) isnumeric(x) && isscalar(x));
+            addOptional(p, 'ecatShift', 5, @(x) isnumeric(x) && isscalar(x));
+            parse(p, maskFn, aifFn, ecatFn, varargin{:});
             
             import mlpet.*;           
             this = AutoradiographyDirector( ...
                    VideenAutoradiography.load( ...
-                       p.Results.maskFn, p.Results.aifFn, p.Results.pie, p.Results.ecatFn, ...
+                       p.Results.maskFn, p.Results.aifFn, p.Results.ecatFn, ...
                        p.Results.dcvShift, p.Results.ecatShift));
-        end
+        end        
+        
+        %% PREPARATIONS
+        
         function        prepareAparcmask
             import mlpet.*;
             pth  = pwd;
@@ -177,6 +212,22 @@ classdef AutoradiographyDirector
                    xlabel('time/s');
             end
         end
+        function        blurHo
+            import mlfourd.* mlpet.*;
+            pth   = pwd;
+            pnum  = str2pnum(pth);
+            hofn  = fullfile(pth, [pnum 'ho1.nii.gz']);           
+            
+            dyn = DynamicNIfTId.load(hofn);
+            dyn = dyn.blurred([16 16 16]);
+            dyn = dyn.masked(NIfTId.load(AutoradiographyDirector.maskFilename(pth)));
+            dyn.save;
+            
+            [~,hofp] = filepartsx(hofn, '.nii.gz');
+            mlbash(sprintf('cp %s.img.rec %s.img.rec', hofp, dyn.fileprefix));
+            if (AutoradiographyDirector.AUTO_FREEVIEW)
+                dyn.freeview; end
+        end
         function        prepareEp2dmask
             import mlfourd.*;
             pth = pwd;
@@ -249,7 +300,7 @@ classdef AutoradiographyDirector
                 'flirt -in %s -applyxfm -init %s -out %s -interp nearestneighbour -ref %s', ...
                 maskfn, matfn, outfn, reffn));
         end
-        function cbf  = getVideenCbf
+        function [cbf,aflow,bflow] = getVideenCbf
             import mlfourd.* mlpet.*;
             pth  = pwd;
             pnum = str2pnum(pth);
@@ -261,6 +312,9 @@ classdef AutoradiographyDirector
             [aflow,bflow] = AutoradiographyDirector.videenCoeffs(fullfile(pth, [pnum 'ho1_g3.hdr.info']));
             pett = MaskingNIfTId.sumall(mnii)/MaskingNIfTId.sumall(msk);
             cbf  = aflow*pett*pett + bflow*pett;
+            
+            fprintf('AutoradiographyDirector.getVideenCbf:\n');
+            fprintf('\tcbf %g, aflow %12.8G, bflow %12.8G\n', cbf, aflow, bflow);
         end
     end
     
@@ -272,13 +326,13 @@ classdef AutoradiographyDirector
                 this.builder_.simulateItsMcmc(this.concentration_a);
             this.builder_.plotProduct;
         end
-        function this = runItsAutoradiography(this)
-            %% RUNITSAUTORADIOGRAPHY returns an Autoradiography (builder, product) object based on aif, ecat &
+        function this = estimateAll(this)
+            %% ESTIMATEALL returns an Autoradiography (builder, product) object based on aif, ecat &
             %  mutually consistent times
             
-            this.builder_ = ...
-                this.builder_.runAutoradiography(this.concentration_a, this.times, this.concentration_obs);
-            this.builder_.plotProduct;
+            this.builder_ = this.builder_.estimateAll;
+            this.builder_.plotProduct
+            disp(this.builder_);
         end
         function this = estimatePriors(this)
         end
@@ -396,7 +450,7 @@ classdef AutoradiographyDirector
             end
         end 
     end
-
+    
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
 end
 

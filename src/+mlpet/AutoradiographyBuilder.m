@@ -50,15 +50,14 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
             end
             error('mlpet:requiredObjectNotFound', 'AutoradiographyBuilder.loadMask');
         end      
-        function ecat = loadEcat(pie, varargin)
+        function ecat = loadEcat(varargin)
             p = inputParser;
-            addRequired(p, 'pie',       @isnumeric);
             addOptional(p, 'fqfn', [],  @(x) lexist(x, 'file'));
             addOptional(p, 'ecat', [],  @(x) isa(x, 'mlpet.EcatExactHRPlus'));
-            parse(p, pie, varargin{:});
+            parse(p, varargin{:});
             
             if (~isempty(p.Results.fqfn))
-                ecat = mlpet.EcatExactHRPlus.load(p.Results.pie, p.Results.fqfn);
+                ecat = mlpet.EcatExactHRPlus.load(p.Results.fqfn);
                 return
             end
             if (~isempty(p.Results.ecat))
@@ -68,9 +67,6 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
             error('mlpet:requiredObjectNotFound', 'AutoradiographyBuilder.loadEcat');
         end
         function this = simulateMcmc
-            this = [];
-        end
-        function this = runAutoradiography
             this = [];
         end
         function ci   = concentration_i
@@ -90,6 +86,9 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
         end
 		function ci   = itsConcentration_i(this) %#ok<MANU>
             ci = [];
+        end
+        function this = estimateAll(this)
+            this = this.estimateParameters(this.map);
         end
         function this = estimateParameters(this)
         end
@@ -132,13 +131,15 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
 
     methods (Static, Access = 'protected')
         function [times,counts] = shiftDataLeft(times0, counts0, Dt)
-            idx_0  = floor(sum(double(times0 < Dt + times0(1))));
+            %  Dt in sec
+            idx_0  = floor(sum(double(times0 < Dt + times0(1)))+1);
             times  = times0(idx_0:end);
             times  = times - times(1);
             counts = counts0(idx_0:end);
             counts = counts - min(counts);
         end
         function [times,counts] = shiftDataRight(times0, counts0, Dt)
+            %  Dt in sec
             lenDt  = ceil(Dt/(times0(2) - times0(1)));
             newLen = length(counts0) + lenDt;
             

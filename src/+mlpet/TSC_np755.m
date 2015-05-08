@@ -26,12 +26,12 @@ classdef TSC_np755 < mlpet.TSC
             dtaLoc  = fullfile(pnumPth, 'ECAT_EXACT', 'pet', [pnum '.dta']);
             this = mlpet.TSC_np755.load(tscLoc, ecatLoc, dtaLoc, 4.88);            
         end
-        function this = load(tscLoc, ecatLoc, dtaLoc, pie)
+        function this = load(tscLoc, ecatLoc, dtaLoc, ~)
             %% LOAD
- 			%  Usage:  this = TSC_np755.load(tsc_file_location, ecat_file_location,  dta_file_location, pie_factor) 
-            %          this = TSC_np755.load('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta', 4.88)
-            %          this = TSC_np755.load('/p1234data/jjl_proc/p1234wb1', '/p1234data/PET/scan1/p1234gluc1', '/p1234data/jjl_proc/p1234g1', 4.88)
-            %          this = TSC_np755.load('p1234wb1', '../PET/scan1/p1234gluc1', 'p1234g1', 4.88) 
+ 			%  Usage:  this = TSC_np755.load(tsc_file_location, ecat_file_location,  dta_file_location) 
+            %          this = TSC_np755.load('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta')
+            %          this = TSC_np755.load('/p1234data/jjl_proc/p1234wb1', '/p1234data/PET/scan1/p1234gluc1', '/p1234data/jjl_proc/p1234g1')
+            %          this = TSC_np755.load('p1234wb1', '../PET/scan1/p1234gluc1', 'p1234g1') 
             
             import mlpet.* mlfourd.*;
             
@@ -39,7 +39,7 @@ classdef TSC_np755 < mlpet.TSC
             this.mask_ = this.makeMask;
             this.dta_ = DTA(dtaLoc);
             this.decayCorrectedEcat_ = this.maskEcat( ...
-                                       DecayCorrectedEcat.load(pie, ecatLoc), this.mask_);
+                                       DecayCorrectedEcat.load(ecatLoc), this.mask_);
             
             this.times_  = this.decayCorrectedEcat_.times;  
             this.taus_   = this.decayCorrectedEcat_.taus; 

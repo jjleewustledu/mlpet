@@ -20,7 +20,7 @@ classdef Test_DecayCorrectedEcat < matlab.unittest.TestCase
 
 	methods (Test) 
         function test_load(this)
-            newObj = mlpet.DecayCorrectedEcat.load(4.88, 'p8047gluc1');
+            newObj = mlpet.DecayCorrectedEcat.load('p8047gluc1');
             this.assertEqual(this.testObj.counts, newObj.counts);
         end
         function test_ctor(this)
@@ -84,7 +84,7 @@ classdef Test_DecayCorrectedEcat < matlab.unittest.TestCase
             this = this@matlab.unittest.TestCase;
             cd(this.unittest_home);
             import mlpet.* mlfourd.*;
- 			this.testObj = DecayCorrectedEcat(4.88, NIfTId.load('p8047gluc1.nii.gz')); 
+ 			this.testObj = DecayCorrectedEcat(NIfTId.load('p8047gluc1.nii.gz')); 
         end
     end
     

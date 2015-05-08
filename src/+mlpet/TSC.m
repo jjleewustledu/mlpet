@@ -81,12 +81,12 @@ classdef TSC < mlpet.AbstractWellData
             dtaLoc  = fullfile(pnumPth, 'jjl_proc', [pnum 'g'  scanIdx '.dta']);
             this = mlpet.TSC.load(tscLoc, ecatLoc, dtaLoc, 4.88);            
         end
-        function this = load(tscLoc, ecatLoc, dtaLoc, pie)
+        function this = load(tscLoc, ecatLoc, dtaLoc, ~)
             %% LOAD
- 			%  Usage:  this = TSC.load(tsc_file_location, ecat_file_location,  dta_file_location, pie_factor) 
-            %          this = TSC.load('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta', 4.88)
-            %          this = TSC.load('/p1234data/jjl_proc/p1234wb1', '/p1234data/PET/scan1/p1234gluc1', '/p1234data/jjl_proc/p1234g1', 4.88)
-            %          this = TSC.load('p1234wb1', '../PET/scan1/p1234gluc1', 'p1234g1', 4.88) 
+ 			%  Usage:  this = TSC.load(tsc_file_location, ecat_file_location,  dta_file_location) 
+            %          this = TSC.load('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta')
+            %          this = TSC.load('/p1234data/jjl_proc/p1234wb1', '/p1234data/PET/scan1/p1234gluc1', '/p1234data/jjl_proc/p1234g1')
+            %          this = TSC.load('p1234wb1', '../PET/scan1/p1234gluc1', 'p1234g1') 
             
             import mlpet.* mlfourd.*;
             
@@ -94,7 +94,7 @@ classdef TSC < mlpet.AbstractWellData
             this.mask_ = this.makeMask;
             this.dta_ = DTA(dtaLoc);
             this.decayCorrectedEcat_ = this.maskEcat( ...
-                                       DecayCorrectedEcat.load(pie, ecatLoc), this.mask_);
+                                       DecayCorrectedEcat.load(ecatLoc), this.mask_);
             
             this.times_  = this.decayCorrectedEcat_.times;  
             this.taus_   = this.decayCorrectedEcat_.taus; 
@@ -110,7 +110,7 @@ classdef TSC < mlpet.AbstractWellData
 	methods 	
  		function this = TSC(tscLoc)
             %% TSC
- 			%  Usage:  this = TSC(tsc_file_location, ecat_file_location,  dta_file_location, pie_factor) 
+ 			%  Usage:  this = TSC(tsc_file_location, ecat_file_location,  dta_file_location) 
             %          this = TSC('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta', 4.88)
             %          this = TSC('/p1234data/jjl_proc/p1234wb1', '/p1234data/PET/scan1/p1234gluc1', '/p1234data/jjl_proc/p1234g1', 4.88)
             %          this = TSC('p1234wb1', '../PET/scan1/p1234gluc1', 'p1234g1', 4.88)   

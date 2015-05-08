@@ -26,20 +26,19 @@ classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus & mlpet.IDecayCorrection
     end    
     
     methods (Static)
-        function this = load(pie, fileLoc)
-            this = mlpet.DecayCorrectedEcat(pie, mlfourd.NIfTId.load(fileLoc));
+        function this = load(fileLoc)
+            this = mlpet.DecayCorrectedEcat(mlfourd.NIfTId.load(fileLoc));
         end
     end
 
 	methods 		  
- 		function this = DecayCorrectedEcat(pie, cmp) 
+ 		function this = DecayCorrectedEcat(cmp) 
  			%% DECAYCORRECTEDECAT 
- 			%  Usage:  this = DecayCorrectedEcat(pie_factor, INIfTId_object) 
+ 			%  Usage:  this = DecayCorrectedEcat(INIfTId_object) 
 
- 			this = this@mlpet.EcatExactHRPlus(pie, cmp); 
+ 			this = this@mlpet.EcatExactHRPlus(cmp); 
             assert( isa(cmp, 'mlfourd.INIfTId'));
             assert(~isa(cmp, 'mlpet.DecayCorrectedEcat'));
-            assert( isnumeric(pie) && isscalar(pie));
             
             this.decayCorrection_ = mlpet.DecayCorrection(this);
             this.counts = this.decayCorrection_.correctedCounts(this.counts, this.times);

@@ -9,7 +9,9 @@ classdef AutoradiographyTrainer
  	%  developed on Matlab 8.5.0.197613 (R2015a) 
  	%  $Id$ 
  	 
-
+    properties (Constant)        
+    end
+    
 	properties (Dependent) 		 
         workPath
         dscMaskFn
@@ -20,14 +22,14 @@ classdef AutoradiographyTrainer
         hdrInfoFn
         
         pnum
-        pie
         dcvShift
         dscShift
         ecatShift
+        director
         product
     end 
 
-    methods % GET
+    methods % GET, SET
         function p  = get.workPath(~)
             p = pwd;
         end
@@ -47,7 +49,7 @@ classdef AutoradiographyTrainer
             end
         end
         function fn = get.ecatFn(this)
-            fn = fullfile(this.workPath, [this.pnum 'ho1_mcf_revf1to7_masked.nii.gz']);
+            fn = fullfile(this.workPath, [this.pnum 'ho1_161616fwhh_masked.nii.gz']);
         end    
         function fn = get.hdrInfoFn(this)
             fn = fullfile(this.workPath, [this.pnum 'ho1_g3.hdr.info']);
@@ -55,10 +57,6 @@ classdef AutoradiographyTrainer
         
         function n  = get.pnum(this)
             n = str2pnum(this.workPath);
-        end
-        function p  = get.pie(this)
-            assert(~isempty(this.pie_));
-            p = this.pie_;
         end
         function p  = get.dcvShift(this)
             assert(~isempty(this.dcvShift_));
@@ -72,48 +70,119 @@ classdef AutoradiographyTrainer
             assert(~isempty(this.ecatShift_));
             p = this.ecatShift_;
         end
+        function p  = get.director(this)
+            assert(~isempty(this.director_));
+            p = this.director_;
+        end
+        function this = set.director(this, d)
+            assert(isa(d, 'mlpet.AutoradiographyDirector'));
+            this.director_ = d;
+        end
         function p  = get.product(this)
             assert(~isempty(this.director_.product));
             p = this.director_.product;
         end
+        function this = set.product(this, p)
+            assert(isa(p, 'mlpet.AutoradiographyBuilder'));
+            this.director_.product = p;
+        end
     end
     
-	methods		  
- 		function this = AutoradiographyTrainer(bldr)
- 			%% AUTORADIOGRAPHYTRAINER 
- 			%  Usage:  this = AutoradiographyTrainer
-
-            assert(lstrfind(lower(bldr), {'pet' 'dsc' 'videen'}));
-            this = this.readPie;       
-            switch (lower(bldr))
-                case 'pet'
-                    this.director_ = mlpet.AutoradiographyDirector.loadPET( ...
-                        this.maskFn, this.aifFn, this.pie, this.ecatFn, this.dcvShift, this.ecatShift);
-                case 'dsc'
-                    this.director_ = mlpet.AutoradiographyDirector.loadDSC( ...
-                        this.maskFn, this.dscMaskFn, this.dscFn, this.pie, this.ecatFn, this.dscShift, this.ecatShift);
-                case 'videen'
-                    this.director_ = mlpet.AutoradiographyDirector.loadVideen( ...
-                        this.maskFn, this.aifFn, this.pie, this.ecatFn, this.dcvShift, this.ecatShift);
-            end
-            this.director_ = this.director_.runItsAutoradiography;
- 		end 
+	methods	(Static)
+        function this = trainVideen(dcvSh, ecatSh)
+            diary(sprintf('AutoradiographyTrainer.trainVideen_%s.log', datestr(now, 30)));
+            import mlpet.*;
+            this = AutoradiographyTrainer;
+            this.dcvShift_ = dcvSh;
+            this.ecatShift_ = ecatSh;
+            
+            [cbf,aflow,bflow] = AutoradiographyDirector.getVideenCbf;
+            this.director_ = ...
+                AutoradiographyDirector.loadVideen( ...
+                    this.maskFn, this.aifFn, this.ecatFn, this.dcvShift, this.ecatShift);
+            prod = this.product;    
+            prod.f = cbf/6000/1.05;
+            prod.af = aflow;
+            prod.bf = bflow;
+            this.director_.product = prod;
+            this.director_ = this.director_.estimateAll;   
+            prod = this.director_.product; %#ok<NASGU>
+            save('AutoradiographyTrainer.trainVideen.prod.mat', 'prod');
+            diary off
+        end
+        function this = trainPET(dcvSh)
+            diary(sprintf('AutoradiographyTrainer.trainPET_%s.log', datestr(now, 30)));
+            import mlpet.*;
+            this = AutoradiographyTrainer;
+            this.dcvShift_ = dcvSh;
+            
+            this.director_ = ...
+                AutoradiographyDirector.loadPET( ...
+                    this.maskFn, this.aifFn, this.ecatFn, this.dcvShift);
+            this.director_ = this.director_.estimateAll;
+            prod = this.director_.product; %#ok<NASGU>
+            save('AutoradiographyTrainer.trainPET.prod.mat', 'prod');
+            diary off
+        end
+        function this = trainPETHersc
+            diary(sprintf('AutoradiographyTrainer.trainPETHersc_%s.log', datestr(now, 30)));
+            import mlpet.*;
+            this = AutoradiographyTrainer;
+            this.dcvShift_ = 16;
+            
+            this.director_ = ...
+                AutoradiographyDirector.loadPETHersc( ...
+                    this.maskFn, this.aifFn, this.ecatFn, this.dcvShift);
+            this.director_ = this.director_.estimateAll;
+            prod = this.director_.product; %#ok<NASGU>
+            save('AutoradiographyTrainer.trainPETHersc.prod.mat', 'prod');
+            diary off
+        end
+        function this = trainDSC
+            diary(sprintf('AutoradiographyTrainer.trainDSC_%s.log', datestr(now, 30)));
+            import mlpet.*;
+            this = AutoradiographyTrainer;
+            
+            this.director_ = ...
+                AutoradiographyDirector.loadDSC( ...
+                    this.maskFn, this.dscMaskFn, this.dscFn, this.ecatFn);
+            this.director_ = this.director_.estimateAll;
+            prod = this.director_.product; %#ok<NASGU>
+            save('AutoradiographyTrainer.trainDSC.prod.mat', 'prod');
+            diary off
+        end
+        function this = trainDSCHersc
+            diary(sprintf('AutoradiographyTrainer.trainDSCHersc_%s.log', datestr(now, 30)));
+            import mlpet.*;
+            this = AutoradiographyTrainer;
+            
+            this.director_ = ...
+                AutoradiographyDirector.loadDSCHersc( ...
+                    this.maskFn, this.dscMaskFn, this.dscFn, this.ecatFn);
+            this.director_ = this.director_.estimateAll;
+            prod = this.director_.product; %#ok<NASGU>
+            save('AutoradiographyTrainer.trainDSCHersc.prod.mat', 'prod');
+            diary off
+        end
     end 
     
     %% PRIVATE
     
     properties (Access = 'private')
-        pie_
-        dcvShift_ = 18
         dscShift_ = 18
+        dcvShift_ = 18
         ecatShift_ = 5
         director_
-    end
+    end    
     
     methods (Access = 'private')
-        function this = readPie(this)
-            tp = mlio.TextParser.loadx(this.hdrInfoFn, '.hdr.info');
-            this.pie_ = tp.parseAssignedNumeric('Pie Slope');
+        function        plotKernel(~, o, t, dcvCurve)            
+            figure;
+            plot(o.times, o.estimateData, t, dcvCurve, 'o');
+            legend('Bayesian DCV', 'DCV');
+            title('AutoradiographyTrainer:  case kernel', 'Interpreter', 'none');
+            xlabel('time/s');
+            ylabel('well-counts');
         end
     end
 

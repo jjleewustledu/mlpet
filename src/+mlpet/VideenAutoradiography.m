@@ -16,19 +16,13 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
  	%  $Id$ 
     
-    properties (Constant)        
-        time0 = 2*(7  - 2) % interpolated times, minus AutoradiographyDirector's offset
-        timeF = 2*(26 - 2)
-        PIE   = 5.2038;
-    end
-    
 	properties 
         showPlots = true	 
         baseTitle = 'PET Autoradiography'
         xLabel    = 'times/s'
         yLabel    = 'concentration/(well-counts/mL/s)'
         
-        A0 = 0.034023
+        A0 = 0.0178042
         f  = 0.00956157346232341 % mL/s/mL, [15O]H_2O
         af = 2.035279E-06
         bf = 2.096733E-02
@@ -41,6 +35,8 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
         concentration_a
         concentration_obs
         map 
+        pie
+        timeLimits % for scan integration over time, per Videen
     end
     
     methods %% GET/SET 
@@ -70,26 +66,31 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
             m('bf') = struct('fixed', 1, 'min', 1e-3,   'mean', this.bf, 'max', 1e-1);
             m('f')  = struct('fixed', 1, 'min', 0.0053, 'mean', this.f,  'max', 0.012467); 
         end
+        function p  = get.pie(this)
+            assert(isnumeric(this.pie_) && isscalar(this.pie_));
+            p = this.pie_;
+        end
+        function tl = get.timeLimits(this)
+            assert(isnumeric(this.timeLimits_) && length(this.timeLimits_) == 2);
+            tl = this.timeLimits_;
+        end
     end
     
     methods (Static)
-        function this = load(maskFn, aifFn, pie, ecatFn, varargin)
+        function this = load(maskFn, aifFn, ecatFn, varargin)
             
             p = inputParser;
             addRequired(p, 'maskFn', @(x) lexist(x, 'file'));
             addRequired(p, 'aifFn',  @(x) lexist(x, 'file'));
-            addRequired(p, 'pie',    @(x) isnumeric(x) && isscalar(x));
             addRequired(p, 'ecatFn', @(x) lexist(x, 'file'));
             addOptional(p, 'aifShift',  0, @(x) isnumeric(x) && isscalar(x));
             addOptional(p, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
-            parse(p, maskFn, aifFn, pie, ecatFn, varargin{:});
+            parse(p, maskFn, aifFn, ecatFn, varargin{:});
             
             import mlfourd.* mlpet.*;
             mask = VideenAutoradiography.loadMask(p.Results.maskFn); 
             aif  = VideenAutoradiography.loadAif(p.Results.aifFn); 
-            ecat = VideenAutoradiography.loadEcat(p.Results.pie, p.Results.ecatFn);
-            blec = BlurringNIfTId(ecat.component, 'blur', [16 16 16]);
-            ecat.img = blec.img;
+            ecat = VideenAutoradiography.loadEcat(p.Results.ecatFn);
             args = VideenAutoradiography.interpolateData(mask, aif, ecat, p.Results.aifShift, p.Results.ecatShift); 
             this = VideenAutoradiography(args{:});
             %this.frame0 = this.frame0 - p.Results.ecatShift;
@@ -112,39 +113,26 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
             end
             error('mlpet:requiredObjectNotFound', 'VideenAutoradiography.loadMask');
         end
-        function this = simulateMcmc(A0, af, bf, f, t, conc_a, map)
+        function this = simulateMcmc(A0, af, bf, f, t, conc_a, map, pie, timeLimits)
             import mlpet.*;       
-            conc_i = VideenAutoradiography.concentration_i(A0, af, bf, f, t, conc_a); % simulated
+            conc_i = VideenAutoradiography.concentration_i(A0, af, bf, f, t, conc_a, pie, timeLimits); % simulated
             this   = VideenAutoradiography(conc_a, t, conc_i);
             this   = this.estimateParameters(map) %#ok<NOPRT>
         end   
-        function this = runAutoradiography(conc_a, t, conc_i)
-            %% RUNAUTORADIOGRAPHY
-            %  Usage:   VideenAutoradiography.runAutoradiography(arterial_counts, times, scanner_counts) 
-            %                                                 ^ well-counts/s/mL      ^
-            %                                                                  ^ s
-            
+        function ci   = concentration_i(A0, af, bf, f, t, conc_a, pie, timeLimits)
             import mlpet.*;
-            this = VideenAutoradiography(conc_a, t, conc_i);
-            this = this.estimateParameters(this.map);            
-            %fprintf('VideenAutoradiography.runAutoradiography:  A0 %g, af %g, f %g, bf %g\n', this.A0, this.af, this.f, this.bf);
-        end
-        function ci   = concentration_i(A0, af, bf, f, t, conc_a)
-            import mlpet.*;                        
-            ti0      = VideenAutoradiography.time0;
-            tiF      = VideenAutoradiography.timeF;
             petti    = VideenAutoradiography.pett_i(f, t, conc_a);            
-            sumPetti = sum(petti(ti0:tiF)) * (t(2) - t(1)); % well-counts     
-            ci       = A0 * petti * VideenAutoradiography.sumPettExpect(af, bf, f) / sumPetti;
+            sumPetti = sum(petti(timeLimits(1):timeLimits(2))) * (t(2) - t(1)); % well-counts     
+            ci       = A0 * petti * VideenAutoradiography.sumPettExpect(af, bf, f, pie) / sumPetti;
         end
-        function spe  = sumPettExpect(af, bf, f)
+        function spe  = sumPettExpect(af, bf, f, pie)
             %% SUMPETTEXPECT
             %  from CBF = af * P^2 + bf * P, P <- \int dt c_i; returning units of well-counts
             
             import mlpet.*;
             CBF = 6000 * f / VideenAutoradiography.BRAIN_DENSITY; 
             spe = (-bf + sqrt(bf^2 + 4 * af * CBF)) / (2 * af);             
-            spe = 60 * VideenAutoradiography.PIE * spe;
+            spe = 60 * pie * spe;
         end
         function ci   = pett_i(f, t, conc_a)
             import mlpet.*;
@@ -165,12 +153,19 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
             c_i = pchip(t_i, c_i, t);            
             args = {c_a t c_i mask aif ecat};
         end
+        function tl   = getTimeLimits
+            dt = mlsystem.DirTool('p*ho*_f*.nii.gz');
+            assert(1 == dt.length);            
+            names = regexp(dt.fns{1}, 'p\d+ho\d_f(?<t0>\d+)to(?<tf>\d+).nii.gz', 'names');
+            tl(1) = str2double(names.t0);
+            tl(2) = str2double(names.tf);
+        end
     end
     
 	methods	  
- 		function this = VideenAutoradiography(conc_a, times_i, conc_i, varargin)
+ 		function this = VideenAutoradiography(conc_a, times_i, conc_i, mask, aif, ecat)
  			%% VideenAutoradiography 
- 			%  Usage:  this = VideenAutoradiography(concentration_a, times_i, concentration_i) 
+ 			%  Usage:  this = VideenAutoradiography(concentration_a, times_i, concentration_i, mask, aif, ecat) 
             %                                    ^ counts/s/mL    ^ s      ^ counts/s/g
 
  			this = this@mlpet.AutoradiographyBuilder(times_i, conc_i); 
@@ -178,25 +173,28 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
             addRequired(p, 'conc_a',  @isnumeric);
             addRequired(p, 'times_i', @isnumeric);
             addRequired(p, 'conc_i',  @isnumeric);
-            addOptional(p, 'mask', [], @(x) isa(x, 'mlfourd.INIfTId'));
-            addOptional(p, 'aif',  [], @(x) isa(x, 'mlpet.IWellData'));
-            addOptional(p, 'ecat', [], @(x) isa(x, 'mlpet.IScannerData'));
-            parse(p, conc_a, times_i, conc_i, varargin{:});
+            addRequired(p, 'mask',    @(x) isa(x, 'mlfourd.INIfTId'));
+            addRequired(p, 'aif',     @(x) isa(x, 'mlpet.IWellData'));
+            addRequired(p, 'ecat',    @(x) isa(x, 'mlpet.IScannerData'));
+            parse(p, conc_a, times_i, conc_i, mask, aif, ecat);
             
             this.concentration_a_ = p.Results.conc_a;
             this.mask_            = p.Results.mask;
             this.aif_             = p.Results.aif;
             this.ecat_            = p.Results.ecat;
+            this.pie_             = this.ecat_.pie; % caching
+            this.timeLimits_      = this.getTimeLimits;
             this.expectedBestFitParams_ = [this.A0 this.af this.bf this.f]'; % initial expected values from properties
         end 
         
         function this = simulateItsMcmc(this, conc_a)
             this = mlpet.VideenAutoradiography.simulateMcmc( ...
-                   this.A0, this.af, this.bf, this.f, this.times, conc_a, this.map);
+                   this.A0, this.af, this.bf, this.f, this.times, conc_a, this.map, this.pie, this.timeLimits);
         end
         function ci   = itsConcentration_i(this)
-            ci = mlpet.VideenAutoradiography.concentration_i(this.A0, this.af, this.bf, this.f, this.times, this.concentration_a);
-        end        
+            ci = mlpet.VideenAutoradiography.concentration_i( ...
+                this.A0, this.af, this.bf, this.f, this.times, this.concentration_a, this.pie, this.timeLimits);
+        end
         function this = estimateParameters(this, varargin)
             ip = inputParser;
             addOptional(ip, 'map', this.map, @(x) isa(x, 'containers.Map'));
@@ -222,7 +220,7 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
         end
         function ed   = estimateDataFast(this, A0, af, bf, f)
             ed = mlpet.VideenAutoradiography.concentration_i( ...
-                       A0, af, bf, f, this.times, this.concentration_a);
+                       A0, af, bf, f, this.times, this.concentration_a, this.pie, this.timeLimits);
         end
         function x    = priorLow(~, x)
             x = 0.01*x;
@@ -246,8 +244,23 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
             title(sprintf('VideenAutoradiography.plotProduct:  A0 %g, af %g, bf %g, f %g', this.A0, this.af, this.bf, this.f), 'Interpreter', 'none');
             xlabel(this.xLabel);
             ylabel(this.yLabel);
-        end        
+        end   
+        function this = save(this)
+            this = this.saveas('VideenAutoradiography.save.mat');
+        end
+        function this = saveas(this, fn)
+            videenAutoradiography = this; %#ok<NASGU>
+            save(fn, 'videenAutoradiography');         
+        end           
     end 
+    
+    %% PRIVATE
+    
+    properties (Access = 'private')
+        timeLimits_
+        pie_
+    end
+    
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
 end

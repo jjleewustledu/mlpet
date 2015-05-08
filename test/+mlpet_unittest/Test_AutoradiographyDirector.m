@@ -49,10 +49,10 @@ classdef Test_AutoradiographyDirector < matlab.unittest.TestCase
             fn = fullfile(this.workPath, 'aparc_a2009s+aseg_mask_on_p7267tr1.nii.gz');
         end
         function fn = get.ecatFn(this)
-            fn = fullfile(this.workPath, 'p7267ho1_mcf_revf1to7_masked.nii.gz');
+            fn = fullfile(this.workPath, 'p7267ho1_mcf_revf1to7_161616fwhh_masked.nii.gz');
         end
         function fn = get.recFn(this)
-            fn = fullfile(this.workPath, 'p7267ho1_mcf_revf1to7_masked.img.rec');
+            fn = fullfile(this.workPath, 'p7267ho1_mcf_revf1to7_161616fwhh_masked.img.rec');
         end
         function fn = get.recFn0(this)
             fn = fullfile(this.workPath, 'p7267ho1.img.rec');

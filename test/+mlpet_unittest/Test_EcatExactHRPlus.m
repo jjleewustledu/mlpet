@@ -59,6 +59,9 @@ classdef Test_EcatExactHRPlus < matlab.unittest.TestCase
             this.assertEqual(this.testObj.header.start(4), 6);
             this.assertEqual(this.testObj.header.duration(4), 2);
         end
+        function test_pie(this)
+            this.assertEqual(this.testObj.pie, this.pie);
+        end
  	end 
 
  	methods (TestClassSetup) 
@@ -73,7 +76,7 @@ classdef Test_EcatExactHRPlus < matlab.unittest.TestCase
         function this = Test_EcatExactHRPlus
             this = this@matlab.unittest.TestCase;
             cd(this.unittest_home);
- 			this.testObj = mlpet.EcatExactHRPlus(this.pie, mlfourd.NIfTId.load('p7267ho1')); 
+ 			this.testObj = mlpet.EcatExactHRPlus(mlfourd.NIfTId.load('p7267ho1')); 
         end
     end
 

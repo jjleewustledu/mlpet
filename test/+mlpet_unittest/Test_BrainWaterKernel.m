@@ -16,10 +16,6 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
 	properties 
         testDcv
  		testObj  
-        testFolder   = '/Users/jjlee/Local/src/mlcvl/mlpet/test/+mlpet_unittest'
-        dscFilename  = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/perfusion_4dfp/ep2d_default_mcf.nii.gz'
-        maskFilename = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/perfusion_4dfp/perfMask.nii.gz'
-        dcvFilename  = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet/p7267ho1.dcv'
         test_plots = true
         test_mcmc  = true 
         
@@ -27,7 +23,12 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
         dscShift  = 18
  	end 
 
-    properties (Dependent)      
+    properties (Dependent)    
+        testFolder
+        dscFilename
+        maskFilename
+        dcvFilename
+        
         a
         d
         p
@@ -39,6 +40,22 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
     end
     
     methods %% GET
+        function f = get.testFolder(this)
+            assert(lexist(this.testFolder_, 'dir'));
+            f = this.testFolder_;
+        end
+        function f = get.dscFilename(this)
+            f = fullfile(this.testFolder, this.dscFilename_);
+            assert(lexist(f, 'file'));
+        end
+        function f = get.maskFilename(this)
+            f = fullfile(this.testFolder, this.maskFilename_);
+            assert(lexist(f, 'file'));
+        end
+        function f = get.dcvFilename(this)
+            f = fullfile(this.testFolder, this.dcvFilename_);
+            assert(lexist(f, 'file'));
+        end
         function x = get.a(this)
             x = this.testObj.a;
         end
@@ -133,17 +150,11 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
             %  a synthetic kernel created directly from it's own kernel model.   
             
             if (~this.test_mcmc); return; end 
-            import mlpet.*;
-            this.testObj = BrainWaterKernel(this.inputFunction0);
-            aMap = containers.Map;
-            tf = this.times(end);
-            aMap('a')  = struct('fixed', 0, 'min', 4,   'mean', this.a,  'max', 16);
-            aMap('d')  = struct('fixed', 0, 'min', 2,   'mean', this.d,  'max',  4);
-            aMap('p')  = struct('fixed', 0, 'min', 1,   'mean', this.p,  'max',  2); 
-            aMap('q0') = struct('fixed', 0, 'min', 1e5, 'mean', this.q0, 'max',  1e7);
-            aMap('t0') = struct('fixed', 1, 'min', 0,   'mean', this.t0, 'max', tf/2); 
+            import mlpet.* mlpet_unittest.*;
+            this.testObj = BrainWaterKernel(this.inputFunction0, this.dcv.timeInterpolants, this.dcv.countInterpolants);
             
-            o = BrainWaterKernel.simulateMcmc(this.inputFunction0, this.a, this.d, this.p, this.q0, this.t0, this.times, aMap);
+            o = BrainWaterKernel.simulateMcmc( ...
+                this.inputFunction0, this.a, this.d, this.p, this.q0, this.t0, this.times, this.testObj.map);
             this.assertEqual(o.bestFitParams, o.expectedBestFitParams, 'RelTol', 0.05);
         end        
         function test_laif2dcv(this)
@@ -187,17 +198,12 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
             if (~this.test_mcmc); return; end
             
             import mlpet.* mlpet_unittest.*;
-            [~,dscCurve] = Test_BrainWaterKernel.shiftDataLeft(this.dcv.timeInterpolants, this.inputFunction0, this.dscShift);
-            [t,dcvCurve] = Test_BrainWaterKernel.shiftDataLeft(this.dcv.timeInterpolants, this.dcv.countInterpolants, this.dcvShift);
-            this.testObj = BrainWaterKernel.runKernel(dscCurve, t, dcvCurve);
-            o = this.testObj;            
-            
-            % \Pi \equiv \frac{wellcnts/mL/sec}{EcatCounts/pixel-mL/min}
-            % wellcnts/mL = \Pi \frac{EcatCounts}{pixel-mL} \frac{sec}{min}
-            % cf. man pie
+            this.testObj = BrainWaterKernel.runKernel( ...
+                this.inputFunction0, this.dcv.timeInterpolants, this.dcv.countInterpolants);
+            o = this.testObj; 
             
             figure;
-            plot(o.times, o.estimateData, t, dcvCurve, 'o');
+            plot(o.times, o.estimateData, this.dcv.timeInterpolants, this.dcv.countInterpolants, 'o');
             legend('Bayes. DCV', 'DCV');
             title('Test_BrainWaterKernel.test_laif0dcv', 'Interpreter', 'none');
             xlabel('time/s');
@@ -233,32 +239,17 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
     %% PRIVATE
     
     properties (Access = 'private')
+        testFolder_   = '/Volumes/SeagateBP3/cvl/np755/mm01-007_p7267_2008jun16/bayesian_pet'
+        dscFilename_  = 'ep2d_default_mcf.nii.gz'
+        maskFilename_ = 'ep2d_mask.nii.gz'
+        dcvFilename_  = 'p7267ho1.dcv'
+        
         dcv
         wbDsc
         laif0
         laif2
         inputFunction0_
         inputFunction2_
-    end
-    
-    methods (Static, Access = 'private')
-        function [times,counts] = shiftDataLeft(times0, counts0, Dt)
-            idx_0  = floor(sum(double(times0 < Dt + times0(1))));
-            times  = times0(idx_0:end);
-            times  = times - times(1);
-            counts = counts0(idx_0:end);
-            counts = counts - min(counts);
-        end
-        function [times,counts] = shiftDataRight(times0, counts0, Dt)
-            lenDt  = ceil(Dt/(times0(2) - times0(1)));
-            newLen = length(counts0) + lenDt;
-            
-            times0 = times0 - times0(1) + Dt;
-            times  = [0:1:lenDt-1 times0];
-            counts = counts0(1) * ones(1,newLen);            
-            counts(end-length(counts0)+1:end) = counts0;
-            counts = counts - min(counts);
-        end
     end
     
     methods (Access = 'private')
