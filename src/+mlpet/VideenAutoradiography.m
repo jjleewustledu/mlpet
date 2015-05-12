@@ -17,51 +17,26 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
  	%  $Id$ 
     
 	properties 
-        showPlots = true	 
-        baseTitle = 'PET Autoradiography'
-        xLabel    = 'times/s'
-        yLabel    = 'concentration/(well-counts/mL/s)'
-        
-        A0 = 0.0178042
+        A0 = 1
         f  = 0.00956157346232341 % mL/s/mL, [15O]H_2O
         af = 2.035279E-06
         bf = 2.096733E-02
     end
 
     properties (Dependent)
-        aif
-        mask
-        ecat
-        concentration_a
-        concentration_obs
+        baseTitle
         map 
         pie
         timeLimits % for scan integration over time, per Videen
     end
     
     methods %% GET/SET 
-        function a  = get.aif(this)
-            assert(~isempty(this.aif_));
-            a = this.aif_;
-        end
-        function m  = get.mask(this)
-            assert(~isempty(this.mask_));
-            m = this.mask_;
-        end
-        function e  = get.ecat(this)
-            assert(~isempty(this.ecat_));
-            e = this.ecat_;
-        end
-        function ca = get.concentration_a(this)
-            assert(~isempty(this.concentration_a_));
-            ca = this.concentration_a_;
-        end
-        function co = get.concentration_obs(this)
-            co = this.dependentData;
+        function bt = get.baseTitle(this)
+            bt = sprintf('Videen Autoradiography %s', this.pnum);
         end
         function m  = get.map(this)
             m = containers.Map;
-            m('A0') = struct('fixed', 0, 'min', 0.01,   'mean', this.A0, 'max', 0.1);
+            m('A0') = struct('fixed', 0, 'min', 0.01,   'mean', this.A0, 'max', 10);
             m('af') = struct('fixed', 1, 'min', 1e-7,   'mean', this.af, 'max', 1e-5); 
             m('bf') = struct('fixed', 1, 'min', 1e-3,   'mean', this.bf, 'max', 1e-1);
             m('f')  = struct('fixed', 1, 'min', 0.0053, 'mean', this.f,  'max', 0.012467); 
@@ -132,7 +107,7 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
             import mlpet.*;
             CBF = 6000 * f / VideenAutoradiography.BRAIN_DENSITY; 
             spe = (-bf + sqrt(bf^2 + 4 * af * CBF)) / (2 * af);             
-            spe = 60 * pie * spe;
+            spe = pie * spe; % possibly in error by factor of 60 sec/min
         end
         function ci   = pett_i(f, t, conc_a)
             import mlpet.*;
@@ -168,22 +143,9 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
  			%  Usage:  this = VideenAutoradiography(concentration_a, times_i, concentration_i, mask, aif, ecat) 
             %                                    ^ counts/s/mL    ^ s      ^ counts/s/g
 
- 			this = this@mlpet.AutoradiographyBuilder(times_i, conc_i); 
-            p = inputParser;
-            addRequired(p, 'conc_a',  @isnumeric);
-            addRequired(p, 'times_i', @isnumeric);
-            addRequired(p, 'conc_i',  @isnumeric);
-            addRequired(p, 'mask',    @(x) isa(x, 'mlfourd.INIfTId'));
-            addRequired(p, 'aif',     @(x) isa(x, 'mlpet.IWellData'));
-            addRequired(p, 'ecat',    @(x) isa(x, 'mlpet.IScannerData'));
-            parse(p, conc_a, times_i, conc_i, mask, aif, ecat);
-            
-            this.concentration_a_ = p.Results.conc_a;
-            this.mask_            = p.Results.mask;
-            this.aif_             = p.Results.aif;
-            this.ecat_            = p.Results.ecat;
-            this.pie_             = this.ecat_.pie; % caching
-            this.timeLimits_      = this.getTimeLimits;
+ 			this = this@mlpet.AutoradiographyBuilder(conc_a, times_i, conc_i, mask, aif, ecat); 
+            this.pie_                   = this.ecat_.pie; % caching
+            this.timeLimits_            = this.getTimeLimits;
             this.expectedBestFitParams_ = [this.A0 this.af this.bf this.f]'; % initial expected values from properties
         end 
         

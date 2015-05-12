@@ -11,7 +11,6 @@ classdef Laif2Ecat < mlbayesian.AbstractMcmcProblem
  	 
 
 	properties  		 
-        showPlots = true	 
         baseTitle = 'Laif2Ecat'
         xLabel    = 'times/s'
         yLabel    = 'arbitrary'

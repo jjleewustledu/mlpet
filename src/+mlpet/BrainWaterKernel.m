@@ -11,29 +11,24 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
  	%  $Id$   
     
-    properties (Constant)
-        N_PARAMS = 5;
-    end
-    
 	properties
-        showPlots = true	 
         baseTitle = 'BrainWaterKernel'
         xLabel    = 'times/s'
         yLabel    = 'arbitrary'
         
-        a  = 1.274033
-        d  = 1.494003
-        p  = 0.420199
-        q0 = 7568929.630377
-        t0 = 8.078686
+        a  = 1.2
+        d  = 1.3
+        p  = 0.40
+        q0 = 7.9e6
+        t0 = 8.5
         
-        aS  = 0.4
-        dS  = 0.07
-        pS  = 0.02
-        q0S = 2e5
-        t0S = 1
+        aS  = 0.16
+        dS  = 0.034
+        pS  = 0.010
+        q0S = 1.8e5
+        t0S = 0.23
         
-        priorN = 1e5
+        priorN = 45
     end 
     
     properties (Dependent)
@@ -43,11 +38,11 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
     methods %% GET
         function m = get.map(this)
             m = containers.Map;
-            m('a')  = struct('fixed',0,'min',this.prLow(this.a, this.aS, 1),  'mean',this.a, 'max',this.prHigh(this.a, this.aS, this.timeFinal));
-            m('d')  = struct('fixed',0,'min',this.prLow(this.d, this.dS, 1),  'mean',this.d, 'max',this.prHigh(this.d, this.dS, 20));
-            m('p')  = struct('fixed',0,'min',this.prLow(this.p, this.pS, 0),  'mean',this.p, 'max',this.prHigh(this.p, this.pS,  3)); 
-            m('q0') = struct('fixed',0,'min',this.prLow(this.q0,this.q0S,1e5),'mean',this.q0,'max',this.prHigh(this.q0,this.q0S, 1e9));
-            m('t0') = struct('fixed',0,'min',this.prLow(this.t0,this.t0S,0),  'mean',this.t0,'max',this.prHigh(this.t0,this.t0S, this.timeFinal)); 
+            m('a')  = struct('fixed',0,'min',this.prLow(this.a, this.aS,  0.8),  'mean',this.a, 'max',this.prHigh(this.a, this.aS,  1.4));
+            m('d')  = struct('fixed',0,'min',this.prLow(this.d, this.dS,  1.0),  'mean',this.d, 'max',this.prHigh(this.d, this.dS,  1.5));
+            m('p')  = struct('fixed',0,'min',this.prLow(this.p, this.pS,  0.35), 'mean',this.p, 'max',this.prHigh(this.p, this.pS,  0.45)); 
+            m('q0') = struct('fixed',0,'min',this.prLow(this.q0,this.q0S, 7e7),  'mean',this.q0,'max',this.prHigh(this.q0,this.q0S, 9e7));
+            m('t0') = struct('fixed',0,'min',this.prLow(this.t0,this.t0S, 0),    'mean',this.t0,'max',this.prHigh(this.t0,this.t0S, 20)); 
         end
     end
     
@@ -56,7 +51,7 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             import mlpet.*;
             assert(isa(laifObj, 'mlperfusion.Laif2'));
             dcv  = UncorrectedDCV(dcvFn);
-            this = BrainWaterKernel(laifObj.itsKAif0, dcv.timeInterpolants, dcv.countInterpolants);
+            this = BrainWaterKernel(laifObj.itsKAif_2, dcv.timeInterpolants, dcv.countInterpolants);
         end
         function this = runKernel(inputFn, times, counts)
             this = mlpet.BrainWaterKernel(inputFn, times, counts);

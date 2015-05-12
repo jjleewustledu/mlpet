@@ -12,11 +12,11 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
  	%  $Id$  
 
     properties  
-        dt = 1 % sec, for timeInterpolants
         useBecquerels = false % boolean for dividing accumulated counts by sampling durations of each time-frame to obtain 1/sec  
     end
     
-    properties (Dependent)
+    properties (Dependent)        
+        dt % sec, for timeInterpolants
         
         %% IWellData
         
@@ -47,6 +47,10 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
     end 
 
     methods %% GET
+        
+        function d   = get.dt(this)
+            d = min(this.taus);
+        end
         
         %% IWellData
         
