@@ -122,9 +122,7 @@ classdef DecayCorrection < mlpet.IDecayCorrection
             sig = sign(sig);
             switch (length(size(cnts)))
                 case 2
-                    for t = 1:size(cnts,2)
-                        cnts(:,t) = cnts(:,t) .* exp(sig * this.lambda * times(t)) ./ denom(t);
-                    end
+                    cnts = cnts .* exp(sig * this.lambda * times(t)) ./ denom;
                 case 3
                     for t = 1:size(cnts,3)
                         cnts(:,:,t) = cnts(:,:,t) .* exp(sig * this.lambda * times(t)) ./ denom(t);

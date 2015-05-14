@@ -16,7 +16,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
         LAMBDA_DECAY = 0.005677 % KLUDGE:  hard-coded [15O] half-life because propagating this.decayCorrection_ to static methods is difficult
         BRAIN_DENSITY = 1.05    % assumed mean brain density, g/mL
         RBC_FACTOR = 0.766      % per Tom Videen, metproc.inc, line 193
-        TIME_SUP = Inf          % sec
+        TIME_SUP = 120          % sec
         REUSE_STORED = true
     end
 
@@ -223,6 +223,13 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
     end
 
     methods (Static, Access = 'protected')
+        function [times,counts] = shiftData(times0, counts0, Dt)
+            if (Dt > 0)
+                [times,counts] = shiftDataRight(times0, counts0, Dt);
+            else
+                [times,counts] = shiftDataLeft(times0, counts0, Dt);
+            end
+        end
         function [times,counts] = shiftDataLeft(times0, counts0, Dt)
             %  Dt in sec
             idx_0  = floor(sum(double(times0 < Dt + times0(1)))+1);

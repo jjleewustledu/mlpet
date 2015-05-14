@@ -37,6 +37,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
         wellFqfilename
         wellFactor
         pie
+        becquerels
         wellCounts
         mask
         nPixels      
@@ -122,6 +123,9 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
         function p   = get.pie(this)
             assert(isnumeric(this.pie_) && ~isempty(this.pie_));
             p = this.pie_;
+        end
+        function b    = get.becquerels(this)
+            b = this.petCounts2becquerels(this.counts);
         end
         function wc  = get.wellCounts(this)
             wc = this.petCounts2wellCounts(this.counts);
@@ -284,6 +288,11 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
                 this.header_.start(cc)    = str2double(names.start);
                 this.header_.duration(cc) = str2double(names.duration);
             end
+            
+            % .img.rec time-frames exclude the first frame; KLUDGE follows
+            start               = this.header_.start(2:end);
+            start(last-first+1) = this.header_.start(end) + this.header_.duration(end);
+            this.header_.start  = start;
         end
         function this = readTimes(this)
             this.times_ = this.header.start + this.header.injectionTime; % decay corrections must be to time of injection
@@ -307,14 +316,30 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
                 this.timeMidpoints_(t) = (this.times(t-1) + this.times(t))/2;
             end            
         end
+        function img  = petCounts2becquerels(this, img)
+            %% PETCOUNTS2BECQUERELS; cf. man pie; does not divide out number of pixels.
+            
+            switch (length(size(img)))
+                case 2
+                    img = img * this.pie ./ this.taus'; % taus in sec <-> taus in min * 60
+                case 3
+                    for t = 1:size(img, 3)
+                        img(:,:,t) = img(:,:,t) * this.pie / this.taus(t); % taus in sec <-> taus in min * 60
+                    end
+                case 4
+                    for t = 1:size(img, 4)
+                        img(:,:,:,t) = img(:,:,:,t) * this.pie / this.taus(t); % taus in sec <-> taus in min * 60
+                    end
+                otherwise
+                    error('mlpet:unsupportedArraySize', 'size(EcatExactHRPlus.petCounts2wellCounts.img) -> %s', mat2str(size(img)));
+            end
+        end
         function img  = petCounts2wellCounts(this, img)
             %% PETCOUNTS2WELLCOUNTS; cf. man pie; does not divide out number of pixels.
             
             switch (length(size(img)))
                 case 2
-                    for t = 1:size(img, 2)
-                        img(:,t) = img(:,t) * this.taus(t) * this.pie; % taus in sec <-> taus in min * 60
-                    end
+                    img = img .* this.taus' * this.pie; % taus in sec <-> taus in min * 60
                 case 3
                     for t = 1:size(img, 3)
                         img(:,:,t) = img(:,:,t) * this.taus(t) * this.pie; % taus in sec <-> taus in min * 60

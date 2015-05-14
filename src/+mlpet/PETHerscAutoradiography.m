@@ -18,9 +18,9 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
     
 	properties 
         A0 = 0.05
-        PS = 0.0242022 % cm^3/s/mL, [15O]H_2O
-        f  = 0.011155 % 0.00956157346232341 mL/s/mL, [15O]H_2O
-        t0 = 0
+        PS = 0.0182 %  mL/s/mL, [15O]H_2O
+        f  = 0.00928 % mL/s/mL, [15O]H_2O
+        t0 = 0.045847
     end
 
     properties (Dependent)
@@ -34,15 +34,16 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
             bt = sprintf('PET Hersc. %s', this.pnum);
         end
         function dt = get.detailedTitle(this)
-            dt = sprintf('%s plotProduct:\nA0 %g, PS %g, f %g, t0 %g', ...
+            dt = sprintf('%s:\nA0 %g, PS %g, f %g, t0 %g', ...
                          this.baseTitle, this.A0, this.PS, this.f, this.t0);
         end
         function m  = get.map(this)
+            fL = 1; fH = 1;
             m = containers.Map;
-            m('A0') = struct('fixed', 0, 'min', 0.02,   'mean', this.A0, 'max', 0.06);
-            m('PS') = struct('fixed', 0, 'min', 0.013,  'mean', this.PS, 'max', 0.0315); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2, +2 quartiles
-            m('f')  = struct('fixed', 1, 'min', 0.0053, 'mean', this.f,  'max', 0.0161); % 
-            m('t0') = struct('fixed', 1, 'min', 0,      'mean', this.t0, 'max', 10);
+            m('A0') = struct('fixed', 0, 'min', fL*0.01,   'mean', this.A0, 'max', fH* 1);
+            m('PS') = struct('fixed', 0, 'min', fL*0.0093, 'mean', this.PS, 'max', fH* 0.0367); % physiologic range +/- sigma, Herscovitch, JCBFM 7:527-541, 1987, table 2
+            m('f')  = struct('fixed', 1, 'min', fL*0.0050, 'mean', this.f,  'max', fH* 0.0155); % 
+            m('t0') = struct('fixed', 0, 'min',    0,      'mean', this.t0, 'max', fH*20);
         end
     end
     
@@ -53,8 +54,8 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
             addRequired(p, 'maskFn', @(x) lexist(x, 'file'));
             addRequired(p, 'aifFn',  @(x) lexist(x, 'file'));
             addRequired(p, 'ecatFn', @(x) lexist(x, 'file'));
-            addOptional(p, 'aifShift',  0, @(x) isnumeric(x) && isscalar(x));
-            addOptional(p, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
+            addOptional(p, 'aifShift',   0, @(x) isnumeric(x) && isscalar(x));
+            addOptional(p, 'ecatShift', 10, @(x) isnumeric(x) && isscalar(x));
             parse(p, maskFn, aifFn, ecatFn, varargin{:});
             
             import mlfourd.* mlpet.*;
@@ -87,24 +88,24 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
             this   = PETHerscAutoradiography(conc_a, t, conc_i);
             this   = this.estimateParameters(map) %#ok<NOPRT>
         end   
-        function this = runAutoradiography(conc_a, t, conc_i)
+        function this = runAutoradiography(conc_a, t, conc_obs)
             %% RUNAUTORADIOGRAPHY is deprecated; used by legacy Test_PETAutoradiography
             %  Usage:   PETHerscAutoradiography.runAutoradiography(arterial_counts, times, scanner_counts) 
-            %                                                 ^ well-counts/s/mL      ^
-            %                                                                  ^ s
+            %                                                     ^ well-counts/s/mL       ^
+            %                                                                       ^ s
             
             import mlpet.*;
-            this = PETHerscAutoradiography(conc_a, t, conc_i);
+            this = PETHerscAutoradiography(conc_a, t, conc_obs);
             this = this.estimateParameters(this.map);            
         end
         function ci   = concentration_i(A0, PS, f, t0, t, conc_a)
             import mlpet.*;
             lambda = PETHerscAutoradiography.LAMBDA;
             lambda_decay = PETHerscAutoradiography.LAMBDA_DECAY;
-            m  = 1 - exp(-PS / f);
-            ci0    = A0 * m * f * conv(conc_a, exp(-(m*f/lambda + lambda_decay) * t));
+            m      = 1 - exp(-PS / f);
+            ci0    = A0 * m * f * conv(conc_a, exp(-(m * f / lambda + lambda_decay) * t));
             ci0    = ci0(1:length(t));
-            assert(all(isfinite(ci0)), 'ci -> %s', num2str(ci0));
+            %assert(all(isfinite(ci0)), 'ci -> %s', num2str(ci0));
             
             idx_t0 = PETHerscAutoradiography.indexOf(t, t0);
             ci     = zeros(1, length(t));
@@ -117,8 +118,8 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
             ecatSkinny.img = ecatSkinny.img/mask.count;
             
             import mlpet.*;
-            [t_a,c_a] = PETHerscAutoradiography.shiftDataLeft(       aif.times,        aif.wellCounts, aifShift);
-            [t_i,c_i] = PETHerscAutoradiography.shiftDataLeft(ecatSkinny.times, ecatSkinny.wellCounts, ecatShift);        
+            [t_a,c_a] = PETHerscAutoradiography.shiftDataLeft(        aif.times,        aif.wellCounts, aifShift);
+            [t_i,c_i] = PETHerscAutoradiography.shiftDataRight(ecatSkinny.times, ecatSkinny.becquerels, ecatShift);        
             dt  = min(min(aif.taus), min(ecatSkinny.taus));
             t   = min(t_a(1), t_i(1)):dt:min([t_a(end) t_i(end) PETAutoradiography.TIME_SUP]);
             c_a = pchip(t_a, c_a, t);
@@ -142,11 +143,15 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
         end 
         
         function this = simulateItsMcmc(this, conc_a)
-            this = mlpet.PETHerscAutoradiography.simulateMcmc( ...
+            this = this.simulateMcmc( ...
                    this.A0, this.PS, this.f, this.t0, this.times, conc_a, this.map);
         end
         function ci   = itsConcentration_i(this)
-            ci = mlpet.PETHerscAutoradiography.concentration_i(this.A0, this.PS, this.f, this.t0, this.times, this.concentration_a);
+            ci = this.concentration_i( ...
+                 this.A0, this.PS, this.f, this.t0, this.times, this.concentration_a);
+        end
+        function this = estimateAll(this)
+            this = this.estimateParameters(this.map);
         end
         function this = estimateParameters(this, varargin)
             ip = inputParser;
@@ -172,7 +177,7 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
                 this.finalParams(keys{4}));
         end
         function ed   = estimateDataFast(this, A0, PS, f, t0)
-            ed = mlpet.PETHerscAutoradiography.concentration_i( ...
+            ed = this.concentration_i( ...
                        A0, PS, f, t0, this.times, this.concentration_a);
         end
         function ps   = adjustParams(this, ps)
@@ -182,8 +187,20 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
                 ps(manager.paramsIndices('PS')) = ps(manager.paramsIndices('f'));
                 ps(manager.paramsIndices('f')) = tmp;
             end
-        end
-            
+        end            
+        
+        function        plotProduct(this)
+            figure;
+            max_i = max(max( this.itsConcentration_i), max(this.concentration_obs));
+            max_a = max(     this.concentration_a);
+            plot(this.times, this.itsConcentration_i / max_i, ...
+                 this.times, this.concentration_a    / max_a, 's', ...
+                 this.times, this.concentration_obs  / max_i, 'o');
+            legend('Bayesian concentration_i', 'DCV from data',  'concentration_{obs} from data');
+            title(this.detailedTitle, 'Interpreter', 'none');
+            xlabel(this.xLabel);
+            ylabel(sprintf('arbitrary:  C_i norm %g, C_a norm %g', max_i, max_a));
+        end 
         function        plotParVars(this, par, vars)
             assert(lstrfind(par, properties('mlpet.PETHerscAutoradiography')));
             assert(isnumeric(vars));

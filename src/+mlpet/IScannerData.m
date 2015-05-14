@@ -24,6 +24,7 @@ classdef (Abstract) IScannerData < mlpet.IWellData
         wellFqfilename
         wellFactor
         pie
+        becquerels
         wellCounts
         mask
         nPixels

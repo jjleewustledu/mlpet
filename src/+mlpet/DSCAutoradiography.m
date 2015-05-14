@@ -17,20 +17,19 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
  	%  $Id$     
     
 	properties 
-        A0 = 0.1
+        A0 = 0.027
         Ew = 0.82 
         a  = 1.009767
         d  = 1.092760
         f  = 0.00928 % mL/s/mL, [15O]H_2O
         p  = 0.411130
-        q0 = 0.0018
+        q0 = 318
         t0 = 0.045847
     end 
 
     properties (Dependent)
         baseTitle
         detailedTitle
-        Z_bright
         dose
         map 
     end
@@ -43,23 +42,20 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             dt = sprintf('%s:\nA0 %g, Ew %g, a %g, d %g, f %g, p %g, q0 %g, t0 %g', ...
                          this.baseTitle, this.A0, this.Ew, this.a, this.d, this.f, this.p, this.q0, this.t0);
         end
-        function Z_b = get.Z_bright(this)
-            Z_b = this.Z_bright_;
-        end
         function d   = get.dose(this)
             d = this.dose_;
         end
         function m   = get.map(this)            
             fL = 1; fH = 1;
             m = containers.Map;
-            m('A0') = struct('fixed', 1, 'min', fL*0.025,  'mean', this.A0, 'max', fH* 0.125);
-            m('Ew') = struct('fixed', 1, 'min', fL*0.79,   'mean', this.Ew, 'max', fH* 0.93);   % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2., +quartile          
-            m('f')  = struct('fixed', 1, 'min', fL*0.0053, 'mean', this.f,  'max', fH* 0.0155); % physiologic range
-            m('t0') = struct('fixed', 1, 'min',    0,      'mean', this.t0, 'max', fH*20);
-            m('a')  = struct('fixed', 1, 'min', fL*1.0,    'mean', this.a,  'max', fH* 1.3);
-            m('d')  = struct('fixed', 1, 'min', fL*1.0,    'mean', this.d,  'max', fH* 1.5);
-            m('p')  = struct('fixed', 1, 'min', fL*0.38,   'mean', this.p,  'max', fH* 0.42); 
-            m('q0') = struct('fixed', 0, 'min', fL*0.0005, 'mean', this.q0, 'max', fH* 0.005); 
+            m('A0') = struct('fixed', 0, 'min', fL*0.01,   'mean', this.A0, 'max', fH* 0.1);
+            m('Ew') = struct('fixed', 0, 'min', fL*0.79,   'mean', this.Ew, 'max', fH* 0.93);   % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2., +quartile          
+            m('f')  = struct('fixed', 1, 'min', fL*0.0050, 'mean', this.f,  'max', fH* 0.0155); % physiologic range
+            m('t0') = struct('fixed', 0, 'min',    0,      'mean', this.t0, 'max', fH*20);
+            m('a')  = struct('fixed', 0, 'min', fL*1.0,    'mean', this.a,  'max', fH* 1.3);
+            m('d')  = struct('fixed', 0, 'min', fL*1.0,    'mean', this.d,  'max', fH* 1.5);
+            m('p')  = struct('fixed', 0, 'min', fL*0.38,   'mean', this.p,  'max', fH* 0.42); 
+            m('q0') = struct('fixed', 0, 'min', fL*1e2,    'mean', this.q0, 'max', fH* 1e3); 
         end
     end
     
@@ -140,17 +136,6 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             ci(idx_t0:end) = ci0(1:end-idx_t0+1);
             ci     = abs(ci);
         end
-        function q    = q_est(A0, a, d, ~, p, q0, t, concbar_a, Z_b)
-            import mlpet.*;
-            q = q0 * Z_b / ...
-                (A0 * DSCAutoradiography.Zbar_a(a, d, p, t, concbar_a));
-        end      
-        function Zb_a = Zbar_a(a, d, p, t, concbar_a)
-            Zb_a = conv(concbar_a, mlpet.DSCAutoradiography.kernel(a,d,p,t));
-            Zb_a = Zb_a(1:length(t));
-            dt   = t(2) - t(1);
-            Zb_a = dt * sum(Zb_a);
-        end
         function k    = kernel(a, d, p, t)
             cnorm = ((p/a^d)/gamma(d/p));
             k     = cnorm * t.^(d-1) .* exp(-(t/a).^p);
@@ -162,7 +147,7 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             
             import mlpet.*;
             [t_a,c_a] = DSCAutoradiography.shiftDataLeft(       aif.times,        aif.itsKAif_2,  aif.t0);
-            [t_i,c_i] = DSCAutoradiography.shiftDataLeft(ecatSkinny.times, ecatSkinny.wellCounts, ecatShift); 
+            [t_i,c_i] = DSCAutoradiography.shiftDataLeft(ecatSkinny.times, ecatSkinny.becquerels, ecatShift); 
             dt  = min(min(aif.taus), min(ecatSkinny.taus));
             t   = min(t_a(1), t_i(1)):dt:min([t_a(end) t_i(end) DSCAutoradiography.TIME_SUP]);
             c_a = pchip(t_a, c_a, t);
@@ -182,7 +167,6 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             %                                                                           ^ IScannerData
 
  			this = this@mlpet.AutoradiographyBuilder(varargin{:}); 
-            this = this.estimateZ_bright_;
             this = this.estimateDose_;
             this.expectedBestFitParams_ = [this.A0 this.Ew this.a this.d this.f this.p this.q0 this.t0]'; % initial expected values from properties
         end 
@@ -202,12 +186,8 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
                                                this.a, this.d, this.p, this.times));
             ca = ca(1:this.length);
         end
-        function q    = itsQ_est(this)
-            q = this.q_est(this.A0, this.a, this.d, this.f, this.p, this.q0, this.times, this.concentrationBar_a, this.Z_bright_);
-        end
         function this = estimateAll(this)
             this = this.estimateParameters(this.map);
-            fprintf('FINAL STATS q_est from Z_bright %g\n', this.itsQ_est);
         end
         function this = estimateParameters(this, varargin)
             ip = inputParser;
@@ -248,12 +228,12 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             figure;
             dcv      = this.itsDcv;
             dcvTimes = dcv.times - this.aif.t0;
-            max_i = max(max(this.estimateData), max(this.dependentData));
-            max_a = max(max(this.itsBayesianConcentration_a), max(dcv.wellCounts));
-            plot(this.times, this.estimateData / max_i, ...
+            max_i = max(max( this.itsConcentration_i),         max(this.concentration_obs));
+            max_a = max(max( this.itsBayesianConcentration_a), max(dcv.wellCounts));
+            plot(this.times, this.itsConcentration_i         / max_i, ...
                  this.times, this.itsBayesianConcentration_a / max_a, ...
-                   dcvTimes, dcv.wellCounts / max_a, 'o', ...
-                 this.times, this.dependentData / max_i, 'o');
+                   dcvTimes, dcv.wellCounts                  / max_a, 'o', ...
+                 this.times, this.concentration_obs          / max_i, 'o');
             legend('Bayesian concentration_i', 'Bayesian concentration_a', 'DCV from data',  'concentration_{obs} from data');
             title(this.detailedTitle, 'Interpreter', 'none');
             xlabel(this.xLabel);
@@ -302,37 +282,17 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
     %% PRIVATE
     
     properties (Access = 'private')
-        Z_bright_
         dose_
     end
     
     methods (Access = 'private')
         function this = estimateDose_(this)
-            import mlpet.* mlfourd.*;
-            dcecat = DSCAutoradiography.loadDecayCorrectedEcat( ...
-                     fullfile(this.ecat.filepath, [this.pnum 'ho1.nii.gz']));
-            dcecat = DynamicNIfTId(dcecat.component, 'timeSum', true, 'volumeSum', true);
-            this.dose_ = squeeze(dcecat.img);            
+            import mlpet.* mlfourd.*;  
+            taus              = this.times(2:end) - this.times(1:end-1);
+            taus(this.length) = taus(this.length - 1);
+            this.dose_ = this.concentration_obs * taus'; % trapezoidal time-integral  
             fprintf('DSCAutoradiography.estimateDose_ -> %g\n', this.dose_);
-        end
-        function this = estimateZ_bright_(this)
-            intDtCi = this.integralDtConcentration_i;
-            voxels  = intDtCi(this.mask.img ~= 0); % Nx1 double
-            voxels  = sort(voxels);
-            
-            idx98 = floor(0.98 * length(voxels));
-            this.Z_bright_ = voxels(idx98);
-            fprintf('DSCAutoradiography.estimateZ_bright_ -> %g\n', this.Z_bright_);
         end        
-        function int  = integralDtConcentration_i(this)  
-            %assert(this.uniformSampling(this.ecat.times));
-            numScanFrames = ceil((this.timeFinal - this.timeInitial) / this.ecat.dt);          
-            int = this.ecat.wellCounts(:,:,:,1);
-            for sf = 2:numScanFrames
-                int = int + this.ecat.wellCounts(:,:,:,sf); end
-            int = int * this.ecat.dt; 
-        end
-        
         function plotParArgs(this, par, args, vars)
             assert(lstrfind(par, properties('mlpet.DSCAutoradiography')));
             assert(iscell(args));

@@ -61,7 +61,7 @@ classdef AutoradiographyDirector
             addRequired(p, 'maskFn',       @(x) lexist(x, 'file'));
             addRequired(p, 'aifFn',        @(x) lexist(x, 'file'));
             addRequired(p, 'ecatFn',       @(x) lexist(x, 'file'));
-            addOptional(p, 'dcvShift',  16, @(x) isnumeric(x) && isscalar(x));
+            addOptional(p, 'dcvShift',  0, @(x) isnumeric(x) && isscalar(x));
             addOptional(p, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
             parse(p, maskFn, aifFn, ecatFn, varargin{:});
             
@@ -76,7 +76,7 @@ classdef AutoradiographyDirector
             addRequired(p, 'maskFn',       @(x) lexist(x, 'file'));
             addRequired(p, 'aifFn',        @(x) lexist(x, 'file'));
             addRequired(p, 'ecatFn',       @(x) lexist(x, 'file'));
-            addOptional(p, 'dcvShift',  16, @(x) isnumeric(x) && isscalar(x));
+            addOptional(p, 'dcvShift',  0, @(x) isnumeric(x) && isscalar(x));
             addOptional(p, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
             parse(p, maskFn, aifFn, ecatFn, varargin{:});
             
@@ -316,6 +316,18 @@ classdef AutoradiographyDirector
             fprintf('AutoradiographyDirector.getVideenCbf:\n');
             fprintf('\tcbf %g, aflow %12.8G, bflow %12.8G\n', cbf, aflow, bflow);
         end
+        
+        function aif  = prepareLaif2
+            import mlperfusion.*;            
+            pth   = pwd;   
+            dscFn = fullfile(pth, 'ep2d_default_mcf_masked.nii.gz');
+            mskFn = fullfile(pth, 'ep2d_mask.nii.gz');
+            storageFn = fullfile(pth, 'DSCAutoradiography_loadAif_aif.mat');     
+            
+            wbDsc = WholeBrainDSC(dscFn, mskFn);
+            aif = Laif2.runLaif(wbDsc.times, wbDsc.itsMagnetization); 
+            save(storageFn, 'aif');
+        end
     end
     
     methods 
@@ -332,7 +344,6 @@ classdef AutoradiographyDirector
             
             this.builder_ = this.builder_.estimateAll;
             this.builder_.plotProduct
-            disp(this.builder_);
         end
         function this = estimatePriors(this)
         end

@@ -32,19 +32,21 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             diary off
         end
         function prods = trainPET
-            diary(sprintf('AutoradiographyTrainer.trainPET_%s.log', datestr(now, 30)));
             import mlpet.*;
             this = AutoradiographyTrainer;            
             
             pwd0 = this.WORK_DIR;
-            for c = 3:3 % length(this.MM_CASES)
+            cd(pwd0);
+            diary(sprintf('AutoradiographyTrainer.trainPET_%s.log', datestr(now, 30)));
+            for c = 1:length(this.MM_CASES)
                 cd(fullfile(pwd0, this.casePaths{c}));  
+                fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
+                fprintf('AutoradiographyTrainer.trainPET is working in %s\n', pwd);
                 this.director_ = ...
                     AutoradiographyDirector.loadPET( ...
-                        this.maskFn, this.aifFn, this.ecatFn, this.DCV_SHIFTS(c));
+                        this.maskFn, this.aifFn, this.ecatFn, this.DCV_SHIFTS(c), 5);
                 tmp = this.director_.product;
                 tmp.f = this.VIDEEN_FLOWS(c);
-                tmp.t0 = this.PET_T0S(c);
                 this.director_.product = tmp;
                 this.director_ = this.director_.estimateAll;
                 prods{c} = this.director_.product; 
@@ -61,14 +63,15 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             pwd0 = this.WORK_DIR;
             cd(pwd0);
             diary(sprintf('AutoradiographyTrainer.trainPETHersc_%s.log', datestr(now, 30)));
-            for c = 3:3 % length(this.MM_CASES)
-                cd(fullfile(pwd0, this.casePaths{c}));                
+            for c = 1:length(this.MM_CASES)
+                cd(fullfile(pwd0, this.casePaths{c}));  
+                fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
+                fprintf('AutoradiographyTrainer.trainPETHersc is working in %s\n', pwd);
                 this.director_ = ...
                     AutoradiographyDirector.loadPETHersc( ...
                         this.maskFn, this.aifFn, this.ecatFn, this.DCV_SHIFTS(c));
                 tmp = this.director_.product;
                 tmp.f = this.VIDEEN_FLOWS(c);
-                tmp.t0 = this.PET_T0S(c);
                 this.director_.product = tmp;                
                 this.director_ = this.director_.estimateAll;
                 prods{c} = this.director_.product;
@@ -85,8 +88,9 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             pwd0 = this.WORK_DIR;
             cd(pwd0);            
             diary(sprintf('AutoradiographyTrainer.trainDSC_%s.log', datestr(now, 30)));
-            for c = 3:3 % 1:length(this.MM_CASES)
+            for c = 10:length(this.MM_CASES)
                 cd(fullfile(pwd0, this.casePaths{c})); 
+                fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
                 fprintf('AutoradiographyTrainer.trainDSC is working in %s\n', pwd);
                 this.director_ = ...
                     AutoradiographyDirector.loadDSC( ...
@@ -102,16 +106,17 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             save(sprintf('AutoradiographyTrainer.trainDSC.prods_%s.mat', datestr(now,30)), 'prods');
             diary off
         end
-        function prods  = trainDSCHersc
+        function prods = trainDSCHersc
             import mlpet.*;
             this = AutoradiographyTrainer;              
             
             pwd0 = this.WORK_DIR;
             cd(pwd0);
             diary(sprintf('AutoradiographyTrainer.trainDSCHersc_%s.log', datestr(now, 30)));
-            for c = 1:length(this.MM_CASES)
+            for c = 4:4 %10:length(this.MM_CASES)
                 cd(fullfile(pwd0, this.casePaths{c}));  
-                fprintf('AutoradiographyTrainer.trainDSCHersc is working in %s\n', pwd);               
+                fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
+                fprintf('AutoradiographyTrainer.trainDSCHersc is working in %s\n', pwd);      
                 this.director_ = ...
                     AutoradiographyDirector.loadDSCHersc( ...
                         this.maskFn, this.dscMaskFn, this.dscFn, this.ecatFn);
@@ -124,6 +129,24 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             cd(pwd0);
             
             save(sprintf('AutoradiographyTrainer.trainDSCHersc.prods_%s.mat', datestr(now,30)), 'prods');
+            diary off
+        end        
+        function prods = trainLaif2
+            import mlpet.*;
+            this = AutoradiographyTrainer;              
+            
+            pwd0 = this.WORK_DIR;
+            cd(pwd0);
+            diary(sprintf('AutoradiographyTrainer.trainLaif2_%s.log', datestr(now, 30)));
+            for c = 1:length(this.MM_CASES)
+                cd(fullfile(pwd0, this.casePaths{c}));  
+                fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
+                fprintf('AutoradiographyTrainer.trainLaif2 is working in %s\n', pwd);      
+                prods{c} = AutoradiographyDirector.prepareLaif2;
+            end
+            cd(pwd0);
+            
+            save(sprintf('AutoradiographyTrainer.trainLaif2.prods_%s.mat', datestr(now,30)), 'prods');
             diary off
         end
     end 
