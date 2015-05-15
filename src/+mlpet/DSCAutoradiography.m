@@ -17,7 +17,7 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
  	%  $Id$     
     
 	properties 
-        A0 = 0.027
+        A0 = 0.0228
         Ew = 0.82 
         a  = 1.009767
         d  = 1.092760
@@ -48,7 +48,7 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
         function m   = get.map(this)            
             fL = 1; fH = 1;
             m = containers.Map;
-            m('A0') = struct('fixed', 0, 'min', fL*0.01,   'mean', this.A0, 'max', fH* 0.1);
+            m('A0') = struct('fixed', 1, 'min', fL*0.01,   'mean', this.A0, 'max', fH* 0.03);
             m('Ew') = struct('fixed', 0, 'min', fL*0.79,   'mean', this.Ew, 'max', fH* 0.93);   % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2., +quartile          
             m('f')  = struct('fixed', 1, 'min', fL*0.0050, 'mean', this.f,  'max', fH* 0.0155); % physiologic range
             m('t0') = struct('fixed', 0, 'min',    0,      'mean', this.t0, 'max', fH*20);
@@ -146,9 +146,9 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             ecatSkinny.img = ecatSkinny.img/mask.count;
             
             import mlpet.*;
-            [t_a,c_a] = DSCAutoradiography.shiftDataLeft(       aif.times,        aif.itsKAif_2,  aif.t0);
-            [t_i,c_i] = DSCAutoradiography.shiftDataLeft(ecatSkinny.times, ecatSkinny.becquerels, ecatShift); 
-            dt  = min(min(aif.taus), min(ecatSkinny.taus));
+            [t_a,c_a] = DSCAutoradiography.shiftData(aif.times,               aif.itsKAif_2, -aif.t0);
+            [t_i,c_i] = DSCAutoradiography.shiftData(ecatSkinny.times, ecatSkinny.becquerels, ecatShift); 
+            dt  = min(min(aif.taus), min(ecatSkinny.taus))/2;
             t   = min(t_a(1), t_i(1)):dt:min([t_a(end) t_i(end) DSCAutoradiography.TIME_SUP]);
             c_a = pchip(t_a, c_a, t);
             c_i = pchip(t_i, c_i, t);            

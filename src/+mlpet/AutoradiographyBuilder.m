@@ -138,6 +138,35 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
         function f    = invs_to_mLmin100g(f)
             f = 100 * 60 * f / mlpet.AutoradiographyBuilder.BRAIN_DENSITY;
         end
+        function [times,counts] = shiftData(times0, counts0, Dt)
+            import mlpet.*
+            if (Dt > 0)
+                [times,counts] = AutoradiographyBuilder.shiftDataRight(times0, counts0, Dt);
+            else
+                [times,counts] = AutoradiographyBuilder.shiftDataLeft( times0, counts0, Dt);
+            end
+        end
+        function [times,counts] = shiftDataLeft(times0, counts0, Dt)
+            %  Dt in sec
+            Dt     = abs(Dt);
+            idx_0  = floor(sum(double(times0 < Dt + times0(1)))+1);
+            times  = times0(idx_0:end);
+            times  = times - times(1);
+            counts = counts0(idx_0:end);
+            counts = counts - min(counts);
+        end
+        function [times,counts] = shiftDataRight(times0, counts0, Dt)
+            %  Dt in sec
+            Dt     = abs(Dt);
+            lenDt  = ceil(Dt/(times0(2) - times0(1)));
+            newLen = length(counts0) + lenDt;
+            
+            times0 = times0 - times0(1) + Dt;
+            times  = [0:1:lenDt-1 times0];
+            counts = counts0(1) * ones(1,newLen);            
+            counts(end-length(counts0)+1:end) = counts0;
+            counts = counts - min(counts);
+        end
     end
     
 	methods         
@@ -211,7 +240,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
             this.aif_             = ip.Results.aif;
             this.ecat_            = ip.Results.ecat;			 
  		end 
- 	end 
+ 	end     
     
     %% PROTECTED
     
@@ -220,35 +249,6 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
         mask_
         ecat_
         concentration_a_
-    end
-
-    methods (Static, Access = 'protected')
-        function [times,counts] = shiftData(times0, counts0, Dt)
-            if (Dt > 0)
-                [times,counts] = shiftDataRight(times0, counts0, Dt);
-            else
-                [times,counts] = shiftDataLeft(times0, counts0, Dt);
-            end
-        end
-        function [times,counts] = shiftDataLeft(times0, counts0, Dt)
-            %  Dt in sec
-            idx_0  = floor(sum(double(times0 < Dt + times0(1)))+1);
-            times  = times0(idx_0:end);
-            times  = times - times(1);
-            counts = counts0(idx_0:end);
-            counts = counts - min(counts);
-        end
-        function [times,counts] = shiftDataRight(times0, counts0, Dt)
-            %  Dt in sec
-            lenDt  = ceil(Dt/(times0(2) - times0(1)));
-            newLen = length(counts0) + lenDt;
-            
-            times0 = times0 - times0(1) + Dt;
-            times  = [0:1:lenDt-1 times0];
-            counts = counts0(1) * ones(1,newLen);            
-            counts(end-length(counts0)+1:end) = counts0;
-            counts = counts - min(counts);
-        end
     end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

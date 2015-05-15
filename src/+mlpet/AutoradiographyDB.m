@@ -10,16 +10,28 @@ classdef AutoradiographyDB < mlio.LogParser
  	%  $Id$ 
  	 
     properties 
-        paramList = {'A0' 'PS' 'a' 'd' 'f' 'p' 'q0' 't0'};
+        paramList = {'A0' 'PS' 'a' 'd' 'f' 'p' 'q0' 't0'}
+        DESCRIPTION_STEM = 'LaifTrainer.train' %'AutoradiographyTrainer.train'
     end
     
     properties (Dependent)
+        count
         gathered
+        mmIds
     end
     
     methods %% GET
+        function c = get.count(this)
+            c = length(this.gathered_);
+        end
         function g = get.gathered(this)
             g = this.gathered_;
+        end
+        function y = get.mmIds(this)            
+            y = {};
+            for gi = 1:length(this.gathered_)
+                y = [y this.gathered_{gi}.mmid];
+            end
         end
     end
     
@@ -32,6 +44,11 @@ classdef AutoradiographyDB < mlio.LogParser
         function this = loadPETHersc(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'PS' 'f' 't0'};
+            this = this.gatherAll;
+        end
+        function this = loadBrainWaterKernel(fn)
+            this = mlpet.AutoradiographyDB.load(fn);
+            this.paramList = {'a' 'd' 'p' 'q0' 't0'};
             this = this.gatherAll;
         end
         function this = loadDSC(fn)
@@ -74,28 +91,26 @@ classdef AutoradiographyDB < mlio.LogParser
     end
     
 	methods
-        function [d,idx]   = description(this, idx)  
-            [d,idx] = this.findNextCell('AutoradiographyTrainer.train', idx);
+        function this = append(this, moreGathered)
+            this.gathered_ = [this.gathered_ moreGathered];
         end
-        function [bf,idx]  = allBestFit(this, idx)
-            for p = 1:length(this.paramList)
-                [bf(p),idx1(p)] = this.bestFit(this.paramList{p}, idx);
+        function y = getBestFitOf(this, paramIdx)
+            y = [];
+            for gi = 1:length(this.gathered_)
+                y = [y this.gathered_{gi}.bestFit(paramIdx)];
             end
-            idx = max(idx1);
         end
-        function [m,s,idx] = allFinalStats(this, idx)
-            for p = 1:length(this.paramList)
-                [m(p),s(p),idx1(p)] = this.finalStats(this.paramList{p}, idx);
+        function y = getMeanOf(this, paramIdx)
+            y = [];
+            for gi = 1:length(this.gathered_)
+                y = [y this.gathered_{gi}.mean(paramIdx)];
             end
-            idx = max(idx1);
         end
-        function [bf,idx]  = bestFit(this, pName, idx)
-            [bf,idx] = this.rightSideNumeric(sprintf('BEST-FIT    param  %2s value', pName), idx);
-        end
-        function [m,s,idx] = finalStats(this, pName, idx)    
-            [vals,idx] = this.rightSideNumeric2(sprintf('FINAL STATS param  %2s mean', pName), 'std', idx);
-            m = vals(1);
-            s = vals(2);
+        function y = getStdOf(this, paramIdx)
+            y = [];
+            for gi = 1:length(this.gathered_)
+                y = [y this.gathered_{gi}.std(paramIdx)];
+            end
         end
     end
     
@@ -105,7 +120,7 @@ classdef AutoradiographyDB < mlio.LogParser
         gathered_
     end
     
-    methods %(Access = 'protected')
+    methods (Access = 'protected')
         function this = gatherAll(this)
             idx = 1; gi = 1;
             while (idx < this.length)
@@ -128,6 +143,29 @@ classdef AutoradiographyDB < mlio.LogParser
                     'mean',    m, ...
                     'std',     s);
                     %'params',  this.paramList, ...
+        end
+        function [d,idx]   = description(this, idx)  
+            [d,idx] = this.findNextCell(this.DESCRIPTION_STEM, idx);
+        end
+        function [bf,idx]  = allBestFit(this, idx)
+            for p = 1:length(this.paramList)
+                [bf(p),idx1(p)] = this.bestFit(this.paramList{p}, idx);
+            end
+            idx = max(idx1);
+        end
+        function [m,s,idx] = allFinalStats(this, idx)
+            for p = 1:length(this.paramList)
+                [m(p),s(p),idx1(p)] = this.finalStats(this.paramList{p}, idx);
+            end
+            idx = max(idx1);
+        end
+        function [bf,idx]  = bestFit(this, pName, idx)
+            [bf,idx] = this.rightSideNumeric(sprintf('BEST-FIT    param  %2s value', pName), idx);
+        end
+        function [m,s,idx] = finalStats(this, pName, idx)    
+            [vals,idx] = this.rightSideNumeric2(sprintf('FINAL STATS param  %2s mean', pName), 'std', idx);
+            m = vals(1);
+            s = vals(2);
         end
         function m = mmid(~, desc)
             names = regexp(desc, '\w+/(?<id>mm0\d-\w+)/bayesian_pet', 'names');

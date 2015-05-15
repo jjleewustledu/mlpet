@@ -17,15 +17,17 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
  	%  $Id$ 
     
 	properties 
-        A0 = 0.0115
-        Ew = 0.84    % default 0.84 from Herscovitch
+        A0 = 0.0119
+        Ew = 0.9226  % default 0.84 from Herscovitch
         f  = 0.00847 % mL/s/mL, [15O]H_2O
-        t0 = 4.11
+        t0 = 0
     end
 
     properties (Dependent)
         baseTitle
         detailedTitle
+        mtt_obs
+        mtt_a
         map 
     end
     
@@ -37,10 +39,16 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
             dt = sprintf('%s:\nA0 %g, Ew %g, f %g, t0 %g', ...
                          this.baseTitle, this.A0, this.Ew, this.f, this.t0);
         end
+        function m  = get.mtt_obs(this)
+            m = this.mtt_obs_;
+        end
+        function m  = get.mtt_a(this)
+            m = this.mtt_a_;
+        end
         function m  = get.map(this)
-            fL = 1; fH = 1;
+            fL = 0.9; fH = 1.1;
             m = containers.Map;
-            m('A0') = struct('fixed', 0, 'min', fL*1e-3,   'mean', this.A0, 'max', fH* 1e-1);
+            m('A0') = struct('fixed', 0, 'min', fL*0.0107, 'mean', this.A0, 'max', fH* 0.0142);
             m('Ew') = struct('fixed', 0, 'min', fL*0.79,   'mean', this.Ew, 'max', fH* 0.93); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
             m('f')  = struct('fixed', 1, 'min', fL*0.0050, 'mean', this.f,  'max', fH* 0.0155); % 
             m('t0') = struct('fixed', 0, 'min',    0,      'mean', this.t0, 'max', fH*20);
@@ -117,8 +125,8 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
             ecatSkinny.img = ecatSkinny.img/mask.count;
             
             import mlpet.*;
-            [t_a,c_a] = PETAutoradiography.shiftDataLeft(        aif.times,        aif.wellCounts, aifShift);
-            [t_i,c_i] = PETAutoradiography.shiftDataRight(ecatSkinny.times, ecatSkinny.becquerels, ecatShift);        
+            [t_a,c_a] = PETAutoradiography.shiftData(        aif.times,        aif.wellCounts, aifShift);
+            [t_i,c_i] = PETAutoradiography.shiftData(ecatSkinny.times, ecatSkinny.becquerels, ecatShift);        
             dt  = min(min(aif.taus), min(ecatSkinny.taus));
             t   = min(t_a(1), t_i(1)):dt:min([t_a(end) t_i(end) PETAutoradiography.TIME_SUP]);
             c_a = pchip(t_a, c_a, t);
@@ -138,6 +146,7 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
             %                                                                        ^ IScannerData
 
  			this = this@mlpet.AutoradiographyBuilder(varargin{:}); 
+            this = this.estimateMtts;
             this.expectedBestFitParams_ = [this.A0 this.Ew this.f this.t0]'; % initial expected values from properties
         end 
         
@@ -151,6 +160,8 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
         end
         function this = estimateAll(this)
             this = this.estimateParameters(this.map);
+            fprintf('FINAL STATS mtt_obj        %g\n', this.mtt_obj);
+            fprintf('FINAL STATS mtt_a          %g\n', this.mtt_a);
         end
         function this = estimateParameters(this, varargin)
             ip = inputParser;
@@ -223,6 +234,13 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
     %% PRIVATE
     
     methods (Access = 'private')
+        function this = estimateMtts(this)
+            this.mtt_obs_ = this.moment1(this.times, this.concentration_obs);
+            this.mtt_a_   = this.moment1(this.times, this.concentration_a);
+        end
+        function m = moment1(~, t, c)
+            m = sum(t .* c) / sum(c);
+        end
         function plotParArgs(this, par, args, vars)
             assert(lstrfind(par, properties('mlpet.PETAutoradiography')));
             assert(iscell(args));

@@ -147,13 +147,21 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
             ecatSkinny.img = ecatSkinny.img/mask.count;
             
             import mlpet.*;
-            [t_a,c_a] = DSCHerscAutoradiography.shiftDataLeft(       aif.times,        aif.itsKAif_2,  aif.t0);
-            [t_i,c_i] = DSCHerscAutoradiography.shiftDataLeft(ecatSkinny.times, ecatSkinny.becquerels, ecatShift); 
+            [t_a,c_a] = DSCAutoradiography.prolongedAifConc(ecatSkinny.times, aif);
+            [t_a,c_a] = DSCAutoradiography.shiftData(t_a,              c_a,                  -aif.t0);
+            [t_i,c_i] = DSCAutoradiography.shiftData(ecatSkinny.times, ecatSkinny.becquerels, ecatShift); 
             dt  = min(min(aif.taus), min(ecatSkinny.taus));
             t   = min(t_a(1), t_i(1)):dt:min([t_a(end) t_i(end) DSCHerscAutoradiography.TIME_SUP]);
             c_a = pchip(t_a, c_a, t);
             c_i = pchip(t_i, c_i, t);            
             args = {c_a t c_i mask aif ecat};
+        end
+        function [t,c]  = prolongedAifConc(t, aif)
+            dt = t(2) - t(1);
+            n0 = ceil(aif.t0/dt);
+            t1 = (t(end) + dt):dt:n0*dt;
+            t  = [t t1];
+            c  = mlperfusion.Laif2.kAif_2(aif.a, aif.b, aif.n, t, aif.t0, aif.t1); 
         end
     end
     

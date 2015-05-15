@@ -26,7 +26,8 @@ classdef AbstractTrainer
             'mm02-001_p7770_2011jan24'
             'mm03-001_p7229_2008apr28'
             'mm06-001_p7321_2008sep8' }
-        DCV_SHIFTS   = [15 17 23 16 16 15 23 30 18 11 30 20 21 34 13]
+        DCV_SHIFTS   = [-15 -17 -23 -16 -16 -15 -23 -30 -18 -11 -30 -20 -21 -34 -13]
+        ECAT_SHIFTS  = [  0  -2  -3   0  -3  -3   0 -13  -3  -2 -15  -8  -8 -10  -1]
         VIDEEN_FLOWS = ...
             [0.00730699976432019 0.00742305209476312 0.00846959210737666 ...
              0.0100396521354396  0.00618007809100511 0.00713882068758923 ...
@@ -47,9 +48,6 @@ classdef AbstractTrainer
         hdrInfoFn
         
         pnum
-        dcvShift
-        dscShift
-        ecatShift
         director
         product
     end 
@@ -87,18 +85,6 @@ classdef AbstractTrainer
         function n  = get.pnum(this)
             n = str2pnum(this.workPath);
         end
-        function p  = get.dcvShift(this)
-            assert(~isempty(this.dcvShift_));
-            p = this.dcvShift_;
-        end
-        function p  = get.dscShift(this)
-            assert(~isempty(this.dscShift_));
-            p = this.dscShift_;
-        end
-        function p  = get.ecatShift(this)
-            assert(~isempty(this.ecatShift_));
-            p = this.ecatShift_;
-        end
         function p  = get.director(this)
             assert(~isempty(this.director_));
             p = this.director_;
@@ -117,12 +103,23 @@ classdef AbstractTrainer
         end
     end
     
+    methods (Static)
+        function saveFigs            
+            theFigs = get(0, 'children');
+            N = numel(theFigs);
+            for f = 1:N
+                aFig = theFigs(f);
+                figure(aFig);
+                saveas(aFig, sprintf('%03d.fig', N-f+1));
+                saveas(aFig, sprintf('%03d.pdf', N-f+1));
+                close(aFig);
+            end
+        end
+    end
+    
     %% PROTECTED
     
     properties (Access = 'protected')
-        dscShift_ = 18
-        dcvShift_ = 18
-        ecatShift_ = 5
         director_
     end   
     

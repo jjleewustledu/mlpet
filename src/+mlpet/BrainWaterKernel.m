@@ -12,7 +12,6 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
  	%  $Id$   
     
 	properties
-        baseTitle = 'BrainWaterKernel'
         xLabel    = 'times/s'
         yLabel    = 'arbitrary'
         
@@ -32,26 +31,36 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
     end 
     
     properties (Dependent)
+        baseTitle
+        detailedTitle
         map
     end
     
     methods %% GET
+        function bt = get.baseTitle(this)
+            bt = sprintf('BrainWaterKernel %s', this.pnum);
+        end
+        function dt = get.detailedTitle(this)
+            dt = sprintf('%s:\na %g, d %g, p %g, q0 %g, t0 %g', ...
+                         this.baseTitle, this.a, this.d, this.p, this.q0, this.t0);
+        end
         function m = get.map(this)
             m = containers.Map;
             m('a')  = struct('fixed',0,'min',this.prLow(this.a, this.aS,  0.8),  'mean',this.a, 'max',this.prHigh(this.a, this.aS,  1.4));
             m('d')  = struct('fixed',0,'min',this.prLow(this.d, this.dS,  1.0),  'mean',this.d, 'max',this.prHigh(this.d, this.dS,  1.5));
             m('p')  = struct('fixed',0,'min',this.prLow(this.p, this.pS,  0.35), 'mean',this.p, 'max',this.prHigh(this.p, this.pS,  0.45)); 
-            m('q0') = struct('fixed',0,'min',this.prLow(this.q0,this.q0S, 7e7),  'mean',this.q0,'max',this.prHigh(this.q0,this.q0S, 9e7));
+            m('q0') = struct('fixed',0,'min',this.prLow(this.q0,this.q0S, 1e6),  'mean',this.q0,'max',this.prHigh(this.q0,this.q0S, 9e7));
             m('t0') = struct('fixed',0,'min',this.prLow(this.t0,this.t0S, 0),    'mean',this.t0,'max',this.prHigh(this.t0,this.t0S, 20)); 
         end
     end
     
     methods (Static)  
-        function this = load(laifObj, dcvFn)
+        function this = load(laifObj, dcvFn, dcvShift)
             import mlpet.*;
             assert(isa(laifObj, 'mlperfusion.Laif2'));
             dcv  = UncorrectedDCV(dcvFn);
-            this = BrainWaterKernel(laifObj.itsKAif_2, dcv.timeInterpolants, dcv.countInterpolants);
+            args = BrainWaterKernel.interpolateData(laifObj, dcv, dcvShift);
+            this = BrainWaterKernel(args{:});
         end
         function this = runKernel(inputFn, times, counts)
             this = mlpet.BrainWaterKernel(inputFn, times, counts);
@@ -86,6 +95,17 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
                   a, d, p, q0, t0, max(times)));
             xlabel('time/s');
             ylabel('arbitrary');
+        end
+        function args = interpolateData(aif, dcv, dcvShift)
+            
+            import mlpet.*;
+            [t_a,c_a] = AutoradiographyBuilder.shiftData(aif.times, aif.itsKAif_2, -aif.t0);
+            [t_i,c_i] = AutoradiographyBuilder.shiftData(dcv.times, dcv.counts,      dcvShift); 
+            dt  = min(min(aif.taus), min(dcv.taus))/2;
+            t   = min(t_a(1), t_i(1)):dt:min([t_a(end) t_i(end) AutoradiographyBuilder.TIME_SUP]);
+            c_a = pchip(t_a, c_a, t);
+            c_i = pchip(t_i, c_i, t);            
+            args = {c_a t c_i};
         end
     end
 

@@ -17,8 +17,8 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
  	%  $Id$ 
     
 	properties 
-        A0 = 0.05
-        PS = 0.0182 %  mL/s/mL, [15O]H_2O
+        A0 = 0.0114
+        PS = 0.0307 %  mL/s/mL, [15O]H_2O
         f  = 0.00928 % mL/s/mL, [15O]H_2O
         t0 = 0.045847
     end
@@ -38,9 +38,9 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
                          this.baseTitle, this.A0, this.PS, this.f, this.t0);
         end
         function m  = get.map(this)
-            fL = 1; fH = 1;
+            fL = 0.9; fH = 1.1;
             m = containers.Map;
-            m('A0') = struct('fixed', 0, 'min', fL*0.01,   'mean', this.A0, 'max', fH* 1);
+            m('A0') = struct('fixed', 0, 'min', fL*0.0102, 'mean', this.A0, 'max', fH* 0.0139);
             m('PS') = struct('fixed', 0, 'min', fL*0.0093, 'mean', this.PS, 'max', fH* 0.0367); % physiologic range +/- sigma, Herscovitch, JCBFM 7:527-541, 1987, table 2
             m('f')  = struct('fixed', 1, 'min', fL*0.0050, 'mean', this.f,  'max', fH* 0.0155); % 
             m('t0') = struct('fixed', 0, 'min',    0,      'mean', this.t0, 'max', fH*20);
@@ -118,8 +118,8 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
             ecatSkinny.img = ecatSkinny.img/mask.count;
             
             import mlpet.*;
-            [t_a,c_a] = PETHerscAutoradiography.shiftDataLeft(        aif.times,        aif.wellCounts, aifShift);
-            [t_i,c_i] = PETHerscAutoradiography.shiftDataRight(ecatSkinny.times, ecatSkinny.becquerels, ecatShift);        
+            [t_a,c_a] = PETHerscAutoradiography.shiftData(       aif.times,        aif.wellCounts, aifShift);
+            [t_i,c_i] = PETHerscAutoradiography.shiftData(ecatSkinny.times, ecatSkinny.becquerels, ecatShift);        
             dt  = min(min(aif.taus), min(ecatSkinny.taus));
             t   = min(t_a(1), t_i(1)):dt:min([t_a(end) t_i(end) PETAutoradiography.TIME_SUP]);
             c_a = pchip(t_a, c_a, t);
