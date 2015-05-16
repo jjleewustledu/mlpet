@@ -60,7 +60,7 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
     end
     
     methods (Static)
-        function this = load(maskFn, maskAifFn, aifFn, ecatFn, varargin)
+        function this  = load(maskFn, maskAifFn, aifFn, ecatFn, varargin)
             
             %maskAifFn = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/perfusion_4dfp/perfMask.nii.gz';
             %aifFn     = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/perfusion_4dfp/ep2d_default_mcf.nii.gz';
@@ -81,7 +81,7 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             args = DSCAutoradiography.interpolateData(mask, aif, ecat, ip.Results.aifShift, ip.Results.ecatShift); 
             this = DSCAutoradiography(args{:});
         end
-        function aif  = loadAif(varargin)
+        function laif2 = loadAif(varargin)
             ip = inputParser;
             addOptional(ip, 'dscFn', [], @(x) lexist(x, 'file'));
             addOptional(ip, 'mskFn', [], @(x) lexist(x, 'file'));
@@ -95,14 +95,15 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             else
                 error('mlpet:requiredObjectNotFound', 'DSCAutoradiography.loadMask');
             end
-            storageFn = fullfile(wbDsc.filepath, 'DSCAutoradiography_loadAif_aif.mat');
+            storageFn = fullfile(wbDsc.filepath, 'LaifTrainer.trainLaif2.laif2.mat');
             if (lexist(storageFn) && mlpet.DSCAutoradiography.REUSE_STORED)
                 load(storageFn);
                 return
             end
-            aif = mlperfusion.Laif2.runLaif(wbDsc.times, wbDsc.itsMagnetization); 
-            save(storageFn, 'aif');
+            laif2 = mlperfusion.Laif2.runLaif(wbDsc.times, wbDsc.itsMagnetization); 
+            save(storageFn, 'laif2');
         end
+        
         function this = simulateMcmc(A0, Ew, a, d, f, p, q0, t0, t, concbar_a, dose, map)
             import mlpet.*;       
             conc_i = DSCAutoradiography.concentration_i(A0, Ew, a, d, f, p, q0, t0, t, concbar_a, dose); % simulated

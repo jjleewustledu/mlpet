@@ -89,6 +89,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             addOptional(p, 'figFolder', this.WORK_DIR, @(x) lexist(x, 'dir'));
             parse(p, varargin{:});            
             
+            pwd0 = pwd;
             cd(this.WORK_DIR);            
             diary(sprintf('AutoradiographyTrainer.trainDSC_%s.log', datestr(now, 30)));
             for c = 4:4 %1:length(this.MM_CASES)
@@ -106,9 +107,9 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             end
             
             save(sprintf('AutoradiographyTrainer.trainDSC.prods_%s.mat', datestr(now,30)), 'prods');
-            cd(p.Results.figFolder);
+            cd(pwd0); cd(p.Results.figFolder);
             AutoradiographyTrainer.saveFigs;
-            cd(this.WORK_DIR);
+            cd(pwd0);
             diary off
         end
         function trainDSCHersc
@@ -136,24 +137,6 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             save(sprintf('AutoradiographyTrainer.trainDSCHersc.prods_%s.mat', datestr(now,30)), 'prods');
             diary off
         end        
-        function prods = trainLaif2
-            import mlpet.*;
-            this = AutoradiographyTrainer;              
-            
-            pwd0 = this.WORK_DIR;
-            cd(pwd0);
-            diary(sprintf('AutoradiographyTrainer.trainLaif2_%s.log', datestr(now, 30)));
-            for c = 1:length(this.MM_CASES)
-                cd(fullfile(pwd0, this.casePaths{c}));  
-                fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
-                fprintf('AutoradiographyTrainer.trainLaif2 is working in %s\n', pwd);      
-                prods{c} = AutoradiographyDirector.prepareLaif2;
-            end
-            cd(pwd0);
-            
-            save(sprintf('AutoradiographyTrainer.trainLaif2.prods_%s.mat', datestr(now,30)), 'prods');
-            diary off
-        end
     end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

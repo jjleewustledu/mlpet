@@ -81,7 +81,7 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
             args = DSCHerscAutoradiography.interpolateData(mask, aif, ecat, ip.Results.aifShift, ip.Results.ecatShift); 
             this = DSCHerscAutoradiography(args{:});
         end
-        function aif  = loadAif(varargin)
+        function laif2 = loadAif(varargin)
             ip = inputParser;
             addOptional(ip, 'dscFn', [], @(x) lexist(x, 'file'));
             addOptional(ip, 'mskFn', [], @(x) lexist(x, 'file'));
@@ -95,13 +95,13 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
             else
                 error('mlpet:requiredObjectNotFound', 'DSCHerscAutoradiography.loadMask');
             end
-            storageFn = fullfile(wbDsc.filepath, 'DSCAutoradiography_loadAif_aif.mat');
+            storageFn = fullfile(wbDsc.filepath, 'LaifTrainer.trainLaif2.laif2.mat');
             if (lexist(storageFn) && mlpet.DSCHerscAutoradiography.REUSE_STORED)
                 load(storageFn);
                 return
             end
-            aif = mlperfusion.Laif2.runLaif(wbDsc.times, wbDsc.itsMagnetization); 
-            save(storageFn, 'aif');
+            laif2 = mlperfusion.Laif2.runLaif(wbDsc.times, wbDsc.itsMagnetization); 
+            save(storageFn, 'laif2');
         end
         function this = simulateMcmc(A0, PS, a, d, f, p, q0, t0, t, concbar_a, dose, map)
             import mlpet.*;       

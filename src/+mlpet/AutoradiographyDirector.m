@@ -316,26 +316,13 @@ classdef AutoradiographyDirector
             fprintf('AutoradiographyDirector.getVideenCbf:\n');
             fprintf('\tcbf %g, aflow %12.8G, bflow %12.8G\n', cbf, aflow, bflow);
         end
-        
-        function aif  = prepareLaif2
-            import mlperfusion.*;            
-            pth   = pwd;   
-            dscFn = fullfile(pth, 'ep2d_default_mcf_masked.nii.gz');
-            mskFn = fullfile(pth, 'ep2d_mask.nii.gz');
-            storageFn = fullfile(pth, 'DSCAutoradiography_loadAif_aif.mat');     
-            
-            wbDsc = WholeBrainDSC(dscFn, mskFn);
-            aif = Laif2.runLaif(wbDsc.times, wbDsc.itsMagnetization); 
-            save(storageFn, 'aif');
-        end
     end
     
     methods 
         function this = simulateItsMcmc(this)
             %% SIMULATEITSMCMC returns an entirely synthetic Autoradiography (viz., builder, product) object
             
-            this.builder_ =  ...
-                this.builder_.simulateItsMcmc(this.concentration_a);
+            this.builder_ = this.builder_.simulateItsMcmc(this.concentration_a);
             this.builder_.plotProduct;
         end
         function this = estimateAll(this)
@@ -352,7 +339,6 @@ classdef AutoradiographyDirector
  			%% AUTORADIOGRAPHYDIRECTOR 
  			%  Usage:  director = AutoradiographyDirector(AutoradiographyBuilder_object) 
             
-            import mlpet.* mlfourd.*;
             assert(isa(buildr, 'mlpet.AutoradiographyBuilder'));            
             this.builder_ = buildr;
         end
@@ -370,7 +356,7 @@ classdef AutoradiographyDirector
         builder_
     end
     
-    methods (Static, Access = 'private')        
+    methods (Static, Access = 'private')
         function       renameTr(fqfn)
             try
                 pth = filepartsx(fqfn, '.nii.gz');

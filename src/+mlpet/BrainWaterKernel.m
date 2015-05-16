@@ -62,8 +62,15 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             args = BrainWaterKernel.interpolateData(laifObj, dcv, dcvShift);
             this = BrainWaterKernel(args{:});
         end
-        function this = runKernel(inputFn, times, counts)
-            this = mlpet.BrainWaterKernel(inputFn, times, counts);
+        
+        function this = simulateMcmc(kAif, a, d, p, q0, t0, times, map)
+            import mlpet.*;            
+            dcv  = BrainWaterKernel.concentration_i(kAif, a, d, p, q0, t0, times);
+            this = BrainWaterKernel(kAif, times, dcv);
+            this = this.estimateParameters(map) %#ok<NOPRT>
+        end
+        function this = runKernel(kAif, times, counts)
+            this = mlpet.BrainWaterKernel(kAif, times, counts);
             this = this.estimateParameters(this.map);
         end
         function k    = kernel(a, d, p, t0, times)
@@ -77,35 +84,32 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             assert(all(isreal(k)), 'BestGammaFluid.simulateDcv.residue was complex');
             assert(~any(isnan(k)), 'BestGammaFluid.simulateDcv.residue was NaN: %s', num2str(k));
         end
-        function dcv  = countsDcv(kAif, a, d, p, q0, t0, times)
+        function dcv  = concentration_i(kAif, a, d, p, q0, t0, times)
             kernel = mlpet.BrainWaterKernel.kernel(a, d, p, t0, times);
             dcv = q0 * abs(conv(kAif, kernel));
             dcv = dcv(1:length(times));
         end
-        function this = simulateMcmc(kAif, a, d, p, q0, t0, times, map)
-            import mlpet.*;            
-            dcv  = BrainWaterKernel.countsDcv(kAif, a, d, p, q0, t0, times);
-            this = BrainWaterKernel(kAif, times, dcv);
-            this = this.estimateParameters(map) %#ok<NOPRT>
-            
-            figure;
-            plot(times, this.estimateData, times, dcv, 'o');
-            legend('Bayesian estimate', 'simulated');
-            title(sprintf('simulateMcmc expected:  a->%g, d->%g, p->%g, q0->%g, t0->%g, max(t)->%g', ...
-                  a, d, p, q0, t0, max(times)));
-            xlabel('time/s');
-            ylabel('arbitrary');
-        end
         function args = interpolateData(aif, dcv, dcvShift)
             
             import mlpet.*;
-            [t_a,c_a] = AutoradiographyBuilder.shiftData(aif.times, aif.itsKAif_2, -aif.t0);
-            [t_i,c_i] = AutoradiographyBuilder.shiftData(dcv.times, dcv.counts,      dcvShift); 
+            [t_a,c_a] = AutoradiographyBuilder.shiftData(aif.times, aif.itsKAif_2, -BrainWaterKernel.kAif2Takeoff(aif));
+            [t_i,c_i] = AutoradiographyBuilder.shiftData(dcv.times, dcv.counts,     dcvShift); 
             dt  = min(min(aif.taus), min(dcv.taus))/2;
             t   = min(t_a(1), t_i(1)):dt:min([t_a(end) t_i(end) AutoradiographyBuilder.TIME_SUP]);
             c_a = pchip(t_a, c_a, t);
             c_i = pchip(t_i, c_i, t);            
             args = {c_a t c_i};
+        end
+        function t = kAif2Takeoff(aif)
+            assert(isa(aif, 'mlperfusion.ILaif'));
+            kA    = aif.itsKAif_2;
+            maxKA = max(kA);
+            for ti = 2:length(aif.times)
+                t = aif.times(ti-1);
+                if (kA(ti) > 0.01*maxKA)
+                    break;
+                end
+            end
         end
     end
 
@@ -174,7 +178,7 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
                 this.finalParams(keys{5}));
         end
         function ed   = estimateDataFast(this, a, d, p, q0, t0)  
-            ed = this.countsDcv(this.kAif_, a, d, p, q0, t0, this.times);
+            ed = this.concentration_i(this.kAif_, a, d, p, q0, t0, this.times);
         end 
         function x    = prLow(this, x, xS, inf)
             x = x - this.priorN*xS;
@@ -186,9 +190,9 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
         end
         function        plotInitialData(this)
             figure;
-            max_cd = max(this.countsDcv);
+            max_cd = max(this.concentration_i);
             max_dd = max(this.dependentData);
-            plot(this.times, this.countsDcv/max_cd, ...
+            plot(this.times, this.concentration_i/max_cd, ...
                  this.times, this.dependentData/max_dd);
             title(sprintf('BrainWaterKernel.plotInitialData:  %s', str2pnum(pwd)), 'Interpreter', 'none');
             legend('Bayesian dcv', 'dcv from data');
@@ -197,7 +201,7 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
         end
         function        plotProduct(this)
             figure;
-            itsDcv = this.countsDcv(this.itsKAif, this.a, this.d, this.p, this.q0, this.t0, this.times);
+            itsDcv = this.concentration_i(this.itsKAif, this.a, this.d, this.p, this.q0, this.t0, this.times);
             plot(this.times, itsDcv, this.times, this.dependentData, 'o');
             legend('Bayesian dcv', 'dcv from data');
             title(sprintf('BrainWaterKernel.plotProduct:  a %g, d %g, p %g, q0 %g, t0 %g', ...
@@ -253,7 +257,7 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             for v = 1:size(args,2)
                 argsv = args{v};
                 plot(this.times, ...
-                     BrainWaterKernel.countsDcv( ...
+                     BrainWaterKernel.concentration_i( ...
                          this.itsKAif, argsv{1}, argsv{2}, argsv{3}, argsv{4}, argsv{5}, this.times));
             end
             title(sprintf('a %g, d %g, p %g, q0 %g, t0 %g', ...

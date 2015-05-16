@@ -92,7 +92,7 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
             a_ = [1 2 4 8 16 32];
             for idx = 1:length(a_)
                 plot(this.times, ...
-                     mlpet.BrainWaterKernel.countsDcv(this.inputFunction0, a_(idx), this.d, this.p, this.q0, this.t0, this.times));
+                     mlpet.BrainWaterKernel.concentration_i(this.inputFunction0, a_(idx), this.d, this.p, this.q0, this.t0, this.times));
             end
             title(sprintf('a->var, d->%g, p->%g, q0->%g, t0->%g',                  this.d, this.p, this.q0, this.t0));
             legend(cellfun(@(x) sprintf('a = %g', x), num2cell(a_), 'UniformOutput', false));
@@ -106,7 +106,7 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
             d_ = [1 2 3 4 5 6 7 8 9];
             for idx = 1:length(d_)
                 plot(this.times, ...
-                     mlpet.BrainWaterKernel.countsDcv(this.inputFunction0, this.a, d_(idx), this.p, this.q0, this.t0, this.times));
+                     mlpet.BrainWaterKernel.concentration_i(this.inputFunction0, this.a, d_(idx), this.p, this.q0, this.t0, this.times));
             end
             title(sprintf('a->%g, d->var, p->%g, q0->%g, t0->%g',         this.a,          this.p, this.q0, this.t0));
             legend(cellfun(@(x) sprintf('d = %g', x), num2cell(d_), 'UniformOutput', false));
@@ -120,7 +120,7 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
             p_ = [0.5 0.75 0.9 1 1.1 1.5 2 3];
             for idx = 1:length(p_)
                 plot(this.times, ...
-                     mlpet.BrainWaterKernel.countsDcv(this.inputFunction0, this.a, this.d, p_(idx), this.q0, this.t0, this.times));
+                     mlpet.BrainWaterKernel.concentration_i(this.inputFunction0, this.a, this.d, p_(idx), this.q0, this.t0, this.times));
             end
             title(sprintf('a->%g, d->%g, p->var, q0->%g, t0->%g',         this.a, this.d,          this.q0, this.t0));
             legend(cellfun(@(x) sprintf('p = %g', x), num2cell(p_), 'UniformOutput', false));
@@ -134,7 +134,7 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
             q0_ = [0.125 0.25 0.5 1 2];
             for idx = 1:length(q0_)
                 plot(this.times, ...
-                     mlpet.BrainWaterKernel.countsDcv(this.inputFunction0, this.a, this.d, this.p, q0_(idx), this.t0, this.times));
+                     mlpet.BrainWaterKernel.concentration_i(this.inputFunction0, this.a, this.d, this.p, q0_(idx), this.t0, this.times));
             end
             title(sprintf('a->%g, d->%g, p->%g, q0->var, t0->%g',         this.a, this.d, this.p,           this.t0));
             legend(cellfun(@(x) sprintf('q0 = %g', x), num2cell(q0_), 'UniformOutput', false));
@@ -217,7 +217,7 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
  		function setupBrainWaterKernel(this) 
             import mlpet.*;
  			this.testObj = BrainWaterKernel(this.inputFunction0, this.dcv.timeInterpolants, this.dcv.countInterpolants);
-            this.testDcv = BrainWaterKernel.countsDcv(this.inputFunction0, this.a, this.d, this.p, this.q0, this.t0, this.times);
+            this.testDcv = BrainWaterKernel.concentration_i(this.inputFunction0, this.a, this.d, this.p, this.q0, this.t0, this.times);
  		end 
  	end 
 

@@ -11,7 +11,8 @@ classdef AutoradiographyDB < mlio.LogParser
  	 
     properties 
         paramList = {'A0' 'PS' 'a' 'd' 'f' 'p' 'q0' 't0'}
-        DESCRIPTION_STEM = 'LaifTrainer.train' %'AutoradiographyTrainer.train'
+        descriptionStem % 'LaifTrainer.train' %'AutoradiographyTrainer.train'
+        model
     end
     
     properties (Dependent)
@@ -39,26 +40,43 @@ classdef AutoradiographyDB < mlio.LogParser
         function this = loadPET(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'Ew' 'f' 't0'};
+            this.descriptionStem = 'AutoradiographyTrainer.train';
+            this.model = 'PET';
             this = this.gatherAll;
         end
         function this = loadPETHersc(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'PS' 'f' 't0'};
+            this.descriptionStem = 'AutoradiographyTrainer.train';
+            this.model = 'PET Herscovitch';
             this = this.gatherAll;
         end
         function this = loadBrainWaterKernel(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'a' 'd' 'p' 'q0' 't0'};
+            this.descriptionStem = 'LaifTrainer.train';
+            this.model = 'Brain Water Kernel';
             this = this.gatherAll;
         end
         function this = loadDSC(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'Ew' 'a' 'd' 'f' 'p' 'q0' 't0'};
+            this.descriptionStem = 'AutoradiographyTrainer.train';
+            this.model = 'DSC-based';
             this = this.gatherAll;
         end
         function this = loadDSCHersc(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'p' 'q0' 't0'};
+            this.descriptionStem = 'AutoradiographyTrainer.train';
+            this.model = 'DSC-based Herscovitch';
+            this = this.gatherAll;
+        end
+        function this = loadLaif2(fn)
+            this = mlpet.AutoradiographyDB.load(fn);
+            this.paramList = {'F' 'S0' 'a' 'b' 'd' 'e' 'g' 'n' 't0' 't1'};
+            this.descriptionStem = 'LaifTrainer.train';
+            this.model = 'Laif2';
             this = this.gatherAll;
         end
         function this = load(fn)
@@ -98,6 +116,23 @@ classdef AutoradiographyDB < mlio.LogParser
             y = [];
             for gi = 1:length(this.gathered_)
                 y = [y this.gathered_{gi}.bestFit(paramIdx)];
+            end
+        end
+        function stats = getBestFitStatsOf(this, paramIdx)
+            bfs = this.getBestFitOf(paramIdx);
+            stats = [min(bfs) median(bfs) max(bfs)];
+        end
+        function getSummaryPlot(this)
+            figure;
+            N = ceil(sqrt(numel(this.paramList)));
+            for k = 1:numel(this.paramList)
+                subplot(N,N, double(k));
+                errorbar(this.getBestFitOf(k), 2*this.getStdOf(k), 'x');
+                xlabel(sprintf('imaging sessions'));
+                ylabel(sprintf('%s metric +/- 2*sigma', this.paramList{k}));
+                stats = this.getBestFitStatsOf(k);
+                title(sprintf('%s Parameter %s\nmin %g med %g max %g', ...
+                              this.model, this.paramList{k}, stats(1), stats(2), stats(3)));
             end
         end
         function y = getMeanOf(this, paramIdx)
@@ -145,7 +180,7 @@ classdef AutoradiographyDB < mlio.LogParser
                     %'params',  this.paramList, ...
         end
         function [d,idx]   = description(this, idx)  
-            [d,idx] = this.findNextCell(this.DESCRIPTION_STEM, idx);
+            [d,idx] = this.findNextCell(this.descriptionStem, idx);
         end
         function [bf,idx]  = allBestFit(this, idx)
             for p = 1:length(this.paramList)
