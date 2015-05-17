@@ -158,11 +158,11 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
             this.assertEqual(o.bestFitParams, o.expectedBestFitParams, 'RelTol', 0.05);
         end        
         function test_laif2dcv(this)
-            %% TEST_LAIF2DCV invokes BrainWaterKernel.runKernel on experimental data from this.dcvFilenme; best-fit parameters
+            %% TEST_LAIF2DCV invokes BrainWaterKernel.runAutoradiography on experimental data from this.dcvFilenme; best-fit parameters
             %  must match expected values to relative tolerance of 0.05.
             
             if (~this.test_mcmc); return; end
-            this.testObj = mlpet.BrainWaterKernel.runKernel(this.inputFunction2, this.dcv.timeInterpolants, this.dcv.countInterpolants);
+            this.testObj = mlpet.BrainWaterKernel.runAutoradiography(this.inputFunction2, this.dcv.timeInterpolants, this.dcv.countInterpolants);
             o = this.testObj;            
             
             % \Pi \equiv \frac{wellcnts/mL/sec}{EcatCounts/pixel-mL/min}
@@ -192,13 +192,13 @@ classdef Test_BrainWaterKernel < matlab.unittest.TestCase
             this.assertEqual(o.bestFitParams, o.expectedBestFitParams, 'RelTol', 0.05);
         end
         function test_laif0dcv(this)
-            %% TEST_LAIF0DCV invokes BrainWaterKernel.runKernel on experimental data from this.dcvFilenme; best-fit parameters
+            %% TEST_LAIF0DCV invokes BrainWaterKernel.runAutoradiography on experimental data from this.dcvFilenme; best-fit parameters
             %  must match expected values to relative tolerance of 0.05.
             
             if (~this.test_mcmc); return; end
             
             import mlpet.* mlpet_unittest.*;
-            this.testObj = BrainWaterKernel.runKernel( ...
+            this.testObj = BrainWaterKernel.runAutoradiography( ...
                 this.inputFunction0, this.dcv.timeInterpolants, this.dcv.countInterpolants);
             o = this.testObj; 
             

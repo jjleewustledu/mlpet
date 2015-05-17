@@ -31,15 +31,19 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             save('AutoradiographyTrainer.trainVideen.prod.mat', 'prod');
             diary off
         end
-        function trainPET
+        function trainPET(varargin)
             import mlpet.*;
             this = AutoradiographyTrainer;            
             
-            pwd0 = this.WORK_DIR;
-            cd(pwd0);
+            p = inputParser;
+            addOptional(p, 'figFolder', this.WORK_DIR, @(x) lexist(x, 'dir'));
+            parse(p, varargin{:});            
+            
+            pwd0 = pwd;
+            cd(this.WORK_DIR);
             diary(sprintf('AutoradiographyTrainer.trainPET_%s.log', datestr(now, 30)));
             for c = 1:length(this.MM_CASES)
-                cd(fullfile(pwd0, this.casePaths{c}));  
+                cd(fullfile(this.WORK_DIR, this.casePaths{c}));  
                 fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
                 fprintf('AutoradiographyTrainer.trainPET is working in %s\n', pwd);
                 this.director_ = ...
@@ -50,10 +54,12 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
                 this.director_.product = tmp;
                 this.director_ = this.director_.estimateAll;
                 prods{c} = this.director_.product;  %#ok<NASGU>
-            end
-            cd(pwd0);
-            
+            end            
+            cd(this.WORK_DIR);            
             save(sprintf('AutoradiographyTrainer.trainPET.prods_%s.mat', datestr(now,30)), 'prods');
+            cd(p.Results.figFolder);
+            AutoradiographyTrainer.saveFigs;
+            cd(pwd0);
             diary off
         end
         function trainPETHersc
@@ -92,7 +98,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             pwd0 = pwd;
             cd(this.WORK_DIR);            
             diary(sprintf('AutoradiographyTrainer.trainDSC_%s.log', datestr(now, 30)));
-            for c = 4:4 %1:length(this.MM_CASES)
+            for c = 1:length(this.MM_CASES)
                 cd(fullfile(this.WORK_DIR, this.casePaths{c})); 
                 fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
                 fprintf('AutoradiographyTrainer.trainDSC is working in %s\n', pwd);
@@ -104,10 +110,10 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
                 this.director_.product = tmp;
                 this.director_ = this.director_.estimateAll;
                 prods{c} = this.director_.product; %#ok<NASGU>
-            end
-            
+            end                        
+            cd(this.WORK_DIR); 
             save(sprintf('AutoradiographyTrainer.trainDSC.prods_%s.mat', datestr(now,30)), 'prods');
-            cd(pwd0); cd(p.Results.figFolder);
+            cd(p.Results.figFolder);
             AutoradiographyTrainer.saveFigs;
             cd(pwd0);
             diary off

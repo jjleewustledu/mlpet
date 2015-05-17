@@ -32,11 +32,12 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
     properties (Dependent)
         pnum
         aif
+        aifShift
         mask
         ecat
+        ecatShift
         ecatSumtFilename
         concentration_a
-        concentrationBar_a
         concentration_obs
     end
     
@@ -48,6 +49,10 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
             assert(~isempty(this.aif_));
             a = this.aif_;
         end
+        function a  = get.aifShift(this)
+            assert(~isempty(this.aifShift_));
+            a = this.aifShift_;
+        end
         function m  = get.mask(this)
             assert(~isempty(this.mask_));
             m = this.mask_;
@@ -56,15 +61,16 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
             assert(~isempty(this.ecat_));
             e = this.ecat_;
         end
+        function a  = get.ecatShift(this)
+            assert(~isempty(this.ecatShift_));
+            a = this.ecatShift_;
+        end
         function fn = get.ecatSumtFilename(this)
             fn = fullfile(this.ecat.filepath, sprintf('%sho1_sumt.nii.gz', this.pnum));
         end
         function ca = get.concentration_a(this)
             assert(~isempty(this.concentration_a_));
             ca = this.concentration_a_;
-        end
-        function ca = get.concentrationBar_a(this) % for notational consistency with DSC*Autoradiography classes
-            ca = this.concentration_a;
         end
         function co = get.concentration_obs(this)
             co = this.dependentData;
@@ -246,8 +252,10 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
     
     properties (Access = 'protected')
         aif_
+        aifShift_
         mask_
         ecat_
+        ecatShift_
         concentration_a_
     end
     

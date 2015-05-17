@@ -10,7 +10,8 @@ classdef AutoradiographyDB < mlio.LogParser
  	%  $Id$ 
  	 
     properties 
-        paramList = {'A0' 'PS' 'a' 'd' 'f' 'p' 'q0' 't0'}
+        paramList
+        paramList2
         descriptionStem % 'LaifTrainer.train' %'AutoradiographyTrainer.train'
         model
     end
@@ -40,6 +41,7 @@ classdef AutoradiographyDB < mlio.LogParser
         function this = loadPET(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'Ew' 'f' 't0'};
+            this.paramList2 = {'Q' 'Q normalized' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.train';
             this.model = 'PET';
             this = this.gatherAll;
@@ -47,27 +49,31 @@ classdef AutoradiographyDB < mlio.LogParser
         function this = loadPETHersc(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'PS' 'f' 't0'};
+            this.paramList2 = {'Q' 'Q normalized' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.train';
             this.model = 'PET Herscovitch';
             this = this.gatherAll;
         end
         function this = loadBrainWaterKernel(fn)
             this = mlpet.AutoradiographyDB.load(fn);
-            this.paramList = {'a' 'd' 'p' 'q0' 't0'};
+            this.paramList = {'a' 'd' 'n' 'p' 'q0' 't0'};
+            this.paramList2 = {'Q' 'Q normalized'};
             this.descriptionStem = 'LaifTrainer.train';
             this.model = 'Brain Water Kernel';
             this = this.gatherAll;
         end
         function this = loadDSC(fn)
             this = mlpet.AutoradiographyDB.load(fn);
-            this.paramList = {'A0' 'Ew' 'a' 'd' 'f' 'p' 'q0' 't0'};
+            this.paramList = {'A0' 'Ew' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
+            this.paramList2 = {'Q' 'Q normalized' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.train';
             this.model = 'DSC-based';
             this = this.gatherAll;
         end
         function this = loadDSCHersc(fn)
             this = mlpet.AutoradiographyDB.load(fn);
-            this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'p' 'q0' 't0'};
+            this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
+            this.paramList2 = {'Q' 'Q normalized' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.train';
             this.model = 'DSC-based Herscovitch';
             this = this.gatherAll;
@@ -75,6 +81,7 @@ classdef AutoradiographyDB < mlio.LogParser
         function this = loadLaif2(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'F' 'S0' 'a' 'b' 'd' 'e' 'g' 'n' 't0' 't1'};
+            this.paramList2 = {'Q' 'Q normalized'};
             this.descriptionStem = 'LaifTrainer.train';
             this.model = 'Laif2';
             this = this.gatherAll;
@@ -122,6 +129,12 @@ classdef AutoradiographyDB < mlio.LogParser
             bfs = this.getBestFitOf(paramIdx);
             stats = [min(bfs) median(bfs) max(bfs)];
         end
+        function y = getFinalOtherOf(this, paramIdx)
+            y = [];
+            for gi = 1:length(this.gathered_)
+                y = [y this.gathered_{gi}.finalOther(paramIdx)];
+            end
+        end
         function getSummaryPlot(this)
             figure;
             N = ceil(sqrt(numel(this.paramList)));
@@ -133,6 +146,19 @@ classdef AutoradiographyDB < mlio.LogParser
                 stats = this.getBestFitStatsOf(k);
                 title(sprintf('%s Parameter %s\nmin %g med %g max %g', ...
                               this.model, this.paramList{k}, stats(1), stats(2), stats(3)));
+            end
+        end
+        function getSummaryPlot2(this)
+            figure;
+            N = ceil(sqrt(numel(this.paramList2)));
+            for k = 1:numel(this.paramList2)
+                subplot(N,N, double(k));
+                final = this.getFinalOtherOf(k);
+                bar(final);
+                xlabel(sprintf('imaging sessions'));
+                ylabel(sprintf('%s', this.paramList2{k}));
+                title(sprintf('%s Parameter %s -> %g', ...
+                              this.model, this.paramList2{k}, final));
             end
         end
         function y = getMeanOf(this, paramIdx)
@@ -171,13 +197,14 @@ classdef AutoradiographyDB < mlio.LogParser
                 [d,idx]   = this.description(idx);
                 [bf,idx]  = this.allBestFit(idx);
                 [m,s,idx] = this.allFinalStats(idx);  
+                [fo,idx]  = this.allFinalOther(idx);
                 c = struct( ...
                     'descrip', d, ... 
                     'mmid',    this.mmid(d), ...
                     'bestFit', bf, ...
                     'mean',    m, ...
-                    'std',     s);
-                    %'params',  this.paramList, ...
+                    'std',     s, ...
+                    'finalOther', fo);
         end
         function [d,idx]   = description(this, idx)  
             [d,idx] = this.findNextCell(this.descriptionStem, idx);
@@ -194,6 +221,12 @@ classdef AutoradiographyDB < mlio.LogParser
             end
             idx = max(idx1);
         end
+        function [fo,idx]  = allFinalOther(this, idx)
+            for p = 1:length(this.paramList2)
+                [fo(p),idx1(p)] = this.finalOther(this.paramList2{p}, idx);
+            end
+            idx = max(idx1);
+        end
         function [bf,idx]  = bestFit(this, pName, idx)
             [bf,idx] = this.rightSideNumeric(sprintf('BEST-FIT    param  %2s value', pName), idx);
         end
@@ -201,6 +234,9 @@ classdef AutoradiographyDB < mlio.LogParser
             [vals,idx] = this.rightSideNumeric2(sprintf('FINAL STATS param  %2s mean', pName), 'std', idx);
             m = vals(1);
             s = vals(2);
+        end
+        function [fo,idx]  = finalOther(this, pName, idx)
+            [fo,idx] = this.rightSideNumeric(sprintf('FINAL STATS %s', pName), idx);
         end
         function m = mmid(~, desc)
             names = regexp(desc, '\w+/(?<id>mm0\d-\w+)/bayesian_pet', 'names');

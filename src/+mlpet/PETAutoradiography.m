@@ -18,9 +18,9 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
     
 	properties 
         A0 = 0.0119
-        Ew = 0.9226  % default 0.84 from Herscovitch
+        Ew = 0.84 % default 0.84 from Herscovitch
         f  = 0.00847 % mL/s/mL, [15O]H_2O
-        t0 = 0
+        t0 = eps
     end
 
     properties (Dependent)
@@ -48,10 +48,10 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
         function m  = get.map(this)
             fL = 0.9; fH = 1.1;
             m = containers.Map;
-            m('A0') = struct('fixed', 0, 'min', fL*0.0107, 'mean', this.A0, 'max', fH* 0.0142);
-            m('Ew') = struct('fixed', 0, 'min', fL*0.79,   'mean', this.Ew, 'max', fH* 0.93); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
-            m('f')  = struct('fixed', 1, 'min', fL*0.0050, 'mean', this.f,  'max', fH* 0.0155); % 
-            m('t0') = struct('fixed', 0, 'min',    0,      'mean', this.t0, 'max', fH*20);
+            m('A0') = struct('fixed', 0, 'min', fL*0.0100, 'mean', this.A0, 'max', fH* 0.0176);
+            m('Ew') = struct('fixed', 1, 'min', fL*0.79,   'mean', this.Ew, 'max', fH* 0.93); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
+            m('f')  = struct('fixed', 0, 'min', fL*0.0050, 'mean', this.f,  'max', fH* 0.0155); % 
+            m('t0') = struct('fixed', 0, 'min',    0,      'mean', this.t0, 'max', fH* 1.73);
         end
     end
     
@@ -160,7 +160,7 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
         end
         function this = estimateAll(this)
             this = this.estimateParameters(this.map);
-            fprintf('FINAL STATS mtt_obj        %g\n', this.mtt_obj);
+            fprintf('FINAL STATS mtt_obs        %g\n', this.mtt_obs);
             fprintf('FINAL STATS mtt_a          %g\n', this.mtt_a);
         end
         function this = estimateParameters(this, varargin)
@@ -232,6 +232,11 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
     end 
     
     %% PRIVATE
+    
+    properties (Access = 'private')
+        mtt_a_
+        mtt_obs_
+    end
     
     methods (Access = 'private')
         function this = estimateMtts(this)
