@@ -18,6 +18,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
         RBC_FACTOR = 0.766      % per Tom Videen, metproc.inc, line 193
         TIME_SUP = 120          % sec
         REUSE_STORED = true
+        USE_RECIRCULATION = false
     end
 
     properties (Abstract)
@@ -39,6 +40,10 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
         ecatSumtFilename
         concentration_a
         concentration_obs
+        
+        dose
+        mtt_obs
+        mtt_a
     end
     
     methods %% GET
@@ -74,6 +79,16 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
         end
         function co = get.concentration_obs(this)
             co = this.dependentData;
+        end
+        
+        function d  = get.dose(this)
+            d = this.dose_;
+        end
+        function m  = get.mtt_obs(this)
+            m = this.mtt_obs_;
+        end
+        function m  = get.mtt_a(this)
+            m = this.mtt_a_;
         end
     end
     
@@ -132,11 +147,19 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
             end
             error('mlpet:requiredObjectNotFound', 'AutoradiographyBuilder.loadDecayCorrectedEcat');
         end
-        function this = simulateMcmc
-            this = [];
-        end
+        
         function ci   = concentration_i
             ci = [];
+        end
+        function tito = indexTakeOff(curve)
+            maxCurve = max(curve);
+            minCurve = min(curve);
+            for ti = 1:length(curve)
+                if (curve(ti) - minCurve > 0.05 * (maxCurve - minCurve))
+                    break;
+                end
+            end
+            tito = ti - 1;
         end
         function args = interpolateData
             args = {};
@@ -144,6 +167,9 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
         function f    = invs_to_mLmin100g(f)
             f = 100 * 60 * f / mlpet.AutoradiographyBuilder.BRAIN_DENSITY;
         end
+        function m    = moment1(t, c)
+            m = sum(t .* c) / sum(c);
+        end  
         function [times,counts] = shiftData(times0, counts0, Dt)
             import mlpet.*
             if (Dt > 0)
@@ -173,6 +199,9 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
             counts(end-length(counts0)+1:end) = counts0;
             counts = counts - min(counts);
         end
+        function this = simulateMcmc
+            this = [];
+        end
     end
     
 	methods         
@@ -182,8 +211,36 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
 		function ci   = itsConcentration_i(this) %#ok<MANU>
             ci = [];
         end
+        function dcv  = itsDcv(this)
+            dcv = mlpet.PETAutoradiography.loadAif( ...
+                 fullfile(this.ecat.filepath, [this.pnum 'ho1.dcv'])); 
+        end 
+        function dose = itsDose(this)
+            taus              = this.times(2:end) - this.times(1:end-1);
+            taus(this.length) = taus(this.length - 1);
+            maskVol = this.mask.count * prod(this.mask.mmppix/10); % mL
+            duration = this.times(end) - ...
+                       this.times(this.indexTakeOff(this.concentration_obs));
+                       
+            dose = this.concentration_obs * taus'; % time-integral
+            dose = dose / maskVol / duration;
+        end
+        function ir   = itsDscInjectionRate(~)
+            ir = 5; % mL/s
+        end
+        function ir   = itsEcatInjectionRate(t, conc_a)
+            volume = 5; % mL
+            tau = mlpet.AutoradiographyBuilder.moment1(t, conc_a);
+            ir = volume/tau; % mL/s
+        end
+        function sr   = itsArterialSamplingRate(~)
+            sr = 5/60; % mL/s
+        end
         function this = estimateAll(this)
             this = this.estimateParameters(this.map);
+            fprintf('FINAL STATS dose           %g\n\n', this.dose);
+            fprintf('FINAL STATS mtt_obs        %g\n',   this.mtt_obs);
+            fprintf('FINAL STATS mtt_a          %g\n',   this.mtt_a);
         end
         function this = estimateParameters(this)
         end
@@ -244,7 +301,11 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
             this.concentration_a_ = ip.Results.conc_a;
             this.mask_            = ip.Results.mask;
             this.aif_             = ip.Results.aif;
-            this.ecat_            = ip.Results.ecat;			 
+            this.ecat_            = ip.Results.ecat;	
+            
+            this.dose_ = this.itsDose; 
+            this.mtt_a_ = this.moment1(this.times, this.concentration_a);
+            this.mtt_obs_ = this.moment1(this.times, this.concentration_obs);
  		end 
  	end     
     
@@ -257,6 +318,10 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
         ecat_
         ecatShift_
         concentration_a_
+        
+        dose_ 
+        mtt_a_
+        mtt_obs_
     end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

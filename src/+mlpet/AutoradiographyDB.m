@@ -65,7 +65,7 @@ classdef AutoradiographyDB < mlio.LogParser
         function this = loadDSC(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'Ew' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
-            this.paramList2 = {'Q' 'Q normalized' 'mtt_obs' 'mtt_a'};
+            this.paramList2 = {'Q' 'Q normalized'};
             this.descriptionStem = 'AutoradiographyTrainer.train';
             this.model = 'DSC-based';
             this = this.gatherAll;
@@ -73,7 +73,7 @@ classdef AutoradiographyDB < mlio.LogParser
         function this = loadDSCHersc(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
-            this.paramList2 = {'Q' 'Q normalized' 'mtt_obs' 'mtt_a'};
+            this.paramList2 = {'Q' 'Q normalized'};
             this.descriptionStem = 'AutoradiographyTrainer.train';
             this.model = 'DSC-based Herscovitch';
             this = this.gatherAll;
@@ -152,14 +152,22 @@ classdef AutoradiographyDB < mlio.LogParser
             figure;
             N = ceil(sqrt(numel(this.paramList2)));
             for k = 1:numel(this.paramList2)
-                subplot(N,N, double(k));
+                subplot(N+1,N, double(k));
                 final = this.getFinalOtherOf(k);
                 bar(final);
                 xlabel(sprintf('imaging sessions'));
                 ylabel(sprintf('%s', this.paramList2{k}));
-                title(sprintf('%s Parameter %s -> %g', ...
-                              this.model, this.paramList2{k}, final));
+                title(sprintf('%s Parameter %s', ...
+                              this.model, this.paramList2{k}));
             end
+            k = numel(this.paramList2) + 1;
+                subplot(N+1,N, double(k));
+                final = this.getFinalOtherOf(k-2) ./ this.getFinalOtherOf(k-1);
+                bar(final);
+                xlabel(sprintf('imaging sessions'));
+                ylabel(sprintf('mtt_obs/mtt_a'));
+                title(sprintf('%s Parameter %s', ...
+                              this.model, 'mtt_obs/mtt_a'));
         end
         function y = getMeanOf(this, paramIdx)
             y = [];

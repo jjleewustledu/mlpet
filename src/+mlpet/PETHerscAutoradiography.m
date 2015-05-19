@@ -42,7 +42,7 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
             m = containers.Map;
             m('A0') = struct('fixed', 0, 'min', fL*0.0102, 'mean', this.A0, 'max', fH* 0.0139);
             m('PS') = struct('fixed', 0, 'min', fL*0.0093, 'mean', this.PS, 'max', fH* 0.0367); % physiologic range +/- sigma, Herscovitch, JCBFM 7:527-541, 1987, table 2
-            m('f')  = struct('fixed', 1, 'min', fL*0.0050, 'mean', this.f,  'max', fH* 0.0155); % 
+            m('f')  = struct('fixed', 0, 'min', fL*0.0050, 'mean', this.f,  'max', fH* 0.0155); % 
             m('t0') = struct('fixed', 0, 'min',    0,      'mean', this.t0, 'max', fH*20);
         end
     end
@@ -105,7 +105,6 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
             m      = 1 - exp(-PS / f);
             ci0    = A0 * m * f * conv(conc_a, exp(-(m * f / lambda + lambda_decay) * t));
             ci0    = ci0(1:length(t));
-            %assert(all(isfinite(ci0)), 'ci -> %s', num2str(ci0));
             
             idx_t0 = PETHerscAutoradiography.indexOf(t, t0);
             ci     = zeros(1, length(t));
@@ -149,9 +148,6 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
         function ci   = itsConcentration_i(this)
             ci = this.concentration_i( ...
                  this.A0, this.PS, this.f, this.t0, this.times, this.concentration_a);
-        end
-        function this = estimateAll(this)
-            this = this.estimateParameters(this.map);
         end
         function this = estimateParameters(this, varargin)
             ip = inputParser;

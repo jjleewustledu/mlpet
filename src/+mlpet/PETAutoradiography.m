@@ -17,7 +17,7 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
  	%  $Id$ 
     
 	properties 
-        A0 = 0.0119
+        A0 = 0.00909
         Ew = 0.84 % default 0.84 from Herscovitch
         f  = 0.00847 % mL/s/mL, [15O]H_2O
         t0 = eps
@@ -26,8 +26,6 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
     properties (Dependent)
         baseTitle
         detailedTitle
-        mtt_obs
-        mtt_a
         map 
     end
     
@@ -39,17 +37,11 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
             dt = sprintf('%s:\nA0 %g, Ew %g, f %g, t0 %g', ...
                          this.baseTitle, this.A0, this.Ew, this.f, this.t0);
         end
-        function m  = get.mtt_obs(this)
-            m = this.mtt_obs_;
-        end
-        function m  = get.mtt_a(this)
-            m = this.mtt_a_;
-        end
         function m  = get.map(this)
             fL = 0.9; fH = 1.1;
             m = containers.Map;
-            m('A0') = struct('fixed', 0, 'min', fL*0.0100, 'mean', this.A0, 'max', fH* 0.0176);
-            m('Ew') = struct('fixed', 1, 'min', fL*0.79,   'mean', this.Ew, 'max', fH* 0.93); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
+            m('A0') = struct('fixed', 0, 'min', fL*0.0050, 'mean', this.A0, 'max', fH* 0.0176);
+            m('Ew') = struct('fixed', 0, 'min', fL*0.79,   'mean', this.Ew, 'max', fH* 0.93); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
             m('f')  = struct('fixed', 0, 'min', fL*0.0050, 'mean', this.f,  'max', fH* 0.0155); % 
             m('t0') = struct('fixed', 0, 'min',    0,      'mean', this.t0, 'max', fH* 1.73);
         end
@@ -112,7 +104,6 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
             lambda_decay = PETAutoradiography.LAMBDA_DECAY;
             ci0    = A0 * Ew * f * conv(conc_a, exp(-(Ew * f / lambda + lambda_decay) * t));
             ci0    = ci0(1:length(t));
-            %assert(all(isfinite(ci0)), 'ci -> %s', num2str(ci0));
             
             idx_t0 = PETAutoradiography.indexOf(t, t0);
             ci     = zeros(1, length(t));
@@ -146,7 +137,6 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
             %                                                                        ^ IScannerData
 
  			this = this@mlpet.AutoradiographyBuilder(varargin{:}); 
-            this = this.estimateMtts;
             this.expectedBestFitParams_ = [this.A0 this.Ew this.f this.t0]'; % initial expected values from properties
         end 
         
@@ -157,11 +147,6 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
         function ci   = itsConcentration_i(this)
             ci = this.concentration_i( ...
                  this.A0, this.Ew, this.f, this.t0, this.times, this.concentration_a);
-        end
-        function this = estimateAll(this)
-            this = this.estimateParameters(this.map);
-            fprintf('FINAL STATS mtt_obs        %g\n', this.mtt_obs);
-            fprintf('FINAL STATS mtt_a          %g\n', this.mtt_a);
         end
         function this = estimateParameters(this, varargin)
             ip = inputParser;
@@ -233,19 +218,7 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
     
     %% PRIVATE
     
-    properties (Access = 'private')
-        mtt_a_
-        mtt_obs_
-    end
-    
     methods (Access = 'private')
-        function this = estimateMtts(this)
-            this.mtt_obs_ = this.moment1(this.times, this.concentration_obs);
-            this.mtt_a_   = this.moment1(this.times, this.concentration_a);
-        end
-        function m = moment1(~, t, c)
-            m = sum(t .* c) / sum(c);
-        end
         function plotParArgs(this, par, args, vars)
             assert(lstrfind(par, properties('mlpet.PETAutoradiography')));
             assert(iscell(args));

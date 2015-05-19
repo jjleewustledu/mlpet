@@ -17,22 +17,20 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
  	%  $Id$     
     
 	properties 
-        A0 = 0.0456
-        Ew = 0.84
-        a  = 1.09
-        d  = 1.08
-        n  = 2.04e-4
-        f  = 0.00928 % mL/s/mL, [15O]H_2O
+        A0 = 0.009
+        Ew = 0.84 % [15O]H_2O, mean human value from Herscovitch 1987
+        a  = 1.44
+        d  = 1.20
+        n  = 0
+        f  = 0.015211 % mL/s/mL, [15O]H_2O, mean human value from Herscovitch 1987
         p  = 0.375
-        q0 = 274
-        t0 = 0
+        q0 = 2.5e7
+        t0 = 5.72
     end 
 
     properties (Dependent)
         baseTitle
         detailedTitle
-        laif2
-        dose
         map 
     end
     
@@ -44,25 +42,23 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             dt = sprintf('%s:\nA0 %g, Ew %g, a %g, d %g, f %g, p %g, q0 %g, t0 %g', ...
                          this.baseTitle, this.A0, this.Ew, this.a, this.d, this.f, this.p, this.q0, this.t0);
         end
-        function l   = get.laif2(this)
-            assert(~isempty(this.aif_));
-            l = this.aif_;
-        end
-        function d   = get.dose(this)
-            d = this.dose_;
-        end
         function m   = get.map(this)
             fL = 1; fH = 1;
             m = containers.Map;
-            m('A0') = struct('fixed', 1, 'min', fL*0.01,   'mean', this.A0,  'max', fH* 0.03);
-            m('Ew') = struct('fixed', 1, 'min', fL*0.79,   'mean', this.Ew,  'max', fH* 0.93);   % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2., +quartile          
-            m('f')  = struct('fixed', 1, 'min', fL*0.0050, 'mean', this.f,   'max', fH* 0.0155); % physiologic range
+            m('A0') = struct('fixed', 1, 'min', fL*0.005,  'mean', this.A0,  'max', fH* 0.09);
+            m('Ew') = struct('fixed', 0, 'min', fL*0.79,   'mean', this.Ew,  'max', fH* 0.93);   % physiologic range +/- sigma, Herscovitch, JCBFM 7:527-541, 1987, table 2        
+            m('f')  = struct('fixed', 0, 'min', fL*0.0050, 'mean', this.f,   'max', fH* 0.0155); % 
             m('t0') = struct('fixed', 0, 'min',    0,      'mean', this.t0,  'max', fH*20);
-            m('a')  = struct('fixed', 0, 'min', fL*0.12,   'mean', this.a,   'max', fH* 8.5);
+            m('a')  = struct('fixed', 0, 'min', fL*0.12,   'mean', this.a,   'max', fH* 5.5);
             m('d')  = struct('fixed', 0, 'min', fL*0.91,   'mean', this.d,   'max', fH* 1.8);
-            m('n')  = struct('fixed', 1,'min',  fL*1e-5,   'mean',0.5*this.n,'max', fH*this.n);
             m('p')  = struct('fixed', 0, 'min', fL*0.28,   'mean', this.p,   'max', fH* 0.67); 
-            m('q0') = struct('fixed', 0, 'min', fL*1e2,    'mean', this.q0,  'max', fH* 1e3); 
+            m('q0') = struct('fixed', 0, 'min', fL*5e6,    'mean', this.q0, 'max', fH* 1e8);
+            
+            if (mlpet.DSCAutoradiography.USE_RECIRCULATION)
+                m('n')  = struct('fixed', 1, 'min',    0, 'mean', 0.5*this.n, 'max', fH*this.n);
+            else
+                m('n')  = struct('fixed', 1, 'min', -eps, 'mean', 0,          'max', eps);
+            end
         end
     end
     
@@ -85,11 +81,11 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             mask      = DSCAutoradiography.loadMask(ip.Results.maskFn); 
             aif       = DSCAutoradiography.loadAif(ip.Results.aifFn, ip.Results.maskAifFn); 
             ecat      = DSCAutoradiography.loadEcat(ip.Results.ecatFn);            
-            aifShift  = ip.Results.aifShift - DSCAutoradiography.kAif2Takeoff(aif);
+            aifShift  = ip.Results.aifShift - aif.t0;
             ecatShift = ip.Results.ecatShift;
             
             args = DSCAutoradiography.interpolateData(mask, aif, ecat, aifShift, ecatShift); 
-            this = DSCAutoradiography(args{:});            
+            this = DSCAutoradiography(args{:});
             this.aifShift_  = aifShift;
             this.ecatShift_ = ecatShift;
         end
@@ -116,12 +112,56 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             save(storageFn, 'laif2');
         end
         
-        function this = simulateMcmc(A0, Ew, a, d, f, n, p, q0, t0, t, concbar_a, dose, map, mask, aif, aifShift, ecat)
-            import mlpet.*;       
-            conc_i = DSCAutoradiography.concentration_i(A0, Ew, a, d, f, n, p, q0, t0, t, aif, aifShift, dose); % simulated
-            this   = DSCAutoradiography(concbar_a, t, conc_i, mask, aif, ecat);
-            this   = this.estimateParameters(map) %#ok<NOPRT>
-        end   
+        function ci   = concentration_i(A0, Ew, a, d, f, n, p, q0, t0, t, aif, aifShift, aDose)
+            import mlpet.*;
+            lambda = DSCAutoradiography.LAMBDA;
+            lambda_decay = DSCAutoradiography.LAMBDA_DECAY;
+            
+            dt     = t(2) - t(1);
+            conc_a = q0 * aDose * dt * ...
+                     conv(DSCAutoradiography.concentrationBar_a(aif, n, t, aifShift), ...
+                          DSCAutoradiography.kernel(a,d,p,t));
+            conc_a = conc_a(1:length(t));
+            ci0    = A0 * Ew * f * dt * abs(conv(conc_a, exp(-(Ew * f / lambda + lambda_decay) * t)));
+            ci0    = ci0(1:length(t));
+            
+            idx_t0 = DSCAutoradiography.indexOf(t, t0);
+            ci     = zeros(1, length(t));
+            ci(idx_t0:end) = ci0(1:end-idx_t0+1);
+            ci     = abs(ci);
+        end
+        function cb_a = concentrationBar_a(aif, n, t, aifShift)
+            if (mlpet.DSCAutoradiography.USE_RECIRCULATION)
+                cb_a = aif.kAif_2(aif.a, aif.b, n, t, aif.t0 + aifShift, aif.t1 + aifShift);
+            else
+                cb_a = aif.kAif_1(aif.a, aif.b,    t, aif.t0 + aifShift);
+            end
+        end
+        function k    = kernel(a, d, p, t)
+            dt = t(2) - t(1);
+            k  = t.^(d-1) .* exp(-(t/a).^p);
+            k  = k / (sum(k) * dt);
+        end
+        function args = interpolateData(mask, aif, ecat, aifShift, ecatShift)
+            ecat       = ecat.masked(mask);
+            ecatSkinny = ecat.volumeSummed;  
+            ecatSkinny.img = ecatSkinny.img/mask.count;
+            
+            import mlpet.*;
+            dt  = min(min(aif.taus), min(ecatSkinny.taus))/2;
+            if (DSCHerscAutoradiography.USE_RECIRCULATION)
+                kAif = aif.itsKAif_2;
+            else
+                kAif = aif.itsKAif_1;
+            end
+            [t_a,c_a] = DSCAutoradiography.shiftData(       aif.times,            kAif,       aifShift);
+            [t_i,c_i] = DSCAutoradiography.shiftData(ecatSkinny.times, ecatSkinny.becquerels, ecatShift); 
+            t   = t_i(1):dt:min([t_i(end) DSCAutoradiography.TIME_SUP]);
+            c_a = pchip(t_a, c_a, t);
+            c_i = pchip(t_i, c_i, t);            
+            args = {c_a t c_i mask aif ecat};
+        end
+        
         function this = runAutoradiography(concbar_a, t, conc_obs, mask, aif, ecat)
             %% RUNAUTORADIOGRAPHY is deprecated; used by legacy Test_PETAutoradiography
             %  Usage:   DSCAutoradiography.runAutoradiography(arterial_counts, times, scanner_counts) 
@@ -132,86 +172,27 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             this = DSCAutoradiography(concbar_a, t, conc_obs, mask, aif, ecat);
             this = this.estimateParameters(this.map);            
         end
-        function ci   = concentration_i(A0, Ew, a, d, f, n, p, q0, t0, t, aif, aifShift, dose)
-            import mlpet.*;
-            lambda = DSCAutoradiography.LAMBDA;
-            lambda_decay = DSCAutoradiography.LAMBDA_DECAY;
-            
-            conc_a = q0 * dose * ...
-                     conv(DSCAutoradiography.concentrationBar_a(aif, n, t, aifShift), ...
-                          DSCAutoradiography.kernel(a,d,p,t));
-            conc_a = conc_a(1:length(t));
-            ci0    = A0 * Ew * f * abs(conv(conc_a, exp(-(Ew * f / lambda + lambda_decay) * t)));
-            ci0    = ci0(1:length(t));
-            %assert(all(isfinite(ci0)), 'ci -> %s', num2str(ci0));
-            
-            idx_t0 = DSCAutoradiography.indexOf(t, t0);
-            ci     = zeros(1, length(t));
-            ci(idx_t0:end) = ci0(1:end-idx_t0+1);
-            ci     = abs(ci);
-        end
-        function cb_a = concentrationBar_a(aif, n, t, aifShift)
-            cb_a = aif.kAif_2(aif.a, aif.b, n, t, aif.t0 + aifShift, aif.t1 + aifShift);
-        end
-        function k    = kernel(a, d, p, t)
-            cnorm = ((p/a^d)/gamma(d/p));
-            k     = cnorm * t.^(d-1) .* exp(-(t/a).^p);
-        end
-        function args = interpolateData(mask, aif, ecat, aifShift, ecatShift)
-            ecat       = ecat.masked(mask);
-            ecatSkinny = ecat.volumeSummed;  
-            ecatSkinny.img = ecatSkinny.img/mask.count;
-            
-            import mlpet.*;
-            aifShift  = aifShift - DSCAutoradiography.kAif2Takeoff(aif);
-            [t_a,c_a] = DSCAutoradiography.shiftData(       aif.times,        aif.itsKAif_2,   aifShift);
-            [t_i,c_i] = DSCAutoradiography.shiftData(ecatSkinny.times, ecatSkinny.becquerels, ecatShift); 
-            dt  = min(min(aif.taus), min(ecatSkinny.taus))/2;
-            t   = t_i(1):dt:min([t_i(end) DSCAutoradiography.TIME_SUP]);
-            c_a = pchip(t_a, c_a, t);
-            c_i = pchip(t_i, c_i, t);            
-            args = {c_a t c_i mask aif ecat};
-        end
-        function t    = kAif2Takeoff(laif2)
-            assert(isa(laif2, 'mlperfusion.ILaif'));
-            t = laif2.t0;
-            return
-            
-            kA    = laif2.itsKAif_2;
-            maxKA = max(kA);
-            for ti = 2:length(laif2.times)
-                t = laif2.times(ti-1);
-                if (kA(ti) > 0.01*maxKA)
-                    break;
-                end
-            end
-            
-            if (abs(t - laif2.t0)/laif2.t0 < 0.05)
-                t = laif2.t0;
-            end
+        function this = simulateMcmc(A0, Ew, a, d, f, n, p, q0, t0, t, concbar_a, aDose, map, mask, aif, aifShift, ecat)
+            import mlpet.*;       
+            conc_i = DSCAutoradiography.concentration_i(A0, Ew, a, d, f, n, p, q0, t0, t, aif, aifShift, aDose); % simulated
+            this   = DSCAutoradiography(concbar_a, t, conc_i, mask, aif, ecat);
+            this   = this.estimateParameters(map) %#ok<NOPRT>
         end
     end
     
-	methods	          
-        function this = simulateItsMcmc(this, aif)
-            this = this.simulateMcmc( ...
-                   this.A0, this.Ewb, this.a, this.d, this.f, this.n, this.p, this.q0, this.t0, this.times, aif, this.dose_, this.map, ...
-                   this.mask, this.aif, this.aifShift, this.ecat);
-        end
+	methods
         function ci   = itsConcentration_i(this)
             ci = this.concentration_i( ...
                  this.A0, this.Ew, this.a, this.d, this.f, this.n, this.p, this.q0, this.t0, ...
                  this.times, this.aif, this.aifShift, this.dose_);
         end
-        function ca   = itsBayesianConcentration_a(this)
+        function ca   = itsEstimatedConcentration_a(this)
             import mlpet.*;
-            ca = this.q0 * this.dose * ...
+            dt = this.times(2) - this.times(1);
+            ca = this.q0 * this.dose * dt * ...
                  conv(this.concentrationBar_a(this.aif, this.n, this.times, this.aifShift), ...
                       this.kernel(this.a, this.d, this.p, this.times));
             ca = ca(1:this.length);
-        end
-        function this = estimateAll(this)
-            this = this.estimateParameters(this.map);
         end
         function this = estimateParameters(this, varargin)
             ip = inputParser;
@@ -247,19 +228,26 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
                 this.finalParams(keys{9}));
         end
         function ed   = estimateDataFast(this, A0, Ew, a, d, f, n, p, q0, t0)
-            ed = this.concentration_i(A0, Ew, a, d, f, n, p, q0, t0, this.times, this.aif, this.aifShift, this.dose_);
-        end       
+            ed = this.concentration_i( ...
+                      A0, Ew, a, d, f, n, p, q0, t0, this.times, this.aif, this.aifShift, this.dose_);
+        end
+        function this = simulateItsMcmc(this, aif)
+            this = this.simulateMcmc( ...
+                   this.A0, this.Ewb, this.a, this.d, this.f, this.n, this.p, this.q0, this.t0, ...
+                   this.times, aif, this.dose_, this.map, ...
+                   this.mask, this.aif, this.aifShift, this.ecat);
+        end
             
         function        plotProduct(this)
             figure;
             dcv      = this.itsDcv;
             dcvTimes = dcv.times + this.aifShift;
-            max_i = max(max( this.itsConcentration_i),         max(this.concentration_obs));
-            max_a = max(max( this.itsBayesianConcentration_a), max(dcv.wellCounts));
-            plot(this.times, this.itsConcentration_i         / max_i, ...
-                 this.times, this.itsBayesianConcentration_a / max_a, ...
-                   dcvTimes, dcv.wellCounts                  / max_a, 'o', ...
-                 this.times, this.concentration_obs          / max_i, 'o');
+            max_i = max(max( this.itsConcentration_i),          max(this.concentration_obs));
+            max_a = max(max( this.itsEstimatedConcentration_a), max(dcv.wellCounts));
+            plot(this.times, this.itsConcentration_i          / max_i, ...
+                 this.times, this.itsEstimatedConcentration_a / max_a, ...
+                   dcvTimes, dcv.wellCounts                   / max_a, 'o', ...
+                 this.times, this.concentration_obs           / max_i, 'o');
             legend('Bayesian concentration_i', 'Bayesian concentration_a', 'DCV from data',  'concentration_{obs} from data');
             title(this.detailedTitle, 'Interpreter', 'none');
             xlabel(this.xLabel);
@@ -292,17 +280,17 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
                         args{v} = { this.A0 this.Ew this.a  this.d  this.f  this.n  vars(v) this.q0  this.t0 this.times this.aif this.aifShift this.dose }; end
                 case 'q0'
                     for v = 1:length(vars)
-                        args{v} = { this.A0 this.Ew this.a  this.d  this.f  this.n  this.p  vars(v)  this.t0 this.times this.aif this.aifShift }; end
+                        args{v} = { this.A0 this.Ew this.a  this.d  this.f  this.n  this.p  vars(v)  this.t0 this.times this.aif this.aifShift this.dose }; end
                 case 't0'
                     for v = 1:length(vars)
-                        args{v} = { this.A0 this.Ew this.a  this.d  this.f  this.n  this.p  this.q0  vars(v) this.times this.aif this.aifShift }; end
+                        args{v} = { this.A0 this.Ew this.a  this.d  this.f  this.n  this.p  this.q0  vars(v) this.times this.aif this.aifShift this.dose }; end
             end
             this.plotParArgs(par, args, vars);
         end
-        function this = save(this)   
+        function this = save(this)
             this = this.saveas('DSCAutoradiography.save.mat');
         end
-        function this = saveas(this, fn)  
+        function this = saveas(this, fn)
             dscAutoradiography = this;  %#ok<NASGU>
             save(fn, 'dscAutoradiography');         
         end
@@ -322,25 +310,15 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
 
  			this = this@mlpet.AutoradiographyBuilder(varargin{:}); 
             this.n = this.aif.n;
-            this = this.estimateDose_;
-            this.expectedBestFitParams_ = [this.A0 this.Ew this.a this.d this.f this.n this.p this.q0 this.t0]'; % initial expected values from properties
+            this.expectedBestFitParams_ = ...
+                [this.A0 this.Ew this.a this.d this.f this.n this.p this.q0 this.t0]';
+                % initial expected values from properties
         end 
     end
     
     %% PRIVATE
     
-    properties (Access = 'private')
-        dose_
-    end
-    
-    methods (Access = 'private')
-        function this = estimateDose_(this)
-            import mlpet.* mlfourd.*;  
-            taus              = this.times(2:end) - this.times(1:end-1);
-            taus(this.length) = taus(this.length - 1);
-            this.dose_ = this.concentration_obs * taus'; % trapezoidal time-integral  
-            fprintf('DSCAutoradiography.estimateDose_ -> %g\n', this.dose_);
-        end        
+    methods (Access = 'private')  
         function plotParArgs(this, par, args, vars)
             assert(lstrfind(par, properties('mlpet.DSCAutoradiography')));
             assert(iscell(args));
@@ -357,10 +335,6 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             legend(cellfun(@(x) sprintf('%s = %g', par, x), num2cell(vars), 'UniformOutput', false));
             xlabel(this.xLabel);
             ylabel(this.yLabel);
-        end
-        function dcv = itsDcv(this)
-            dcv = mlpet.PETAutoradiography.loadAif( ...
-                 fullfile(this.ecat.filepath, [this.pnum 'ho1.dcv'])); 
         end
     end
     

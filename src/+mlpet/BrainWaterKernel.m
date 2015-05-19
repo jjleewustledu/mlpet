@@ -124,22 +124,7 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             t    = t_i(1):dt:min([t_i(end) AutoradiographyBuilder.TIME_SUP]);
             c_i  = pchip(t_i, c_i, t);            
             args = {laif2 t c_i};
-        end        
-        function t    = kAif2Takeoff(laif2)
-            assert(isa(laif2, 'mlperfusion.ILaif'));
-            kA    = laif2.itsKAif_2;
-            maxKA = max(kA);
-            for ti = 2:length(laif2.times)
-                t = laif2.times(ti-1);
-                if (kA(ti) > 0.01*maxKA)
-                    break;
-                end
-            end
-            
-            if (abs(t - laif2.t0)/laif2.t0 < 0.05)
-                t = laif2.t0;
-            end
-        end
+        end      
     end
 
 	methods 		  
@@ -255,29 +240,29 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             switch (par)
                 case 'a'
                     for v = 1:length(vars)
-                        args{v} = { vars(v) this.d  this.n  this.p  this.q0 this.t0 }; end
+                        args{v} = { vars(v) this.d  this.n  this.p  this.q0 this.t0 this.times }; end
                 case 'd'
                     for v = 1:length(vars)
-                        args{v} = { this.a  vars(v) this.n  this.p  this.q0 this.t0 }; end
+                        args{v} = { this.a  vars(v) this.n  this.p  this.q0 this.t0 this.times }; end
                 case 'n'
                     for v = 1:length(vars)
-                        args{v} = { this.a  this.d  vars(v) this.p  this.q0 this.t0 }; end
+                        args{v} = { this.a  this.d  vars(v) this.p  this.q0 this.t0 this.times }; end
                 case 'p'
                     for v = 1:length(vars)
-                        args{v} = { this.a  this.d  this.n  vars(v) this.q0 this.t0 }; end
+                        args{v} = { this.a  this.d  this.n  vars(v) this.q0 this.t0 this.times }; end
                 case 'q0'
                     for v = 1:length(vars)
-                        args{v} = { this.a  this.d  this.n  this.p  vars(v) this.t0 }; end
+                        args{v} = { this.a  this.d  this.n  this.p  vars(v) this.t0 this.times }; end
                 case 't0'
                     for v = 1:length(vars)
-                        args{v} = { this.a  this.d  this.n  this.p  this.q0 vars(v) }; end
+                        args{v} = { this.a  this.d  this.n  this.p  this.q0 vars(v) this.times }; end
             end
             this.plotParArgs(par, args, vars);
         end
-        function this = save(this)   
+        function this = save(this)
             this = this.saveas('BrainWaterKernel.save.mat');
         end
-        function this = saveas(this, fn)  
+        function this = saveas(this, fn)
             brainWaterKernel = this; %#ok<NASGU>
             save(fn, 'brainWaterKernel');         
         end
@@ -300,8 +285,7 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             for v = 1:size(args,2)
                 argsv = args{v};
                 plot(this.times, ...
-                     BrainWaterKernel.concentration_i( ...
-                         this.itsConcentrationBar_a, argsv{1}, argsv{2}, argsv{3}, argsv{4}, argsv{5}, argsv{6}, this.times));
+                     BrainWaterKernel.concentration_i(argsv{:}));
             end
             title(sprintf('a %g, d %g, n %g, p %g, q0 %g, t0 %g', ...
                           argsv{1}, argsv{2}, argsv{3}, argsv{4}, argsv{5}, argsv{6}));
