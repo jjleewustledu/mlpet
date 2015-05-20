@@ -55,9 +55,9 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             m('q0') = struct('fixed', 0, 'min', fL*5e6,    'mean', this.q0, 'max', fH* 1e8);
             
             if (mlpet.DSCAutoradiography.USE_RECIRCULATION)
-                m('n')  = struct('fixed', 1, 'min',    0, 'mean', 0.5*this.n, 'max', fH*this.n);
+                m('n') = struct('fixed', 1, 'min',    0, 'mean', 0.5*this.n, 'max', fH*this.n);
             else
-                m('n')  = struct('fixed', 1, 'min', -eps, 'mean', 0,          'max', eps);
+                m('n') = struct('fixed', 1, 'min', -eps, 'mean', 0,          'max', eps);
             end
         end
     end
@@ -130,11 +130,11 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             ci(idx_t0:end) = ci0(1:end-idx_t0+1);
             ci     = abs(ci);
         end
-        function cb_a = concentrationBar_a(aif, n, t, aifShift)
+        function cba  = concentrationBar_a(aif, n, t, aifShift)
             if (mlpet.DSCAutoradiography.USE_RECIRCULATION)
-                cb_a = aif.kAif_2(aif.a, aif.b, n, t, aif.t0 + aifShift, aif.t1 + aifShift);
+                cba = aif.kAif_2(aif.a, aif.b, n, t, aif.t0 + aifShift, aif.t1 + aifShift);
             else
-                cb_a = aif.kAif_1(aif.a, aif.b,    t, aif.t0 + aifShift);
+                cba = aif.kAif_1(aif.a, aif.b,    t, aif.t0 + aifShift);
             end
         end
         function k    = kernel(a, d, p, t)
@@ -160,17 +160,6 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             c_a = pchip(t_a, c_a, t);
             c_i = pchip(t_i, c_i, t);            
             args = {c_a t c_i mask aif ecat};
-        end
-        
-        function this = runAutoradiography(concbar_a, t, conc_obs, mask, aif, ecat)
-            %% RUNAUTORADIOGRAPHY is deprecated; used by legacy Test_PETAutoradiography
-            %  Usage:   DSCAutoradiography.runAutoradiography(arterial_counts, times, scanner_counts) 
-            %                                                 ^ well-counts/s/mL      ^
-            %                                                                  ^ s
-            
-            import mlpet.*;
-            this = DSCAutoradiography(concbar_a, t, conc_obs, mask, aif, ecat);
-            this = this.estimateParameters(this.map);            
         end
         function this = simulateMcmc(A0, Ew, a, d, f, n, p, q0, t0, t, concbar_a, aDose, map, mask, aif, aifShift, ecat)
             import mlpet.*;       
@@ -246,12 +235,12 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
             max_a = max(max( this.itsEstimatedConcentration_a), max(dcv.wellCounts));
             plot(this.times, this.itsConcentration_i          / max_i, ...
                  this.times, this.itsEstimatedConcentration_a / max_a, ...
-                   dcvTimes, dcv.wellCounts                   / max_a, 'o', ...
+                   dcvTimes, dcv.wellCounts                   / max_a, 's', ...
                  this.times, this.concentration_obs           / max_i, 'o');
-            legend('Bayesian concentration_i', 'Bayesian concentration_a', 'DCV from data',  'concentration_{obs} from data');
+            legend('concentration_i', 'concentration_a', 'DCV',  'concentration_{obs}');
             title(this.detailedTitle, 'Interpreter', 'none');
             xlabel(this.xLabel);
-            ylabel(sprintf('arbitrary:  C_i norm %g, C_a norm %g', max_i, max_a));
+            ylabel(sprintf('arbitrary:  c_i norm %g, c_a norm %g', max_i, max_a));
         end  
         function        plotParVars(this, par, vars)
             assert(lstrfind(par, properties('mlpet.DSCAutoradiography')));
@@ -286,13 +275,6 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
                         args{v} = { this.A0 this.Ew this.a  this.d  this.f  this.n  this.p  this.q0  vars(v) this.times this.aif this.aifShift this.dose }; end
             end
             this.plotParArgs(par, args, vars);
-        end
-        function this = save(this)
-            this = this.saveas('DSCAutoradiography.save.mat');
-        end
-        function this = saveas(this, fn)
-            dscAutoradiography = this;  %#ok<NASGU>
-            save(fn, 'dscAutoradiography');         
         end
     end 
     

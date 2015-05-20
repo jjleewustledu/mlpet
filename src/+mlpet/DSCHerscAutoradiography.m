@@ -162,17 +162,6 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
             c_i = pchip(t_i, c_i, t);            
             args = {c_a t c_i mask aif ecat};
         end
-        
-        function this = runAutoradiography(concbar_a, t, conc_obs, mask, aif, ecat)
-            %% RUNAUTORADIOGRAPHY is deprecated; used by legacy Test_PETAutoradiography
-            %  Usage:   DSCHerscAutoradiography.runAutoradiography(arterial_counts, times, scanner_counts) 
-            %                                                      ^ well-counts/s/mL      ^
-            %                                                                       ^ s
-            
-            import mlpet.*;
-            this = DSCHerscAutoradiography(concbar_a, t, conc_obs, mask, aif, ecat);
-            this = this.estimateParameters(this.map);            
-        end
         function this = simulateMcmc(A0, PS, a, d, f, n, p, q0, t0, t, concbar_a, aDose, map, mask, aif, aifShift, ecat)
             import mlpet.*;       
             conc_i = DSCHerscAutoradiography.concentration_i(A0, PS, a, d, f, n, p, q0, t0, t, aif, aifShift, aDose); % simulated
@@ -263,10 +252,10 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
                  this.times, this.itsEstimatedConcentration_a / max_a, ...
                    dcvTimes, dcv.wellCounts                   / max_a, 'o', ...
                  this.times, this.concentration_obs           / max_i, 'o');
-            legend('Bayesian concentration_i', 'Bayesian concentration_a', 'DCV from data',  'concentration_{obs} from data');
+            legend('concentration_i', 'concentration_a', 'DCV',  'concentration_{obs}');
             title(this.detailedTitle, 'Interpreter', 'none');
             xlabel(this.xLabel);
-            ylabel(sprintf('arbitrary:  C_i norm %g, C_a norm %g', max_i, max_a));
+            ylabel(sprintf('arbitrary:  c_i norm %g, c_a norm %g', max_i, max_a));
         end 
         function        plotParVars(this, par, vars)
             assert(lstrfind(par, properties('mlpet.DSCHerscAutoradiography')));
@@ -301,13 +290,6 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
                         args{v} = { this.A0 this.PS this.a  this.d  this.f  this.n  this.p  this.q0  vars(v) this.times this.aif this.aifShift this.dose }; end
             end
             this.plotParArgs(par, args, vars);
-        end
-        function this = save(this)
-            this = this.saveas('DSCHerscAutoradiography.save.mat');
-        end
-        function this = saveas(this, fn)
-            dscHerscAutoradiography = this; %#ok<NASGU>
-            save(fn, 'dscHerscAutoradiography');         
         end
     end 
     

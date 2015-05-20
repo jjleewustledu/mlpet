@@ -1,4 +1,4 @@
-classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
+classdef BrainWaterKernel < mlbayesian.AbstractPerfusionProblem
 	%% BRAINWATERKERNEL
     %  http://en.wikipedia.org/wiki/Generalized_gamma_distribution
     %  N.B.  f(tau; a,d,p) = \Gamma^{-1}(d/p) (p/a^d) tau^(d-1) exp(-(tau/a)^p) with a > 0, d > 0, p > 0, t - t0 > 0.   
@@ -12,12 +12,14 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
  	%  $Id$   
     
     properties (Constant)
-        DCV_SHIFT2 = 25
+        DCV_SHIFT2 = 0
+        TIME_SUP = 120 % sec
+        USE_RECIRCULATION = false
     end
     
 	properties
         xLabel = 'times/s'
-        yLabel = 'concentration/(well-counts/mL/s)'
+        yLabel = 'concentration/(well-counts/mL)'
         
         a  = 1.09
         d  = 1.08
@@ -40,7 +42,8 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
         baseTitle
         detailedTitle
         laif2
-        concentration_obs
+        aifShift
+        dcvShift
         map
     end
     
@@ -56,17 +59,27 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             assert(~isempty(this.laif2_));
             l = this.laif2_;
         end
-        function co = get.concentration_obs(this)
-            co = this.dependentData;
+        function a  = get.aifShift(this)
+            assert(~isempty(this.aifShift_));
+            a = this.aifShift_;
+        end
+        function a  = get.dcvShift(this)
+            assert(~isempty(this.dcvShift_));
+            a = this.dcvShift_;
         end
         function m  = get.map(this)
             m = containers.Map;
             m('a')  = struct('fixed',0,'min',this.priorLow(this.a, this.aS, 0.12),'mean',this.a,    'max',this.priorHigh(this.a, this.aS, 8.5));
             m('d')  = struct('fixed',0,'min',this.priorLow(this.d, this.dS, 0.91),'mean',this.d,    'max',this.priorHigh(this.d, this.dS, 1.8));
-            m('n')  = struct('fixed',0,'min',this.priorLow(this.d, this.dS, 1e-5),'mean',0.5*this.n,'max',this.priorHigh(this.n, this.nS, this.n));
             m('p')  = struct('fixed',0,'min',this.priorLow(this.p, this.pS, 0.28),'mean',this.p,    'max',this.priorHigh(this.p, this.pS, 0.67)); 
             m('q0') = struct('fixed',0,'min',this.priorLow(this.q0,this.q0S,1e6), 'mean',this.q0,   'max',this.priorHigh(this.q0,this.q0S, 8e6));
             m('t0') = struct('fixed',0,'min',this.priorLow(this.t0,this.t0S,0),   'mean',this.t0,   'max',this.priorHigh(this.t0,this.t0S,25)); 
+            
+            if (mlpet.BrainWaterKernel.USE_RECIRCULATION)
+                m('n') = struct('fixed',1,'min',this.priorLow(this.d, this.dS, 0),  'mean',0.5*this.n,'max',this.priorHigh(this.n, this.nS, this.n));
+            else
+                m('n') = struct('fixed',1,'min',this.priorLow(this.d, this.dS,-eps),'mean',0,         'max',eps);
+            end
         end
     end
     
@@ -76,88 +89,85 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             ip = inputParser;
             addRequired(ip, 'laifObj',     @(x) isa(x, 'mlperfusion.Laif2'));
             addRequired(ip, 'dcvFn',       @(x) lexist(x, 'file'));
+            addOptional(ip, 'aifShift', 0, @(x) isnumeric(x) && isscalar(x));
             addOptional(ip, 'dcvShift', 0, @(x) isnumeric(x) && isscalar(x));
             parse(ip, laifObj, dcvFn, varargin{:});
             
             import mlpet.*;
-            dcv  = UncorrectedDCV(ip.Results.dcvFn);
-            args = BrainWaterKernel.interpolateData(ip.Results.laifObj, dcv, ip.Results.dcvShift);
+            laif2    = ip.Results.laifObj;
+            dcv      = UncorrectedDCV(ip.Results.dcvFn);
+            aifShift = ip.Results.aifShift - laif2.t0;
+            dcvShift = ip.Results.dcvShift + BrainWaterKernel.DCV_SHIFT2; % NB, concentration_i(...) can only right shift in time
+            
+            args = BrainWaterKernel.interpolateData(laif2, dcv, aifShift, dcvShift);
             this = BrainWaterKernel(args{:});
+            this.aifShift_ = aifShift;
+            this.dcvShift_ = dcvShift;
         end
         
-        function this = simulateMcmc(laif2, a, d, n, p, q0, t0, t, map)
+        function ci   = concentration_i(a, d, n, p, q0, t0, t, laif2, aifShift)
+            import mlpet.*;
+            dt  = t(2) - t(1);
+            ci = q0 * dt * ...
+                  abs(conv(BrainWaterKernel.concentrationBar_a(laif2, n, t, aifShift), ...
+                           BrainWaterKernel.kernel(a, d, p, t0, t)));
+            ci = ci(1:length(t));
+        end
+        function cba  = concentrationBar_a(laif2, n, t, aifShift)
+            if (mlpet.BrainWaterKernel.USE_RECIRCULATION)
+                cba = laif2.kAif_2(laif2.a, laif2.b, n, t, laif2.t0 + aifShift, laif2.t1 + aifShift);
+            else
+                cba = laif2.kAif_1(laif2.a, laif2.b,    t, laif2.t0 + aifShift);
+            end
+        end
+        function k    = kernel(a, d, p, t0, t)
+            dt = t(2) - t(1);
+            k0  = t.^(d-1) .* exp(-(t/a).^p);
+            k0  = k0 / (sum(k0) * dt);             
+            
+            idx_t0 = mlpet.BrainWaterKernel.indexOf(t, t0); 
+            k             = zeros(1, length(t));
+            k(idx_t0:end) = k0(1:end-idx_t0+1);
+        end
+        function args = interpolateData(laif2, dcv, aifShift, dcvShift)
+            import mlpet.*;
+            dt   = min(min(laif2.taus), min(dcv.taus))/2;            
+            if (BrainWaterKernel.USE_RECIRCULATION)
+                kAif = laif2.itsKAif_2;
+            else
+                kAif = laif2.itsKAif_1;
+            end            
+            [t_a,c_a] = BrainWaterKernel.shiftData(laif2.times, kAif,       aifShift);            
+            [t_i,c_i] = BrainWaterKernel.shiftData( dcv.times,  dcv.counts, dcvShift);            
+            t    = t_i(1):dt:min([t_i(end) BrainWaterKernel.TIME_SUP]);
+            c_a  = pchip(t_a, c_a, t);
+            c_i  = pchip(t_i, c_i, t);          
+            args = {c_a t c_i laif2};
+        end
+        function this = simulateMcmc(a, d, n, p, q0, t0, t, map, laif2, aifShift)
             import mlpet.*;            
-            dcv  = BrainWaterKernel.concentration_i(laif2, a, d, n, p, q0, t0, t);
+            dcv  = BrainWaterKernel.concentration_i(a, d, n, p, q0, t0, t, laif2, aifShift);
             this = BrainWaterKernel(laif2, t, dcv);
             this = this.estimateParameters(map) %#ok<NOPRT>
         end
-        function this = runAutoradiography(laif2, t, conc_obs)
-            this = mlpet.BrainWaterKernel(laif2, t, conc_obs);
-            this = this.estimateParameters(this.map);
-        end
-        function k    = kernel(a, d, p, t0, t)
-            idx_t0 = mlpet.BrainWaterKernel.indexOf(t, t0);  
-            cnorm  = ((p/a^d)/gamma(d/p));
-            exp1   = exp(-(t/a).^p);
-            k0     = abs(cnorm * t.^(d-1) .* exp1);
-            
-            k             = zeros(1, length(t));
-            k(idx_t0:end) = k0(1:end-idx_t0+1);
-            %assert(all(isreal(k)), 'BestGammaFluid.simulateDcv.residue was complex');
-            %assert(~any(isnan(k)), 'BestGammaFluid.simulateDcv.residue was NaN: %s', num2str(k));
-        end
-        function c_i  = concentration_i(laif2, a, d, n, p, q0, t0, t)
-            import mlpet.*;
-            c_i = q0 * abs(conv( ...
-                           BrainWaterKernel.concentrationBar_a(laif2, n, t), ...
-                           BrainWaterKernel.kernel(a, d, p, t0, t)));
-            c_i = c_i(1:length(t));
-        end
-        function cb_a = concentrationBar_a(laif2, n, t)
-            cb_a = laif2.kAif_2(laif2.a, laif2.b, n, t, 0, laif2.t1 - laif2.t0);
-        end
-        function args = interpolateData(laif2, dcv, dcvShift)
-            
-            import mlpet.*;
-            [t_i,c_i] = AutoradiographyBuilder.shiftData(dcv.times, dcv.counts, dcvShift + BrainWaterKernel.DCV_SHIFT2); 
-            dt   = min(min(laif2.taus), min(dcv.taus))/2;
-            t    = t_i(1):dt:min([t_i(end) AutoradiographyBuilder.TIME_SUP]);
-            c_i  = pchip(t_i, c_i, t);            
-            args = {laif2 t c_i};
-        end      
     end
 
-	methods 		  
- 		function this = BrainWaterKernel(laif2, varargin)
- 			%% BRAINWATERKERNEL 
- 			%  Usage:  this = BrainWaterKernel(Laif2_object[, dcv_times, dcv_counts]) 
-            
- 			this = this@mlbayesian.AbstractMcmcProblem(varargin{:});
-            this.laif2_ = laif2;
-            this.n = laif2.n;
-            this.expectedBestFitParams_ = ...
-                [this.a this.d this.n this.p this.q0 this.t0]';
-        end 
-        
-        function this = simulateItsMcmc(this)
-            this = this.simulateMcmc( ...
-                   this.laif2, this.a, this.d, this.n, this.p, this.q0, this.t0, this.times, this.map);
-        end
-        function aif  = itsKAif(this)
-            aif = this.itsConcentrationBar_a;
-        end
+	methods
         function cb_a = itsConcentrationBar_a(this)
-            cb_a = this.concentrationBar_a(this.laif2, this.n, this.times);
+            cb_a = this.concentrationBar_a(this.laif2, this.n, this.times, this.aifShift);
         end
         function ci   = itsConcentration_i(this)
             ci = this.concentration_i( ...
-                 this.laif2, this.a, this.d, this.n, this.p, this.q0, this.t0, this.times);
+                 this.a, this.d, this.n, this.p, this.q0, this.t0, ...
+                 this.times, this.laif2, this.aifShift);
         end
         function k    = itsKernel(this)
             k = mlpet.BrainWaterKernel.kernel(this.a, this.d, this.p, this.t0, this.times);
         end
         function this = estimateAll(this)
             this = this.estimateParameters(this.map);
+            fprintf('FINAL STATS mtt_obs        %g\n',   this.mtt_obs);
+            fprintf('FINAL STATS mtt_a          %g\n',   this.mtt_a);
         end
         function this = estimateParameters(this, varargin)
             ip = inputParser;
@@ -199,9 +209,16 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
                 this.finalParams(keys{5}), ...
                 this.finalParams(keys{6}));
         end
-        function ed   = estimateDataFast(this, a, d, n, p, q0, t0)  
-            ed = this.concentration_i(this.laif2, a, d, n, p, q0, t0, this.times);
+        function ed   = estimateDataFast(this, a, d, n, p, q0, t0)
+            ed = this.concentration_i( ...
+                 a, d, n, p, q0, t0, ...
+                 this.times, this.laif2, this.aifShift);
         end 
+        function this = simulateItsMcmc(this)
+            this = this.simulateMcmc( ...
+                   this.a, this.d, this.n, this.p, this.q0, this.t0, ...
+                   this.times, this.map, this.laif2, this.aifShift);
+        end
         function x    = priorLow(this, x, xS, inf)
             x = x - this.priorN*xS;
             if (exist('inf','var') && x < inf); x = inf; end
@@ -218,7 +235,7 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             plot(this.times, this.itsConcentrationBar_a/max_a, ...
                  this.times, this.concentration_obs/max_obs);
             title(sprintf('%s plotInitialData', this.baseTitle), 'Interpreter', 'none');
-            legend('Initial LAIF', 'DCV from data');
+            legend('concentrationBar_a', 'concentration_{obs}');
             xlabel(this.xLabel);
             ylabel(sprintf('arbitrary; rescaled %g, %g', max_a, max_obs));
         end
@@ -229,10 +246,10 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             plot(this.times, this.itsKernel/max_k, ...
                  this.times, this.itsConcentration_i/max_dcv, ...
                  this.times, this.concentration_obs/max_dcv, 'o');
-            legend('Bayesian kernel', 'Bayesian DCV', 'DCV from data');
+            legend('kernel', 'concentration_i', 'concentration_obs');
             title(this.detailedTitle, 'Interpreter', 'none');
             xlabel(this.xLabel);
-            ylabel(sprintf('arbitrary: kernel %g, DCV norm %g', max_k, max_dcv));
+            ylabel(sprintf('arbitrary; rescaled %g, %g', max_k, max_dcv));
         end        
         function        plotParVars(this, par, vars)
             assert(lstrfind(par, properties('mlperfusion.BrainWaterKernel')));
@@ -240,38 +257,55 @@ classdef BrainWaterKernel < mlbayesian.AbstractMcmcProblem
             switch (par)
                 case 'a'
                     for v = 1:length(vars)
-                        args{v} = { vars(v) this.d  this.n  this.p  this.q0 this.t0 this.times }; end
+                        args{v} = { vars(v) this.d  this.n  this.p  this.q0 this.t0 this.times this.laif2 this.aifShift }; end
                 case 'd'
                     for v = 1:length(vars)
-                        args{v} = { this.a  vars(v) this.n  this.p  this.q0 this.t0 this.times }; end
+                        args{v} = { this.a  vars(v) this.n  this.p  this.q0 this.t0 this.times this.laif2 this.aifShift }; end
                 case 'n'
                     for v = 1:length(vars)
-                        args{v} = { this.a  this.d  vars(v) this.p  this.q0 this.t0 this.times }; end
+                        args{v} = { this.a  this.d  vars(v) this.p  this.q0 this.t0 this.times this.laif2 this.aifShift }; end
                 case 'p'
                     for v = 1:length(vars)
-                        args{v} = { this.a  this.d  this.n  vars(v) this.q0 this.t0 this.times }; end
+                        args{v} = { this.a  this.d  this.n  vars(v) this.q0 this.t0 this.times this.laif2 this.aifShift }; end
                 case 'q0'
                     for v = 1:length(vars)
-                        args{v} = { this.a  this.d  this.n  this.p  vars(v) this.t0 this.times }; end
+                        args{v} = { this.a  this.d  this.n  this.p  vars(v) this.t0 this.times this.laif2 this.aifShift }; end
                 case 't0'
                     for v = 1:length(vars)
-                        args{v} = { this.a  this.d  this.n  this.p  this.q0 vars(v) this.times }; end
+                        args{v} = { this.a  this.d  this.n  this.p  this.q0 vars(v) this.times this.laif2 this.aifShift }; end
             end
             this.plotParArgs(par, args, vars);
         end
-        function this = save(this)
-            this = this.saveas('BrainWaterKernel.save.mat');
-        end
-        function this = saveas(this, fn)
-            brainWaterKernel = this; %#ok<NASGU>
-            save(fn, 'brainWaterKernel');         
-        end
     end 
+    
+    %% PROTECTED
+    
+    methods (Access = 'protected')
+ 		function this = BrainWaterKernel(conc_a, times_i, conc_i, laif2)
+ 			%% BRAINWATERKERNEL 
+ 			%  Usage:  this = BrainWaterKernel(Laif2_object, times_dcv, conc_dcv) 
+            
+ 			this = this@mlbayesian.AbstractPerfusionProblem(conc_a, times_i, conc_i);
+            ip = inputParser;
+            addRequired(ip, 'conc_a',  @isnumeric);
+            addRequired(ip, 'times_i', @isnumeric);
+            addRequired(ip, 'conc_i',  @isnumeric);
+            addRequired(ip, 'laif2',   @(x) isa(x, 'mlperfusion.Laif2'));
+            parse(ip, conc_a, times_i, conc_i, laif2);   
+            
+            this.laif2_ = ip.Results.laif2;
+            this.n      = laif2.n;
+            this.expectedBestFitParams_ = ...
+                [this.a this.d this.n this.p this.q0 this.t0]';
+        end
+    end
     
     %% PRIVATE
     
     properties (Access = 'private')
         laif2_
+        aifShift_
+        dcvShift_
     end
     
     methods (Access = 'private')

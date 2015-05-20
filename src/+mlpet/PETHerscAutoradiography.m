@@ -82,22 +82,7 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
             end
             error('mlpet:requiredObjectNotFound', 'PETHerscAutoradiography.loadMask');
         end
-        function this = simulateMcmc(A0, PS, f, t0, t, conc_a, map)
-            import mlpet.*;       
-            conc_i = PETHerscAutoradiography.concentration_i(A0, PS, f, t0, t, conc_a); % simulated
-            this   = PETHerscAutoradiography(conc_a, t, conc_i);
-            this   = this.estimateParameters(map) %#ok<NOPRT>
-        end   
-        function this = runAutoradiography(conc_a, t, conc_obs)
-            %% RUNAUTORADIOGRAPHY is deprecated; used by legacy Test_PETAutoradiography
-            %  Usage:   PETHerscAutoradiography.runAutoradiography(arterial_counts, times, scanner_counts) 
-            %                                                     ^ well-counts/s/mL       ^
-            %                                                                       ^ s
-            
-            import mlpet.*;
-            this = PETHerscAutoradiography(conc_a, t, conc_obs);
-            this = this.estimateParameters(this.map);            
-        end
+        
         function ci   = concentration_i(A0, PS, f, t0, t, conc_a)
             import mlpet.*;
             lambda = PETHerscAutoradiography.LAMBDA;
@@ -124,6 +109,12 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
             c_a = pchip(t_a, c_a, t);
             c_i = pchip(t_i, c_i, t);            
             args = {c_a t c_i mask aif ecat};
+        end
+        function this = simulateMcmc(A0, PS, f, t0, t, conc_a, map)
+            import mlpet.*;       
+            conc_i = PETHerscAutoradiography.concentration_i(A0, PS, f, t0, t, conc_a); % simulated
+            this   = PETHerscAutoradiography(conc_a, t, conc_i);
+            this   = this.estimateParameters(map) %#ok<NOPRT>
         end
     end
     
@@ -192,10 +183,10 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
             plot(this.times, this.itsConcentration_i / max_i, ...
                  this.times, this.concentration_a    / max_a, 's', ...
                  this.times, this.concentration_obs  / max_i, 'o');
-            legend('Bayesian concentration_i', 'DCV from data',  'concentration_{obs} from data');
+            legend('concentration_i', 'DCV',  'concentration_{obs}');
             title(this.detailedTitle, 'Interpreter', 'none');
             xlabel(this.xLabel);
-            ylabel(sprintf('arbitrary:  C_i norm %g, C_a norm %g', max_i, max_a));
+            ylabel(sprintf('arbitrary:  c_i norm %g, DCV norm %g', max_i, max_a));
         end 
         function        plotParVars(this, par, vars)
             assert(lstrfind(par, properties('mlpet.PETHerscAutoradiography')));
@@ -215,14 +206,7 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
                         args{v} = { this.A0 this.PS this.f  vars(v) this.times this.concentration_a }; end
             end
             this.plotParArgs(par, args, vars);
-        end
-        function this = save(this)   
-            this = this.saveas('PETHerscAutoradiography.save.mat');
-        end
-        function this = saveas(this, fn)  
-            petHerscAutoradiography = this; %#ok<NASGU>
-            save(fn, 'petHerscAutoradiography');         
-        end  
+        end 
     end 
     
     %% PRIVATE

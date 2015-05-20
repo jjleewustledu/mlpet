@@ -1,4 +1,4 @@
-classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem   
+classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem   
 	%% AUTORADIOGRAPHYBUILDER is the abstract interface for Autoradiography builders
     %  such as PETAutoradiography, DSCAutoradiography.  Empty methods may be
     %  overridden as needed.
@@ -27,7 +27,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
     
     properties         
         xLabel = 'times/s'
-        yLabel = 'concentration/(well-counts/mL/s)'
+        yLabel = 'concentration/(well-counts/mL)'
     end
     
     properties (Dependent)
@@ -38,12 +38,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
         ecat
         ecatShift
         ecatSumtFilename
-        concentration_a
-        concentration_obs
-        
         dose
-        mtt_obs
-        mtt_a
     end
     
     methods %% GET
@@ -73,29 +68,13 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
         function fn = get.ecatSumtFilename(this)
             fn = fullfile(this.ecat.filepath, sprintf('%sho1_sumt.nii.gz', this.pnum));
         end
-        function ca = get.concentration_a(this)
-            assert(~isempty(this.concentration_a_));
-            ca = this.concentration_a_;
-        end
-        function co = get.concentration_obs(this)
-            co = this.dependentData;
-        end
-        
         function d  = get.dose(this)
+            assert(~isempty(this.dose_));
             d = this.dose_;
-        end
-        function m  = get.mtt_obs(this)
-            m = this.mtt_obs_;
-        end
-        function m  = get.mtt_a(this)
-            m = this.mtt_a_;
         end
     end
     
     methods (Static)
-        function this = load(varargin)  %#ok<VANUS>
-            this = [];
-        end
         function this = loadAif(varargin)  %#ok<VANUS>
             this = [];
         end
@@ -148,9 +127,6 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
             error('mlpet:requiredObjectNotFound', 'AutoradiographyBuilder.loadDecayCorrectedEcat');
         end
         
-        function ci   = concentration_i
-            ci = [];
-        end
         function tito = indexTakeOff(curve)
             maxCurve = max(curve);
             minCurve = min(curve);
@@ -161,56 +137,38 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
             end
             tito = ti - 1;
         end
-        function args = interpolateData
-            args = {};
-        end
         function f    = invs_to_mLmin100g(f)
             f = 100 * 60 * f / mlpet.AutoradiographyBuilder.BRAIN_DENSITY;
         end
-        function m    = moment1(t, c)
-            m = sum(t .* c) / sum(c);
-        end  
-        function [times,counts] = shiftData(times0, counts0, Dt)
-            import mlpet.*
-            if (Dt > 0)
-                [times,counts] = AutoradiographyBuilder.shiftDataRight(times0, counts0, Dt);
-            else
-                [times,counts] = AutoradiographyBuilder.shiftDataLeft( times0, counts0, Dt);
-            end
-        end
-        function [times,counts] = shiftDataLeft(times0, counts0, Dt)
-            %  Dt in sec
-            Dt     = abs(Dt);
-            idx_0  = floor(sum(double(times0 < Dt + times0(1)))+1);
-            times  = times0(idx_0:end);
-            times  = times - times(1);
-            counts = counts0(idx_0:end);
-            counts = counts - min(counts);
-        end
-        function [times,counts] = shiftDataRight(times0, counts0, Dt)
-            %  Dt in sec
-            Dt     = abs(Dt);
-            lenDt  = ceil(Dt/(times0(2) - times0(1)));
-            newLen = length(counts0) + lenDt;
-            
-            times0 = times0 - times0(1) + Dt;
-            times  = [0:1:lenDt-1 times0];
-            counts = counts0(1) * ones(1,newLen);            
-            counts(end-length(counts0)+1:end) = counts0;
-            counts = counts - min(counts);
-        end
-        function this = simulateMcmc
-            this = [];
-        end
     end
     
-	methods         
-        function this = simulateItsMcmc(this) %#ok<MANU>
-            this = [];
+	methods
+ 		function this = AutoradiographyBuilder(conc_a, times_i, conc_i, varargin) 
+ 			%% AUTORADIOGRAPHYBUILDER  
+ 			%  Usage:  this = AutoradiographyBuilder( ...
+            %                 concentration_a, times_i, concentration_i[, mask, aif, ecat]) 
+            %                 ^ counts/s/mL    ^ s      ^ counts/s/g
+            %                                                             ^ INIfTId
+            %                                                                   ^ ILaif, IWellData 
+            %                                                                        ^ IScannerData
+            %  for DSC*Autoradiography, concentration_a <- concentrationBar_a
+
+ 			this = this@mlbayesian.AbstractPerfusionProblem(conc_a, times_i, conc_i); 
+            ip = inputParser;
+            addRequired(ip, 'conc_a',  @isnumeric);
+            addRequired(ip, 'times_i', @isnumeric);
+            addRequired(ip, 'conc_i',  @isnumeric);
+            addOptional(ip, 'mask', [], @(x) isa(x, 'mlfourd.INIfTId'));
+            addOptional(ip, 'aif',  [], @(x) isa(x, 'mlperfusion.ILaif') || isa(x, 'mlpet.IWellData'));
+            addOptional(ip, 'ecat', [], @(x) isa(x, 'mlpet.IScannerData'));
+            parse(ip, conc_a, times_i, conc_i, varargin{:});
+            
+            this.mask_ = ip.Results.mask;
+            this.aif_  = ip.Results.aif;
+            this.ecat_ = ip.Results.ecat;
+            this.dose_ = this.itsDose; 
         end
-		function ci   = itsConcentration_i(this) %#ok<MANU>
-            ci = [];
-        end
+        
         function dcv  = itsDcv(this)
             dcv = mlpet.PETAutoradiography.loadAif( ...
                  fullfile(this.ecat.filepath, [this.pnum 'ho1.dcv'])); 
@@ -241,72 +199,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
             fprintf('FINAL STATS dose           %g\n\n', this.dose);
             fprintf('FINAL STATS mtt_obs        %g\n',   this.mtt_obs);
             fprintf('FINAL STATS mtt_a          %g\n',   this.mtt_a);
-        end
-        function this = estimateParameters(this)
-        end
-        function ed   = estimateData(this) %#ok<MANU>
-            ed = [];
-        end
-        function ed   = estimateDataFast(this) %#ok<MANU>
-            ed = [];
-        end
-        function x    = priorLow(~, x)
-        end
-        function x    = priorHigh(~, x)
-        end
-        function        plotInitialData(this)
-            figure;
-            max_a   = max(this.concentration_a_);
-            max_obs = max(this.concentration_obs);
-            plot(this.times, this.concentration_a_/max_a, ...
-                 this.times, this.concentration_obs/max_obs);
-            title(sprintf('%s plotInitialData', this.baseTitle), 'Interpreter', 'none');
-            legend('aif', 'ecat');
-            xlabel(this.xLabel);
-            ylabel(sprintf('well-counts/mL/s; rescaled %g, %g', max_a, max_obs));
-        end        
-        function        plotProduct(this)
-            figure;
-            plot(this.times, this.estimateData, this.times, this.dependentData, 'o');
-            legend('Bayesian concentration_i', 'concentration_{obs} from data');
-            title(this.detailedTitle, 'Interpreter', 'none');
-            xlabel(this.xLabel);
-            ylabel(this.yLabel);
         end   
-        function        plotParVars(this) %#ok<MANU>
-        end
-        function this = estimatePriors(this)
-        end
-        
- 		function this = AutoradiographyBuilder(conc_a, times_i, conc_i, varargin) 
- 			%% AUTORADIOGRAPHYBUILDER  
- 			%  Usage:  this = AutoradiographyBuilder( ...
-            %                 concentration_a, times_i, concentration_i[, mask, aif, ecat]) 
-            %                 ^ counts/s/mL    ^ s      ^ counts/s/g
-            %                                                             ^ INIfTId
-            %                                                                   ^ ILaif, IWellData 
-            %                                                                        ^ IScannerData
-            %  for DSC*Autoradiography, concentration_a <- concentrationBar_a
-
- 			this = this@mlbayesian.AbstractMcmcProblem(times_i, conc_i); 
-            ip = inputParser;
-            addRequired(ip, 'conc_a',  @isnumeric);
-            addRequired(ip, 'times_i', @isnumeric);
-            addRequired(ip, 'conc_i',  @isnumeric);
-            addOptional(ip, 'mask', [], @(x) isa(x, 'mlfourd.INIfTId'));
-            addOptional(ip, 'aif',  [], @(x) isa(x, 'mlperfusion.ILaif') || isa(x, 'mlpet.IWellData'));
-            addOptional(ip, 'ecat', [], @(x) isa(x, 'mlpet.IScannerData'));
-            parse(ip, conc_a, times_i, conc_i, varargin{:});
-            
-            this.concentration_a_ = ip.Results.conc_a;
-            this.mask_            = ip.Results.mask;
-            this.aif_             = ip.Results.aif;
-            this.ecat_            = ip.Results.ecat;	
-            
-            this.dose_ = this.itsDose; 
-            this.mtt_a_ = this.moment1(this.times, this.concentration_a);
-            this.mtt_obs_ = this.moment1(this.times, this.concentration_obs);
- 		end 
  	end     
     
     %% PROTECTED
@@ -317,11 +210,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractMcmcProblem
         mask_
         ecat_
         ecatShift_
-        concentration_a_
-        
         dose_ 
-        mtt_a_
-        mtt_obs_
     end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

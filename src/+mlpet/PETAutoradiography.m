@@ -82,22 +82,7 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
             end
             error('mlpet:requiredObjectNotFound', 'PETAutoradiography.loadMask');
         end
-        function this = simulateMcmc(A0, Ew, f, t0, t, conc_a, map)
-            import mlpet.*;       
-            conc_i = PETAutoradiography.concentration_i(A0, Ew, f, t0, t, conc_a); % simulated
-            this   = PETAutoradiography(conc_a, t, conc_i);
-            this   = this.estimateParameters(map) %#ok<NOPRT>
-        end   
-        function this = runAutoradiography(conc_a, t, conc_obs)
-            %% RUNAUTORADIOGRAPHY is deprecated; used by legacy Test_PETAutoradiography
-            %  Usage:   PETAutoradiography.runAutoradiography(arterial_counts, times, scanner_counts) 
-            %                                                 ^ well-counts/s/mL      ^
-            %                                                                  ^ s
-            
-            import mlpet.*;
-            this = PETAutoradiography(conc_a, t, conc_obs);
-            this = this.estimateParameters(this.map);            
-        end
+        
         function ci   = concentration_i(A0, Ew, f, t0, t, conc_a)
             import mlpet.*;
             lambda = PETAutoradiography.LAMBDA;
@@ -124,6 +109,12 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
             c_i = pchip(t_i, c_i, t);            
             args = {c_a t c_i mask aif ecat};
         end
+        function this = simulateMcmc(A0, Ew, f, t0, t, conc_a, map)
+            import mlpet.*;       
+            conc_i = PETAutoradiography.concentration_i(A0, Ew, f, t0, t, conc_a); % simulated
+            this   = PETAutoradiography(conc_a, t, conc_i);
+            this   = this.estimateParameters(map) %#ok<NOPRT>
+        end
     end
     
 	methods	  
@@ -140,10 +131,6 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
             this.expectedBestFitParams_ = [this.A0 this.Ew this.f this.t0]'; % initial expected values from properties
         end 
         
-        function this = simulateItsMcmc(this, conc_a)
-            this = this.simulateMcmc( ...
-                   this.A0, this.Ew, this.f, this.t0, this.times, conc_a, this.map);
-        end
         function ci   = itsConcentration_i(this)
             ci = this.concentration_i( ...
                  this.A0, this.Ew, this.f, this.t0, this.times, this.concentration_a);
@@ -175,6 +162,10 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
             ed = this.concentration_i( ...
                        A0, Ew, f, t0, this.times, this.concentration_a);
         end
+        function this = simulateItsMcmc(this, conc_a)
+            this = this.simulateMcmc( ...
+                   this.A0, this.Ew, this.f, this.t0, this.times, conc_a, this.map);
+        end
              
         function        plotProduct(this)
             figure;
@@ -183,10 +174,10 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
             plot(this.times, this.itsConcentration_i / max_i, ...
                  this.times, this.concentration_a    / max_a, 's', ...
                  this.times, this.concentration_obs  / max_i, 'o');
-            legend('Bayesian concentration_i', 'DCV from data', 'concentration_{obs} from data');
+            legend('concentration_i', 'DCV', 'concentration_{obs}');
             title(this.detailedTitle, 'Interpreter', 'none');
             xlabel(this.xLabel);
-            ylabel(sprintf('arbitrary:  C_i norm %g, C_a norm %g', max_i, max_a));
+            ylabel(sprintf('arbitrary:  c_i norm %g, DCV norm %g', max_i, max_a));
         end  
         function        plotParVars(this, par, vars)
             assert(lstrfind(par, properties('mlpet.PETAutoradiography')));
@@ -206,14 +197,7 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
                         args{v} = { this.A0 this.Ew this.f  vars(v) this.times this.concentration_a }; end
             end
             this.plotParArgs(par, args, vars);
-        end
-        function this = save(this)   
-            this = this.saveas('PETAutoradiography.save.mat');
-        end
-        function this = saveas(this, fn)  
-            petAutoradiography = this; %#ok<NASGU>
-            save(fn, 'petAutoradiography');         
-        end  
+        end 
     end 
     
     %% PRIVATE
