@@ -41,7 +41,7 @@ classdef AutoradiographyDB < mlio.LogParser
         function this = loadPET(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'Ew' 'f' 't0'};
-            this.paramList2 = {'Q' 'Q normalized' 'mtt_obs' 'mtt_a'};
+            this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.train';
             this.model = 'PET';
             this = this.gatherAll;
@@ -49,7 +49,7 @@ classdef AutoradiographyDB < mlio.LogParser
         function this = loadPETHersc(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'PS' 'f' 't0'};
-            this.paramList2 = {'Q' 'Q normalized' 'mtt_obs' 'mtt_a'};
+            this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.train';
             this.model = 'PET Herscovitch';
             this = this.gatherAll;
@@ -57,7 +57,7 @@ classdef AutoradiographyDB < mlio.LogParser
         function this = loadBrainWaterKernel(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'a' 'd' 'n' 'p' 'q0' 't0'};
-            this.paramList2 = {'Q' 'Q normalized'};
+            this.paramList2 = {'Q' 'Q normalized' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'LaifTrainer.train';
             this.model = 'Brain Water Kernel';
             this = this.gatherAll;
@@ -65,7 +65,7 @@ classdef AutoradiographyDB < mlio.LogParser
         function this = loadDSC(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'Ew' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
-            this.paramList2 = {'Q' 'Q normalized'};
+            this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.train';
             this.model = 'DSC-based';
             this = this.gatherAll;
@@ -73,7 +73,7 @@ classdef AutoradiographyDB < mlio.LogParser
         function this = loadDSCHersc(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
-            this.paramList2 = {'Q' 'Q normalized'};
+            this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.train';
             this.model = 'DSC-based Herscovitch';
             this = this.gatherAll;

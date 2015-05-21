@@ -17,15 +17,15 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
  	%  $Id$     
     
 	properties 
-        A0 = 0.009
-        PS = 0.0182 % mL/s/mL, [15O]H_2O, mean human value from Herscovitch 1987
-        a  = 1.44
-        d  = 1.20
+        A0 = 0.009223
+        PS = 0.03169
+        a  = 0.70
+        d  = 1.0
         n  = 0
-        f  = 0.015211 % mL/s/mL, [15O]H_2O, mean human value from Herscovitch 1987
-        p  = 0.375
-        q0 = 2.5e7
-        t0 = 5.72
+        f  = 0.009716
+        p  = 0.36
+        q0 = 3.6e7
+        t0 = 0.5910
     end 
 
     properties (Dependent)
@@ -45,14 +45,14 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
         function m  = get.map(this)
             fL = 1; fH = 1;
             m = containers.Map;
-            m('A0') = struct('fixed', 1, 'min', fL*0.005,  'mean', this.A0, 'max', fH* 0.09);
-            m('PS') = struct('fixed', 0, 'min', fL*0.0093, 'mean', this.PS, 'max', fH* 0.0367); % physiologic range +/- sigma, Herscovitch, JCBFM 7:527-541, 1987, table 2
-            m('f')  = struct('fixed', 0, 'min', fL*0.0050, 'mean', this.f,  'max', fH* 0.0155); % 
-            m('t0') = struct('fixed', 0, 'min',    0,      'mean', this.t0, 'max', fH*20);
-            m('a')  = struct('fixed', 0, 'min', fL*0.12,   'mean', this.a,  'max', fH* 5.5);
-            m('d')  = struct('fixed', 0, 'min', fL*0.91,   'mean', this.d,  'max', fH* 1.8);
-            m('p')  = struct('fixed', 0, 'min', fL*0.28,   'mean', this.p,  'max', fH* 0.67); 
-            m('q0') = struct('fixed', 0, 'min', fL*5e6,    'mean', this.q0, 'max', fH* 1e8);
+            m('A0') = struct('fixed', 1, 'min', fL*0.007269, 'mean', this.A0, 'max', fH* 0.01380);
+            m('PS') = struct('fixed', 1, 'min', fL*0.009275, 'mean', this.PS, 'max', fH* 0.03675); % physiologic range +/- sigma, Herscovitch, JCBFM 7:527-541, 1987, table 2
+            m('f')  = struct('fixed', 1, 'min', fL*0.004305, 'mean', this.f,  'max', fH* 0.01229); % 
+            m('t0') = struct('fixed', 0, 'min',    0.00932,  'mean', this.t0, 'max', fH*14.8);
+            m('a')  = struct('fixed', 1, 'min', fL*0.280,    'mean', this.a,  'max', fH* 7.96);
+            m('d')  = struct('fixed', 1, 'min', fL*0.877,    'mean', this.d,  'max', fH* 1.02);
+            m('p')  = struct('fixed', 1, 'min', fL*0.225,    'mean', this.p,  'max', fH* 0.535); 
+            m('q0') = struct('fixed', 0, 'min', fL*1e6,      'mean', this.q0, 'max', fH* 2e8);
             
             if (mlpet.DSCHerscAutoradiography.USE_RECIRCULATION)
                 m('n') = struct('fixed', 1, 'min',    0, 'mean', 0.5*this.n, 'max', fH*this.n);
@@ -120,7 +120,9 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
             dt     = t(2) - t(1);
             m      = 1 - exp(-PS/f);
             conc_a = q0 * aDose * dt * ...
-                     conv(DSCHerscAutoradiography.concentrationBar_a(aif, n, t, aifShift), ...
+                     conv(DSCHerscAutoradiography.handInjection(t, ...
+                               DSCHerscAutoradiography.concentrationBar_a(aif, n, t, aifShift), ...
+                               DSCHerscAutoradiography.INJECTION_RATE), ...
                           DSCHerscAutoradiography.kernel(a,d,p,t));
             conc_a = conc_a(1:length(t));
             ci0    = A0 * m * f * dt * abs(conv(conc_a, exp(-(m * f / lambda + lambda_decay) * t)));
@@ -180,7 +182,8 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
             import mlpet.*;
             dt = this.times(2) - this.times(1);
             ca = this.q0 * this.dose * dt * ...
-                 conv(this.concentrationBar_a(this.aif, this.n, this.times, this.aifShift), ...
+                 conv(this.handInjection( ...
+                           this.times, this.concentrationBar_a(this.aif, this.n, this.times, this.aifShift), this.INJECTION_RATE), ...
                       this.kernel(this.a, this.d, this.p, this.times));
             ca = ca(1:this.length);
         end

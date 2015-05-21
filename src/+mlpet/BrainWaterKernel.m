@@ -15,27 +15,30 @@ classdef BrainWaterKernel < mlbayesian.AbstractPerfusionProblem
         DCV_SHIFT2 = 0
         TIME_SUP = 120 % sec
         USE_RECIRCULATION = false
+        INJECTION_RATE = 0.25
     end
     
 	properties
         xLabel = 'times/s'
         yLabel = 'concentration/(well-counts/mL)'
         
-        a  = 1.09
-        d  = 1.08
-        n  = 2.04e-4
-        p  = 0.375
-        q0 = 2.74e6
-        t0 = 2.21
+        %% from mm01-007_p7267
+         
+%         a  = 0.280722 
+%         d  = 1.020942
+%         n  = 0
+%         p  = 0.272528
+%         q0 = 2199633.025287
+%         t0 = 0.139836
+
+        %% from LaifTrainer.trainBrainWaterKernel_20150520T024601.log    
         
-        aS  = 0.35
-        dS  = 0.0013
-        nS  = 0.0098
-        pS  = 0.0065
-        q0S = 7.5e4
-        t0S = 0.16
-        
-        priorN = 1000
+        a  = 3.59 
+        d  = 0.944
+        n  = 0
+        p  = 0.290
+        q0 = 2.26e6
+        t0 = 0.110
     end 
     
     properties (Dependent)
@@ -67,18 +70,21 @@ classdef BrainWaterKernel < mlbayesian.AbstractPerfusionProblem
             assert(~isempty(this.dcvShift_));
             a = this.dcvShift_;
         end
-        function m  = get.map(this)
+        function m  = get.map(this) 
+            %% GET.MAP from LaifTrainer.trainBrainWaterKernel_20150520T024601.log
+            
             m = containers.Map;
-            m('a')  = struct('fixed',0,'min',this.priorLow(this.a, this.aS, 0.12),'mean',this.a,    'max',this.priorHigh(this.a, this.aS, 8.5));
-            m('d')  = struct('fixed',0,'min',this.priorLow(this.d, this.dS, 0.91),'mean',this.d,    'max',this.priorHigh(this.d, this.dS, 1.8));
-            m('p')  = struct('fixed',0,'min',this.priorLow(this.p, this.pS, 0.28),'mean',this.p,    'max',this.priorHigh(this.p, this.pS, 0.67)); 
-            m('q0') = struct('fixed',0,'min',this.priorLow(this.q0,this.q0S,1e6), 'mean',this.q0,   'max',this.priorHigh(this.q0,this.q0S, 8e6));
-            m('t0') = struct('fixed',0,'min',this.priorLow(this.t0,this.t0S,0),   'mean',this.t0,   'max',this.priorHigh(this.t0,this.t0S,25)); 
+            fL = 0.9; fH = 1.1;
+            m('a')  = struct('fixed',0,'min',fL*0.280,  'mean',this.a, 'max',fH*7.96);
+            m('d')  = struct('fixed',0,'min',fL*0.877,  'mean',this.d, 'max',fH*1.02);
+            m('p')  = struct('fixed',0,'min',fL*0.225,  'mean',this.p, 'max',fH*0.535); 
+            m('q0') = struct('fixed',0,'min',fL*1.49e6, 'mean',this.q0,'max',fH*4.14e6);
+            m('t0') = struct('fixed',0,'min',   0.00932,'mean',this.t0,'max',fH*0.156); 
             
             if (mlpet.BrainWaterKernel.USE_RECIRCULATION)
-                m('n') = struct('fixed',1,'min',this.priorLow(this.d, this.dS, 0),  'mean',0.5*this.n,'max',this.priorHigh(this.n, this.nS, this.n));
+                m('n') = struct('fixed',1,'min', 0,  'mean',0.5*this.n,'max',this.n);
             else
-                m('n') = struct('fixed',1,'min',this.priorLow(this.d, this.dS,-eps),'mean',0,         'max',eps);
+                m('n') = struct('fixed',1,'min',-eps,'mean',0,         'max',     eps);
             end
         end
     end
@@ -109,7 +115,10 @@ classdef BrainWaterKernel < mlbayesian.AbstractPerfusionProblem
             import mlpet.*;
             dt  = t(2) - t(1);
             ci = q0 * dt * ...
-                  abs(conv(BrainWaterKernel.concentrationBar_a(laif2, n, t, aifShift), ...
+                  abs(conv(BrainWaterKernel.handInjection( ...
+                               t, ...
+                               BrainWaterKernel.concentrationBar_a(laif2, n, t, aifShift), ...
+                               BrainWaterKernel.INJECTION_RATE), ...
                            BrainWaterKernel.kernel(a, d, p, t0, t)));
             ci = ci(1:length(t));
         end
@@ -242,14 +251,16 @@ classdef BrainWaterKernel < mlbayesian.AbstractPerfusionProblem
         function        plotProduct(this)
             figure;
             max_k   = max(this.itsKernel);
+            max_a   = max(this.itsConcentrationBar_a);
             max_dcv = max(max(this.concentration_obs), max(this.itsConcentration_i));
-            plot(this.times, this.itsKernel/max_k, ...
+            plot(this.times, this.itsKernel/max_k, ':', ...
+                 this.times, this.itsConcentrationBar_a/max_a, '--',  ...
                  this.times, this.itsConcentration_i/max_dcv, ...
                  this.times, this.concentration_obs/max_dcv, 'o');
-            legend('kernel', 'concentration_i', 'concentration_obs');
+            legend('kernel', 'concentrationBar_a', 'concentration_i', 'concentration_obs');
             title(this.detailedTitle, 'Interpreter', 'none');
             xlabel(this.xLabel);
-            ylabel(sprintf('arbitrary; rescaled %g, %g', max_k, max_dcv));
+            ylabel(sprintf('arbitrary; rescaled %g, %g, %g', max_k, max_a, max_dcv));
         end        
         function        plotParVars(this, par, vars)
             assert(lstrfind(par, properties('mlperfusion.BrainWaterKernel')));

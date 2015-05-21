@@ -17,10 +17,12 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
  	%  $Id$ 
     
 	properties 
-        A0 = 0.0114
-        PS = 0.0307 %  mL/s/mL, [15O]H_2O
-        f  = 0.00928 % mL/s/mL, [15O]H_2O
-        t0 = 0.045847
+        %% From AutoradiographyTrainer.trainPETHersc_20150520T220557.log
+        
+        A0 = 0.009223
+        PS = 0.03169
+        f  = 0.009716
+        t0 = 0.5910
     end
 
     properties (Dependent)
@@ -38,12 +40,14 @@ classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
                          this.baseTitle, this.A0, this.PS, this.f, this.t0);
         end
         function m  = get.map(this)
-            fL = 0.9; fH = 1.1;
+            %% GET.MAP from AutoradiographyTrainer.trainPETHersc_20150520T220557.log
+            
+            fL = 1; fH = 1;
             m = containers.Map;
-            m('A0') = struct('fixed', 0, 'min', fL*0.0102, 'mean', this.A0, 'max', fH* 0.0139);
-            m('PS') = struct('fixed', 0, 'min', fL*0.0093, 'mean', this.PS, 'max', fH* 0.0367); % physiologic range +/- sigma, Herscovitch, JCBFM 7:527-541, 1987, table 2
-            m('f')  = struct('fixed', 0, 'min', fL*0.0050, 'mean', this.f,  'max', fH* 0.0155); % 
-            m('t0') = struct('fixed', 0, 'min',    0,      'mean', this.t0, 'max', fH*20);
+            m('A0') = struct('fixed', 0, 'min', fL*0.007269, 'mean', this.A0, 'max', fH* 0.01380);
+            m('PS') = struct('fixed', 0, 'min', fL*0.009275, 'mean', this.PS, 'max', fH* 0.03675); % physiologic range +/- sigma, Herscovitch, JCBFM 7:527-541, 1987, table 2
+            m('f')  = struct('fixed', 0, 'min', fL*0.004305, 'mean', this.f,  'max', fH* 0.01229); % 
+            m('t0') = struct('fixed', 0, 'min',    0.4596,   'mean', this.t0, 'max', fH* 1.505);
         end
     end
     

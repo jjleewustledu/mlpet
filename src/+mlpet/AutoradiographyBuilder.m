@@ -19,6 +19,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
         TIME_SUP = 120          % sec
         REUSE_STORED = true
         USE_RECIRCULATION = false
+        INJECTION_RATE = 0.25
     end
 
     properties (Abstract)
@@ -39,6 +40,8 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
         ecatShift
         ecatSumtFilename
         dose
+        duration
+        volume
     end
     
     methods %% GET
@@ -71,6 +74,14 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
         function d  = get.dose(this)
             assert(~isempty(this.dose_));
             d = this.dose_;
+        end
+        function d  = get.duration(this)
+            assert(~isempty(this.duration_));
+            d = this.duration_;
+        end
+        function d  = get.volume(this)
+            assert(~isempty(this.volume_));
+            d = this.volume_;
         end
     end
     
@@ -163,10 +174,12 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
             addOptional(ip, 'ecat', [], @(x) isa(x, 'mlpet.IScannerData'));
             parse(ip, conc_a, times_i, conc_i, varargin{:});
             
-            this.mask_ = ip.Results.mask;
-            this.aif_  = ip.Results.aif;
-            this.ecat_ = ip.Results.ecat;
-            this.dose_ = this.itsDose; 
+            this.mask_     = ip.Results.mask;
+            this.aif_      = ip.Results.aif;
+            this.ecat_     = ip.Results.ecat;
+            this.dose_     = this.itsDose; 
+            this.duration_ = this.itsDuration;
+            this.volume_   = this.itsVolume;
         end
         
         function dcv  = itsDcv(this)
@@ -175,30 +188,24 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
         end 
         function dose = itsDose(this)
             taus              = this.times(2:end) - this.times(1:end-1);
-            taus(this.length) = taus(this.length - 1);
-            maskVol = this.mask.count * prod(this.mask.mmppix/10); % mL
-            duration = this.times(end) - ...
-                       this.times(this.indexTakeOff(this.concentration_obs));
-                       
+            taus(this.length) = taus(this.length - 1);                       
             dose = this.concentration_obs * taus'; % time-integral
-            dose = dose / maskVol / duration;
+            dose = dose / this.itsVolume / this.itsDuration;
         end
-        function ir   = itsDscInjectionRate(~)
-            ir = 5; % mL/s
+        function dura = itsDuration(this)
+            dura = this.times(end) - ...
+                   this.times(this.indexTakeOff(this.concentration_obs));
         end
-        function ir   = itsEcatInjectionRate(t, conc_a)
-            volume = 5; % mL
-            tau = mlpet.AutoradiographyBuilder.moment1(t, conc_a);
-            ir = volume/tau; % mL/s
-        end
-        function sr   = itsArterialSamplingRate(~)
-            sr = 5/60; % mL/s
+        function vol  = itsVolume(this)
+            vol = this.mask.count * prod(this.mask.mmppix/10); % mL
         end
         function this = estimateAll(this)
             this = this.estimateParameters(this.map);
-            fprintf('FINAL STATS dose           %g\n\n', this.dose);
-            fprintf('FINAL STATS mtt_obs        %g\n',   this.mtt_obs);
-            fprintf('FINAL STATS mtt_a          %g\n',   this.mtt_a);
+            fprintf('FINAL STATS dose            %g\n', this.dose);
+            fprintf('FINAL STATS duration        %g\n', this.duration);
+            fprintf('FINAL STATS volume          %g\n', this.volume);
+            fprintf('FINAL STATS mtt_obs         %g\n',   this.mtt_obs);
+            fprintf('FINAL STATS mtt_a           %g\n',   this.mtt_a);
         end   
  	end     
     
@@ -211,6 +218,8 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
         ecat_
         ecatShift_
         dose_ 
+        duration_
+        volume_
     end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

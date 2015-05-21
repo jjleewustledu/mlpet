@@ -41,8 +41,9 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             
             pwd0 = pwd;
             cd(this.WORK_DIR);
-            diary(sprintf('AutoradiographyTrainer.trainPET_%s.log', datestr(now, 30)));
-            for c = 4:4 %1:length(this.MM_CASES)
+            logFn = fullfile(this.WORK_DIR, sprintf('AutoradiographyTrainer.trainPET_%s.log', datestr(now, 30)));
+            diary(logFn);
+            for c = 1:length(this.MM_CASES)
                 cd(fullfile(this.WORK_DIR, this.casePaths{c}));  
                 fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
                 fprintf('AutoradiographyTrainer.trainPET is working in %s\n', pwd);
@@ -50,7 +51,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
                     AutoradiographyDirector.loadPET( ...
                         this.maskFn, this.aifFn, this.ecatFn, this.DCV_SHIFTS(c), this.ECAT_SHIFTS(c));
                 tmp = this.director_.product;
-                tmp.f = this.PETAUTO_FLOWS(c);
+                tmp.f = this.VIDEEN_FLOWS(c);
                 this.director_.product = tmp;
                 this.director_ = this.director_.estimateAll;
                 prods{c} = this.director_.product;  %#ok<NASGU>
@@ -58,6 +59,9 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             cd(this.WORK_DIR);            
             save(sprintf('AutoradiographyTrainer.trainPET.prods_%s.mat', datestr(now,30)), 'prods');
             cd(p.Results.figFolder);
+            db = AutoradiographyDB.loadPET(logFn);
+            db.getSummaryPlot;
+            db.getSummaryPlot2;
             AutoradiographyTrainer.saveFigs;
             cd(pwd0);
             diary off
@@ -72,7 +76,8 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             
             pwd0 = pwd;
             cd(this.WORK_DIR);
-            diary(sprintf('AutoradiographyTrainer.trainPETHersc_%s.log', datestr(now, 30)));
+            logFn = fullfile(this.WORK_DIR, sprintf('AutoradiographyTrainer.trainPETHersc_%s.log', datestr(now, 30)));
+            diary(logFn);
             for c = 1:length(this.MM_CASES)
                 cd(fullfile(this.WORK_DIR, this.casePaths{c}));  
                 fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
@@ -81,7 +86,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
                     AutoradiographyDirector.loadPETHersc( ...
                         this.maskFn, this.aifFn, this.ecatFn, this.DCV_SHIFTS(c), this.ECAT_SHIFTS(c));
                 tmp = this.director_.product;
-                tmp.f = this.PETAUTO_FLOWS(c);
+                tmp.f = this.PET_FLOWS(c);
                 this.director_.product = tmp;                
                 this.director_ = this.director_.estimateAll;
                 prods{c} = this.director_.product; %#ok<NASGU>
@@ -89,6 +94,9 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             cd(this.WORK_DIR);            
             save(sprintf('AutoradiographyTrainer.trainPETHersc.prods_%s.mat', datestr(now,30)), 'prods');            
             cd(p.Results.figFolder);
+            db = AutoradiographyDB.loadPETHersc(logFn);
+            db.getSummaryPlot;
+            db.getSummaryPlot2;
             AutoradiographyTrainer.saveFigs;
             cd(pwd0);
             diary off
@@ -102,9 +110,10 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             parse(p, varargin{:});            
             
             pwd0 = pwd;
-            cd(this.WORK_DIR);            
-            diary(sprintf('AutoradiographyTrainer.trainDSC_%s.log', datestr(now, 30)));
-            for c = 4:4 % 1:length(this.MM_CASES)
+            cd(this.WORK_DIR);  
+            logFn = fullfile(this.WORK_DIR, sprintf('AutoradiographyTrainer.trainDSC_%s.log', datestr(now, 30)));          
+            diary(logFn);
+            for c = 4:4 %1:length(this.MM_CASES)
                 cd(fullfile(this.WORK_DIR, this.casePaths{c})); 
                 fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
                 fprintf('AutoradiographyTrainer.trainDSC is working in %s\n', pwd);
@@ -112,7 +121,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
                     AutoradiographyDirector.loadDSC( ...
                         this.maskFn, this.dscMaskFn, this.dscFn, this.ecatFn);
                 tmp = this.director_.product;
-                tmp.f = this.PETAUTO_FLOWS(c);
+                tmp.f = this.PETHERSC_FLOWS(c);
                 this.director_.product = tmp;
                 this.director_ = this.director_.estimateAll;
                 prods{c} = this.director_.product; %#ok<NASGU>
@@ -120,6 +129,9 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             cd(this.WORK_DIR); 
             save(sprintf('AutoradiographyTrainer.trainDSC.prods_%s.mat', datestr(now,30)), 'prods');
             cd(p.Results.figFolder);
+            db = AutoradiographyDB.loadDSC(logFn);
+            db.getSummaryPlot;
+            db.getSummaryPlot2;
             AutoradiographyTrainer.saveFigs;
             cd(pwd0);
             diary off
@@ -134,8 +146,9 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             
             pwd0 = pwd;
             cd(this.WORK_DIR);
-            diary(sprintf('AutoradiographyTrainer.trainDSCHersc_%s.log', datestr(now, 30)));
-            for c = 1:length(this.MM_CASES)
+            logFn = fullfile(this.WORK_DIR, sprintf('AutoradiographyTrainer.trainDSCHersc_%s.log', datestr(now, 30))); 
+            diary(logFn);
+            for c = 4:4 % 1:length(this.MM_CASES)
                 cd(fullfile(this.WORK_DIR, this.casePaths{c}));  
                 fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
                 fprintf('AutoradiographyTrainer.trainDSCHersc is working in %s\n', pwd);      
@@ -143,7 +156,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
                     AutoradiographyDirector.loadDSCHersc( ...
                         this.maskFn, this.dscMaskFn, this.dscFn, this.ecatFn, 0, this.ECAT_SHIFTS(c));
                 tmp = this.director_.product;
-                tmp.f = this.PETAUTO_FLOWS(c);
+                tmp.f = this.PETHERSC_FLOWS(c);
                 this.director_.product = tmp;
                 this.director_ = this.director_.estimateAll;
                 prods{c} = this.director_.product; %#ok<NASGU>
@@ -151,6 +164,9 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
             cd(this.WORK_DIR);             
             save(sprintf('AutoradiographyTrainer.trainDSCHersc.prods_%s.mat', datestr(now,30)), 'prods');            
             cd(p.Results.figFolder);
+            db = AutoradiographyDB.loadDSCHersc(logFn);
+            db.getSummaryPlot;
+            db.getSummaryPlot2;
             AutoradiographyTrainer.saveFigs;
             cd(pwd0);
             diary off
