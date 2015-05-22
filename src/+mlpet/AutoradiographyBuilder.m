@@ -213,7 +213,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
     
     properties (Access = 'protected')
         aif_
-        aifShift_
+        aifShift_ = 0
         mask_
         ecat_
         ecatShift_

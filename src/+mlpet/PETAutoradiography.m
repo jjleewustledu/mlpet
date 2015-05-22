@@ -109,8 +109,8 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
             [t_i,c_i] = PETAutoradiography.shiftData(ecatSkinny.times, ecatSkinny.becquerels, ecatShift);        
             dt  = min(min(aif.taus), min(ecatSkinny.taus));
             t   = min(t_a(1), t_i(1)):dt:min([t_a(end) t_i(end) PETAutoradiography.TIME_SUP]);
-            c_a = pchip(t_a, c_a, t);
-            c_i = pchip(t_i, c_i, t);            
+            c_a = PETAutoradiography.myPchip(t_a, c_a, t);
+            c_i = PETAutoradiography.myPchip(t_i, c_i, t);            
             args = {c_a t c_i mask aif ecat};
         end
         function this = simulateMcmc(A0, Ew, f, t0, t, conc_a, map)

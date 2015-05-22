@@ -17,15 +17,15 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
  	%  $Id$     
     
 	properties 
-        A0 = 0.009223
-        PS = 0.03169
-        a  = 0.70
-        d  = 1.0
+        A0 = 0.009234
+        PS = 0.0314812307692308
+        a  = 0.280722
+        d  = 0.951272038461539
         n  = 0
         f  = 0.009716
-        p  = 0.36
-        q0 = 3.6e7
-        t0 = 0.5910
+        p  = 0.272528
+        q0 = 1.843e7
+        t0 = 0.5232
     end 
 
     properties (Dependent)
@@ -43,16 +43,16 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
                          this.baseTitle, this.A0, this.PS, this.a, this.d, this.f, this.p, this.q0, this.t0);
         end
         function m  = get.map(this)
-            fL = 1; fH = 1;
+            fL = 0.5; fH = 2;
             m = containers.Map;
-            m('A0') = struct('fixed', 1, 'min', fL*0.007269, 'mean', this.A0, 'max', fH* 0.01380);
+            m('A0') = struct('fixed', 1, 'min', fL*0.007200, 'mean', this.A0, 'max', fH* 0.01400);
             m('PS') = struct('fixed', 1, 'min', fL*0.009275, 'mean', this.PS, 'max', fH* 0.03675); % physiologic range +/- sigma, Herscovitch, JCBFM 7:527-541, 1987, table 2
+            m('a')  = struct('fixed', 1, 'min', fL*0.280,    'mean', this.a,  'max', fH* 7.97);
+            m('d')  = struct('fixed', 1, 'min', fL*0.877,    'mean', this.d,  'max', fH* 1.03);
             m('f')  = struct('fixed', 1, 'min', fL*0.004305, 'mean', this.f,  'max', fH* 0.01229); % 
-            m('t0') = struct('fixed', 0, 'min',    0.00932,  'mean', this.t0, 'max', fH*14.8);
-            m('a')  = struct('fixed', 1, 'min', fL*0.280,    'mean', this.a,  'max', fH* 7.96);
-            m('d')  = struct('fixed', 1, 'min', fL*0.877,    'mean', this.d,  'max', fH* 1.02);
             m('p')  = struct('fixed', 1, 'min', fL*0.225,    'mean', this.p,  'max', fH* 0.535); 
-            m('q0') = struct('fixed', 0, 'min', fL*1e6,      'mean', this.q0, 'max', fH* 2e8);
+            m('q0') = struct('fixed', 0, 'min', fL*1.129e7,  'mean', this.q0, 'max', fH* 2.962e7);
+            m('t0') = struct('fixed', 0, 'min', fL*0.05175,  'mean', this.t0, 'max',  6* 2.564);
             
             if (mlpet.DSCHerscAutoradiography.USE_RECIRCULATION)
                 m('n') = struct('fixed', 1, 'min',    0, 'mean', 0.5*this.n, 'max', fH*this.n);
@@ -81,7 +81,7 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
             mask = DSCHerscAutoradiography.loadMask(ip.Results.maskFn); 
             aif  = DSCHerscAutoradiography.loadAif(ip.Results.aifFn, ip.Results.maskAifFn); 
             ecat = DSCHerscAutoradiography.loadEcat(ip.Results.ecatFn);         
-            aifShift  = ip.Results.aifShift - aif.t0;
+            aifShift  = ip.Results.aifShift;
             ecatShift = ip.Results.ecatShift;
             
             args = DSCHerscAutoradiography.interpolateData(mask, aif, ecat, aifShift, ecatShift); 
@@ -112,7 +112,7 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
             save(storageFn, 'laif2');
         end
            
-        function ci   = concentration_i(A0, PS, a, d, f, n, p, q0, t0, t, aif, aifShift, aDose)
+        function ci   = concentration_i(A0, PS, a, d, f, n, p, q0, t0, t, aif, aDose)
             import mlpet.*;
             lambda = DSCHerscAutoradiography.LAMBDA;
             lambda_decay = DSCHerscAutoradiography.LAMBDA_DECAY;
@@ -121,7 +121,7 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
             m      = 1 - exp(-PS/f);
             conc_a = q0 * aDose * dt * ...
                      conv(DSCHerscAutoradiography.handInjection(t, ...
-                               DSCHerscAutoradiography.concentrationBar_a(aif, n, t, aifShift), ...
+                               DSCHerscAutoradiography.concentrationBar_a(aif, n, t), ...
                                DSCHerscAutoradiography.INJECTION_RATE), ...
                           DSCHerscAutoradiography.kernel(a,d,p,t));
             conc_a = conc_a(1:length(t));
@@ -133,11 +133,11 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
             ci(idx_t0:end) = ci0(1:end-idx_t0+1);
             ci     = abs(ci);
         end
-        function cb_a = concentrationBar_a(aif, n, t, aifShift)
+        function cba = concentrationBar_a(aif, n, t)
             if (mlpet.DSCHerscAutoradiography.USE_RECIRCULATION)
-                cb_a = aif.kAif_2(aif.a, aif.b, n, t, aif.t0 + aifShift, aif.t1 + aifShift);
+                cba = aif.kAif_2(aif.a, aif.b, n, t, 0, aif.t1 - aif.t0);
             else
-                cb_a = aif.kAif_1(aif.a, aif.b,    t, aif.t0 + aifShift);
+                cba = aif.kAif_1(aif.a, aif.b,    t, 0);
             end
         end
         function k    = kernel(a, d, p, t)
@@ -145,7 +145,7 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
             k  = t.^(d-1) .* exp(-(t/a).^p);
             k  = k / (sum(k) * dt);
         end
-        function args = interpolateData(mask, aif, ecat, aifShift, ecatShift)
+        function args = interpolateData(mask, aif, ecat, ~, ecatShift)
             ecat       = ecat.masked(mask);
             ecatSkinny = ecat.volumeSummed;   
             ecatSkinny.img = ecatSkinny.img/mask.count;
@@ -157,16 +157,16 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
             else
                 kAif = aif.itsKAif_1;
             end
-            [t_a,c_a] = DSCHerscAutoradiography.shiftData(       aif.times,            kAif,       aifShift);
+            [t_a,c_a] = DSCHerscAutoradiography.shiftData(       aif.times,            kAif,      -aif.t0);
             [t_i,c_i] = DSCHerscAutoradiography.shiftData(ecatSkinny.times, ecatSkinny.becquerels, ecatShift); 
             t   = t_i(1):dt:min([t_i(end) DSCHerscAutoradiography.TIME_SUP]);
-            c_a = pchip(t_a, c_a, t);
-            c_i = pchip(t_i, c_i, t);            
+            c_a = DSCHerscAutoradiography.myPchip(t_a, c_a, t);
+            c_i = DSCHerscAutoradiography.myPchip(t_i, c_i, t);            
             args = {c_a t c_i mask aif ecat};
         end
-        function this = simulateMcmc(A0, PS, a, d, f, n, p, q0, t0, t, concbar_a, aDose, map, mask, aif, aifShift, ecat)
+        function this = simulateMcmc(A0, PS, a, d, f, n, p, q0, t0, t, concbar_a, aDose, map, mask, aif, ecat)
             import mlpet.*;       
-            conc_i = DSCHerscAutoradiography.concentration_i(A0, PS, a, d, f, n, p, q0, t0, t, aif, aifShift, aDose); % simulated
+            conc_i = DSCHerscAutoradiography.concentration_i(A0, PS, a, d, f, n, p, q0, t0, t, aif, aDose); % simulated
             this   = DSCHerscAutoradiography(concbar_a, t, conc_i, mask, aif, ecat);
             this   = this.estimateParameters(map) %#ok<NOPRT>
         end
@@ -176,14 +176,14 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
         function ci   = itsConcentration_i(this)
             ci = this.concentration_i( ...
                  this.A0, this.PS, this.a, this.d, this.f, this.n, this.p, this.q0, this.t0, ...
-                 this.times, this.aif, this.aifShift, this.dose_);
+                 this.times, this.aif, this.dose_);
         end
         function ca   = itsEstimatedConcentration_a(this)
             import mlpet.*;
             dt = this.times(2) - this.times(1);
             ca = this.q0 * this.dose * dt * ...
                  conv(this.handInjection( ...
-                           this.times, this.concentrationBar_a(this.aif, this.n, this.times, this.aifShift), this.INJECTION_RATE), ...
+                           this.times, this.concentrationBar_a(this.aif, this.n, this.times), this.INJECTION_RATE), ...
                       this.kernel(this.a, this.d, this.p, this.times));
             ca = ca(1:this.length);
         end
@@ -222,7 +222,7 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
         end
         function ed   = estimateDataFast(this, A0, PS, a, d, f, n, p, q0, t0)
             ed = this.concentration_i( ...
-                      A0, PS, a, d, f, n, p, q0, t0, this.times, this.aif, this.aifShift, this.dose_);
+                      A0, PS, a, d, f, n, p, q0, t0, this.times, this.aif, this.dose_);
         end
         function ps   = adjustParams(this, ps)
             manager = this.paramsManager;
@@ -242,18 +242,19 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
             this = this.simulateMcmc( ...
                    this.A0, this.PS, this.a, this.d, this.f, this.n, this.p, this.q0, this.t0, ...
                    this.times, aif, this.dose_, this.map, ...
-                   this.mask, this.aif, this.aifShift, this.ecat);
+                   this.mask, this.aif, this.ecat);
         end
         
         function        plotProduct(this)
             figure;
             dcv      = this.itsDcv;
-            dcvTimes = dcv.times + this.aifShift;
             max_i = max(max( this.itsConcentration_i),          max(this.concentration_obs));
             max_a = max(max( this.itsEstimatedConcentration_a), max(dcv.wellCounts));
             plot(this.times, this.itsConcentration_i          / max_i, ...
-                 this.times, this.itsEstimatedConcentration_a / max_a, ...
-                   dcvTimes, dcv.wellCounts                   / max_a, 'o', ...
+                 this.times + this.t0, ...
+                             this.itsEstimatedConcentration_a / max_a, ...
+                  dcv.times + this.t0 + this.aifShift, ...
+                             dcv.wellCounts                   / max_a, 'o', ...
                  this.times, this.concentration_obs           / max_i, 'o');
             legend('concentration_i', 'concentration_a', 'DCV',  'concentration_{obs}');
             title(this.detailedTitle, 'Interpreter', 'none');
@@ -266,31 +267,31 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
             switch (par)
                 case 'A0'
                     for v = 1:length(vars)
-                        args{v} = { vars(v) this.PS this.a  this.d  this.f  this.n  this.p  this.q0  this.t0 this.times this.aif this.aifShift this.dose }; end
+                        args{v} = { vars(v) this.PS this.a  this.d  this.f  this.n  this.p  this.q0  this.t0 this.times this.aif this.dose }; end
                 case 'PS'
                     for v = 1:length(vars)
-                        args{v} = { this.A0 vars(v) this.a  this.d  this.f  this.n  this.p  this.q0  this.t0 this.times this.aif this.aifShift this.dose }; end
+                        args{v} = { this.A0 vars(v) this.a  this.d  this.f  this.n  this.p  this.q0  this.t0 this.times this.aif this.dose }; end
                 case 'a'
                     for v = 1:length(vars)
-                        args{v} = { this.A0 this.PS vars(v) this.d  this.f  this.n  this.p  this.q0  this.t0 this.times this.aif this.aifShift this.dose }; end
+                        args{v} = { this.A0 this.PS vars(v) this.d  this.f  this.n  this.p  this.q0  this.t0 this.times this.aif this.dose }; end
                 case 'd'
                     for v = 1:length(vars)
-                        args{v} = { this.A0 this.PS this.a  vars(v) this.f  this.n  this.p  this.q0  this.t0 this.times this.aif this.aifShift this.dose }; end
+                        args{v} = { this.A0 this.PS this.a  vars(v) this.f  this.n  this.p  this.q0  this.t0 this.times this.aif this.dose }; end
                 case 'f'
                     for v = 1:length(vars)
-                        args{v} = { this.A0 this.PS this.a  this.d  vars(v) this.n  this.p  this.q0  this.t0 this.times this.aif this.aifShift this.dose }; end
+                        args{v} = { this.A0 this.PS this.a  this.d  vars(v) this.n  this.p  this.q0  this.t0 this.times this.aif this.dose }; end
                 case 'n'
                     for v = 1:length(vars)
-                        args{v} = { this.A0 this.PS this.a  this.d  this.f  vars(v) this.p  this.q0  this.t0 this.times this.aif this.aifShift this.dose }; end
+                        args{v} = { this.A0 this.PS this.a  this.d  this.f  vars(v) this.p  this.q0  this.t0 this.times this.aif this.dose }; end
                 case 'p'
                     for v = 1:length(vars)
-                        args{v} = { this.A0 this.PS this.a  this.d  this.f  this.n  vars(v) this.q0  this.t0 this.times this.aif this.aifShift this.dose }; end
+                        args{v} = { this.A0 this.PS this.a  this.d  this.f  this.n  vars(v) this.q0  this.t0 this.times this.aif this.dose }; end
                 case 'q0'
                     for v = 1:length(vars)
-                        args{v} = { this.A0 this.PS this.a  this.d  this.f  this.n  this.p  vars(v)  this.t0 this.times this.aif this.aifShift this.dose }; end
+                        args{v} = { this.A0 this.PS this.a  this.d  this.f  this.n  this.p  vars(v)  this.t0 this.times this.aif this.dose }; end
                 case 't0'
                     for v = 1:length(vars)
-                        args{v} = { this.A0 this.PS this.a  this.d  this.f  this.n  this.p  this.q0  vars(v) this.times this.aif this.aifShift this.dose }; end
+                        args{v} = { this.A0 this.PS this.a  this.d  this.f  this.n  this.p  this.q0  vars(v) this.times this.aif this.dose }; end
             end
             this.plotParArgs(par, args, vars);
         end
@@ -310,6 +311,7 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
 
  			this = this@mlpet.AutoradiographyBuilder(varargin{:}); 
             this.n = this.aif.n;
+            this.mtt_a_ = this.moment1(this.times, this.itsEstimatedConcentration_a);
             this.expectedBestFitParams_ = ...
                 [this.A0 this.PS this.a this.d this.f this.n this.p this.q0 this.t0]'; 
                 % initial expected values from properties
