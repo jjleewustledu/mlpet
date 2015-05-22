@@ -122,8 +122,10 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
                         this.maskFn, this.dscMaskFn, this.dscFn, this.ecatFn, this.DCV_SHIFTS(c), this.ECAT_SHIFTS2(c));
                 tmp = this.director_.product;
                 tmp.f = this.PETHERSC_FLOWS(c);
+                tmp.A0 = this.A0(c);
                 tmp.Ew = this.Ew(c);
                 tmp.a  = this.A(c);
+                tmp.d  = this.D(c);
                 tmp.p  = this.P(c);
                 tmp.t0 = this.T0_DSC(c);
                 tmp.q0 = this.Q0_DSC(c);
@@ -162,8 +164,10 @@ classdef AutoradiographyTrainer < mlpet.AbstractTrainer
                         this.maskFn, this.dscMaskFn, this.dscFn, this.ecatFn, this.DCV_SHIFTS(c), this.ECAT_SHIFTS2(c));
                 tmp = this.director_.product;
                 tmp.f = this.PETHERSC_FLOWS(c);
+                tmp.A0 = this.A0(c);
                 tmp.PS = this.PS(c);
                 tmp.a  = this.A(c);
+                tmp.d  = this.D(c);
                 tmp.p  = this.P(c);
                 tmp.t0 = this.T0_DSCHERSC(c);
                 tmp.q0 = this.Q0_DSCHERSC(c);

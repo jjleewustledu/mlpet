@@ -43,14 +43,14 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
                          this.baseTitle, this.A0, this.Ew, this.a, this.d, this.f, this.p, this.q0, this.t0);
         end
         function m   = get.map(this)
-            fL = 0.5; fH = 2;
+            fL = 1; fH = 1;
             m = containers.Map;
-            m('A0') = struct('fixed', 1, 'min', fL*0.00726,  'mean', this.A0, 'max', fH* 0.0141);
-            m('Ew') = struct('fixed', 1, 'min', fL*0.7901,   'mean', this.Ew, 'max', fH* 0.9300); % physiologic range +/- sigma, Herscovitch, JCBFM 7:527-541, 1987, table 2
-            m('a')  = struct('fixed', 1, 'min', fL*0.280,    'mean', this.a,  'max', fH* 7.97);
-            m('d')  = struct('fixed', 1, 'min', fL*0.877,    'mean', this.d,  'max', fH* 1.03);
+            m('A0') = struct('fixed', 0, 'min', fL*0.00726,  'mean', this.A0, 'max', fH* 0.0141);
+            m('Ew') = struct('fixed', 0, 'min', fL*0.7901,   'mean', this.Ew, 'max', fH* 0.9300); % physiologic range +/- sigma, Herscovitch, JCBFM 7:527-541, 1987, table 2
+            m('a')  = struct('fixed', 0, 'min', fL*0.280,    'mean', this.a,  'max', fH* 7.97);
+            m('d')  = struct('fixed', 0, 'min', fL*0.877,    'mean', this.d,  'max', fH* 1.03);
             m('f')  = struct('fixed', 1, 'min', fL*0.004305, 'mean', this.f,  'max', fH* 0.01229); % 
-            m('p')  = struct('fixed', 1, 'min', fL*0.225,    'mean', this.p,  'max', fH* 0.535); 
+            m('p')  = struct('fixed', 0, 'min', fL*0.225,    'mean', this.p,  'max', fH* 0.535); 
             m('q0') = struct('fixed', 0, 'min', fL*1.2353e7, 'mean', this.q0, 'max', fH* 2.6529e7);
             m('t0') = struct('fixed', 0, 'min', fL*0.3005,   'mean', this.t0, 'max', fH*14.66);
             

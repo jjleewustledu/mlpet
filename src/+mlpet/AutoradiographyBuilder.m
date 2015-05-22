@@ -138,17 +138,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
             error('mlpet:requiredObjectNotFound', 'AutoradiographyBuilder.loadDecayCorrectedEcat');
         end
         
-        function tito = indexTakeOff(curve)
-            maxCurve = max(curve);
-            minCurve = min(curve);
-            for ti = 1:length(curve)
-                if (curve(ti) - minCurve > 0.05 * (maxCurve - minCurve))
-                    break;
-                end
-            end
-            tito = ti - 1;
-        end
-        function f    = invs_to_mLmin100g(f)
+        function f = invs_to_mLmin100g(f)
             f = 100 * 60 * f / mlpet.AutoradiographyBuilder.BRAIN_DENSITY;
         end
     end

@@ -43,16 +43,16 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
                          this.baseTitle, this.A0, this.PS, this.a, this.d, this.f, this.p, this.q0, this.t0);
         end
         function m  = get.map(this)
-            fL = 0.5; fH = 2;
+            fL = 1; fH = 1;
             m = containers.Map;
-            m('A0') = struct('fixed', 1, 'min', fL*0.007200, 'mean', this.A0, 'max', fH* 0.01400);
-            m('PS') = struct('fixed', 1, 'min', fL*0.009275, 'mean', this.PS, 'max', fH* 0.03675); % physiologic range +/- sigma, Herscovitch, JCBFM 7:527-541, 1987, table 2
-            m('a')  = struct('fixed', 1, 'min', fL*0.280,    'mean', this.a,  'max', fH* 7.97);
-            m('d')  = struct('fixed', 1, 'min', fL*0.877,    'mean', this.d,  'max', fH* 1.03);
+            m('A0') = struct('fixed', 0, 'min', fL*0.007200, 'mean', this.A0, 'max', fH* 0.01400);
+            m('PS') = struct('fixed', 0, 'min', fL*0.009275, 'mean', this.PS, 'max', fH* 0.03675); % physiologic range +/- sigma, Herscovitch, JCBFM 7:527-541, 1987, table 2
+            m('a')  = struct('fixed', 0, 'min', fL*0.280,    'mean', this.a,  'max', fH* 7.97);
+            m('d')  = struct('fixed', 0, 'min', fL*0.877,    'mean', this.d,  'max', fH* 1.03);
             m('f')  = struct('fixed', 1, 'min', fL*0.004305, 'mean', this.f,  'max', fH* 0.01229); % 
-            m('p')  = struct('fixed', 1, 'min', fL*0.225,    'mean', this.p,  'max', fH* 0.535); 
+            m('p')  = struct('fixed', 0, 'min', fL*0.225,    'mean', this.p,  'max', fH* 0.535); 
             m('q0') = struct('fixed', 0, 'min', fL*1.129e7,  'mean', this.q0, 'max', fH* 2.962e7);
-            m('t0') = struct('fixed', 0, 'min', fL*0.05175,  'mean', this.t0, 'max',  6* 2.564);
+            m('t0') = struct('fixed', 0, 'min', fL*0.05175,  'mean', this.t0, 'max', fH*15.38);
             
             if (mlpet.DSCHerscAutoradiography.USE_RECIRCULATION)
                 m('n') = struct('fixed', 1, 'min',    0, 'mean', 0.5*this.n, 'max', fH*this.n);
