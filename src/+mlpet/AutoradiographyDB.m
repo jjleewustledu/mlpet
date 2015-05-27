@@ -70,11 +70,27 @@ classdef AutoradiographyDB < mlio.LogParser
             this.model = 'DSC-based';
             this = this.gatherAll;
         end
+        function this = loadDSCTest(fn)
+            this = mlpet.AutoradiographyDB.load(fn);
+            this.paramList = {'A0' 'Ew' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
+            this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
+            this.descriptionStem = 'AutoradiographyTrainer.prepare';
+            this.model = 'DSC-based';
+            this = this.gatherAll;
+        end
         function this = loadDSCHersc(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
             this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.train';
+            this.model = 'DSC-based Herscovitch';
+            this = this.gatherAll;
+        end
+        function this = loadDSCHerscTest(fn)
+            this = mlpet.AutoradiographyDB.load(fn);
+            this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
+            this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
+            this.descriptionStem = 'AutoradiographyTrainer.prepare';
             this.model = 'DSC-based Herscovitch';
             this = this.gatherAll;
         end

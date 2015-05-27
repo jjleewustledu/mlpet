@@ -46,8 +46,8 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
             m = containers.Map;
             m('A0') = struct('fixed', 0, 'min', fL*0.00726,  'mean', this.A0, 'max', fH*0.0141);
             m('Ew') = struct('fixed', 0, 'min', fL*0.79,     'mean', this.Ew, 'max', fH*0.93); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
-            m('f')  = struct('fixed', 0, 'min', fL*0.004305, 'mean', this.f,  'max', fH*0.01229); % 
-            m('t0') = struct('fixed', 0, 'min',    0.0470,   'mean', this.t0, 'max', fH*1.53);
+            m('f')  = struct('fixed', 0, 'min',    0.004305, 'mean', this.f,  'max',    0.01229); % 
+            m('t0') = struct('fixed', 0, 'min',    0.0470,   'mean', this.t0, 'max', 10*1.53);
         end
     end
     

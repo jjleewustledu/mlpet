@@ -1,5 +1,5 @@
-classdef AbstractTester  
-	%% ABSTRACTTESTER   
+classdef (Abstract) AbstractAutoradiographyClient  
+	%% ABSTRACTAUTORADIOGRAPHYCLIENT   
 
 	%  $Revision$ 
  	%  was created $Date$ 
@@ -8,12 +8,11 @@ classdef AbstractTester
  	%  and checked into repository $URL$,  
  	%  developed on Matlab 8.5.0.197613 (R2015a) 
  	%  $Id$ 
- 	 
-    properties
-        MM_CASES
-        WORK_DIR = '/Volumes/SeagateBP3/cvl/np755';
+    
+    properties (Abstract)
+        moyamoyaCases
     end
-
+ 	 
 	properties (Dependent) 	
         casePaths
         workPath
@@ -32,10 +31,10 @@ classdef AbstractTester
     methods % GET, SET
         function ps = get.casePaths(this)
             ps = cellfun(@(x) fullfile(x, 'bayesian_pet', ''), ...
-                 this.MM_CASES, 'UniformOutput', false);
+                 this.moyamoyaCases, 'UniformOutput', false);
         end
         function p  = get.workPath(~)
-            p = pwd;
+            p = pwd; %% KLUDGE
         end
         function fn = get.dscMaskFn(this)
             fn = fullfile(this.workPath, 'ep2d_mask.nii.gz');
@@ -80,11 +79,17 @@ classdef AbstractTester
         end
     end
     
-    methods 
-        function this = AbstractTester
-            cd(this.WORK_DIR);
-            dt = mlfourd.DirTools('mm0*');
-            this.MM_CASES = dt.dns;
+    methods (Static)
+        function saveFigs
+            theFigs = get(0, 'children');
+            N = numel(theFigs);
+            for f = 1:N
+                aFig = theFigs(f);
+                figure(aFig);
+                saveas(aFig, sprintf('%03d.fig', N-f+1));
+                saveas(aFig, sprintf('%03d.pdf', N-f+1));
+                close(aFig);
+            end
         end
     end
     
@@ -92,7 +97,7 @@ classdef AbstractTester
     
     properties (Access = 'protected')
         director_
-    end   
+    end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
 end
