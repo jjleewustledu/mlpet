@@ -36,7 +36,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractAutoradiographyTrainer
             this = AutoradiographyTrainer;            
             
             p = inputParser;
-            addOptional(p, 'figFolder', this.logPath, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
             parse(p, varargin{:});            
             
             pwd0 = pwd;
@@ -71,7 +71,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractAutoradiographyTrainer
             this = AutoradiographyTrainer;     
             
             p = inputParser;
-            addOptional(p, 'figFolder', this.logPath, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
             parse(p, varargin{:});         
             
             pwd0 = pwd;
@@ -106,7 +106,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractAutoradiographyTrainer
             this = AutoradiographyTrainer;
             
             p = inputParser;
-            addOptional(p, 'figFolder', this.logPath, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
             parse(p, varargin{:});            
             
             pwd0 = pwd;
@@ -129,6 +129,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractAutoradiographyTrainer
                 tmp.p  = this.P(c);
                 tmp.t0 = this.T0_DSC(c);
                 tmp.q0 = this.Q0_DSC(c);
+                tmp.mttObsOverA0 = this.MTT_RATIO(c);
                 this.director_.product = tmp;
                 this.director_ = this.director_.estimateAll;
                 prods{c} = this.director_.product; %#ok<NASGU>
@@ -148,7 +149,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractAutoradiographyTrainer
             this = AutoradiographyTrainer;   
             
             p = inputParser;
-            addOptional(p, 'figFolder', this.logPath, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
             parse(p, varargin{:});             
             
             pwd0 = pwd;
@@ -171,6 +172,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractAutoradiographyTrainer
                 tmp.p  = this.P(c);
                 tmp.t0 = this.T0_DSCHERSC(c);
                 tmp.q0 = this.Q0_DSCHERSC(c);
+                tmp.mttObsOverA0 = this.MTT_RATIO(c);
                 this.director_.product = tmp;
                 this.director_ = this.director_.estimateAll;
                 prods{c} = this.director_.product; %#ok<NASGU>

@@ -19,7 +19,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
         TIME_SUP = 120          % sec
         REUSE_STORED = true
         USE_RECIRCULATION = false
-        INJECTION_RATE = 0.25
+        INJECTION_RATE = 0.25   % < 0.5 for hand-injections
     end
 
     properties (Abstract)

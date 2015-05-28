@@ -64,7 +64,7 @@ classdef AutoradiographyDB < mlio.LogParser
         end
         function this = loadDSC(fn)
             this = mlpet.AutoradiographyDB.load(fn);
-            this.paramList = {'A0' 'Ew' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
+            this.paramList = {'A0' 'Ew' 'a' 'd' 'f' 'ir' 'n' 'p' 'q0' 't0'};
             this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.train';
             this.model = 'DSC-based';
@@ -72,7 +72,7 @@ classdef AutoradiographyDB < mlio.LogParser
         end
         function this = loadDSCTest(fn)
             this = mlpet.AutoradiographyDB.load(fn);
-            this.paramList = {'A0' 'Ew' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
+            this.paramList = {'A0' 'Ew' 'a' 'd' 'f' 'ir' 'n' 'p' 'q0' 't0'};
             this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.prepare';
             this.model = 'DSC-based';
@@ -80,7 +80,7 @@ classdef AutoradiographyDB < mlio.LogParser
         end
         function this = loadDSCHersc(fn)
             this = mlpet.AutoradiographyDB.load(fn);
-            this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
+            this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'ir' 'n' 'p' 'q0' 't0'};
             this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.train';
             this.model = 'DSC-based Herscovitch';
@@ -88,7 +88,7 @@ classdef AutoradiographyDB < mlio.LogParser
         end
         function this = loadDSCHerscTest(fn)
             this = mlpet.AutoradiographyDB.load(fn);
-            this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
+            this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'ir' 'n' 'p' 'q0' 't0'};
             this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.prepare';
             this.model = 'DSC-based Herscovitch';
@@ -160,8 +160,13 @@ classdef AutoradiographyDB < mlio.LogParser
                 xlabel(sprintf('imaging sessions'));
                 ylabel(sprintf('%s metric +/- 2*sigma', this.paramList{k}));
                 stats = this.getBestFitStatsOf(k);
-                title(sprintf('%s Parameter %s\nmin %g med %g max %g', ...
-                              this.model, this.paramList{k}, stats(1), stats(2), stats(3)));
+                if (length(stats) >= 3)
+                    title(sprintf('%s Parameter %s\nmin %g med %g max %g', ...
+                                  this.model, this.paramList{k}, stats(1), stats(2), stats(3)));
+                else                    
+                    title(sprintf('%s Parameter %s', ...
+                                  this.model, this.paramList{k}));
+                end
             end
         end
         function getSummaryPlot2(this)
