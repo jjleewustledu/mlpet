@@ -17,16 +17,16 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
  	%  $Id$     
     
 	properties 
-        A0 = 0.009234
+        A0 = 0.009636        
         Ew = 0.905207230769231
-        a  = 0.280722
-        d  = 0.951272038461539
+        a  = 2.335
+        d  = 0.9092
+        f  = 0.009396
+        ir = 0.1601 % hand-injection rate, 1/s
         n  = 0
-        f  = 0.01045
-        ir = 0.25 % hand-injection rate, 1/s
-        p  = 0.272528
-        q0 = 1.916e7
-        t0 = 2.634
+        p  = 0.2085
+        q0 = 1.869e7
+        t0 = 2.302
         
         weight1
         weight2
@@ -49,15 +49,15 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
         function m   = get.map(this)
             fL = 1; fH = 1;
             m = containers.Map;
-            m('A0') = struct('fixed', 1, 'min', fL*0.00726,  'mean', this.A0, 'max', fH* 0.0141);
+            m('A0') = struct('fixed', 0, 'min', fL*0.007534, 'mean', this.A0, 'max', fH* 0.01383);
             m('Ew') = struct('fixed', 1, 'min',    0.7901,   'mean', this.Ew, 'max',     0.9300); % physiologic range +/- sigma, Herscovitch, JCBFM 7:527-541, 1987, table 2
-            m('a')  = struct('fixed', 1, 'min', fL*0.280,    'mean', this.a,  'max', fH* 7.97);
-            m('d')  = struct('fixed', 1, 'min', fL*0.877,    'mean', this.d,  'max', fH* 1.03);
-            m('f')  = struct('fixed', 1, 'min',    0.004305, 'mean', this.f,  'max',     0.01229); % 
-            m('ir') = struct('fixed', 0, 'min',    0.1,      'mean', this.ir, 'max',     0.4);
-            m('p')  = struct('fixed', 1, 'min', fL*0.225,    'mean', this.p,  'max', fH* 0.535); 
-            m('q0') = struct('fixed', 1, 'min', fL*1.2353e7, 'mean', this.q0, 'max', fH* 2.6529e7);
-            m('t0') = struct('fixed', 1, 'min', fL*0.3005,   'mean', this.t0, 'max', fH*14.66);
+            m('a')  = struct('fixed', 0, 'min', fL*1.238,    'mean', this.a,  'max', fH* 6.461);
+            m('d')  = struct('fixed', 0, 'min', fL*0.8854,   'mean', this.d,  'max', fH* 1.007);
+            m('f')  = struct('fixed', 0, 'min',    0.004305, 'mean', this.f,  'max',     0.01229); % 
+            m('ir') = struct('fixed', 0, 'min', fL*0.1093,   'mean', this.ir, 'max', fH* 0.2778);
+            m('p')  = struct('fixed', 0, 'min', fL*0.1125,   'mean', this.p,  'max', fH* 0.5219); 
+            m('q0') = struct('fixed', 0, 'min', fL*1.1990e7, 'mean', this.q0, 'max', fH* 2.892e7);
+            m('t0') = struct('fixed', 0, 'min', fL*0.000,    'mean', this.t0, 'max', fH*20.00);
             
             if (mlpet.DSCAutoradiography.USE_RECIRCULATION)
                 m('n') = struct('fixed', 1, 'min',    0, 'mean', 0.5*this.n, 'max', fH*this.n);

@@ -64,7 +64,7 @@ classdef AutoradiographyDB < mlio.LogParser
         end
         function this = loadDSC(fn)
             this = mlpet.AutoradiographyDB.load(fn);
-            this.paramList = {'A0' 'Ew' 'a' 'd' 'f' 'ir' 'n' 'p' 'q0' 't0'};
+            this.paramList = {'A0' 'Ew' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
             this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.train';
             this.model = 'DSC-based';
@@ -72,7 +72,7 @@ classdef AutoradiographyDB < mlio.LogParser
         end
         function this = loadDSCTest(fn)
             this = mlpet.AutoradiographyDB.load(fn);
-            this.paramList = {'A0' 'Ew' 'a' 'd' 'f' 'ir' 'n' 'p' 'q0' 't0'};
+            this.paramList = {'A0' 'Ew' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
             this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.prepare';
             this.model = 'DSC-based';
@@ -80,7 +80,7 @@ classdef AutoradiographyDB < mlio.LogParser
         end
         function this = loadDSCHersc(fn)
             this = mlpet.AutoradiographyDB.load(fn);
-            this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'ir' 'n' 'p' 'q0' 't0'};
+            this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
             this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.train';
             this.model = 'DSC-based Herscovitch';
@@ -88,7 +88,7 @@ classdef AutoradiographyDB < mlio.LogParser
         end
         function this = loadDSCHerscTest(fn)
             this = mlpet.AutoradiographyDB.load(fn);
-            this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'ir' 'n' 'p' 'q0' 't0'};
+            this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
             this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
             this.descriptionStem = 'AutoradiographyTrainer.prepare';
             this.model = 'DSC-based Herscovitch';
