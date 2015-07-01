@@ -17,14 +17,15 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
  	%  $Id$ 
     
 	properties 
-        A0 = 1
+        A0 = 0.391698
         f  = 0.00956157346232341 % mL/s/mL, [15O]H_2O
-        af = 2.035279E-06
-        bf = 2.096733E-02
+        af = 8.583821E-07
+        bf = 1.341018E-02
     end
 
     properties (Dependent)
         baseTitle
+        detailedTitle
         map 
         pie
         timeLimits % for scan integration over time, per Videen
@@ -34,12 +35,16 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
         function bt = get.baseTitle(this)
             bt = sprintf('Videen Autoradiography %s', this.pnum);
         end
+        function dt = get.detailedTitle(this)
+            dt = sprintf('%s:\nA0 %g, f %g, af %g, bf %g', ...
+                         this.baseTitle, this.A0, this.f, this.af, this.bf);
+        end
         function m  = get.map(this)
             m = containers.Map;
-            m('A0') = struct('fixed', 0, 'min', 0.01,   'mean', this.A0, 'max', 10);
+            m('A0') = struct('fixed', 0, 'min', 0.3,    'mean', this.A0, 'max', 0.5);
             m('af') = struct('fixed', 1, 'min', 1e-7,   'mean', this.af, 'max', 1e-5); 
             m('bf') = struct('fixed', 1, 'min', 1e-3,   'mean', this.bf, 'max', 1e-1);
-            m('f')  = struct('fixed', 1, 'min', 0.0053, 'mean', this.f,  'max', 0.012467); 
+            m('f')  = struct('fixed', 0, 'min', 0.0053, 'mean', this.f,  'max', 0.012467); 
         end
         function p  = get.pie(this)
             assert(isnumeric(this.pie_) && isscalar(this.pie_));
@@ -120,8 +125,8 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
             ecat = ecat.masked(mask);
             ecat = ecat.volumeSummed;   
             import mlpet.*;
-            [t_a,c_a] = VideenAutoradiography.shiftDataLeft( aif.times,  aif.wellCounts,               aifShift);
-            [t_i,c_i] = VideenAutoradiography.shiftDataLeft(ecat.times, ecat.becquerels/ecat.nPixels, ecatShift); % well-counts/cc/s     
+            [t_a,c_a] = VideenAutoradiography.shiftData( aif.times,  aif.wellCounts,               aifShift);
+            [t_i,c_i] = VideenAutoradiography.shiftData(ecat.times, ecat.becquerels/ecat.nPixels, ecatShift); % well-counts/cc/s     
             dt  = min(min(aif.taus), min(ecat.taus));
             t   = min(t_a(1), t_i(1)):dt:min(t_a(end), t_i(end));
             c_a = pchip(t_a, c_a, t);
@@ -131,7 +136,7 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
         function tl   = getTimeLimits
             dt = mlsystem.DirTool('p*ho*_f*.nii.gz');
             assert(1 == dt.length);            
-            names = regexp(dt.fns{1}, 'p\d+ho\d_f(?<t0>\d+)to(?<tf>\d+).nii.gz', 'names');
+            names = regexp(dt.fns{1}, 'p\d+ho\d_f(?<t0>\d+)to(?<tf>\d+)_161616fwhh.nii.gz', 'names');
             tl(1) = str2double(names.t0);
             tl(2) = str2double(names.tf);
         end

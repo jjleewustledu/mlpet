@@ -38,6 +38,38 @@ classdef AutoradiographyDB < mlio.LogParser
     end
     
 	methods (Static)
+        function this = loadCRVAutoradiography(fn)            
+            this = mlpet.AutoradiographyDB.load(fn);
+            this.paramList = {'A0' 'A1' 'T0' 'a' 'c1' 'c2' 'c3' 'c4' 'd' 'f' 'p' 'q0' 't0'};
+            this.paramList2 = {'Q' 'Q normalized'};
+            this.descriptionStem = 'AutoradiographyTrainer.train';
+            this.model = 'CRV Autoradiography';
+            this = this.gatherAll;
+        end
+        function this = loadCRVAutoradiographyTest(fn)            
+            this = mlpet.AutoradiographyDB.load(fn);
+            this.paramList = {'A0' 'A1' 'T0' 'a' 'c1' 'c2' 'c3' 'c4' 'd' 'f' 'p' 'q0' 't0'};
+            this.paramList2 = {'Q' 'Q normalized'};
+            this.descriptionStem = 'AutoradiographyTester.prepare';
+            this.model = 'CRV Autoradiography';
+            this = this.gatherAll;
+        end
+        function this = loadDCVByGammas(fn)            
+            this = mlpet.AutoradiographyDB.load(fn);
+            this.paramList = {'a' 'c1' 'c2' 'c3' 'c4' 'd' 'p' 'q0' 't0'};
+            this.paramList2 = {'Q' 'Q normalized'};
+            this.descriptionStem = 'AutoradiographyTrainer.train';
+            this.model = 'DCV by Gammas';
+            this = this.gatherAll;
+        end
+        function this = loadCRVDeconv(fn)
+            this = mlpet.AutoradiographyDB.load(fn);
+            this.paramList = {'a' 'c1' 'c2' 'c3' 'c4' 'd' 'p' 'q0' 't0'};
+            this.paramList2 = {'Q' 'Q normalized'};
+            this.descriptionStem = 'AutoradiographyTrainer.train';
+            this.model = 'CRV Deconvolution';
+            this = this.gatherAll;
+        end
         function this = loadPET(fn)
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'Ew' 'f' 't0'};
@@ -74,7 +106,7 @@ classdef AutoradiographyDB < mlio.LogParser
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'Ew' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
             this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
-            this.descriptionStem = 'AutoradiographyTrainer.prepare';
+            this.descriptionStem = 'AutoradiographyTester.prepare';
             this.model = 'DSC-based';
             this = this.gatherAll;
         end
@@ -90,7 +122,7 @@ classdef AutoradiographyDB < mlio.LogParser
             this = mlpet.AutoradiographyDB.load(fn);
             this.paramList = {'A0' 'PS' 'a' 'd' 'f' 'n' 'p' 'q0' 't0'};
             this.paramList2 = {'Q' 'Q normalized' 'dose' 'mtt_obs' 'mtt_a'};
-            this.descriptionStem = 'AutoradiographyTrainer.prepare';
+            this.descriptionStem = 'AutoradiographyTester.prepare';
             this.model = 'DSC-based Herscovitch';
             this = this.gatherAll;
         end
@@ -181,14 +213,16 @@ classdef AutoradiographyDB < mlio.LogParser
                 title(sprintf('%s Parameter %s', ...
                               this.model, this.paramList2{k}));
             end
-            k = numel(this.paramList2) + 1;
-                subplot(N+1,N, double(k));
-                final = this.getFinalOtherOf(k-2) ./ this.getFinalOtherOf(k-1);
-                bar(final);
-                xlabel(sprintf('imaging sessions'));
-                ylabel(sprintf('mtt_obs/mtt_a'));
-                title(sprintf('%s Parameter %s', ...
-                              this.model, 'mtt_obs/mtt_a'));
+            if (lstrfind(this.paramList2, 'mtt_obs') && lstrfind(this.paramList2, 'mtt_a'))
+                k = numel(this.paramList2) + 1;
+                    subplot(N+1,N, double(k));
+                    final = this.getFinalOtherOf(k-2) ./ this.getFinalOtherOf(k-1);
+                    bar(final);
+                    xlabel(sprintf('imaging sessions'));
+                    ylabel(sprintf('mtt_obs/mtt_a'));
+                    title(sprintf('%s Parameter %s', ...
+                                  this.model, 'mtt_obs/mtt_a'));
+            end
         end
         function y = getMeanOf(this, paramIdx)
             y = [];

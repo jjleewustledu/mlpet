@@ -18,6 +18,8 @@ classdef (Abstract) AbstractAutoradiographyClient
         workPath
         dscMaskFn
         dscFn
+        crvFn
+        dcvFn
         aifFn
         maskFn
         ecatFn
@@ -41,6 +43,12 @@ classdef (Abstract) AbstractAutoradiographyClient
         end
         function fn = get.dscFn(this)
             fn = fullfile(this.workPath, 'ep2d_default_mcf.nii.gz');
+        end
+        function fn = get.crvFn(this)            
+            fn = fullfile(this.workPath, [this.pnum 'ho1.crv']);
+        end
+        function fn = get.dcvFn(this)            
+            fn = fullfile(this.workPath, [this.pnum 'ho1.dcv']);
         end
         function fn = get.aifFn(this)
             fn = fullfile(this.workPath, [this.pnum 'ho1.dcv']);

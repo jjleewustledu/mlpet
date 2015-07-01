@@ -31,6 +31,101 @@ classdef AutoradiographyTrainer < mlpet.AbstractAutoradiographyTrainer
             save('AutoradiographyTrainer.trainVideen.prod.mat', 'prod');
             diary off
         end
+        function trainCRVDCVAutoradiography(varargin)
+            import mlpet.*;
+            this = AutoradiographyTrainer;     
+            
+            p = inputParser;
+            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            parse(p, varargin{:});         
+            
+            pwd0 = pwd;
+            cd(this.logPath);
+            logFn = fullfile(this.logPath, sprintf('AutoradiographyTrainer.trainCRVDCVAutoradiography_%s.log', datestr(now, 30)));
+            diary(logFn);
+            for c = 1:length(this.moyamoyaCases)
+                cd(fullfile(this.logPath, this.casePaths{c}));  
+                fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
+                fprintf('AutoradiographyTrainer.trainCRVDCVAutoradiography is working in %s\n', pwd);
+                this.director_ = ...
+                    AutoradiographyDirector.loadCRVDCVAutoradiography( ...
+                        this.maskFn, this.aifFn, this.ecatFn, this.DCV_SHIFTS(c), this.ECAT_SHIFTS(c));                
+                this.director_ = this.director_.estimateAll;
+                prods{c} = this.director_.product; %#ok<NASGU>
+            end
+            cd(this.logPath);            
+            save(sprintf('AutoradiographyTrainer.trainCRVDCVAutoradiography.prods_%s.mat', datestr(now,30)), 'prods');            
+            db = AutoradiographyDB.loadCRVAutoradiography(logFn);
+            db.getSummaryPlot;
+            db.getSummaryPlot2;
+            cd(p.Results.figFolder);
+            AutoradiographyTrainer.saveFigs;
+            cd(pwd0);
+            diary off
+        end
+        function trainDCVByGammas(varargin)
+            import mlpet.*;
+            this = AutoradiographyTrainer;            
+            
+            p = inputParser;
+            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            parse(p, varargin{:});            
+            
+            pwd0 = pwd;
+            cd(this.logPath);
+            logFn = fullfile(this.logPath, sprintf('AutoradiographyTrainer.trainDCVByGammas_%s.log', datestr(now, 30)));
+            diary(logFn);
+            for c = 1:length(this.moyamoyaCases)
+                cd(fullfile(this.logPath, this.casePaths{c}));  
+                fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
+                fprintf('AutoradiographyTrainer.trainDCVByGammas is working in %s\n', pwd);
+                dcvG = DCVByGammas.loadDCV(this.dcvFn);
+                dcvG = dcvG.estimateAll;
+                dcvG.plotProduct;
+                prods{c} = dcvG; %#ok<NASGU>
+            end            
+            cd(this.logPath);            
+            save(sprintf('AutoradiographyTrainer.trainDCVByGammas.prods_%s.mat', datestr(now,30)), 'prods');
+            db = AutoradiographyDB.loadDCVByGammas(logFn);
+            db.getSummaryPlot;
+            db.getSummaryPlot2;
+            cd(p.Results.figFolder);
+            AutoradiographyTrainer.saveFigs;
+            cd(pwd0);
+            diary off
+        end
+        function trainCRVDeconv(varargin)
+            import mlpet.*;
+            this = AutoradiographyTrainer;            
+            
+            p = inputParser;
+            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            parse(p, varargin{:});            
+            
+            pwd0 = pwd;
+            cd(this.logPath);
+            logFn = fullfile(this.logPath, sprintf('AutoradiographyTrainer.trainCRVDeconv_%s.log', datestr(now, 30)));
+            diary(logFn);
+            for c = 1:length(this.moyamoyaCases)
+                cd(fullfile(this.logPath, this.casePaths{c}));  
+                fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
+                fprintf('AutoradiographyTrainer.trainCRVDeconv is working in %s\n', pwd);
+                crvd = ...
+                    CRVDeconvolution.loadCRV(this.crvFn);
+                crvd = crvd.estimateAll;
+                crvd.plotProduct;
+                prods{c} = crvd; %#ok<NASGU>
+            end            
+            cd(this.logPath);            
+            save(sprintf('AutoradiographyTrainer.trainCRVDeconv.prods_%s.mat', datestr(now,30)), 'prods');
+            db = AutoradiographyDB.loadCRVDeconv(logFn);
+            db.getSummaryPlot;
+            db.getSummaryPlot2;
+            cd(p.Results.figFolder);
+            AutoradiographyTrainer.saveFigs;
+            cd(pwd0);
+            diary off
+        end
         function trainPET(varargin)
             import mlpet.*;
             this = AutoradiographyTrainer;            

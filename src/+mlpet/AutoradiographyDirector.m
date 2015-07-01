@@ -32,7 +32,7 @@ classdef AutoradiographyDirector
             a = this.builder_;
         end
         function this = set.product(this, bldr)
-            assert(isa(bldr, 'mlpet.AutoradiographyBuilder'));
+            assert(isa(bldr, 'mlpet.AutoradiographyBuilder') || isa(bldr, 'mlpet.AutoradiographyBuilder2'));
             this.builder_ = bldr;
         end
         function a = get.aif(this)
@@ -56,6 +56,45 @@ classdef AutoradiographyDirector
     end
     
     methods (Static)
+        
+        %% LOADERS
+        
+        function this = loadCRVDCVAutoradiography(maskFn, aifFn, ecatFn, varargin)
+            p = inputParser;
+            addRequired(p, 'maskFn',       @(x) lexist(x, 'file'));
+            addRequired(p, 'aifFn',        @(x) lexist(x, 'file'));
+            addRequired(p, 'ecatFn',       @(x) lexist(x, 'file'));
+            addOptional(p, 'dcvShift',  0, @(x) isnumeric(x) && isscalar(x));
+            addOptional(p, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
+            parse(p, maskFn, aifFn, ecatFn, varargin{:});            
+            [p1,p2] = fileparts(p.Results.aifFn); 
+            crvFn = fullfile(p1, [p2 '.crv']);
+            dcvFn = fullfile(p1, [p2 '.dcv']);
+            
+            import mlpet.*;           
+            this = AutoradiographyDirector( ...
+                   CRVDCVAutoradiography.load( ...
+                       p.Results.ecatFn, crvFn, dcvFn, p.Results.maskFn, ...
+                       p.Results.ecatShift, p.Results.dcvShift, p.Results.dcvShift));
+        end
+        function this = loadCRVAutoradiography(maskFn, aifFn, ecatFn, varargin)
+            p = inputParser;
+            addRequired(p, 'maskFn',       @(x) lexist(x, 'file'));
+            addRequired(p, 'aifFn',        @(x) lexist(x, 'file'));
+            addRequired(p, 'ecatFn',       @(x) lexist(x, 'file'));
+            addOptional(p, 'dcvShift',  0, @(x) isnumeric(x) && isscalar(x));
+            addOptional(p, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
+            parse(p, maskFn, aifFn, ecatFn, varargin{:});            
+            [p1,p2] = fileparts(p.Results.aifFn); 
+            crvFn = fullfile(p1, [p2 '.crv']);
+            dcvFn = fullfile(p1, [p2 '.dcv']);
+            
+            import mlpet.*;           
+            this = AutoradiographyDirector( ...
+                   CRVAutoradiography.load( ...
+                       p.Results.ecatFn, crvFn, dcvFn, p.Results.maskFn, ...
+                       p.Results.ecatShift, p.Results.dcvShift, p.Results.dcvShift));
+        end
         function this = loadPET(maskFn, aifFn, ecatFn, varargin)
             p = inputParser;
             addRequired(p, 'maskFn',       @(x) lexist(x, 'file'));
@@ -136,7 +175,7 @@ classdef AutoradiographyDirector
         
         %% PREPARATIONS
         
-        function        prepareAparcmask
+        function        prepareAparcmask0
             import mlpet.*;
             pth  = pwd;
             pnum = str2pnum(pwd);
@@ -153,53 +192,69 @@ classdef AutoradiographyDirector
                 mlbash(sprintf('freeview %str1.nii.gz aparc_a2009s+aseg_mask_on_%str1.nii.gz', pnum, pnum));
             end
         end
-        function        prepareAparcmask2
+        function        prepareAparcmask1(idx)
+            import mlpet.*;
+            idx  = num2str(idx);
+            pth  = pwd;
+            pnum = str2pnum(pwd);
+            AutoradiographyDirector.flirtOntoRef( ...
+                fullfile(pth, 'orig.nii.gz'), ...
+                fullfile(pth, [pnum 'tr' idx '.nii.gz']));
+            AutoradiographyDirector.applyxfmToAparcmask( ...
+                fullfile(pth, ['orig_on_' pnum 'tr' idx '.mat']));
+            if (AutoradiographyDirector.AUTO_FREEVIEW)
+                mlbash(sprintf('freeview %str%s.nii.gz aparc_a2009s+aseg_mask_on_%str%s.nii.gz', pnum, idx, pnum, idx));
+            end
+        end
+        function        prepareAparcmask2(idx)
             import mlpet.*;
             pth  = pwd;
             pnum = str2pnum(pwd);
-            dnii = mlfourd.DynamicNIfTId.load([pnum 'ho1.nii.gz']);
+            fp   = sprintf('%sho%i', pnum, idx);
+            dnii = mlfourd.DynamicNIfTId.load([fp '.nii.gz']);
             dnii = dnii.timeSummed;
             dnii.save;
             
             AutoradiographyDirector.flirtOntoRef( ...
-                fullfile(pth, 'brain.mgz'), ...
-                fullfile(pth, [pnum 'ho1_sumt.nii.gz']));
+                fullfile(pth, 'brain.nii.gz'), ...
+                fullfile(pth, [fp '_sumt.nii.gz']));
             AutoradiographyDirector.applyxfmToAparcmask( ...
-                fullfile(pth, ['brain_on_' pnum 'ho1_sumt.mat']));
+                fullfile(pth, ['brain_on_' fp '_sumt.mat']));
             if (AutoradiographyDirector.AUTO_FREEVIEW)
-                mlbash(sprintf('freeview %sho1_sumt.nii.gz aparc_a2009s+aseg_mask_on_%sho1_sumt.nii.gz', pnum, pnum)); 
+                mlbash(sprintf('freeview %s_sumt.nii.gz aparc_a2009s+aseg_mask_on_%s_sumt.nii.gz', fp, fp)); 
             end
         end
-        function        prepareAparcmask3
+        function        prepareAparcmask3(idx)
             import mlpet.*;
             pth  = pwd;
             pnum = str2pnum(pwd);
-            bnii = mlfourd.BlurringNIfTId.load([pnum 'ho1_sumt.nii.gz']);
+            fp_sumt = sprintf('%sho%i_sumt', pnum, idx);
+            bnii = mlfourd.BlurringNIfTId.load([fp_sumt '.nii.gz']);
             bnii = bnii.blurred([10 10 10]);
             bnii.save;
             
             AutoradiographyDirector.flirtOntoRef( ...
-                fullfile(pth, [pnum 'ho1_sumt_101010fwhh.nii.gz']), ...
+                fullfile(pth, [fp_sumt '_101010fwhh.nii.gz']), ...
                 fullfile(pth, 'orig.nii.gz'));
             AutoradiographyDirector.invertXfm( ...
-                fullfile(pth, [pnum 'ho1_sumt_101010fwhh_on_orig.mat']), ...
-                fullfile(pth, ['orig_on_' pnum 'ho1_sumt_101010fwhh.mat']));
+                fullfile(pth, [fp_sumt '_101010fwhh_on_orig.mat']), ...
+                fullfile(pth, ['orig_on_' fp_sumt '_101010fwhh.mat']));
             AutoradiographyDirector.applyxfmToAparcmask( ...
-                fullfile(pth, ['orig_on_' pnum 'ho1_sumt_101010fwhh.mat']));
+                fullfile(pth, ['orig_on_' fp_sumt '_101010fwhh.mat']));
             if (AutoradiographyDirector.AUTO_FREEVIEW)
-                mlbash(sprintf('freeview %sho1_sumt.nii.gz aparc_a2009s+aseg_mask_on_%sho1_sumt.nii.gz', pnum, pnum)); 
+                mlbash(['freeview ' fp_sumt '.nii.gz aparc_a2009s+aseg_mask_on_' fp_sumt '.nii.gz']); 
             end
         end
-        function tvec = prepareHo
+        function tvec = prepareHoMcflirted(idx)
             import mlfourd.* mlpet.*;
             pth  = pwd;
             pnum = str2pnum(pth);
-            hofn = fullfile(pth, [pnum 'ho1.nii.gz']);
+            hofn = sprintf('%sho%i.nii.gz', pnum, idx);
             
             dyn  = DynamicNIfTId.load(hofn);
             dyn  = dyn.mcflirtedAfterBlur([10 10 10]);
             dyn  = dyn.revertFrames(NIfTId.load(hofn), 1:7);
-            dyn  = dyn.masked(NIfTId.load(AutoradiographyDirector.maskFilename(pth)));
+            dyn  = dyn.masked(NIfTId.load(AutoradiographyDirector.maskFilename(pth, idx)));
                    dyn.save;
             if (AutoradiographyDirector.AUTO_FREEVIEW)
                    dyn.freeview; end
@@ -207,20 +262,20 @@ classdef AutoradiographyDirector
             tvec = squeeze(dyn.img);
             if (AutoradiographyDirector.AUTO_FREEVIEW)
                    plot(tvec); 
-                   title('AutoradiographyDirector.prepareHo'); 
+                   title('AutoradiographyDirector.prepareHoMcflirted'); 
                    ylabel('well-counts');
                    xlabel('time/s');
             end
         end
-        function        blurHo
+        function        blurHo(idx)
             import mlfourd.* mlpet.*;
             pth   = pwd;
             pnum  = str2pnum(pth);
-            hofn  = fullfile(pth, [pnum 'ho1.nii.gz']);           
+            hofn = sprintf('%sho%i.nii.gz', pnum, idx);          
             
             dyn = DynamicNIfTId.load(hofn);
             dyn = dyn.blurred([16 16 16]);
-            dyn = dyn.masked(NIfTId.load(AutoradiographyDirector.maskFilename(pth)));
+            dyn = dyn.masked(NIfTId.load(AutoradiographyDirector.maskFilename(pth, idx)));
             dyn.save;
             
             [~,hofp] = filepartsx(hofn, '.nii.gz');
@@ -284,10 +339,14 @@ classdef AutoradiographyDirector
             else
                 pnum = str2pnum(pwd);
             end
-            if (strfind(matfn, 'tr'))
+            if (strfind(matfn, 'tr1'))
                 studyCode = 'tr1';
+            elseif (strfind(matfn, 'tr2'))
+                studyCode = 'tr2';
             elseif (strfind(matfn, 'ho1_sumt'))
                 studyCode = 'ho1_sumt';
+            elseif (strfind(matfn, 'ho2_sumt'))
+                studyCode = 'ho2_sumt';
             else
                 error('mlpet:unsupportedFilename', ...
                     'AutoradiographyDirector.applyxfmToAparcmask has limited functionality for xfm filenames; found %s', matfn);
@@ -339,11 +398,14 @@ classdef AutoradiographyDirector
  			%% AUTORADIOGRAPHYDIRECTOR 
  			%  Usage:  director = AutoradiographyDirector(AutoradiographyBuilder_object) 
             
-            assert(isa(buildr, 'mlpet.AutoradiographyBuilder'));            
+            assert(isa(buildr, 'mlpet.AutoradiographyBuilder') || isa(buildr, 'mlpet.AutoradiographyBuilder2'));            
             this.builder_ = buildr;
         end
         function        plotInitialData(this)
             this.builder_.plotInitialData;
+        end
+        function        plotProduct(this)
+            this.builder_.plotProduct;
         end
         function        plotParVars(this, par, vars)
             this.builder_.plotParVars(par, vars);
@@ -378,12 +440,16 @@ classdef AutoradiographyDirector
             fn1 = fullfile(pth, [fp '.nii.gz']);
             mlbash(sprintf('mri_convert %s %s', fn, fn1));
         end
-        function fn  = maskFilename(pth)  
+        function fn  = maskFilename(pth, idx)  
+            if (~exist('idx','var'))
+                idx = 1; 
+            end
             pnum = str2pnum(pth);
-            if (lexist(    fullfile(pth, ['aparc_a2009s+aseg_mask_on_' pnum 'tr1.nii.gz']), 'file'))
-                fn =       fullfile(pth, ['aparc_a2009s+aseg_mask_on_' pnum 'tr1.nii.gz']);
-            elseif (lexist(fullfile(pth, ['aparc_a2009s+aseg_mask_on_' pnum 'ho1_sumt.nii.gz']), 'file'))
-                fn =       fullfile(pth, ['aparc_a2009s+aseg_mask_on_' pnum 'ho1_sumt.nii.gz']);
+            idx  = num2str(idx);
+            if (    lexist(fullfile(pth, ['aparc_a2009s+aseg_mask_on_' pnum 'ho' idx '_sumt.nii.gz']), 'file'))
+                fn =       fullfile(pth, ['aparc_a2009s+aseg_mask_on_' pnum 'ho' idx '_sumt.nii.gz']);
+            elseif (lexist(fullfile(pth, ['aparc_a2009s+aseg_mask_on_' pnum 'tr' idx '.nii.gz']), 'file'))
+                fn =       fullfile(pth, ['aparc_a2009s+aseg_mask_on_' pnum 'tr' idx '.nii.gz']);
             else
                 error('mlpet:requiredFileNotFound', ...
                       'AutoradiographyDirector.maskFilename could not find mask NIfTI file');

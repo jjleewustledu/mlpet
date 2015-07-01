@@ -33,6 +33,8 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
     
     properties (Dependent)
         pnum
+        dcv
+        dcvShift
         aif
         aifShift
         mask
@@ -47,6 +49,14 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
     methods %% GET
         function p = get.pnum(~)
             p = str2pnum(pwd);
+        end
+        function a  = get.dcv(this)
+            assert(~isempty(this.dcv_));
+            a = this.dcv_;
+        end
+        function a  = get.dcvShift(this)
+            assert(~isempty(this.dcvShift_));
+            a = this.dcvShift_;
         end
         function a  = get.aif(this)
             assert(~isempty(this.aif_));
@@ -161,12 +171,15 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
             addRequired(ip, 'conc_i',  @isnumeric);
             addOptional(ip, 'mask', [], @(x) isa(x, 'mlfourd.INIfTId'));
             addOptional(ip, 'aif',  [], @(x) isa(x, 'mlperfusion.ILaif') || isa(x, 'mlpet.IWellData'));
-            addOptional(ip, 'ecat', [], @(x) isa(x, 'mlpet.IScannerData'));
+            addOptional(ip, 'ecat', [], @(x) isa(x, 'mlpet.IScannerData'));   
+            addRequired(ip, 'conc_d',  @isnumeric);         
+            addOptional(ip, 'dcv',  [], @(x) isa(x, 'mlperfusion.ILaif') || isa(x, 'mlpet.IWellData'));
             parse(ip, conc_a, times_i, conc_i, varargin{:});
             
             this.mask_     = ip.Results.mask;
             this.aif_      = ip.Results.aif;
             this.ecat_     = ip.Results.ecat;
+            this.dcv_      = ip.Results.dcv;
             this.dose_     = this.itsDose; 
             this.duration_ = this.itsDuration;
             this.volume_   = this.itsVolume;
@@ -202,10 +215,12 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
     %% PROTECTED
     
     properties (Access = 'protected')
+        dcv_
+        dcvShift_
         aif_
         aifShift_ = 0
         mask_
-        ecat_
+        ecat_        
         ecatShift_
         dose_ 
         duration_

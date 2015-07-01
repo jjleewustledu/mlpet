@@ -17,6 +17,13 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             2.44433313726932 2.5092943982541  2.58918304683156 2.40705030816187 2.68834208892262 ...
             2.790703409822   2.94548103082625 2.78869975518403 2.45541132228493 ...
             2.69826649121803 2.61119371727749]
+        gluTCases = { ...
+            'p7861_JJL'    'p7873_JJL'    'p7879_JJL'    'p7891_JJL'    'p7901_JJL'    'p7926_JJL' ...
+            'p7935_JJL'    'p7954_JJL'    'p7956_JJL'    'p7979_JJL'    'p7991_JJL'    'p7996_JJL' ...
+            'p8015_JJL'    'p8018_JJL'    'p8024_JJL'    'p8039_JJL'                   'p8047_JJL' };
+        gluTShifts = [ ...
+            -34 -43 -24 -35 -43 -36    -33 -30 -38 -25 -50 -43    -43 -42 -30 -44  -33; ...
+            -38 -30 -19 -22 -38 -23    -25 -31 -30 -21 -45 -25    -33 -24 -26 -25  -18];
     end
     
     properties (Dependent)
@@ -33,7 +40,93 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         end
     end
     
-	methods (Static) 	
+	methods (Static)
+        function prepareGluT(varargin)
+            
+            p = inputParser;
+            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            parse(p, varargin{:});            
+            
+            import mlperfusion.* mlpet.*;
+            pwd0 = pwd;
+            subjectsPth = '/Volumes/InnominateHD2/Arbelaez/GluT';
+            this = AutoradiographyTester(subjectsPth);
+            
+            cd(subjectsPth);
+            logFn = fullfile(subjectsPth, sprintf('AutoradiographyTester.prepareGluT_%s.log', datestr(now, 30)));
+            diary(logFn);            
+            for c = 1:length(this.gluTCases)
+                for si = 2:2
+                    try
+                        cd(fullfile(subjectsPth, this.gluTCases{c}, 'PET', sprintf('scan%i', si)));  
+                        fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
+                        fprintf('AutoradiographyTester.prepareGluT is working in %s\n', pwd);
+                        this.director_ = ...
+                            AutoradiographyDirector.loadCRVAutoradiography( ...
+                                this.maskFnGluT(si), this.aifFnGluT(si), this.ecatFnGluT(si), this.gluTShifts(si,c));
+                        this.director_ = this.director_.estimateAll;
+                        prods{c} = this.director_.product;  %#ok<NASGU>
+                    catch ME
+                        handwarning(ME);
+                    end
+                end
+            end
+            cd(subjectsPth);            
+            save(sprintf('AutoradiographyTester.prepareGluT.prods_%s.mat', datestr(now,30)), 'prods');
+            db = AutoradiographyDB.loadCRVAutoradiographyTest(logFn);
+            db.getSummaryPlot;
+            db.getSummaryPlot2;
+            cd(p.Results.figFolder);
+            AutoradiographyTester.saveFigs;
+            cd(pwd0);
+            diary off
+        end
+        function fn = maskFnGluT(idx)
+            fn = sprintf('aparc_a2009s+aseg_mask_on_%sho%i_sumt.nii.gz', str2pnum(pwd), idx);
+        end
+        function fn = aifFnGluT(idx)
+            fn = sprintf('%sho%i.crv', str2pnum(pwd), idx);
+        end
+        function fn = ecatFnGluT(idx)
+            fn = sprintf('%sho%i_161616fwhh_masked.nii.gz', str2pnum(pwd), idx);
+        end
+        function prepareCRVAutoradiography(varargin)
+            
+            p = inputParser;
+            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            parse(p, varargin{:});            
+            
+            import mlperfusion.* mlpet.*;
+            pwd0 = pwd;
+            this = AutoradiographyTester(AutoradiographyTester.LOG_PATH); 
+            
+            cd(this.subjectsDir);
+            logFn = fullfile(this.subjectsDir, sprintf('AutoradiographyTester.prepareCRVAutoradiography_%s.log', datestr(now, 30)));
+            diary(logFn);
+            for c = 1:length(this.moyamoyaCases)
+                try
+                    cd(fullfile(this.subjectsDir, this.casePaths{c}));  
+                    fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
+                    fprintf('AutoradiographyTester.prepareCRVAutoradiography is working in %s\n', pwd);
+                    this.director_ = ...
+                        AutoradiographyDirector.loadCRVAutoradiography( ...
+                            this.maskFn, this.aifFn, this.ecatFn, this.dcvShifts(c));
+                    this.director_ = this.director_.estimateAll;
+                    prods{c} = this.director_.product;  %#ok<NASGU>
+                catch ME
+                    handwarning(ME);
+                end
+            end
+            cd(this.subjectsDir);            
+            save(sprintf('AutoradiographyTester.prepareCRVAutoradiography.prods_%s.mat', datestr(now,30)), 'prods');
+            db = AutoradiographyDB.loadCRVAutoradiographyTest(logFn);
+            db.getSummaryPlot;
+            db.getSummaryPlot2;
+            cd(p.Results.figFolder);
+            AutoradiographyTester.saveFigs;
+            cd(pwd0);
+            diary off
+        end  
         function prods = prepareLaif2(varargin)
             
             p = inputParser;
@@ -61,7 +154,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             cd(this.subjectsDir);
             save(sprintf('AutoradiographyTester.prepareLaif2.prods_%s.mat', datestr(now,30)), 'prods');            
             cd(p.Results.figFolder);
-            AutoradiographyTrainer.saveFigs;
+            AutoradiographyTester.saveFigs;
             cd(pwd0);
             diary off
         end	
@@ -81,7 +174,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             for c = 1:length(this.moyamoyaCases)
                 cd(fullfile(this.subjectsDir, this.casePaths{c}));  
                 fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
-                fprintf('AutoradiographyTrainer.trainPET is working in %s\n', pwd);
+                fprintf('AutoradiographyTester.trainPET is working in %s\n', pwd);
                 this.director_ = ...
                     AutoradiographyDirector.loadPET( ...
                         this.maskFn, this.aifFn, this.ecatFn, this.dcvShifts(c));
@@ -97,7 +190,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             db.getSummaryPlot;
             db.getSummaryPlot2;
             cd(p.Results.figFolder);
-            AutoradiographyTrainer.saveFigs;
+            AutoradiographyTester.saveFigs;
             cd(pwd0);
             diary off
         end  
@@ -117,7 +210,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             for c = 1:length(this.moyamoyaCases)
                 cd(fullfile(this.subjectsDir, this.casePaths{c}));  
                 fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
-                fprintf('AutoradiographyTrainer.trainPETHersc is working in %s\n', pwd);
+                fprintf('AutoradiographyTester.trainPETHersc is working in %s\n', pwd);
                 this.director_ = ...
                     AutoradiographyDirector.loadPETHersc( ...
                         this.maskFn, this.aifFn, this.ecatFn, this.dcvShifts(c));
@@ -133,7 +226,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             db.getSummaryPlot;
             db.getSummaryPlot2;
             cd(p.Results.figFolder);
-            AutoradiographyTrainer.saveFigs;
+            AutoradiographyTester.saveFigs;
             cd(pwd0);
             diary off
         end  
@@ -153,7 +246,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             for c = 1:length(this.moyamoyaCases)
                 cd(fullfile(this.subjectsDir, this.casePaths{c}));  
                 fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
-                fprintf('AutoradiographyTrainer.prepareDSC is working in %s\n', pwd);
+                fprintf('AutoradiographyTester.prepareDSC is working in %s\n', pwd);
                 this.director_ = ...
                     AutoradiographyDirector.loadDSC( ...
                         this.maskFn, this.dscMaskFn, this.dscFn, this.ecatFn, this.dcvShifts(c));
@@ -169,7 +262,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             db.getSummaryPlot;
             db.getSummaryPlot2;
             cd(p.Results.figFolder);
-            AutoradiographyTrainer.saveFigs;
+            AutoradiographyTester.saveFigs;
             cd(pwd0);
             diary off
         end  
@@ -189,7 +282,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             for c = 1:length(this.moyamoyaCases)
                 cd(fullfile(this.subjectsDir, this.casePaths{c}));  
                 fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
-                fprintf('AutoradiographyTrainer.prepareDSCHersc is working in %s\n', pwd);
+                fprintf('AutoradiographyTester.prepareDSCHersc is working in %s\n', pwd);
                 this.director_ = ...
                     AutoradiographyDirector.loadDSCHersc( ...
                         this.maskFn, this.dscMaskFn, this.dscFn, this.ecatFn, this.dcvShifts(c));
@@ -205,7 +298,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             db.getSummaryPlot;
             db.getSummaryPlot2;
             cd(p.Results.figFolder);
-            AutoradiographyTrainer.saveFigs;
+            AutoradiographyTester.saveFigs;
             cd(pwd0);
             diary off
         end       
@@ -215,9 +308,9 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function this = AutoradiographyTester(pth)
             this.subjectsDir_ = pth;
             cd(pth);
-            dt = mlsystem.DirTools('mm0*');
-            assert(dt.length > 0);
-            this.moyamoyaCases_ = dt.dns;
+%             dt = mlsystem.DirTools('mm0*');
+%             assert(dt.length > 0);
+%             this.moyamoyaCases_ = dt.dns;
         end
     end
     

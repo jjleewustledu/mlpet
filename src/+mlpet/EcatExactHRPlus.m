@@ -148,10 +148,10 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
             assert(isa(fp, 'mlio.TextParser'));
         end
         function fn  = get.hdrInfoFqfilename(this)
-            fn = fullfile(this.component.filepath, [str2pnum(this.component.fileprefix) 'ho1_g3.hdr.info']);
+            fn = fullfile(this.component.filepath, [strtok(this.component.fileprefix, '_') '_g3.hdr.info']);
         end  
         function fn  = get.hdrinfoFqfilename(this)
-            fn = fullfile(this.component.filepath, [str2pnum(this.component.fileprefix) 'ho1_g3.hdrinfo']);
+            fn = fullfile(this.component.filepath, [strtok(this.component.fileprefix, '_') '_g3.hdrinfo']);
         end  
     end
     
@@ -172,7 +172,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
             this = this@mlfourd.NIfTIdecorator(cmp);
             this = this.append_descrip('decorated by EcatExactHRPlus');
             
-            assert(lexist(this.recFqfilename));     
+            assert(lexist(this.recFqfilename), 'mlpet.EcatExactHRPlus.ctor:  requires *.img.rec from ecattoanalyze');     
             this = this.readRec;
             this = this.readWellMatrix; 
             this = this.setTimeMidpoints;
@@ -358,7 +358,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
             elseif (lexist(this.hdrinfoFqfilename, 'file'))
                 tp = mlio.TextParser.loadx(this.hdrinfoFqfilename, '.hdrinfo');
             else
-                error('mlpet:fileNotFound', 'EcatExactHRPlus could find neither %s nor ', ...
+                error('mlpet:fileNotFound', 'EcatExactHRPlus could find neither %s nor %s', ...
                       this.hdrInfoFqfilename, this.hdrinfoFqfilename);
             end
             this.pie_ = tp.parseAssignedNumeric('Pie Slope');

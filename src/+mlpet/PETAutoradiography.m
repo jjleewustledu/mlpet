@@ -19,7 +19,7 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
 	properties 
         %% From AutoradiographyTrainer.trainPET_20150520T193221.log
         
-        A0 = 0.009147
+        A0 = 0.0153342621789194
         Ew = 0.8964
         f  = 0.01045
         t0 = 0.5730
@@ -44,10 +44,10 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
             
             fL = 1; fH = 1;
             m = containers.Map;
-            m('A0') = struct('fixed', 0, 'min', fL*0.00726,  'mean', this.A0, 'max', fH*0.0141);
-            m('Ew') = struct('fixed', 0, 'min', fL*0.79,     'mean', this.Ew, 'max', fH*0.93); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
+            m('A0') = struct('fixed', 1, 'min', fL*0.01,     'mean', this.A0, 'max', fH*0.02);
+            m('Ew') = struct('fixed', 0, 'min', fL*0.79,     'mean', this.Ew, 'max', fH*0.93);    % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
             m('f')  = struct('fixed', 0, 'min',    0.004305, 'mean', this.f,  'max',    0.01229); % 
-            m('t0') = struct('fixed', 0, 'min',    0.0470,   'mean', this.t0, 'max', 10*1.53);
+            m('t0') = struct('fixed', 0, 'min',    0.0470,   'mean', this.t0, 'max',   40);
         end
     end
     
