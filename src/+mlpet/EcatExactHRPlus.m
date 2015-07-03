@@ -277,17 +277,21 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
             [~,first] = txtPars.findFirstCell('Frame  Start  Duration (sec)'); 
             first = first + 2;
             last = first + this.header.numberOfFrames - 2;
-            this.header_.frame    = zeros(1,last-first+1);
-            this.header_.start    = zeros(1,last-first+1);
-            this.header_.duration = zeros(1,last-first+1);
+            
             for c = first:last
                 expr = '(?<frame>\d+\.?\d*)\s+(?<start>-?\d+\.?\d*)\s+(?<duration>\d+\.?\d*)';
                 names = regexp(txtPars.cellContents{c}, expr, 'names');
                 cc = c - first + 1;
-                this.header_.frame(cc)    = str2double(names.frame);
-                this.header_.start(cc)    = str2double(names.start);
-                this.header_.duration(cc) = str2double(names.duration);
-            end
+                try 
+                    % frames sometimes get aborted at run-time
+                    % do not pre-allocate this.header_.<arrays>                    
+                    this.header_.frame(cc)    = str2double(names.frame);
+                    this.header_.start(cc)    = str2double(names.start);
+                    this.header_.duration(cc) = str2double(names.duration);
+                catch ME
+                    handwarning(ME);
+                end
+            end  
             
             % .img.rec time-frames exclude the first frame; KLUDGE follows
             start               = this.header_.start(2:end);

@@ -100,7 +100,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
     end
     
     methods (Static)
-        function this = load(ecatFn, crvFn, dcvFn, maskFn, varargin)            
+        function this = load(ecatFn, crvFn, dcvFn, maskFn, varargin)
             ip = inputParser;
             addRequired(ip, 'ecatFn', @(x) lexist(x, 'file'));
             addRequired(ip, 'crvFn',  @(x) lexist(x, 'file'));

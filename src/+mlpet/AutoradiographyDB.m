@@ -302,8 +302,15 @@ classdef AutoradiographyDB < mlio.LogParser
             [fo,idx] = this.rightSideNumeric(sprintf('FINAL STATS %s', pName), idx);
         end
         function m = mmid(~, desc)
-            names = regexp(desc, '\w+/(?<id>mm0\d-\w+)/bayesian_pet', 'names');
-            m = names.id;
+            if (lstrfind(desc, 'bayesian_pet'))
+                names = regexp(desc, '\w+/(?<id>mm0\d-\w+)/bayesian_pet', 'names');
+                m = names.id;
+            elseif (lstrfind(desc, 'Arbelaez/GluT'))
+                names = regexp(desc, '\w+/(?<pid>p\d\d\d\d)_JJL/PET/scan(?<sid>\d)', 'names');
+                m = [names.pid '_scan' names.sid];
+            else
+                error('mlpet:stringIdentifierNotFound', 'AutoradiographyDB.mmid');
+            end
         end
     end
     

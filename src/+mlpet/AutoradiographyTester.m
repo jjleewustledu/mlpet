@@ -56,7 +56,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             logFn = fullfile(subjectsPth, sprintf('AutoradiographyTester.prepareGluT_%s.log', datestr(now, 30)));
             diary(logFn);            
             for c = 1:length(this.gluTCases)
-                for si = 2:2
+                for si = 1:2
                     try
                         cd(fullfile(subjectsPth, this.gluTCases{c}, 'PET', sprintf('scan%i', si)));  
                         fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
