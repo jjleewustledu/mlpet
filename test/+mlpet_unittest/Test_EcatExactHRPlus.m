@@ -53,7 +53,6 @@ classdef Test_EcatExactHRPlus < matlab.unittest.TestCase
         end
         function test_header(this)
             this.assertEqual(this.testObj.header.injectionTime, 41.333);
-            this.assertEqual(this.testObj.header.numberOfFrames, 61);
             this.assertEqual(this.testObj.header.string(1:23), 'rec p7267ho1_frames.img');
             this.assertEqual(this.testObj.header.frame(4), 5);
             this.assertEqual(this.testObj.header.start(4), 6);

@@ -41,7 +41,22 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
     end
     
 	methods (Static)
-        function prepareGluT(varargin)
+        function freeviewGluT
+            pwd0 = pwd;
+            subjectsPth = '/Volumes/InnominateHD2/Arbelaez/GluT';            
+            cd(subjectsPth);                    
+            for c = 1:length(this.gluTCases)
+                for si = 1:2
+                    pnum = str2pnum(pwd);
+                    cd(fullfile(subjectsPth, this.gluTCases{c}, 'PET', sprintf('scan%i', si)));
+                    fn = sprintf('%sho%i.nii.gz', pnum, idx);
+                    dyn = mlfourd.DynamicNIfTId.load(fn);
+                    dyn.freeview
+                end
+            end
+            cd(pwd0);
+        end
+        function prepareGluT1(varargin)
             
             p = inputParser;
             addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
@@ -56,7 +71,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             logFn = fullfile(subjectsPth, sprintf('AutoradiographyTester.prepareGluT_%s.log', datestr(now, 30)));
             diary(logFn);            
             for c = 1:length(this.gluTCases)
-                for si = 1:2
+                for si = 1:1
                     try
                         cd(fullfile(subjectsPth, this.gluTCases{c}, 'PET', sprintf('scan%i', si)));  
                         fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
@@ -75,7 +90,45 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             save(sprintf('AutoradiographyTester.prepareGluT.prods_%s.mat', datestr(now,30)), 'prods');
             db = AutoradiographyDB.loadCRVAutoradiographyTest(logFn);
             db.getSummaryPlot;
-            db.getSummaryPlot2;
+            cd(p.Results.figFolder);
+            AutoradiographyTester.saveFigs;
+            cd(pwd0);
+            diary off
+        end
+        function prepareGluT2(varargin)
+            
+            p = inputParser;
+            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            parse(p, varargin{:});            
+            
+            import mlperfusion.* mlpet.*;
+            pwd0 = pwd;
+            subjectsPth = '/Volumes/InnominateHD2/Arbelaez/GluT';
+            this = AutoradiographyTester(subjectsPth);
+            
+            cd(subjectsPth);
+            logFn = fullfile(subjectsPth, sprintf('AutoradiographyTester.prepareGluT_%s.log', datestr(now, 30)));
+            diary(logFn);            
+            for c = 1:length(this.gluTCases)
+                for si = 2:2
+                    try
+                        cd(fullfile(subjectsPth, this.gluTCases{c}, 'PET', sprintf('scan%i', si)));  
+                        fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
+                        fprintf('AutoradiographyTester.prepareGluT is working in %s\n', pwd);
+                        this.director_ = ...
+                            AutoradiographyDirector.loadCRVAutoradiography( ...
+                                this.maskFnGluT(si), this.aifFnGluT(si), this.ecatFnGluT(si), this.gluTShifts(si,c));
+                        this.director_ = this.director_.estimateAll;
+                        prods{c} = this.director_.product;  %#ok<NASGU>
+                    catch ME
+                        handwarning(ME);
+                    end
+                end
+            end
+            cd(subjectsPth);            
+            save(sprintf('AutoradiographyTester.prepareGluT.prods_%s.mat', datestr(now,30)), 'prods');
+            db = AutoradiographyDB.loadCRVAutoradiographyTest(logFn);
+            db.getSummaryPlot;
             cd(p.Results.figFolder);
             AutoradiographyTester.saveFigs;
             cd(pwd0);
@@ -88,7 +141,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             fn = sprintf('%sho%i.crv', str2pnum(pwd), idx);
         end
         function fn = ecatFnGluT(idx)
-            fn = sprintf('%sho%i_161616fwhh_masked.nii.gz', str2pnum(pwd), idx);
+            fn = sprintf('%sho%i.nii.gz', str2pnum(pwd), idx);
         end
         function prepareCRVAutoradiography(varargin)
             

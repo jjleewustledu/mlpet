@@ -67,7 +67,6 @@ classdef Test_TSC < matlab.unittest.TestCase
         end
         function test_header(this)
             this.assertEqual(this.testObj.header.injectionTime, 18.9330);
-            this.assertEqual(this.testObj.header.numberOfFrames, 45);
             this.assertEqual(this.testObj.header.string(1:14), 'rec p8047gluc1');
             this.assertEqual(this.testObj.header.start(43), 3240);
             this.assertEqual(this.testObj.header.duration(43), 180);

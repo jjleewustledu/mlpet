@@ -61,7 +61,7 @@ classdef (Abstract) AbstractAutoradiographyTrainer < mlpet.AbstractAutoradiograp
                        2.60728921916835  1.77175217249027  2.04689813992062  2.06367974658375   1.89965728939745 ...
                        2.07418485754895  1.9124144823309   1.698152880482]
         
-        WORK_DIR    = '/Volumes/SeagateBP3/cvl/np755/Training'
+        WORK_DIR    = '/Volumes/InnominateHD2/cvl/np755/Training'
     end
 
     properties

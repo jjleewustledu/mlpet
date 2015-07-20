@@ -21,7 +21,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
     end
     
 	properties 
-        A0 = 0.0153342621789194
+        A0 = 0.01
         Ew = 0.8964
         PS = 0.03169 
         T0 = 0.5730        
@@ -75,22 +75,22 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
             fL = 1; fH = 1;
             T  = this.times(end);
             m = containers.Map;
-            m('A0') = struct('fixed', 0, 'min', fL* 0.007,    'mean', this.A0, 'max', fH* 0.02);
+            m('A0') = struct('fixed', 0, 'min', fL* 0.0098,   'mean', this.A0, 'max', fH* 0.04);
             if (this.HERSCOVITCH) % physiologic ranges, Herscovitch, JCBFM 7:527-541, 1987, table 2.
-            m('A1') = struct('fixed', 0, 'min', fL*0.009275,  'mean', this.PS, 'max', fH* 0.03675);
+            m('A1') = struct('fixed', 0, 'min',     0.009275, 'mean', this.PS, 'max',     0.03675);
             else
-            m('A1') = struct('fixed', 0, 'min', fL* 0.79,     'mean', this.Ew, 'max', fH* 0.93);
+            m('A1') = struct('fixed', 0, 'min',     0.79,     'mean', this.Ew, 'max',     0.93);
             end
-            m('T0') = struct('fixed', 0, 'min',     0.06,     'mean', this.T0, 'max', fH* T/4);  
+            m('T0') = struct('fixed', 0, 'min',     0.06,     'mean', this.T0, 'max', fH* T/2);  
             m('a')  = struct('fixed', 0, 'min', fL* 1.6,      'mean', this.a,  'max', fH* 2.1); 
             m('c1') = struct('fixed', 0, 'min',     0,        'mean', this.c1, 'max', fH* 0.7);
             m('c2') = struct('fixed', 0, 'min',     5,        'mean', this.c2, 'max', fH* T/4);
             m('c3') = struct('fixed', 0, 'min', fL* 0.4,      'mean', this.c3, 'max', fH* 0.8);
             m('c4') = struct('fixed', 0, 'min',     0.1,      'mean', this.c4, 'max', fH* T/4);
             m('d')  = struct('fixed', 0, 'min', fL* 3,        'mean', this.d,  'max', fH* 6);
-            m('f')  = struct('fixed', 0, 'min',     0.004305, 'mean', this.f,  'max',     0.01229); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
-            m('p')  = struct('fixed', 0, 'min', fL* 0.7,      'mean', this.p,  'max', fH* 0.9);
-            m('q0') = struct('fixed', 0, 'min', fL* 1e4,      'mean', this.q0, 'max', fH*12e4);
+            m('f')  = struct('fixed', 0, 'min',     0.004305, 'mean', this.f,  'max', 1.5*0.01229); % physiologic range, Herscovitch, JCBFM 7:527-541, 1987, table 2.
+            m('p')  = struct('fixed', 0, 'min', fL* 0.7,      'mean', this.p,  'max', fH* 1);
+            m('q0') = struct('fixed', 0, 'min', fL* 1e3,      'mean', this.q0, 'max', fH*12e4);
             m('t0') = struct('fixed', 0, 'min',     0,        'mean', this.t0, 'max', fH* T/4 );
         end
         function k    = get.kernel(this)
@@ -112,6 +112,11 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
             parse(ip, ecatFn, crvFn, dcvFn, maskFn, varargin{:});
             
             import mlfourd.* mlpet.*;
+            CRVAutoradiography.reportLoading( ...
+                ip.Results.ecatFn, ip.Results.crvFn, ip.Results.dcvFn, ip.Results.maskFn, ...
+                sprintf('ecatShift %g', ip.Results.ecatShift), ...
+                sprintf('crvShift %g', ip.Results.ecatShift), ...
+                sprintf('dcvShift %g', ip.Results.ecatShift));
             ecatObj = CRVAutoradiography.loadEcat(ip.Results.ecatFn); 
             crvObj  = CRVAutoradiography.loadCrv( ip.Results.crvFn); 
             dcvObj  = [];
@@ -217,6 +222,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
             this.expectedBestFitParams_ = ...
                 [this.A0 this.A1 this.T0 ...
                  this.a  this.c1 this.c2 this.c3 this.c4 this.d this.f this.p this.q0 this.t0]'; % initial expected values from properties
+            this.reportInitial;
         end
         
         function ci   = itsConcentration_ecat(this)
@@ -357,7 +363,14 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
                              %'/Users/jjlee/Local/src/mlcvl/mlarbelaez/src/+mlarbelaez/kernel57.mat'
     end
     
-    methods (Static, Access = 'private')        
+    methods (Static, Access = 'private')     
+        
+        function     reportLoading(varargin)
+            fprintf('CRVAutoradiography.reportLoading:\n'); 
+            for v = 1:nargin
+                disp(varargin{v});
+            end
+        end
         function c = gammaVariate(a, d, p, t0, t)
             norm   = gamma(d/p) * (p/a^d);
             c0     = abs(t.^(d-1) .* exp(-(t/a).^p)) / norm;  
@@ -374,6 +387,10 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
     end
     
     methods (Access = 'private')
+        function        reportInitial(this)
+            fprintf('CRVAutoradiography.kernelRange_:  '); disp(this.kernelRange_);
+            fprintf('CRVAutoradiography.kernelBestFilename_:  '); disp(this.kernelBestFilename_);
+        end
         function this = loadKernel(this)
             load(this.kernelBestFilename_);
             %kernelBest = bsrf120_id1;

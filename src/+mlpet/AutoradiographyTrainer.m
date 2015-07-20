@@ -49,7 +49,10 @@ classdef AutoradiographyTrainer < mlpet.AbstractAutoradiographyTrainer
                 fprintf('AutoradiographyTrainer.trainCRVDCVAutoradiography is working in %s\n', pwd);
                 this.director_ = ...
                     AutoradiographyDirector.loadCRVDCVAutoradiography( ...
-                        this.maskFn, this.aifFn, this.ecatFn, this.DCV_SHIFTS(c), this.ECAT_SHIFTS(c));                
+                        this.maskFn, this.aifFn, this.ecatFn, this.DCV_SHIFTS(c), this.ECAT_SHIFTS(c));    
+                tmp = this.director_.product;
+                tmp.f = this.VIDEEN_FLOWS(c);
+                this.director_.product = tmp;              
                 this.director_ = this.director_.estimateAll;
                 prods{c} = this.director_.product; %#ok<NASGU>
             end

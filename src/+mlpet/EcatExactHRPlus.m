@@ -270,33 +270,32 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
         end
         function this = readHeader(this, txtPars)
             this.header_.injectionTime  = txtPars.parseAssignedNumeric('Start time');
-            this.header_.numberOfFrames = txtPars.parseColonNumeric('number of frames');
             this.header_.string         = char(txtPars);
         end
         function this = readSchedule(this, txtPars)
-            [~,first] = txtPars.findFirstCell('Frame  Start  Duration (sec)'); 
-            first = first + 2;
-            last = first + this.header.numberOfFrames - 2;
-            
-            for c = first:last
-                expr = '(?<frame>\d+\.?\d*)\s+(?<start>-?\d+\.?\d*)\s+(?<duration>\d+\.?\d*)';
+            [~,labelLine] = txtPars.findFirstCell('Frame  Start  Duration (sec)'); 
+            c  = labelLine + 2; % skip header lines
+            cc = 1;
+            expr = '(?<frame>\d+\.?\d*)\s+(?<start>-?\d+\.?\d*)\s+(?<duration>\d+\.?\d*)';
+            names = regexp(txtPars.cellContents{c}, expr, 'names');
+            while (~isempty(names))
+                
+                % frames sometimes get aborted at run-time
+                % do not pre-allocate this.header_.*                   
+                this.header_.frame(cc)    = str2double(names.frame);
+                this.header_.start(cc)    = str2double(names.start);
+                this.header_.duration(cc) = str2double(names.duration);
+                cc = cc + 1;
+                c  = c  + 1;
                 names = regexp(txtPars.cellContents{c}, expr, 'names');
-                cc = c - first + 1;
-                try 
-                    % frames sometimes get aborted at run-time
-                    % do not pre-allocate this.header_.<arrays>                    
-                    this.header_.frame(cc)    = str2double(names.frame);
-                    this.header_.start(cc)    = str2double(names.start);
-                    this.header_.duration(cc) = str2double(names.duration);
-                catch ME
-                    handwarning(ME);
-                end
             end  
             
-            % .img.rec time-frames exclude the first frame; KLUDGE follows
-            start               = this.header_.start(2:end);
-            start(last-first+1) = this.header_.start(end) + this.header_.duration(end);
-            this.header_.start  = start;
+            % .img.rec time-frames exclude the first frame; following KLUDGE fixes start times
+            assert(c > 2, 'EcatExactHRPlus.readSchedule could find adequate schedule information');
+            startTimes         = this.header_.start(2:end);
+            startTimes(end+1)  = this.header_.start(end) + this.header_.duration(end);
+            this.header_.start = startTimes;
+            
         end
         function this = readTimes(this)
             this.times_ = this.header.start + this.header.injectionTime; % decay corrections must be to time of injection

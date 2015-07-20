@@ -13,6 +13,7 @@ classdef (Abstract) AutoradiographyBuilder2 < mlbayesian.AbstractMcmcProblem
         LAMBDA = 0.95           % brain-blood equilibrium partition coefficient, mL/mL, Herscovitch, Raichle, JCBFM (1985) 5:65
         LAMBDA_DECAY = 0.005677 % KLUDGE:  hard-coded [15O] half-life because propagating this.decayCorrection_ to static methods is difficult
         BRAIN_DENSITY = 1.05    % assumed mean brain density, g/mL
+        SMALL_LARGE_HCT = 0.85  % Grubb et al., 1978, Videen et al., 1987
         TIME_SUP = 200          % sec
     end
 

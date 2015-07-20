@@ -51,7 +51,6 @@ classdef Test_DecayCorrectedEcat < matlab.unittest.TestCase
         end
         function test_header(this)
             this.assertEqual(this.testObj.header.injectionTime, 18.933);
-            this.assertEqual(this.testObj.header.numberOfFrames, 45);
             this.assertEqual(this.testObj.header.string(1:25), 'rec p8047gluc1_frames.img');
             this.assertEqual(this.testObj.header.frame(4), 5);
             this.assertEqual(this.testObj.header.start(4), 90);

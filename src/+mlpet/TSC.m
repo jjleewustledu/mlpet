@@ -76,7 +76,7 @@ classdef TSC < mlpet.AbstractWellData
             pnum = str2pnum(pnumPth);
             if (isnumeric(scanIdx)); scanIdx = num2str(scanIdx); end
             
-            ecatLoc = fullfile(pnumPth, 'PET', ['scan' scanIdx], [pnum 'gluc' scanIdx '_mcf.nii.gz']);
+            ecatLoc = fullfile(pnumPth, 'PET', ['scan' scanIdx], [pnum 'gluc' scanIdx '_mcf_revf1to5.nii.gz']);
             tscLoc  = fullfile(pnumPth, 'jjl_proc', [pnum 'wb' scanIdx '.tsc']);
             dtaLoc  = fullfile(pnumPth, 'jjl_proc', [pnum 'g'  scanIdx '.dta']);
             this = mlpet.TSC.load(tscLoc, ecatLoc, dtaLoc, 4.88);            
@@ -190,7 +190,7 @@ classdef TSC < mlpet.AbstractWellData
             f = sprintf('aparc_a2009s+aseg_mask_on_%sgluc%i_mcf.nii.gz', this.pnumber, this.scanIndex);
         end
         function f   = maskFqfilename(this)
-            f = fullfile(this.fslPath, this.maskFilename);
+            f = fullfile(this.scanPath, this.maskFilename);
         end  
         function nf = getNf(this)
             nf = length(this.times);
