@@ -134,6 +134,59 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             cd(pwd0);
             diary off
         end
+        function prepareGluTROI(varargin)
+            
+            p = inputParser;
+            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            parse(p, varargin{:});            
+            
+            import mlperfusion.* mlpet.*;
+            pwd0 = pwd;
+            subjectsPth = '/Volumes/InnominateHD2/Arbelaez/GluT';
+            this = AutoradiographyTester(subjectsPth);
+            
+            cd(subjectsPth);
+            logFn = fullfile(subjectsPth, sprintf('AutoradiographyTester.prepareGluT_%s.log', datestr(now, 30)));
+            diary(logFn);   
+            regions = {'amygdala' 'hippocampus' 'hypothalamus' 'large-hypothalamus' 'thalamus'};
+            for c = 11:11 % 1:length(this.gluTCases)
+                for si = 2:2
+                    for ri = 1:length(regions)
+                        try
+                            cd(fullfile(subjectsPth, this.gluTCases{c}, 'PET', sprintf('scan%i', si))); 
+                            pi = str2pnum(this.gluTCases{c});
+                            fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
+                            fprintf('AutoradiographyTester.prepareGluT is working in %s\n', pwd);
+                            [fn1,fn2] = this.maskFnROI(regions{ri}, pi, si);
+                            if (lexist(fullfile(subjectsPth, this.gluTCases{c}, 'as_rois', fn1)))
+                                fqfn = fullfile(subjectsPth, this.gluTCases{c}, 'as_rois', fn1);
+                            else
+                                fqfn = fullfile(subjectsPth, this.gluTCases{c}, 'as_rois', fn2);
+                            end
+                            this.director_ = ...
+                                AutoradiographyDirector.loadCRVAutoradiography( ...
+                                    fqfn, this.aifFnGluT(si), this.ecatFnGluT(si), this.gluTShifts(si,c));
+                            this.director_ = this.director_.estimateAll;
+                            prods{c} = this.director_.product;  %#ok<NASGU>
+                        catch ME
+                            handwarning(ME);
+                        end
+                    end
+                end
+            end
+            cd(subjectsPth);            
+            save(sprintf('AutoradiographyTester.prepareGluT.prods_%s.mat', datestr(now,30)), 'prods');
+            db = AutoradiographyDB.loadCRVAutoradiographyTest(logFn);
+            db.getSummaryPlot;
+            cd(p.Results.figFolder);
+            AutoradiographyTester.saveFigs;
+            cd(pwd0);
+            diary off
+        end
+        function [fn1,fn2] = maskFnROI(region, pId, scanId)
+            fn1 = sprintf('%s_on_001_BET_on_%sho%i_sumt.nii.gz', region, pId, scanId);
+            fn2 = sprintf('%s_on_001_on_orig_on_%str%i.nii.gz', region, pId, scanId);
+        end
         function fn = maskFnGluT(idx)
             fn = sprintf('aparc_a2009s+aseg_mask_on_%sho%i_sumt.nii.gz', str2pnum(pwd), idx);
         end
