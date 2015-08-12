@@ -42,9 +42,9 @@ classdef Test_TSC < matlab.unittest.TestCase
         end
         function test_save(this)            
             ca = mlio.TextIO.textfileToCell(this.tscFqfilename);
-            this.assertTrue(strcmp('p8047g1.dta,  aparc_a2009s+aseg_mask_on_p8047gluc1_mcf.nii.gz, p8047gluc1_decayCorrect_masked.nii.gz, pie = 4.880000', strtrim(ca{1})));
+            this.assertTrue(strcmp('p8047g1.dta,  aparc_a2009s+aseg_mask_on_p8047gluc1_mcf.nii.gz, p8047gluc1_mcf_revf1to5_decayCorrect_masked.nii.gz, pie = 4.880000', strtrim(ca{1})));
             this.assertTrue(strcmp('42,    3', strtrim(ca{2})));
-            this.assertTrue(strcmp('3258.9        180.0      972907.18', strtrim(ca{44})));
+            this.assertTrue(strcmp('3258.9        180.0      981077.06', strtrim(ca{44})));
         end
         function test_makeMask(this)
             msk = this.testObj.makeMask;
