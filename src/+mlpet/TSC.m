@@ -24,6 +24,7 @@ classdef TSC < mlpet.AbstractWellData
         procPath  
         
         becquerelInterpolants
+        maskFilename
     end
     
     methods %% GET 
@@ -52,6 +53,9 @@ classdef TSC < mlpet.AbstractWellData
         function bi  = get.becquerelInterpolants(this)
             bi = pchip(this.times, this.counts ./ this.taus, this.timeInterpolants);
         end
+        function f   = get.maskFilename(this)
+            f = sprintf('aparc_a2009s+aseg_mask_on_%sgluc%i_mcf.nii.gz', this.pnumber, this.scanIndex);
+        end
     end
     
     methods (Static)
@@ -79,9 +83,9 @@ classdef TSC < mlpet.AbstractWellData
             ecatLoc = fullfile(pnumPth, 'PET', ['scan' scanIdx], [pnum 'gluc' scanIdx '_mcf_revf1to5.nii.gz']);
             tscLoc  = fullfile(pnumPth, 'jjl_proc', [pnum 'wb' scanIdx '.tsc']);
             dtaLoc  = fullfile(pnumPth, 'jjl_proc', [pnum 'g'  scanIdx '.dta']);
-            this = mlpet.TSC.load(tscLoc, ecatLoc, dtaLoc, 4.88);            
+            this = mlpet.TSC.load(tscLoc, ecatLoc, dtaLoc);            
         end
-        function this = load(tscLoc, ecatLoc, dtaLoc, ~)
+        function this = load(tscLoc, ecatLoc, dtaLoc)
             %% LOAD
  			%  Usage:  this = TSC.load(tsc_file_location, ecat_file_location,  dta_file_location) 
             %          this = TSC.load('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta')
@@ -186,9 +190,6 @@ classdef TSC < mlpet.AbstractWellData
     end
     
     methods (Access = 'protected')
-        function f   = maskFilename(this)
-            f = sprintf('aparc_a2009s+aseg_mask_on_%sgluc%i_mcf.nii.gz', this.pnumber, this.scanIndex);
-        end
         function f   = maskFqfilename(this)
             f = fullfile(this.scanPath, this.maskFilename);
         end  
