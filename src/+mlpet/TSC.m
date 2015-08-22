@@ -24,7 +24,6 @@ classdef TSC < mlpet.AbstractWellData
         procPath  
         
         becquerelInterpolants
-        maskFilename
     end
     
     methods %% GET 
@@ -53,13 +52,10 @@ classdef TSC < mlpet.AbstractWellData
         function bi  = get.becquerelInterpolants(this)
             bi = pchip(this.times, this.counts ./ this.taus, this.timeInterpolants);
         end
-        function f   = get.maskFilename(this)
-            f = sprintf('aparc_a2009s+aseg_mask_on_%sgluc%i_mcf.nii.gz', this.pnumber, this.scanIndex);
-        end
     end
     
     methods (Static)
-        function this = import(tscLoc)    
+        function this = import(tscLoc)
             %% IMPORT
  			%  Usage:  this = TSC.import(tsc_file_location) 
             %          this = TSC.import('/path/to/p1234data/jjl_proc/p1234wb1.tsc')
@@ -71,37 +67,34 @@ classdef TSC < mlpet.AbstractWellData
             this = mlpet.TSC(tscLoc);
             this = this.readtsc;
         end
-        function this = loadGluT(pnumPth, scanIdx)
-            %% LOADGLUT
- 			%  Usage:  this = TSC.loadGluT(pnumber_path, scan_index) 
-            %          this = TSC.loadGluT('/path/to/p1234data', 1)
-            
-            assert(lexist(pnumPth, 'dir'));
-            pnum = str2pnum(pnumPth);
-            if (isnumeric(scanIdx)); scanIdx = num2str(scanIdx); end
-            
-            ecatLoc = fullfile(pnumPth, 'PET', ['scan' scanIdx], [pnum 'gluc' scanIdx '_mcf_revf1to5.nii.gz']);
-            tscLoc  = fullfile(pnumPth, 'jjl_proc', [pnum 'wb' scanIdx '.tsc']);
-            dtaLoc  = fullfile(pnumPth, 'jjl_proc', [pnum 'g'  scanIdx '.dta']);
-            this = mlpet.TSC.load(tscLoc, ecatLoc, dtaLoc);            
+        function this = loadTscFiles(tscFiles)
+            assert(isa(tscFiles, 'mlpet.TSCFiles'));
+            this = mlpet.TSC.load( ...
+                tscFiles.tscFqfilename, tscFiles.ecatFqfilename, tscFiles.dtaFqfilename, tscFiles.maskFqfilename);
         end
-        function this = load(tscLoc, ecatLoc, dtaLoc)
+        function this = load(tscLoc, ecatLoc, dtaLoc, maskLoc)
             %% LOAD
- 			%  Usage:  this = TSC.load(tsc_file_location, ecat_file_location,  dta_file_location) 
+ 			%  Usage:  this = TSC.load(tsc_file_location, ecat_file_location,  dta_file_location, mask_file_location) 
             %          this = TSC.load('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta')
             %          this = TSC.load('/p1234data/jjl_proc/p1234wb1', '/p1234data/PET/scan1/p1234gluc1', '/p1234data/jjl_proc/p1234g1')
             %          this = TSC.load('p1234wb1', '../PET/scan1/p1234gluc1', 'p1234g1') 
             
+            ip = inputParser;
+            addRequired(ip,  'tscLoc', @(x) lexist(x, 'file'));
+            addRequired(ip, 'ecatLoc', @(x) lexist(x, 'file'));
+            addRequired(ip,  'dtaLoc', @(x) lexist(x, 'file'));
+            addRequired(ip, 'maskLoc', @(x) lexist(x, 'file'));
+            parse(ip, tscLoc, ecatLoc, dtaLoc, maskLoc);
+            
             import mlpet.* mlfourd.*;
             
-            this = TSC(tscLoc);
-            this.mask_ = this.makeMask;
-            this.dta_ = DTA(dtaLoc);
+            this = TSC(ip.Results.tscLoc);
+            this.mask_ = this.makeMask(ip.Results.maskLoc);
+            this.dta_ = DTA(ip.Results.dtaLoc);
             this.decayCorrectedEcat_ = this.maskEcat( ...
-                                       DecayCorrectedEcat.load(ecatLoc), this.mask_);
-            
-            this.times_  = this.decayCorrectedEcat_.times;  
-            this.taus_   = this.decayCorrectedEcat_.taus; 
+                                       DecayCorrectedEcat.load(ip.Results.ecatLoc), this.mask_);            
+            this.times_ = this.decayCorrectedEcat_.times;  
+            this.taus_ = this.decayCorrectedEcat_.taus; 
             this.counts_ = this.squeezeVoxels(this.decayCorrectedEcat_, this.mask_);  
             this.header_ = this.decayCorrectedEcat_.header;                 
             
@@ -109,6 +102,21 @@ classdef TSC < mlpet.AbstractWellData
                 this.save;
             end
         end
+        function msk  = makeMask(maskFqfn)
+            %% MAKEMASK accepts a f. q. filename for creating a MaskingNIfTId object.
+            
+            msk = mlfourd.MaskingNIfTId.load(maskFqfn);
+        end
+        function dcecat = maskEcat(dcecat, msk)
+            %% MASKPET accepts PET and mask NIfTIs and masks each time-frame of PET by the mask
+            %  Usage:  pet_masked_nifti = maskPet(pet_nifti, mask_nifti) 
+
+            assert(isa(dcecat, 'mlpet.EcatExactHRPlus'));
+            assert(isa(msk, 'mlfourd.INIfTId'));
+            assert(3 == length(msk.size), 'mlpet:unsupportedDataSize', 'TSC.makeMask.mask.size -> % i', msk.size); %#ok<*MCNPN>
+
+            dcecat = dcecat.masked(msk);
+        end  
     end
 
 	methods 	
@@ -127,24 +135,7 @@ classdef TSC < mlpet.AbstractWellData
             %        wellcnts/cc = \pi \frac{PETcnts}{pixel} \frac{sec}{min}
 
             this = this@mlpet.AbstractWellData(tscLoc);            
-        end
-        function msk  = makeMask(this)
-            msk = mlfourd.MaskingNIfTId.load(this.maskFqfilename);
-            if (~lstrfind(msk.fileprefix, 'mask') && ...
-                ~lstrfind(msk.fileprefix, 'msk'))
-                msk.fileprefix = [msk.fileprefix '_mask'];
-            end
-        end
-        function dcecat = maskEcat(~, dcecat, msk)
-            %% MASKPET accepts PET and mask NIfTIs and masks each time-frame of PET by the mask
-            %  Usage:  pet_masked_nifti = maskPet(pet_nifti, mask_nifti) 
-
-            assert(isa(dcecat, 'mlpet.EcatExactHRPlus'));
-            assert(isa(msk, 'mlfourd.INIfTId'));
-            assert(3 == length(msk.size), 'mlpet:unsupportedDataSize', 'TSC.makeMask.mask.size -> % i', msk.size); %#ok<*MCNPN>
-
-            dcecat = dcecat.masked(msk);
-        end        
+        end      
         function cnts = squeezeVoxels(this, ecat, msk)
             %% SQUEEZEVOXELS integrates over space with masking, then divides amplitudes by the number of pixels;
             %  cf. man pie
@@ -176,7 +167,7 @@ classdef TSC < mlpet.AbstractWellData
             for f = 1:Nf
                 fprintf(fid, '%12.1f %12.1f %14.2f\n', this.times(f), this.taus(f), this.counts(f));
             end
-            fprintf(fid, '%s\n\n', this.maskFilename);   
+            fprintf(fid, '%s\n\n', this.mask_.fqfilename);   
             fclose(fid);
         end
     end 
@@ -190,9 +181,6 @@ classdef TSC < mlpet.AbstractWellData
     end
     
     methods (Access = 'protected')
-        function f   = maskFqfilename(this)
-            f = fullfile(this.scanPath, this.maskFilename);
-        end  
         function nf = getNf(this)
             nf = length(this.times);
             dd = this.dta_.times(this.dta_.length);
