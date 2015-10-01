@@ -65,6 +65,7 @@ classdef DTA < mlpet.AbstractWellData
  	%  and checked into repository $URL$,  
  	%  developed on Matlab 8.3.0.532 (R2014a) 
  	%  $Id$ 
+    %%
 
     properties (Constant)
         EXTENSION = '.dta'        
@@ -82,71 +83,140 @@ classdef DTA < mlpet.AbstractWellData
     end
     
     methods (Static)
-        function this = load(fileLoc)
+        function this = load(fileLoc, varargin)
+            ip = inputParser;
+            addRequired(ip, 'fileLoc',          @ischar);
+            addOptional(ip, 'shortHead', false, @islogical);
+            parse(ip, fileLoc, varargin{:});
+            
             this = mlpet.DTA(fileLoc);
+            if (ip.Results.shortHead)
+                this = this.readShortDta;
+            else
+                this = this.readDta;
+            end
+        end
+        function this = importBlood(b)
+            assert(isa(b, 'mlpet.Blood'));
+            this = mlpet.DTA(b.dtaFilename); 
+            
+            this.syringeWeightDry   = b.DRYWEIGHT;
+            this.syringeWeightWet   = b.WETWEIGHT;
+            this.sampleTimesDrawn   = b.TIMEDRAW;
+            this.sampleTimesCounted = b.TIMECNT;
+            this.measuredCounts     = b.COUNTS;
+            this.countPeriod        = b.COUNTIME;
+            
+            this.header_.string        = b.header;
+            this.header_.scanType      = b.SCANTYPE;
+            this.header_.scanSymbol    = b.scanSymbol;
+            this.header_.scanStart     = this.secs(b.SCANSTART);
+            this.header_.scanLength    = this.secs(b.SCANLENGTH);
+            this.header_.oxygenContent = b.OXYCONT;
+            this.header_.Hct           = b.HEMATOCRIT;
+            this.times_                = b.TIMESECS;
+            this.counts_               = b.CORCNTS;
         end
     end
     
 	methods 
   		function this = DTA(fileLoc) 
  			%% DTA 
- 			%  Usage:  this = DTA(file_location) 
-            %          this = DTA('/path/to/p1234data/p1234ho1.crv')
+ 			%  Usage:  this = DTA(file_location[, read_short_header]) 
+            %          this = DTA('/path/to/p1234data/p1234ho1.crv', true)
             %          this = DTA('/path/to/p1234data/p1234ho1')
             %          this = DTA('p1234ho1')
 
             this = this@mlpet.AbstractWellData(fileLoc);
+            
             if (isempty(this.filesuffix))
                 this.petio_.filesuffix = this.EXTENSION; end
-            this = this.readdta;
         end      
-        function save(~)
-            error('mlpet:notImplemented', 'DTA.save');
+        function save(this)            
+            fid = fopen(this.fqfilename, 'w');
+            fprintf(fid, '%s\n', this.header.string);
+            fprintf(fid, '       Corrected     Syringe Weight      Sample Time    Measured   Per\n');
+            fprintf(fid, '     Sec   Counts     Dry      Wet      Drawn  Counted    Counts   Sec\n');
+            fprintf(fid, '  1\n'); % number of scans/tracers            
+            fprintf(fid, '%i %s\n', this.header.scanType, this.header.scanSymbol);
+            fprintf(fid, '%9.0f%9.0f\n', this.header.scanStart, this.header.scanLength);
+            fprintf(fid, '%10.4f%10.4f\n', 0, 0); % bank pairs
+            fprintf(fid, '%10.4f%10.4f\n', this.header.oxygenContent, this.header.Hct);
+            fprintf(fid, '%i\n', this.length);            
+            for f = 1:this.length
+                fprintf(fid, '%8.0f%10.0f%9.5f%9.5f%9.2f%9.2f%10i%6.0f\n', ...
+                        this.times(f),            this.counts(f),             this.syringeWeightDry(f), this.syringeWeightWet(f), ...
+                        this.sampleTimesDrawn(f), this.sampleTimesCounted(f), this.measuredCounts(f),   this.countPeriod(f));
+            end
+            fprintf(fid, '\n');
+            fclose(fid);
         end   
     end 
     
     %% PRIVATE
     
-    properties
-        READ_HEADER2_EXP = '(?<pnumber>p\d{4})\s+\w*\s*\w*\s*(?<dateScan>\d+-\d+-\d+)\s+(?<studyCode>\w+)(?<petIndex>\d)\s+(?<dateProcessing>\d+(/|-)\d+(/|-)\d+)\s+(?<author>\w+)'
+    properties (Access = 'private')
+        READ_HEADER_EXP = '(?<pnumber>p\d{4})\s+\w*\s*\w*\s*(?<dateScan>\d+(/|-)\d+(/|-)\d+)\s+(?<studyCode>\w+)(?<petIndex>\d)\s+(?<dateProcessing>\d+(/|-)\d+(/|-)\d+)\s+(?<author>\w+)'
     end
     
     methods (Access = 'private')
-        function this = readdta(this)
-            try
-                fid = fopen(this.fqfilename);
-                this = this.readheader2(fid);
-                this = this.readdata(fid);
-            catch ME
-                handwarning(ME);
-                fid = fopen(this.fqfilename);
-                this = this.readheader2(fid);
-                this = this.readdata_9col(fid);
-            end
-        end           
-        function this = readheader(this, fid)
-            textscan(fid, '%s', 8, 'Delimiter', '\n');
-            
-            len = textscan(fid, '%d', 1, 'Delimiter', '\n'); 
-            this.header_.length = len{1};
+        function this = readShortDta(this)            
+            fid  = fopen(this.fqfilename);
+            this = this.readShortHeader(fid);
+            this = this.readData(fid);
+            fclose(fid);
         end
-        function this = readheader2(this, fid)
+        function this = readDta(this)
+            fid  = fopen(this.fqfilename);
+            this = this.readHeader(fid);
+            this = this.readData(fid);
+            fclose(fid);
+        end
+        function this = readShortHeader(this, fid)
             str = textscan(fid, '%s', 1, 'Delimiter', '\n');            
             str = str{1}; str = str{1};
-            h = regexp(str, this.READ_HEADER2_EXP, 'names');
-            h.petIndex = str2double(h.petIndex);
-            h.string = strtrim(str);
-            this.header_ = h;
-            this.assertHeader;
-            
+            try
+                h = regexp(str, this.READ_HEADER_EXP, 'names');
+                h.petIndex = str2double(h.petIndex);
+                h.string = strtrim(str);
+                this.header_ = h;
+            catch %#ok<CTCH>
+                this.header_.string = str;
+            end            
             len = textscan(fid, '%d', 1, 'Delimiter', '\n'); 
             this.header_.length = len{1};
         end
-        function assertHeader(this)            
-            assert(strncmp(this.fileprefix, this.header.pnumber, 5));
-            %assert(strcmp(this.fileprefix(end), num2str(this.header.petIndex)));
+        function this = readHeader(this, fid)
+            str = textscan(fid, '%s', 1, 'Delimiter', '\n');            
+            str = str{1}; str = str{1};
+            try
+                h = regexp(str, this.READ_HEADER_EXP, 'names');
+                h.petIndex = str2double(h.petIndex);
+                h.string = strtrim(str);
+                this.header_ = h;
+            catch %#ok<CTCH>
+                this.header_.string = str;
+            end
+                  textscan(fid, '%s',    1, 'Delimiter', '\n');
+                  textscan(fid, '%s',    1, 'Delimiter', '\n');
+            ts  = textscan(fid, '%d',    1, 'Delimiter', '\n');
+            this.header_.numberScans   = ts{1};
+            ts  = textscan(fid, '%d %s', 1, 'Delimiter', '\n');
+            this.header_.scanType      = ts{1};
+            tmp = ts{2};
+            this.header_.scanSymbol    = tmp{1};
+            ts  = textscan(fid, '%d %d', 1, 'Delimiter', '\n');
+            this.header_.scanStart     = ts{1};
+            this.header_.scanLength    = ts{2};
+            ts  = textscan(fid, '%d %d', 1, 'Delimiter', '\n');
+            this.header_.bankPairs     = [ts{1} ts{2}];
+            ts  = textscan(fid, '%d %d', 1, 'Delimiter', '\n');
+            this.header_.oxygenContent = ts{1};
+            this.header_.Hct           = ts{2};
+            len = textscan(fid, '%d',    1, 'Delimiter', '\n'); 
+            this.header_.length = len{1};
         end
-        function this = readdata(this, fid)            
+        function this = readData(this, fid)
             ts = textscan(fid, '%f %f %f %f %f %f %f %f', 'Delimiter', ' ', 'MultipleDelimsAsOne', true);
             this.times_ = ts{1}';
             this.taus_ = this.times_(2:end) - this.times_(1:end-1);
@@ -158,22 +228,6 @@ classdef DTA < mlpet.AbstractWellData
             this.sampleTimesCounted = ts{6}';
             this.measuredCounts = ts{7}';
             this.countPeriod = ts{8}';            
-            
-            this.assertLength; 
-        end
-        function this = readdata_9col(this, fid)            
-            ts = textscan(fid, '%f %f %f %f %f %f %f %f %f', 'Delimiter', ' ', 'MultipleDelimsAsOne', true);
-            this.times_ = ts{1}';
-            this.taus_ = this.times_(2:end) - this.times_(1:end-1);
-            this.taus_(this.length) = this.taus_(end);
-            this.counts_ = ts{2}';
-            this.syringeWeightDry = ts{3}';
-            this.syringeWeightWet = ts{4}';
-            this.sampleTimesDrawn = ts{5}';
-            this.sampleTimesCounted = ts{6}';
-            this.measuredCounts = ts{7}';
-            this.countPeriod = ts{8}';            
-            
             this.assertLength; 
         end
         function assertLength(this)            
@@ -183,6 +237,16 @@ classdef DTA < mlpet.AbstractWellData
             if (length(this.counts_) ~=  this.header.length)
                 error('mlpet:unexpectedDataLength', 'DTA.header.length -> %i, but length(.counts_) -> %i', ...
                        this.header.length, length(this.counts_)); end
+        end        
+        function s = secs(~, timeSymbol)
+            %% SECS
+            %  Usage:  s = this.SECS(1.23)
+            %          83
+            
+            assert(isnumeric(timeSymbol));
+            minutes = floor(timeSymbol);
+            seconds = 100*(timeSymbol - minutes);
+            s       = 60*minutes + seconds;
         end
     end
     

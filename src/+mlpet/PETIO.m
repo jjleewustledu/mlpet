@@ -21,12 +21,22 @@ classdef PETIO < mlio.AbstractIO
     
     methods % GET
         function idx = get.scanIndex(this)
-            names = regexp(this.fileprefix, this.SCAN_INDEX_EXPR, 'names');
-            idx = str2double(names.idx);
+            try
+                names = regexp(this.fileprefix, this.SCAN_INDEX_EXPR, 'names');
+                idx = str2double(names.idx);
+            catch ME
+                handwarning(ME);
+                idx = nan;
+            end
         end
         function t = get.tracer(this) 
-            names = regexp(this.fileprefix, this.TRACER_EXPR, 'names');
-            t = names.tracer;
+            try
+                names = regexp(this.fileprefix, this.TRACER_EXPR, 'names');
+                t = names.tracer;
+            catch ME
+                handwarning(ME);
+                t = 'unknown';
+            end
         end
     end
     
@@ -70,6 +80,10 @@ classdef PETIO < mlio.AbstractIO
             tf = false;
             if ( strcmp(f(1), 'p') && ...
                 ~isnan(str2double(f(2:5))))
+                tf = true;
+            end
+            if ( strcmp(f(1), 'M') && ...
+                ~isnan(str2double(f(2:4))))
                 tf = true;
             end
             if (lstrfind(f, 'test'))

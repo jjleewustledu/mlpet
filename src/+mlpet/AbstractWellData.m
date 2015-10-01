@@ -106,7 +106,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
             h = this.header_;
         end
         function this = set.header(this, h)
-            if (isstruct(h))
+            if (isstruct(h) || ischar(h))
                 this.header_ = h; end            
         end
         

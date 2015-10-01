@@ -15,6 +15,10 @@ classdef TSC < mlpet.AbstractWellData
         COUNTS_UNITS = 'scanner events'
     end
     
+    properties 
+        regionIndex = 1
+    end
+    
     properties (Dependent)
         pnumberPath
         pnumber
@@ -59,16 +63,21 @@ classdef TSC < mlpet.AbstractWellData
     end
     
     methods (Static)
-        function this = import(tscLoc)
+        function this = import(varargin)
             %% IMPORT
  			%  Usage:  this = TSC.import(tsc_file_location) 
             %          this = TSC.import('/path/to/p1234data/jjl_proc/p1234wb1.tsc')
             %          this = TSC.import('/path/to/p1234data/jjl_proc/p1234wb1')
             %          this = TSC.import('p1234wb1')     
             
-            import mlpet.* mlfourd.*;
+            ip = inputParser;
+            addRequired(ip, 'tscLoc', @ischar);
+            addOptional(ip, 'regionIndex', 1, @isnumeric);
+            parse(ip, varargin{:});
             
-            this = mlpet.TSC(tscLoc);
+            import mlpet.* mlfourd.*;            
+            this = mlpet.TSC(ip.Results.tscLoc);
+            this.regionIndex = ip.Results.regionIndex;
             this = this.readtsc;
         end
         function this = loadTscFiles(tscFiles)
@@ -198,7 +207,18 @@ classdef TSC < mlpet.AbstractWellData
         function this = readtsc(this)
             fid = fopen(this.fqfilename);
             this = this.readheader(fid);
-            this = this.readdata(fid);
+            switch (this.header.cols)
+                case 3
+                    this = this.read3cols(fid);
+                case 4
+                    this = this.read4cols(fid);
+                case 5
+                    this = this.read5cols(fid);
+                case 6
+                    this = this.read6cols(fid);
+                otherwise
+                    error('mlpet:unsupportedHeaderParam', 'TSC.readtsc.header.cols -> %i', this.header.cols);
+            end
             fclose(fid);            
         end
         function this = readheader(this, fid)
@@ -209,11 +229,56 @@ classdef TSC < mlpet.AbstractWellData
             this.header_.rows = ts{1};
             this.header_.cols = ts{2};
         end
-        function this = readdata(this, fid)
+        function this = read3cols(this, fid)
             ts = textscan(fid, '%f %f %f', 'Delimiter', ' ', 'MultipleDelimsAsOne', true);
             this.times_  = ts{1}';
             this.taus_   = ts{2}';
             this.counts_ = ts{3}';
+        end
+        function this = read4cols(this, fid)
+            ts = textscan(fid, '%f %f %f %f', 'Delimiter', ',');
+            this.times_  = ts{1}';
+            this.taus_   = ts{2}';
+            switch (this.regionIndex)
+                case 1
+                    this.counts_ = ts{3}';
+                case 2
+                    this.counts_ = ts{4}';
+                otherwise
+                    error('mlpet:unexpectedParamValue', 'TSC.regionIndex -> %i', this.scanIndex);
+            end
+        end
+        function this = read5cols(this, fid)
+            ts = textscan(fid, '%f %f %f %f %f', 'Delimiter', ',');
+            this.times_  = ts{1}';
+            this.taus_   = ts{2}';
+            switch (this.regionIndex)
+                case 1
+                    this.counts_ = ts{3}';
+                case 2
+                    this.counts_ = ts{4}';
+                case 3
+                    this.counts_ = ts{5}';
+                otherwise
+                    error('mlpet:unexpectedParamValue', 'TSC.regionIndex -> %i', this.scanIndex);
+            end
+        end
+        function this = read6cols(this, fid)
+            ts = textscan(fid, '%f %f %f %f %f %f', 'Delimiter', ',');
+            this.times_  = ts{1}';
+            this.taus_   = ts{2}';
+            switch (this.regionIndex)
+                case 1
+                    this.counts_ = ts{3}';
+                case 2
+                    this.counts_ = ts{4}';
+                case 3
+                    this.counts_ = ts{5}';
+                case 4
+                    this.counts_ = ts{6}';
+                otherwise
+                    error('mlpet:unexpectedParamValue', 'TSC.regionIndex -> %i', this.scanIndex);
+            end
         end
     end
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

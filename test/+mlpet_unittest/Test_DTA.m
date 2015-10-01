@@ -63,7 +63,7 @@ classdef Test_DTA < matlab.unittest.TestCase
  	methods (TestClassSetup) 
  		function setupDTA(this) 
             cd(this.unittest_home);
- 			this.testObj = mlpet.DTA('p8047g1'); 
+ 			this.testObj = mlpet.DTA.load('p8047g1', true); 
  		end 
  	end 
 

@@ -168,7 +168,7 @@ classdef PETControlsDirector < mlfsl.AlignmentDirectorDecorator
                 'oefRatioRight',      'oefRatioLeft', ...
                 'std(oefRight)', 'std(oefLeft)', 'std(oefCerebellum)', ...
                 'N(MCA R)', 'N(MCA L)', 'N(Cerebellum)');
-            dt      = mlfourd.DirTools('p*');
+            dt      = mlsystem.DirTools('p*');
             for t = 1:dt.length
                 cd(fullfile(dt.fqdns{t}));
                 mlpet.PETControlsDirector.listOefRatios;
