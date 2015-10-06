@@ -275,7 +275,7 @@ classdef PETControlsDirector < mlfsl.AlignmentDirectorDecorator
             msk       = this.intersectionMask(msk);
         end
         function msk  = hemisphereMask(this, hemi)
-            assert(lstrfind(this.HEMISPHERES, hemi));
+            assert(lstrfind(hemi, this.HEMISPHERES));
             import mlfourd.*;
             switch (hemi)
                 case { 'left' 'right' }
@@ -289,7 +289,7 @@ classdef PETControlsDirector < mlfsl.AlignmentDirectorDecorator
             end
         end
         function msk  = territoryMask(this, terr)
-            assert(lstrfind(this.TERRITORIES, terr));
+            assert(lstrfind(terr, this.TERRITORIES));
             import mlfourd.*;
             if (strcmp('Cerebellum', terr))
                 msk = NIfTI.load(this.maskCerebellumMni.fqfilename);
