@@ -15,7 +15,7 @@ classdef NonquantitativeCOSS
         
         %% Derdeyn, Videen, Simmons, et al., Radiology 1999; 212:499-506, "Image Processing and Analysis"
         COSS_MEAN_OEF  = 0.4; 
-        MASK_THRESHOLD = 0.1; % 0.2;
+        MASK_THRESHOLD = 0.1;   % 0.2;
         BOTTOM_FRAC    = 0.5; % 0.25;
         TOP_FRAC       = 0.0625;
         
@@ -94,7 +94,8 @@ classdef NonquantitativeCOSS
             mask   = mask .* nqcoss.maskByThreshold(nqcoss.ho, nqcoss.MASK_THRESHOLD);
             
             oef            = nqcoss.safe_quotient(nqcoss.oo, nqcoss.ho);
-            oef            = oef .* mask;
+            %oef            = oef .* mask; % 2015oct10, JJL; removing masking of oef image to avoid clipping of
+                                           %freesurfer parcellation-based ROIs
             oef            = oef .* nqcoss.cos_ratio(nqcoss.oo, nqcoss.ho, mask); 
             oef.fileprefix = nqcoss.oefFileprefix;
             oef.save;

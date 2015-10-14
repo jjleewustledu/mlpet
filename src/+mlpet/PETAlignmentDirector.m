@@ -38,9 +38,9 @@ classdef PETAlignmentDirector < mlfsl.AlignmentDirectorDecorator
                 assert(isa(prods{p}, 'mlfourd.NIfTI'));
                 if (~lstrfind(prods{p}.fileprefix, 'fwhh'))
                     tmp = mlfourd.BlurredNIfTI(prods{p});
-                    tmp = tmp.blurredNIfTI;
+                    tmp = tmp.blurred([16 16 16]);
                     tmp.save;
-                    prods{p} = tmp;
+                    prods{p} = mlfourd.NIfTI(tmp);
                 end
             end
             bldr.product = prods;
