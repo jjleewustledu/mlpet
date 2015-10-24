@@ -85,7 +85,7 @@ classdef TSC < mlpet.AbstractWellData
             this = mlpet.TSC.load( ...
                 tscFiles.tscFqfilename, tscFiles.ecatFqfilename, tscFiles.dtaFqfilename, tscFiles.maskFqfilename);
         end
-        function this = load(tscLoc, ecatLoc, dtaLoc, maskLoc)
+        function this = load(tscLoc, ecatLoc, dtaLoc, maskLoc, varargin)
             %% LOAD
  			%  Usage:  this = TSC.load(tsc_file_location, ecat_file_location,  dta_file_location, mask_file_location) 
             %          this = TSC.load('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta')
@@ -93,17 +93,18 @@ classdef TSC < mlpet.AbstractWellData
             %          this = TSC.load('p1234wb1', '../PET/scan1/p1234gluc1', 'p1234g1') 
             
             ip = inputParser;
-            addRequired(ip,  'tscLoc', @(x) lexist(x, 'file'));
+            addRequired(ip,  'tscLoc', @ischar);
             addRequired(ip, 'ecatLoc', @(x) lexist(x, 'file'));
             addRequired(ip,  'dtaLoc', @(x) lexist(x, 'file'));
             addRequired(ip, 'maskLoc', @(x) lexist(x, 'file'));
-            parse(ip, tscLoc, ecatLoc, dtaLoc, maskLoc);
+            addOptional(ip, 'short', false, @islogical);
+            parse(ip, tscLoc, ecatLoc, dtaLoc, maskLoc, varargin{:});
             
             import mlpet.* mlfourd.*;
             
             this = TSC(ip.Results.tscLoc);
             this.mask_ = this.makeMask(ip.Results.maskLoc);
-            this.dta_ = DTA(ip.Results.dtaLoc);
+            this.dta_ = DTA.load(ip.Results.dtaLoc, ip.Results.short);
             this.decayCorrectedEcat_ = this.maskEcat( ...
                                        DecayCorrectedEcat.load(ip.Results.ecatLoc), this.mask_);            
             this.times_ = this.decayCorrectedEcat_.times;  
@@ -125,7 +126,7 @@ classdef TSC < mlpet.AbstractWellData
             %  Usage:  pet_masked_nifti = maskPet(pet_nifti, mask_nifti) 
 
             assert(isa(dcecat, 'mlpet.EcatExactHRPlus'));
-            assert(isa(msk, 'mlfourd.INIfTId'));
+            assert(isa(msk, 'mlfourd.INIfTI'));
             assert(3 == length(msk.size), 'mlpet:unsupportedDataSize', 'TSC.makeMask.mask.size -> % i', msk.size); %#ok<*MCNPN>
 
             dcecat = dcecat.masked(msk);

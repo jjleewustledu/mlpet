@@ -1,6 +1,6 @@
 classdef PETDirector < mlfsl.FslDirector
-	%% PETDIRECTOR is the client wrapper for building PET imaging analyses; 
-    %              takes part in builder_ design patterns
+	%% PETDIRECTOR is the client's director that specifies algorithms for building PET imaging analyses; 
+    %  takes part in builder design patterns with PETBuilder and others.
 	
 	%  Version $Revision: 2610 $ was created $Date: 2013-09-07 19:15:00 -0500 (Sat, 07 Sep 2013) $ by $Author: jjlee $,  
  	%  last modified $LastChangedDate: 2013-09-07 19:15:00 -0500 (Sat, 07 Sep 2013) $ and checked into svn repository $URL: file:///Users/jjlee/Library/SVNRepository_2012sep1/mpackages/mlfsl/src/+mlfsl/trunk/PETDirector.m $ 
@@ -17,24 +17,6 @@ classdef PETDirector < mlfsl.FslDirector
         h15oMeanvol
         o15oMeanvol
         c15o
-    end
-    
-    methods (Static)
-        function this = createFromSessionPath(pth)
-            import mlfsl.* mlpet.*;
-            this = PETDirector.createFromBuilder( ...
-                   mlpet.PETBuilder.createFromSessionPath(pth));
-        end
-        function this = createFromModalityPath(pth)
-            import mlfsl.* mlpet.*;
-            this = PETDirector.createFromBuilder( ...
-                   mlpet.PETBuilder.createFromModalityPath(pth));
-        end
-        function this = createFromBuilder(bldr)
-            assert(isa(bldr, 'mlpet.PETBuilder'));
-            cd(bldr.sessionPath);
-            this = mlpet.PETDirector(bldr);
-        end
     end
     
     methods %% set/get
@@ -73,6 +55,24 @@ classdef PETDirector < mlfsl.FslDirector
         end
         function fp   = get.c15o(this)
             fp = this.imagingChoosers_.choose_c15o;
+        end
+    end
+    
+    methods (Static)
+        function this = createFromSessionPath(pth)
+            import mlfsl.* mlpet.*;
+            this = PETDirector.createFromBuilder( ...
+                   mlpet.PETBuilder.createFromSessionPath(pth));
+        end
+        function this = createFromModalityPath(pth)
+            import mlfsl.* mlpet.*;
+            this = PETDirector.createFromBuilder( ...
+                   mlpet.PETBuilder.createFromModalityPath(pth));
+        end
+        function this = createFromBuilder(bldr)
+            assert(isa(bldr, 'mlpet.PETBuilder'));
+            cd(bldr.sessionPath);
+            this = mlpet.PETDirector(bldr);
         end
     end
     
@@ -141,17 +141,9 @@ classdef PETDirector < mlfsl.FslDirector
                opts.ref = fileprefix(prod);
             [this,prod] = this.coregister(strat, opts);
         end
-        function this        = directPerfusion(this)
-            assert(isa(this.products, 'mlfourd.ImagingArrayList'));
-            if (this.quantitativePet)
-                this.products = this.builder_.quantify(this.products);
-            end
-        end
-        function this        = directOxygenMetabolism(this)
-            assert(isa(this.products, 'mlfourd.ImagingArrayList'));
-            if (this.quantitativePet && this.oxygenAvailable)
-                this.products = this.builder_.metabolize(this.products);
-            end
+        function [this,xfms] = coregisterSequence(this, ial)
+            assert(isa(ial, 'mlfourd.ImagingArrayList'));
+            error('mlpet:notImplemented', 'PETDirector.coregisterSequence is a method stub');
         end
     end
     

@@ -19,7 +19,7 @@ classdef AutoradiographyDirector
     properties (Dependent)
         product         % Autoradiography Builder obj
         aif             % IWellData obj
-        mask            % INIfTId obj
+        mask            % INIfTI obj
         ecat            % IScannerData obj
         times           % double
         concentration_a % double

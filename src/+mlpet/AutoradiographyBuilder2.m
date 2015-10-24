@@ -111,7 +111,7 @@ classdef (Abstract) AutoradiographyBuilder2 < mlbayesian.AbstractMcmcProblem
         function mask = loadMask(varargin)
             p = inputParser;
             addOptional(p, 'fqfn',    [], @(x) lexist(x, 'file'));
-            addOptional(p, 'iniftid', [], @(x) isa(x, 'mlfourd.INIfTId'));
+            addOptional(p, 'iniftid', [], @(x) isa(x, 'mlfourd.INIfTI'));
             parse(p, varargin{:});
             
             if (~isempty(p.Results.fqfn))

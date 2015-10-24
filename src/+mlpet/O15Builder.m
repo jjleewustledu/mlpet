@@ -58,57 +58,6 @@ classdef O15Builder < mlpet.PETBuilder
         allPet
     end 
 
-    methods (Static) 
-        function this = createFromSessionPath(pth)
-            assert(lexist(pth, 'dir'));
-            this = mlpet.O15Builder( ...
-                   mlfourd.PETConverter.createFromSessionPath(pth));
-        end
-        function this = createFromModalityPath(pth)
-            assert(lexist(pth, 'dir'));
-            this = mlpet.O15Builder( ...
-                   mlfourd.PETConverter.createFromModalityPath(pth));
-        end
-        function this = createFromConverter(cvtr)
-            assert(isa(cvtr, 'mlfourd.PETConverter'));d
-            this = mlpet.O15Builder(cvtr);
-        end
-        
-        function bldr = buildAll(      avging, petpth, varargin)
-            import mlfsl.* mlpet.* mlfourd.*;
-            assert(ischar(avging) || isa(avging, 'mlaveraging.AveragingStrategy'));
-            assert(lexist(petpth, 'dir'));
-            bldr = O15Builder.buildCounts(avging, petpth, varargin{:});
-            bldr = bldr.buildPerfusion(   bldr); 
-            bldr = bldr.buildOxygen(      bldr);
-        end
-        function bldr = buildCounts(   avging, petpth, refs)
-            import mlfsl.* mlpet.* mlfourd.*;
-            bldr = O15Builder(avging, petpth); 
-            if (exist('refs','var')); bldr.references = refs; end
-            bldr = bldr.coregisterAllCounts;
-        end
-        function bldr = buildPerfusion(bldr)
-            bldr.cbf.save;
-            bldr.cbv.save;
-            bldr.mtt.save; 
-        end
-        function bldr = buildOxygen(   bldr)
-            bldr.cmro2.save;
-            bldr.oef.save;
-        end
- 
-        function fwhh = petFwhh
-            fwhh = min(mlpet.O15Builder.petPointSpread);
-        end % static petFwhh
-        function hwhh = petHwhh
-            hwhh = mlpet.O15Builder.petFwhh / 2;
-        end % static petHwhh
-        function s    = petSigma
-            s = fwhh2sigma(mlpet.O15Builder.petFwhh);
-        end % static petHwhh        
-    end
-    
 	methods % get/set 
         function obj  = get.tr(this) % lazy initialization
             if (isempty(this.tr_))
@@ -176,6 +125,57 @@ classdef O15Builder < mlpet.PETBuilder
             apet = this.allPet_; % expecting deep copy
         end
     end 
+    
+    methods (Static) 
+        function this = createFromSessionPath(pth)
+            assert(lexist(pth, 'dir'));
+            this = mlpet.O15Builder( ...
+                   mlfourd.PETConverter.createFromSessionPath(pth));
+        end
+        function this = createFromModalityPath(pth)
+            assert(lexist(pth, 'dir'));
+            this = mlpet.O15Builder( ...
+                   mlfourd.PETConverter.createFromModalityPath(pth));
+        end
+        function this = createFromConverter(cvtr)
+            assert(isa(cvtr, 'mlfourd.PETConverter'));d
+            this = mlpet.O15Builder(cvtr);
+        end
+        
+        function bldr = buildAll(      avging, petpth, varargin)
+            import mlfsl.* mlpet.* mlfourd.*;
+            assert(ischar(avging) || isa(avging, 'mlaveraging.AveragingStrategy'));
+            assert(lexist(petpth, 'dir'));
+            bldr = O15Builder.buildCounts(avging, petpth, varargin{:});
+            bldr = bldr.buildPerfusion(   bldr); 
+            bldr = bldr.buildOxygen(      bldr);
+        end
+        function bldr = buildCounts(   avging, petpth, refs)
+            import mlfsl.* mlpet.* mlfourd.*;
+            bldr = O15Builder(avging, petpth); 
+            if (exist('refs','var')); bldr.references = refs; end
+            bldr = bldr.coregisterAllCounts;
+        end
+        function bldr = buildPerfusion(bldr)
+            bldr.cbf.save;
+            bldr.cbv.save;
+            bldr.mtt.save; 
+        end
+        function bldr = buildOxygen(   bldr)
+            bldr.cmro2.save;
+            bldr.oef.save;
+        end
+ 
+        function fwhh = petFwhh
+            fwhh = min(mlpet.O15Builder.petPointSpread);
+        end % static petFwhh
+        function hwhh = petHwhh
+            hwhh = mlpet.O15Builder.petFwhh / 2;
+        end % static petHwhh
+        function s    = petSigma
+            s = fwhh2sigma(mlpet.O15Builder.petFwhh);
+        end % static petHwhh        
+    end
     
     methods
         function objs = perfuse(this, objs)
@@ -537,6 +537,7 @@ classdef O15Builder < mlpet.PETBuilder
             pic = pic.makeSimilar(linkMexFlowButanol(pic.img), 'O15Builder.linkMexFlowButanol', pic.fileprefix);
         end % static linkMexFlowButanol
     end
+    
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
 end
 

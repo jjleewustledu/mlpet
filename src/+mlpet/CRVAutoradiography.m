@@ -18,6 +18,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
     
     properties (Constant)        
         HERSCOVITCH = true
+        NO_PLOTTING = true
     end
     
 	properties 
@@ -115,8 +116,8 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
             CRVAutoradiography.reportLoading( ...
                 ip.Results.ecatFn, ip.Results.crvFn, ip.Results.dcvFn, ip.Results.maskFn, ...
                 sprintf('ecatShift %g', ip.Results.ecatShift), ...
-                sprintf('crvShift %g', ip.Results.ecatShift), ...
-                sprintf('dcvShift %g', ip.Results.ecatShift));
+                sprintf('crvShift %g', ip.Results.crvShift), ...
+                sprintf('dcvShift %g', ip.Results.dcvShift));
             ecatObj = CRVAutoradiography.loadEcat(ip.Results.ecatFn); 
             crvObj  = CRVAutoradiography.loadCrv( ip.Results.crvFn); 
             dcvObj  = [];
@@ -315,6 +316,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
         end
              
         function        plotProduct(this)
+            if (this.NO_PLOTTING); return; end
             figure;
             max_ecat = max( max(this.itsConcentration_ecat), max(this.dependentData));
             max_aif  = max([max(this.itsConcentration_crv) max(this.conc_crv_)]);
@@ -332,6 +334,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
             ylabel(sprintf('arbitrary:  ECAT norm %g, AIF norm %g', max_ecat, max_aif));
         end  
         function        plotParVars(this, par, vars)
+            if (this.NO_PLOTTING); return; end
             assert(lstrfind(par, properties('mlpet.CRVAutoradiography')));
             assert(isnumeric(vars));
             switch (par)
@@ -398,6 +401,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
             this.kernel_ = this.kernel_ / sum(this.kernel_);  
         end
         function plotParArgs(this, par, args, vars)
+            if (this.NO_PLOTTING); return; end
             assert(lstrfind(par, properties('mlpet.CRVAutoradiography')));
             assert(iscell(args));
             assert(isnumeric(vars));

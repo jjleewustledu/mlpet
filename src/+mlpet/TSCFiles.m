@@ -13,7 +13,7 @@ classdef TSCFiles
         ECAT_FILE_SUFFIX = '_mcf_revf1to5.nii.gz'
         DEFAULT_MASK = 'aparc_a2009s+aseg_mask'
     end
-
+    
 	properties (Dependent)
         pnumPath
         dtaFqfilename

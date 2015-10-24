@@ -321,7 +321,7 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
  			%  Usage:  this = DSCHerscAutoradiography( ...
             %                 concentrationBar_a, times_i, concentration_i[, mask, aif, ecat]) 
             %                 ^ counts/s/mL       ^ s      ^ counts/s/g
-            %                                                                ^ INIfTId
+            %                                                                ^ INIfTI
             %                                                                      ^ ILaif, IWellData 
             %                                                                           ^ IScannerData
 
