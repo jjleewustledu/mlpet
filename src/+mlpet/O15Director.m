@@ -39,7 +39,7 @@ classdef O15Director
             if (~isempty(ip.Results.Hdrinfo))
                 this.hdrinfo_ = Hdrinfo.load(ip.Results.Hdrinfo); end
         end
-        function id = whichTracer(fname)
+        function id   = whichTracer(fname)
             [~,fname] = gzfileparts(fname);
             id = '';
             if (lstrfind(fname, 'ho'))

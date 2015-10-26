@@ -56,6 +56,44 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
             end
             cd(pwd0);
         end
+        function unittestCRVAutoradiography(varargin)
+            
+            p = inputParser;
+            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            parse(p, varargin{:});            
+            
+            import mlperfusion.* mlpet.*;
+            pwd0 = pwd;
+            subjectsPth = fullfile(getenv('MLUNIT_TEST_PATH'), 'Arbelaez', 'GluT');
+            this = AutoradiographyTester(subjectsPth);
+            
+            cd(subjectsPth);
+            logFn = fullfile(subjectsPth, sprintf('AutoradiographyTester.prepareGluT_%s.log', datestr(now, 30)));
+            diary(logFn);            
+            c = 11;
+            si = 1;
+            try
+                cd(fullfile(subjectsPth, this.gluTCases{c}, 'PET', sprintf('scan%i', si)));  
+                fprintf('-------------------------------------------------------------------------------------------------------------------------------\n');
+                fprintf('AutoradiographyTester.prepareGluT is working in %s\n', pwd);
+                this.director_ = ...
+                    AutoradiographyDirector.loadCRVAutoradiography( ...
+                        this.maskFnGluT(si), this.hoCrvFn(si), this.hoFn(si), this.gluTShifts(si,c));
+                this.director_ = this.director_.estimateAll;
+                prods{c} = this.director_.product;  %#ok<NASGU>
+            catch ME
+                handexcept(ME);
+            end
+            
+            cd(subjectsPth);            
+            save(sprintf('AutoradiographyTester.prepareGluT.prods_%s.mat', datestr(now,30)), 'prods');
+            db = AutoradiographyDB.loadCRVAutoradiographyTest(logFn);
+            db.getSummaryPlot;
+            cd(p.Results.figFolder);
+            AutoradiographyTester.saveFigs;
+            cd(pwd0);
+            diary off
+        end
         function prepareGluT1(varargin)
             
             p = inputParser;

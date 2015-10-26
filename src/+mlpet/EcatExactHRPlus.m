@@ -1,4 +1,4 @@
-classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
+classdef EcatExactHRPlus < mlfourd.NIfTIdecorator3 & mlpet.IScannerData
 	%% ECATEXACTHRPLUS implements mlpet.IScannerData for data from detection array of Ecat Exact HR+ scanners.
     %  Most useful properties will be times, timeInterpolants, counts, countInterpolants.  It is also a NIfTIdecorator.
     %  The corresponding class for well-counter data is mlpet.AbstractWellData.  Also see mlpet.TSC.
@@ -106,6 +106,11 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
         end
         function f   = get.recFqfilename(this)
             f = sprintf('%s.img.rec', this.component_.fqfileprefix);
+            if (~lexist(f)) %%% KLUDGE
+                mlbash(sprintf( ...
+                    'cp %s/%s%s%i.img.rec %s', ...
+                    this.component_.filepath, str2pnum(this.component_.fileprefix), this.tracer, this.scanIndex, f));
+            end
         end
         function f   = get.wellFqfilename(this)
             f = fullfile(this.component.filepath, sprintf('%s.wel', str2pnum(this.component.fileprefix)));
@@ -164,7 +169,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
             %          this = EcatExactHRPlus('/path/to/p1234data/p1234ho1')
             %          this = EcatExactHRPlus('p1234ho1') 
  			
-            this = this@mlfourd.NIfTIdecorator(cmp);
+            this = this@mlfourd.NIfTIdecorator3(cmp);
             this = this.append_descrip('decorated by EcatExactHRPlus');
             
             assert(lexist(this.recFqfilename), 'mlpet.EcatExactHRPlus.ctor:  requires *.img.rec from ecattoanalyze');     
