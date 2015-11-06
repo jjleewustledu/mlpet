@@ -19,6 +19,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
     properties (Constant)        
         HERSCOVITCH = true
         NO_PLOTTING = true
+        KERNEL_BEST_FILENAME = 'kernelBest.mat'
     end
     
 	properties 
@@ -43,10 +44,17 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
         baseTitle
         detailedTitle
         map        
-        kernel
+        kernel        
+        kernelBestFqfilename %'/Users/jjlee/Local/src/mlcvl/mlarbelaez/src/+mlarbelaez/kernelBest.mat'        
+                             %'/Volumes/SeagateBP3/cvl/np755/Training/bsrf116_id1.mat'
+                             %'/Volumes/InnominateHD2/Arbelaez/GluT/__p8425_JJL__/PET/bsrf120.mat'
+                             %'/Users/jjlee/Local/src/mlcvl/mlarbelaez/src/+mlarbelaez/kernel57.mat'
     end
     
     methods %% GET/SET 
+        function fn   = get.kernelBestFqfilename(this)
+            fn = fullfile(getenv('ARBELAEZ'), this.KERNEL_BEST_FILENAME);
+        end
         function a1   = get.A1(this)
             if (this.HERSCOVITCH)
                 a1 = this.PS;
@@ -124,7 +132,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
             if (lexist(ip.Results.dcvFn, 'file'))
                 dcvObj = CRVAutoradiography.loadDcv( ip.Results.dcvFn); 
             end
-            maskObj = CRVAutoradiography.loadMask(ip.Results.maskFn);          
+            maskObj = CRVAutoradiography.loadMask(ip.Results.maskFn);
             args = CRVAutoradiography.interpolateData( ...
                 ecatObj, crvObj, dcvObj, maskObj, ...
                 ip.Results.ecatShift, ip.Results.crvShift, ip.Results.dcvShift);
@@ -247,7 +255,8 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
             import mlbayesian.*;
             this.paramsManager = BayesianParameters(varargin{:});
             this.ensureKeyOrdering({'A0' 'A1' 'T0' 'a' 'c1' 'c2' 'c3' 'c4' 'd' 'f' 'p' 'q0' 't0'});
-            this.mcmc          = MCMC(this, this.dependentData, this.paramsManager);
+            this.mcmc          = MCMC(this, this.dependentData, this.paramsManager);            
+            fprintf('CRVAutoradiography.estimateParameters.this:  '); disp(this);
             [~,~,this.mcmc]    = this.mcmc.runMcmc;
             this.A0 = this.finalParams('A0');
             this.A1 = this.finalParams('A1');
@@ -360,10 +369,6 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
     properties (Access = 'private')
         kernel_
         kernelRange_ = 12:40
-        kernelBestFilename_ = '/Users/jjlee/Local/src/mlcvl/mlarbelaez/src/+mlarbelaez/kernelBest.mat'        
-                             %'/Volumes/SeagateBP3/cvl/np755/Training/bsrf116_id1.mat'
-                             %'/Volumes/InnominateHD2/Arbelaez/GluT/__p8425_JJL__/PET/bsrf120.mat'
-                             %'/Users/jjlee/Local/src/mlcvl/mlarbelaez/src/+mlarbelaez/kernel57.mat'
     end
     
     methods (Static, Access = 'private')     
@@ -392,10 +397,11 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
     methods (Access = 'private')
         function        reportInitial(this)
             fprintf('CRVAutoradiography.kernelRange_:  '); disp(this.kernelRange_);
-            fprintf('CRVAutoradiography.kernelBestFilename_:  '); disp(this.kernelBestFilename_);
+            fprintf('CRVAutoradiography.kernelBestFqfilename:  '); disp(this.kernelBestFqfilename);
+            fprintf('CRVAutoradiography.this:  '); disp(this);
         end
         function this = loadKernel(this)
-            load(this.kernelBestFilename_);
+            load(this.kernelBestFqfilename);
             %kernelBest = bsrf120_id1;
             this.kernel_ = kernelBest(this.kernelRange_);
             this.kernel_ = this.kernel_ / sum(this.kernel_);  

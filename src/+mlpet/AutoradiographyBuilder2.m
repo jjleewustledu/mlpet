@@ -214,6 +214,8 @@ classdef (Abstract) AutoradiographyBuilder2 < mlbayesian.AbstractMcmcProblem
             vol = this.mask.count * prod(this.mask.mmppix/10); % mL
         end
         function this = estimateAll(this)
+            fprintf('AutoradiographyBuilder2.estimateAll.this:');
+            disp(this);
             this = this.estimateParameters(this.map);
             fprintf('FINAL STATS dose            %g\n', this.dose);
             fprintf('FINAL STATS duration        %g\n', this.duration);
