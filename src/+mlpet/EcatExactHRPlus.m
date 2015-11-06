@@ -1,4 +1,4 @@
-classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
+classdef EcatExactHRPlus < mlfourd.NIfTIdecorator3 & mlpet.IScannerData
 	%% ECATEXACTHRPLUS implements mlpet.IScannerData for data from detection array of Ecat Exact HR+ scanners.
     %  Most useful properties will be times, timeInterpolants, counts, countInterpolants.  It is also a NIfTIdecorator.
     %  The corresponding class for well-counter data is mlpet.AbstractWellData.  Also see mlpet.TSC.
@@ -11,10 +11,6 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
  	%  $Id$  
 
-    properties  
-        useBecquerels = false % boolean for dividing accumulated counts by sampling durations of each time-frame to obtain 1/sec  
-    end
-    
     properties (Dependent)        
         dt % sec, for timeInterpolants
         
@@ -43,7 +39,6 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
         nPixels      
         
         textParserRec
-        hdrInfoFqfilename
         hdrinfoFqfilename
     end 
 
@@ -111,6 +106,11 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
         end
         function f   = get.recFqfilename(this)
             f = sprintf('%s.img.rec', this.component_.fqfileprefix);
+            if (~lexist(f)) %%% KLUDGE
+                mlbash(sprintf( ...
+                    'cp %s/%s%s%i.img.rec %s', ...
+                    this.component_.filepath, str2pnum(this.component_.fileprefix), this.tracer, this.scanIndex, f));
+            end
         end
         function f   = get.wellFqfilename(this)
             f = fullfile(this.component.filepath, sprintf('%s.wel', str2pnum(this.component.fileprefix)));
@@ -146,12 +146,12 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
         function fp  = get.textParserRec(this)
             fp = this.textParserRec_;
             assert(isa(fp, 'mlio.TextParser'));
-        end
-        function fn  = get.hdrInfoFqfilename(this)
-            fn = fullfile(this.component.filepath, [strtok(this.component.fileprefix, '_') '_g3.hdr.info']);
-        end  
+        end 
         function fn  = get.hdrinfoFqfilename(this)
-            fn = fullfile(this.component.filepath, [strtok(this.component.fileprefix, '_') '_g3.hdrinfo']);
+            pnum = str2pnum(this.component.fileprefix);
+            dt   = mlsystem.DirTool( ...
+                   fullfile(this.component.filepath, sprintf('%sho*.hdrinfo', pnum)));
+            fn   = dt.fqfns{1};
         end  
     end
     
@@ -169,7 +169,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
             %          this = EcatExactHRPlus('/path/to/p1234data/p1234ho1')
             %          this = EcatExactHRPlus('p1234ho1') 
  			
-            this = this@mlfourd.NIfTIdecorator(cmp);
+            this = this@mlfourd.NIfTIdecorator3(cmp);
             this = this.append_descrip('decorated by EcatExactHRPlus');
             
             assert(lexist(this.recFqfilename), 'mlpet.EcatExactHRPlus.ctor:  requires *.img.rec from ecattoanalyze');     
@@ -234,7 +234,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
             this.component_ = dyn.component_;
         end
         function this = masked(this, niidMask)
-            assert(isa(niidMask, 'mlfourd.INIfTId'));
+            assert(isa(niidMask, 'mlfourd.INIfTI'));
             this.mask_ = niidMask;
             dyn = mlfourd.DynamicNIfTId(this.component_); %% KLUDGE to work-around faults with decorators in matlab
             dyn = dyn.masked(niidMask);
@@ -356,15 +356,12 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator & mlpet.IScannerData
             end
         end
         function this = readPie(this)
-            if (lexist(this.hdrInfoFqfilename, 'file'))
-                tp = mlio.TextParser.loadx(this.hdrInfoFqfilename, '.hdr.info');
-            elseif (lexist(this.hdrinfoFqfilename, 'file'))
+            try
                 tp = mlio.TextParser.loadx(this.hdrinfoFqfilename, '.hdrinfo');
-            else
-                error('mlpet:fileNotFound', 'EcatExactHRPlus could find neither %s nor %s', ...
-                      this.hdrInfoFqfilename, this.hdrinfoFqfilename);
+                this.pie_ = tp.parseAssignedNumeric('Pie Slope');
+            catch ME
+                error('mlpet:fileNotFound', 'EcatExactHRPlus could not find %s', this.hdrinfoFqfilename);
             end
-            this.pie_ = tp.parseAssignedNumeric('Pie Slope');
         end
     end
 

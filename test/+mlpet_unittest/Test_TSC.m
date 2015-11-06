@@ -15,7 +15,7 @@ classdef Test_TSC < matlab.unittest.TestCase
  	 
 
 	properties  
-        unittest_home = '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL/jjl_proc'		 
+        unittest_home = '/Volumes/SeagateBP4/Local/test/Arbelaez/GluT/p8047_JJL/jjl_proc'		 
         pnumPath 
         scanPath
         procPath
@@ -39,12 +39,12 @@ classdef Test_TSC < matlab.unittest.TestCase
         function test_import(this)
         end
         function test_load(this)
-            this.assertEqual(this.testObj.pnumberPath, '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL');
+            this.assertEqual(this.testObj.pnumberPath, '/Volumes/SeagateBP4/Local/test/Arbelaez/GluT/p8047_JJL');
             this.assertEqual(this.testObj.pnumber,     'p8047');
-            this.assertEqual(this.testObj.fslPath,     '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL/fsl');
-            this.assertEqual(this.testObj.petPath,     '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL/PET');
-            this.assertEqual(this.testObj.scanPath,    '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL/PET/scan1');
-            this.assertEqual(this.testObj.procPath,    '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL/jjl_proc');
+            this.assertEqual(this.testObj.fslPath,     '/Volumes/SeagateBP4/Local/test/Arbelaez/GluT/p8047_JJL/fsl');
+            this.assertEqual(this.testObj.petPath,     '/Volumes/SeagateBP4/Local/test/Arbelaez/GluT/p8047_JJL/PET');
+            this.assertEqual(this.testObj.scanPath,    '/Volumes/SeagateBP4/Local/test/Arbelaez/GluT/p8047_JJL/PET/scan1');
+            this.assertEqual(this.testObj.procPath,    '/Volumes/SeagateBP4/Local/test/Arbelaez/GluT/p8047_JJL/jjl_proc');
         end
         function test_save(this)            
             ca = mlio.TextIO.textfileToCell(this.tscFqfilename);
@@ -90,7 +90,7 @@ classdef Test_TSC < matlab.unittest.TestCase
  		function this = Test_TSC(varargin) 
  			this = this@matlab.unittest.TestCase(varargin{:}); 
             
-            this.pnumPath = '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL';
+            this.pnumPath = '/Volumes/SeagateBP4/Local/test/Arbelaez/GluT/p8047_JJL';
             this.scanPath = fullfile(this.pnumPath, 'PET', 'scan1', '');
             this.procPath = fullfile(this.pnumPath, 'jjl_proc', '');
             this.tscFqfilename = fullfile(this.procPath, 'p8047wb1.tsc');
@@ -98,7 +98,7 @@ classdef Test_TSC < matlab.unittest.TestCase
             this.ecatFqfilename = fullfile(this.scanPath, 'p8047gluc1.nii.gz');
             cd(this.unittest_home);
  			this.testObj = mlpet.TSC.load( ...
-                this.tscFqfilename, this.ecatFqfilename, this.dtaFqfilename, this.maskFqfilename); 
+                this.tscFqfilename, this.ecatFqfilename, this.dtaFqfilename, this.maskFqfilename, true); 
  		end 
     end
 

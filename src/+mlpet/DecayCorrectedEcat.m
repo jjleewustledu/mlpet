@@ -34,10 +34,10 @@ classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus & mlpet.IDecayCorrection
 	methods 		  
  		function this = DecayCorrectedEcat(cmp) 
  			%% DECAYCORRECTEDECAT 
- 			%  Usage:  this = DecayCorrectedEcat(INIfTId_object) 
+ 			%  Usage:  this = DecayCorrectedEcat(INIfTI_object) 
 
  			this = this@mlpet.EcatExactHRPlus(cmp); 
-            assert( isa(cmp, 'mlfourd.INIfTId'));
+            assert( isa(cmp, 'mlfourd.INIfTI'));
             assert(~isa(cmp, 'mlpet.DecayCorrectedEcat'));
             
             this.decayCorrection_ = mlpet.DecayCorrection(this);
@@ -56,9 +56,6 @@ classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus & mlpet.IDecayCorrection
     methods (Access = 'protected')
         function this = updateFileprefix(this)            
             this.component_.fileprefix = [this.component_.fileprefix '_decayCorrect'];
-            if (this.useBecquerels)                
-                this.component_.fileprefix = [this.component_.fileprefix '_Bq'];
-            end
         end
         function this = setTimeMidpoints_dc(this)
             k_decay = log(2) / this.halfLife;

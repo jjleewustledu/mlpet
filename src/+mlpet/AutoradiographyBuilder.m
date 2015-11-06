@@ -102,7 +102,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
         function mask = loadMask(varargin)
             p = inputParser;
             addOptional(p, 'fqfn',    [], @(x) lexist(x, 'file'));
-            addOptional(p, 'iniftid', [], @(x) isa(x, 'mlfourd.INIfTId'));
+            addOptional(p, 'iniftid', [], @(x) isa(x, 'mlfourd.INIfTI'));
             parse(p, varargin{:});
             
             if (~isempty(p.Results.fqfn))
@@ -159,7 +159,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
  			%  Usage:  this = AutoradiographyBuilder( ...
             %                 concentration_a, times_i, concentration_i[, mask, aif, ecat]) 
             %                 ^ counts/s/mL    ^ s      ^ counts/s/g
-            %                                                             ^ INIfTId
+            %                                                             ^ INIfTI
             %                                                                   ^ ILaif, IWellData 
             %                                                                        ^ IScannerData
             %  for DSC*Autoradiography, concentration_a <- concentrationBar_a
@@ -169,7 +169,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
             addRequired(ip, 'conc_a',  @isnumeric);
             addRequired(ip, 'times_i', @isnumeric);
             addRequired(ip, 'conc_i',  @isnumeric);
-            addOptional(ip, 'mask', [], @(x) isa(x, 'mlfourd.INIfTId'));
+            addOptional(ip, 'mask', [], @(x) isa(x, 'mlfourd.INIfTI'));
             addOptional(ip, 'aif',  [], @(x) isa(x, 'mlperfusion.ILaif') || isa(x, 'mlpet.IWellData'));
             addOptional(ip, 'ecat', [], @(x) isa(x, 'mlpet.IScannerData'));   
             addRequired(ip, 'conc_d',  @isnumeric);         

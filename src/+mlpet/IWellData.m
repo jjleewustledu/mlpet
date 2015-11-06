@@ -25,8 +25,6 @@ classdef (Abstract) IWellData
         counts
         wellCounts
         header
-        
-        useBecquerels
         noclobber
     end 
     

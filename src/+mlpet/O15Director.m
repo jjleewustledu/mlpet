@@ -1,6 +1,6 @@
-classdef O15Director < mlpet.PETDirector
-	%% O15DIRECTOR is the client director that specifies algorithms for creating PET imaging objects;
-    %              takes part in builder_ design patterns
+classdef O15Director 
+	%% O15DIRECTOR is the client's director that specifies algorithms for building [15O]-PET imaging objects;
+    %  takes part in builder design patterns with concrete O15Builder and others.
 	
 	%  Version $Revision: 2608 $ was created $Date: 2013-09-07 19:14:08 -0500 (Sat, 07 Sep 2013) $ by $Author: jjlee $,  
  	%  last modified $LastChangedDate: 2013-09-07 19:14:08 -0500 (Sat, 07 Sep 2013) $ and checked into svn repository $URL: file:///Users/jjlee/Library/SVNRepository_2012sep1/mpackages/mlfourd/src/+mlfourd/trunk/O15Director.m $ 
@@ -8,131 +8,80 @@ classdef O15Director < mlpet.PETDirector
  	%  $Id: O15Director.m 2608 2013-09-08 00:14:08Z jjlee $ 
  	%  N.B. classdef (Sealed, Hidden, InferiorClasses = {?class1,?class2}, ConstructOnLoad) 
     
-    properties (Dependent)
-        allPet
-    end
-    
     methods (Static)
-        function this = doAll(mpth)
+        function this = load(varargin)
+            %% LOAD [15O] image file
+            %  this = O15Director.laod(o15_filename[, parameter, parameter_value])
+            %                                         ^ 'Hdrinfo', filename
+            %                                           'Mask', filename
+            
+            ip = inputParser;
+            addRequired( ip, 'filename',    @(x) lexist(x, 'file'));
+            addParameter(ip, 'Hdrinfo', '', @ischar);
+            addParameter(ip, 'Mask',    '', @ischar);
+            parse(ip, varargin{:});
+            
             import mlpet.*;
-            this = O15Director.createFromModalityPath(mpth);
-            this = this.directBuildingCounts;
-            this = this.directPerfusionAnalysis;
-            this = this.directOxygenMetabolismAnalysis;
+            switch (O15Director.whichTracer(ip.Results.filename))
+                case 'ho'
+                    bldr = H15OBuilder.load(ip.Results.filename);
+                case 'oo'
+                    bldr = O15OBuilder.load(ip.Results.filename);
+                case 'oc'
+                    bldr = C15OBuilder.load(ip.Results.filename);
+                otherwise
+                    error('mlpet:unsupportedSwitchCase', ...
+                          'O15Director.load:  whichTracer->%s', O15Director.whichTracer(ip.Results.filename));
+            end
+            this = O15Director(bldr);
+            if (~isempty(ip.Results.Mask))
+                this.mask_ = mlfourd.NIfTId.load(ip.Results.Mask); end
+            if (~isempty(ip.Results.Hdrinfo))
+                this.hdrinfo_ = Hdrinfo.load(ip.Results.Hdrinfo); end
         end
-        function this = createFromModalityPath(pth)
-            import mlpet.*;
-            assert(lexist(pth, 'dir'));
-            this = O15Director.createFromBuilder( ...
-                   O15Builder.createFromModalityPath(pth));
-        end
-        function this = createFromBuilder(bldr)
-            assert(isa(bldr, 'mlpet.O15Builder'));
-            this = mlpet.O15Director(bldr);
-        end
-    end
-    
-    methods %% get/set
-        function cal  = get.allPet(this)
-            assert(isa(this.builder_.allPet, 'mlpatterns.ValueList'));
-            cal = this.builder_.allPet;
+        function id   = whichTracer(fname)
+            [~,fname] = gzfileparts(fname);
+            id = '';
+            if (lstrfind(fname, 'ho'))
+                id = 'ho'; return; end
+            if (lstrfind(fname, 'oo'))
+                id = 'oo'; return; end
+            if (lstrfind(fname, 'oc'))
+                id = 'oc'; return; end
         end
     end
     
     methods
-        function  this       = directBuildingCounts(this)
-            this = this.coregisterSequence2PetRef;
-            this = this.coregisterSequence2MrRef;
-            this = this.coregisterSequence2Standard;
+        function n = niftid(this)
+            n = this.builder_.niftid;
         end
-        function [this,xfms] = coregisterSequence2PetRef(this, ref)
-            %% COREGISTERSEQUENCE2PETREF
-            %  Usage:  [this, xfms] = this.coregisterSequence2PetRef([reference])
-            %                 ^ cell-array list                       this.petReference is default
-            
-            p = inputParser;
-            addOptional(p, 'ref', this.petReference, @(x) ~isempty(x));
-            parse(p, ref);
-            
-            import mlfourd.*;
-            allpet = ImagingArrayList(this.allPet); % paranoia, since allPet is far out of scope
-            allpet.add(ref);            
-            [this, this.xfms2pet_] = this.coregisterSequence(allpet);
-            xfms = ImagingArrayList(this.xfms2pet_);
-            this.products_ = this.xfms2niis(xfms);
-        end
-        function [this,xfms] = coregisterSequence2MrRef(this, ref)
-            %% COREGISTERSEQUENCE2MRREF avoids recomputing coregisterSequence2PetRef
-            %  Usage:  [this, xfms] = this.coregisterSequence2MrRef([reference])
-            %                 ^ cell-array list                      this.petReference is default
-            
-            p = inputParser;
-            addOptional(p, 'ref', this.mrReference, @(x) ~isempty(x));
-            parse(p, ref);
-            if (isempty(this.xfms2pet_))
-                [this,this.xfms2pet_] = this.coregisterSequence2PetRef; end
-            [this,xfm0] = this.coregister(this.petReference, p.Results.ref);
-            
-            import mlfourd.*;
-            this.xfms2mr_ = ImagingArrayList(this.xfms2pet_);
-            this.xfms2mr_.add(xfm0);
-            xfms = ImagingArrayList(this.xfms2mr_);
-            this.products_.add(this.xfms2niis(xfms));
-        end
-        function [this,xfms] = coregisterSequence2Standard(this, ref)
-            %% COREGISTERSEQUENCE2STANDARD avoids recomputing coregisterSequence2PetRef, coregisterSequence2MrRef
-            %  Usage:  [this, xfms] = this.coregisterSequence2Standard([reference])
-            %                 ^ cell-array list                        this.standardReference is default
-            
-            p = inputParser;
-            addOptional(p, 'ref', this.standardReference, @(x) ~isempty(x));
-            parse(p, ref);
-            if (isempty(this.xfms2pet_))
-                [this,this.xfms2pet_] = this.coregisterSequence2PetRef; end
-            if (isempty(this.xfms2mr_))
-                [this,this.xfms2mr_] = this.coregisterSequence2MrRef; end
-            [this,xfm0] = this.coregister(this.mrReference, p.Results.ref);
-            
-            import mlfourd.*;
-            this.xfms2stand_ = ImagingArrayList(this.xfms2mr_);
-            this.xfms2stand_.add(xfm0);            
-            xfms = ImagingArrayList(this.xfms2stand_);
-            this.products_.add(this.xfms2niis(xfms));
-        end
-        function  this       = directPerfusionAnalysis(this)
-            assert(isa(this.products, 'mlpatterns.ValueList'));
-            if (this.quantitativePet)
-                this.products = this.builder_.perfuse(this.products);
-            end
-        end
-        function  this       = directOxygenMetabolismAnalysis(this)
-            assert(isa(this.products, 'mlpatterns.ValueList'));
-            if (this.quantitativePet && this.oxygenAvailable)
-                this.products = this.builder_.metabolize(this.products);
-            end
-        end
-        function tf          = quantitativePet(this)
-        end
-        function tf          = oxygenAvailable(this)
+        function v = vFrac(this)
+            v = [];
+            if (~isa(this.builder_, 'mlpet.C15OBuilder'))
+                return; end
+            if (isempty(this.hdrinfo_))
+                return; end
+            v = this.builder_.maskedAverage(this.mask_) * this.hdrinfo_.bloodVolumeFactor;
+            v = v/100;
         end
     end
     
     %% PROTECTED
+    
+    properties (Access = 'protected')
+        builder_
+        mask_
+        hdrinfo_
+    end
         
     methods (Access = 'protected')
  		function this = O15Director(bldr)
-            assert(isa(bldr, 'mlpet.O15Builder'));
-			this = this@mlpet.PETDirector(bldr);
+            assert(isa(bldr, 'mlpet.C15OBuilder'));
+            this.builder_ = bldr;
         end
     end 
     
-    %% PRIVATE
     
-    properties (Access = 'private')
-        xfms2pet_
-        xfms2mr_
-        xfms2stand_
-    end
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
 end
 

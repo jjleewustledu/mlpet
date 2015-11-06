@@ -52,7 +52,7 @@ classdef PETAlignmentBuilder < mlfsl.AlignmentBuilderPrototype
                 this.petComposite{p} = this.product;
                 
                 % move to visitor
-                this.petComposite{p} = mlfourd.BlurredNIfTI( ...
+                this.petComposite{p} = mlfourd.BlurringNIfTI( ...
                     this.petComposite{p});
                 this.petComposite{p} = this.petComposite{p}.blurred;                
             end

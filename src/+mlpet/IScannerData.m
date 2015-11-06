@@ -18,8 +18,7 @@ classdef (Abstract) IScannerData < mlpet.IWellData
     properties (Abstract)	
         taus
         timeMidpoints
-        injectionTime
-        useBecquerels        
+        injectionTime     
         recFqfilename         
         wellFqfilename
         wellFactor
