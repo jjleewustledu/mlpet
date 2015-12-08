@@ -104,11 +104,11 @@ classdef DCVByGammas < mlbayesian.AbstractMcmcProblem
             dcv.counts = pchip(dcv.times, dcv.counts, 1:dcv.length);
             this = DCVByGammas(dcv);
         end
-        function c    = concentrationDCV(a, k1, k2, k3, k4, d, p, q0, t0, t)
+        function c    = concentrationDCV(a, c1, c2, c3, c4, d, p, q0, t0, t)
             import mlpet.*;
-            c = (1-k3) * (1-k1) * q0 * DCVByGammas.gammaVariate(a, d, p, t0, t) + ...
-                (1-k3) *    k1  * q0 * DCVByGammas.gammaVariate(a, d, p, t0+k2, t) + ...
-                   k3  *          q0 * DCVByGammas.steadyState(k4, t0, t);
+            c = (1-c3) * (1-c1) * q0 * DCVByGammas.gammaVariate(a, d, p, t0, t) + ...
+                (1-c3) *    c1  * q0 * DCVByGammas.gammaVariate(a, d, p, t0+c2, t) + ...
+                   c3  *          q0 * DCVByGammas.steadyState(c4, t0, t);
         end
         function c    = gammaVariate(a, d, p, t0, t)
             norm   = gamma(d/p) * (p/a^d);
@@ -253,7 +253,8 @@ classdef DCVByGammas < mlbayesian.AbstractMcmcProblem
         dcv_
         kernel_
         kernelRange_ = 1:120 %12:40
-        kernelBestFilename_ = '/Volumes/SeagateBP3/cvl/np755/Training/bsrf120_id1.mat'
+        kernelBestFilename_ = '/Users/jjlee/Local/src/mlcvl/mlpet/data/bsrf120_id1.mat'
+                             %'/Volumes/SeagateBP3/cvl/np755/Training/bsrf120_id1.mat'
                              %'/Volumes/InnominateHD2/Arbelaez/GluT/p8425/scan1/bsrf120.mat'
                              %'/Users/jjlee/Local/src/mlcvl/mlarbelaez/src/+mlarbelaez/kernelBest.mat'
                              %'/Users/jjlee/Local/src/mlcvl/mlarbelaez/src/+mlarbelaez/kernel57.mat'

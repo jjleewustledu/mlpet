@@ -1,8 +1,8 @@
 classdef DCV < mlpet.AbstractWellData
 	%% DCV objectifies Snyder-Videen *.dcv files, replacing the first two count measurements with the third,
     %  adding hand-measured counts at the end for assessment of detector drift.  Dcv files record beta-detector events,
-    %  correct for positron half-life, deconvolve the dispersion of the cannulated arterial line and
-    %  multiply beta-detector events by well-factors to yield well-counter units.
+    %  which have been corrected for positron half-life, with deconvolution of the dispersion of the cannulated
+    %  arterial line and with beta-detector events multiplied by well-factors to yield well-counter units.
     %  Cf. man betadcv, metproc
 
 	%  $Revision$ 

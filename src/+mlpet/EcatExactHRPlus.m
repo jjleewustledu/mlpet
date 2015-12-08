@@ -1,4 +1,4 @@
-classdef EcatExactHRPlus < mlfourd.NIfTIdecorator3 & mlpet.IScannerData
+classdef EcatExactHRPlus < mlfourd.NIfTIdecorator4 & mlpet.IScannerData
 	%% ECATEXACTHRPLUS implements mlpet.IScannerData for data from detection array of Ecat Exact HR+ scanners.
     %  Most useful properties will be times, timeInterpolants, counts, countInterpolants.  It is also a NIfTIdecorator.
     %  The corresponding class for well-counter data is mlpet.AbstractWellData.  Also see mlpet.TSC.
@@ -34,6 +34,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator3 & mlpet.IScannerData
         wellFactor
         pie
         becquerels
+        tscCounts
         wellCounts
         mask
         nPixels      
@@ -76,7 +77,14 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator3 & mlpet.IScannerData
         end
         function c    = get.counts(this)
             assert(~isempty(this.component_.img));
+            if (size(this.component_.img,4) > length(this.times))
+                warning('mlpet:unexpectedDataSize', ...
+                        'EcatExactHRPlus.get.counts found size(this.component_)->%s, length(this.times)->%i', ...
+                        num2str(size(this.component_)), length(this.times));
+                this.component_.img = this.component_.img(:,:,:,1:length(this.times));
+            end
             c = this.component_.img;
+            c = squeeze(c);
         end
         function this = set.counts(this, c)
             assert(isnumeric(c));
@@ -127,6 +135,9 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator3 & mlpet.IScannerData
         function b    = get.becquerels(this)
             b = this.petCounts2becquerels(this.counts);
         end
+        function wc  = get.tscCounts(this)
+            wc = this.petCounts2tscCounts(this.counts);
+        end
         function wc  = get.wellCounts(this)
             wc = this.petCounts2wellCounts(this.counts);
         end
@@ -169,7 +180,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator3 & mlpet.IScannerData
             %          this = EcatExactHRPlus('/path/to/p1234data/p1234ho1')
             %          this = EcatExactHRPlus('p1234ho1') 
  			
-            this = this@mlfourd.NIfTIdecorator3(cmp);
+            this = this@mlfourd.NIfTIdecorator4(cmp);
             this = this.append_descrip('decorated by EcatExactHRPlus');
             
             assert(lexist(this.recFqfilename), 'mlpet.EcatExactHRPlus.ctor:  requires *.img.rec from ecattoanalyze');     
@@ -205,41 +216,54 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator3 & mlpet.IScannerData
             if (~isempty(varargin))
                 t = t(varargin{:}); end
         end
+        function c    = becquerelInterpolants(this, varargin)
+            c  = pchip(this.times, this.becquerels, this.timeInterpolants);
+            
+            if (~isempty(varargin))
+                c = c(varargin{:}); end
+        end
         function c    = countInterpolants(this, varargin)
             c  = pchip(this.times, this.counts, this.timeInterpolants);
             
             if (~isempty(varargin))
                 c = c(varargin{:}); end
         end
+        function tc   = tscCountInterpolants(this, varargin)
+            tc = pchip(this.times, this.tscCounts, this.timeInterpolants);
+            
+            if (~isempty(varargin))
+                tc = tc(varargin{:}); end
+        end 
         function wc   = wellCountInterpolants(this, varargin)
             wc = pchip(this.times, this.wellCounts, this.timeInterpolants);
             
             if (~isempty(varargin))
                 wc = wc(varargin{:}); end
-        end
+        end   
         
         function this = volumeSummed(this)
             dyn = mlfourd.DynamicNIfTId(this.component_); %% KLUDGE to work-around faults with decorators in matlab
             dyn = dyn.volumeSummed;
-            this.component_ = dyn.component_;
+            this.component_ = dyn.component;
         end
         function this = mcflirtedAfterBlur(this, blur)
             dyn = mlfourd.DynamicNIfTId(this.component_); %% KLUDGE to work-around faults with decorators in matlab
             dyn = dyn.mcflirtedAfterBlur(blur);
-            this.component_ = dyn.component_;
+            this.component_ = dyn.component;
         end
         function this = revertFrames(this, origNiid, frames)
             dyn = mlfourd.DynamicNIfTId(this.component_); %% KLUDGE to work-around faults with decorators in matlab
             dyn = dyn.revertFrames(origNiid, frames);
-            this.component_ = dyn.component_;
+            this.component_ = dyn.component;
         end
         function this = masked(this, niidMask)
             assert(isa(niidMask, 'mlfourd.INIfTI'));
             this.mask_ = niidMask;
             dyn = mlfourd.DynamicNIfTId(this.component_); %% KLUDGE to work-around faults with decorators in matlab
             dyn = dyn.masked(niidMask);
-            this.component_ = dyn.component_;
+            this.component_ = dyn.component;
         end
+
  	end     
     
     %% PROTECTED
@@ -298,7 +322,8 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator3 & mlpet.IScannerData
             
         end
         function this = readTimes(this)
-            this.times_ = this.header.start + this.header.injectionTime; % decay corrections must be to time of injection
+            this.times_ = this.header.start + this.header.injectionTime;
+            % decay corrections must be to time of injection
         end
         function this = readTaus(this)
             this.taus_ = this.header.duration;
@@ -311,6 +336,14 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator3 & mlpet.IScannerData
                 fclose(fid);
             catch ME
                 handexcept(ME);
+            end
+        end
+        function this = readPie(this)
+            try
+                tp = mlio.TextParser.loadx(this.hdrinfoFqfilename, '.hdrinfo');
+                this.pie_ = tp.parseAssignedNumeric('Pie Slope');
+            catch ME
+                error('mlpet:fileNotFound', 'EcatExactHRPlus could not find %s', this.hdrinfoFqfilename);
             end
         end
         function this = setTimeMidpoints(this)
@@ -355,12 +388,22 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator3 & mlpet.IScannerData
                     error('mlpet:unsupportedArraySize', 'size(EcatExactHRPlus.petCounts2wellCounts.img) -> %s', mat2str(size(img)));
             end
         end
-        function this = readPie(this)
-            try
-                tp = mlio.TextParser.loadx(this.hdrinfoFqfilename, '.hdrinfo');
-                this.pie_ = tp.parseAssignedNumeric('Pie Slope');
-            catch ME
-                error('mlpet:fileNotFound', 'EcatExactHRPlus could not find %s', this.hdrinfoFqfilename);
+        function img  = petCounts2tscCounts(this, img)
+            %% PETCOUNTS2TSCCOUNTS; cf. man pie, mlpet.TSC; does not divide out number of pixels.
+            
+            switch (length(size(img)))
+                case 2
+                    img = img .* 60 * this.pie;
+                case 3
+                    for t = 1:size(img, 3)
+                        img(:,:,t) = img(:,:,t) * 60 * this.pie;
+                    end
+                case 4
+                    for t = 1:size(img, 4)
+                        img(:,:,:,t) = img(:,:,:,t) * 60 * this.pie;
+                    end
+                otherwise
+                    error('mlpet:unsupportedArraySize', 'size(EcatExactHRPlus.petCounts2wellCounts.img) -> %s', mat2str(size(img)));
             end
         end
     end

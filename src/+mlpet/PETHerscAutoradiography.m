@@ -1,11 +1,15 @@
 classdef PETHerscAutoradiography < mlpet.AutoradiographyBuilder
 	%% PETHERSCAUTORADIOGRAPHY
+    %  N.B. positron-emitting isotope decay explicitly modeled as advocated by Videen 1987.
     %  Cf:  Raichle, Martin, Herscovitch, Mintun, Markham, 
     %       Brain Blood Flow Measured with Intravenous H_2[^15O].  II.  Implementation and Valication, 
     %       J Nucl Med 24:790-798, 1983.
     %       Hescovitch, Raichle, Kilbourn, Welch,
     %       Positron Emission Tomographic Measurement of Cerebral Blood Flow and Permeability-Surface Area Product of
     %       Water Using [15O]Water and [11C]Butanol, JCBFM 7:527-541, 1987.
+    %       Videen, Perlmutter, Herscovitch, et al.
+    %       Brain blood volume, flow, and oxygen utilization measured with 15O radiotracers and 
+    %       positron emission tomography: revised metabolic computations.  JCBFM 7(4):513-516, 1987
     %  Internal units:   mL, cm, g, s
 
 	%  $Revision$ 

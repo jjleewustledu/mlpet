@@ -72,7 +72,7 @@ classdef PETRegistry < mlpatterns.Singleton
         
             p = inputParser;
             addOptional(p, 'scanner',        'ECAT EXACT HR+', @(s) lstrfind(lower(s), this.SCANNER_LIST));
-            addOptional(p, 'radialPosition',  6.25,            @isnumeric);
+            addOptional(p, 'radialPosition',  7,               @isnumeric);
             addOptional(p, 'dispersion',     'fwhh',           @(s) lstrfind(lower(s), this.DISPERSION_LIST));
             addOptional(p, 'orientation',    'in-plane',       @(s) lstrfind(lower(s), this.ORIENTATION_LIST));
             addOptional(p, 'geometricMean',   false,           @islogical);
@@ -85,9 +85,15 @@ classdef PETRegistry < mlpatterns.Singleton
                     ps = tanFit(r);
                 case 'radial'
                     ps = radialFit(r);
-                otherwise
+                case 'in-plane'
                     r2  = norm(tanFit(r), radialFit(r));
                     ps = [r2 r2 axialFit(r)];
+                case '3D'
+                    r2  = norm(tanFit(r), radialFit(r));
+                    ps = [r2 r2 r2];
+                otherwise
+                    error('mlpet:unsupportedSwitchCase', ...
+                          'PETRegistry.petPointSpread.orientation->%s', p.Results.orientation);
             end
             if (strcmp(p.Results.dispersion, 'sigma'))
                 ps = fwhh2sigma(ps);

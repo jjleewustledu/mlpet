@@ -64,7 +64,7 @@ classdef TSC < mlpet.AbstractWellData
     
     methods (Static)
         function this = import(varargin)
-            %% IMPORT
+            %% IMPORT reads existing *.tsc files
  			%  Usage:  this = TSC.import(tsc_file_location) 
             %          this = TSC.import('/path/to/p1234data/jjl_proc/p1234wb1.tsc')
             %          this = TSC.import('/path/to/p1234data/jjl_proc/p1234wb1')
@@ -80,13 +80,22 @@ classdef TSC < mlpet.AbstractWellData
             this.regionIndex = ip.Results.regionIndex;
             this = this.readtsc;
         end
-        function this = loadTscFiles(tscFiles)
-            assert(isa(tscFiles, 'mlpet.TSCFiles'));
+        function this = loadGluTFiles(files)
+            %% LOADGLUTFILES is a convenience method for processing GluT studies
+            
+            assert(isa(files, 'mlarbelaez.GluTFiles'));
             this = mlpet.TSC.load( ...
-                tscFiles.tscFqfilename, tscFiles.ecatFqfilename, tscFiles.dtaFqfilename, tscFiles.maskFqfilename);
+                files.tscFqfilename, files.ecatFqfilename, files.dtaFqfilename, files.maskFqfilename);
+        end
+        function this = loadNp755Files(files)
+            %% LOADNP755FILES is a convenience method for processing np755 studies
+            
+            assert(isa(files, 'mlderdeyn.Np755Files'));
+            this = mlpet.TSC.load( ...
+                files.tscFqfilename, files.ecatFqfilename, files.dtaFqfilename, files.maskFqfilename);
         end
         function this = load(tscLoc, ecatLoc, dtaLoc, maskLoc, varargin)
-            %% LOAD
+            %% LOAD loads ecat, dta and mask datafiles, then generates and saves a new tsc datafile
  			%  Usage:  this = TSC.load(tsc_file_location, ecat_file_location,  dta_file_location, mask_file_location) 
             %          this = TSC.load('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta')
             %          this = TSC.load('/p1234data/jjl_proc/p1234wb1', '/p1234data/PET/scan1/p1234gluc1', '/p1234data/jjl_proc/p1234g1')
@@ -100,15 +109,14 @@ classdef TSC < mlpet.AbstractWellData
             addOptional(ip, 'short', false, @islogical);
             parse(ip, tscLoc, ecatLoc, dtaLoc, maskLoc, varargin{:});
             
-            import mlpet.* mlfourd.*;
-            
-            this = TSC(ip.Results.tscLoc);
-            this.mask_ = this.makeMask(ip.Results.maskLoc);
-            this.dta_ = DTA.load(ip.Results.dtaLoc, ip.Results.short);
-            this.decayCorrectedEcat_ = this.maskEcat( ...
-                                       DecayCorrectedEcat.load(ip.Results.ecatLoc), this.mask_);            
-            this.times_ = this.decayCorrectedEcat_.times;  
-            this.taus_ = this.decayCorrectedEcat_.taus; 
+            import mlpet.* mlfourd.*;            
+            this         = TSC(ip.Results.tscLoc);
+            this.mask_   = this.makeMask(ip.Results.maskLoc);
+            this.dta_    = DTA.load(ip.Results.dtaLoc, ip.Results.short);
+            this.decayCorrectedEcat_ ...
+                         = this.maskEcat(DecayCorrectedEcat.load(ip.Results.ecatLoc), this.mask_);            
+            this.times_  = this.decayCorrectedEcat_.times;
+            this.taus_   = this.decayCorrectedEcat_.taus; 
             this.counts_ = this.squeezeVoxels(this.decayCorrectedEcat_, this.mask_);  
             this.header_ = this.decayCorrectedEcat_.header;                 
             
@@ -149,20 +157,7 @@ classdef TSC < mlpet.AbstractWellData
             %        wellcnts/cc = \pi \frac{PETcnts}{pixel} \frac{sec}{min}
 
             this = this@mlpet.AbstractWellData(tscLoc);            
-        end      
-        function cnts = squeezeVoxels(this, ecat, msk)
-            %% SQUEEZEVOXELS integrates over space with masking, then divides amplitudes by the number of pixels;
-            %  cf. man pie
-            
-            assert(isa(ecat, 'mlpet.EcatExactHRPlus'));
-            Nt = ecat.size(4);
-            cnts = zeros(1, Nt);
-            dcecat = this.decayCorrectedEcat_;
-            for t = 1:Nt
-                cnts(t) = sum(sum(sum(dcecat.wellCounts(:,:,:,t), 1), 2), 3) * (60/dcecat.taus(t)); 
-            end
-            cnts = cnts/mlfourd.MaskingNIfTId.sumall(msk);
-        end
+        end     
         function        plot(this)
             figure;
             plot(this.times, this.counts);
@@ -194,7 +189,21 @@ classdef TSC < mlpet.AbstractWellData
         decayCorrectedEcat_
     end
     
-    methods (Access = 'protected')
+    methods (Access = 'protected') 
+        function cnts = squeezeVoxels(this, ecat, msk)
+            %% SQUEEZEVOXELS integrates over space with masking, multiplies by 60/tau, tau in sec, 
+            %  then divides amplitudes by the number of pixels;
+            %  cf. man pie
+            
+            assert(isa(ecat, 'mlpet.EcatExactHRPlus'));
+            Nt = ecat.size(4);
+            cnts = zeros(1, Nt);
+            dcecat = this.decayCorrectedEcat_;
+            for t = 1:Nt
+                cnts(t) = sum(sum(sum(dcecat.wellCounts(:,:,:,t), 1), 2), 3) * (60/dcecat.taus(t)); 
+            end
+            cnts = cnts/mlfourd.MaskingNIfTId.sumall(msk);
+        end
         function nf = getNf(this)
             nf = length(this.times);
             dd = this.dta_.times(this.dta_.length);
