@@ -38,7 +38,7 @@ classdef NonquantitativeCOSS
             pth = this.workPath_;
         end
         function this = set.ho(this, h)
-            this.ho_ = imcast(h, 'mlfourd.ImagingContext');
+            this.ho_ = mlfourd.ImagingContext(h);
             assert(lexist(this.ho_.fqfilename, 'file'));
         end
         function ic   = get.ho(this)
@@ -46,7 +46,7 @@ classdef NonquantitativeCOSS
             ic = this.ho_;
         end
         function this = set.maskWithoutPharynx(this, m)
-            this.maskWithoutPharynx_ = imcast(m, 'mlfourd.ImagingContext');
+            this.maskWithoutPharynx_ = mlfourd.ImagingContext(m);
             assert(lexist(this.maskWithoutPharynx_.fqfilename, 'file'));
         end
         function ic   = get.maskWithoutPharynx(this)            
@@ -61,7 +61,7 @@ classdef NonquantitativeCOSS
             ic = imcast(ic, 'mlfourd.NIfTI');
         end
         function this = set.oo(this, o)
-            this.oo_ = imcast(o, 'mlfourd.ImagingContext');
+            this.oo_ = mlfourd.ImagingContext(o);
             assert(lexist(this.oo_.fqfilename, 'file'));
         end
         function this = set.oefFileprefix(this, fp)
@@ -77,7 +77,7 @@ classdef NonquantitativeCOSS
             ic = this.oo_;
         end
         function this = set.t1(this, t)
-            this.t1_ = imcast(t, 'mlfourd.ImagingContext');
+            this.t1_ = mlfourd.ImagingContext(t);
             assert(lexist(this.t1_.fqfilename, 'file'));
         end
         function ic   = get.t1(this)            
@@ -130,14 +130,15 @@ classdef NonquantitativeCOSS
  			%% NONQUANTITATIVECOSS 
  			%  Usage:  this = NonquantitativeCOSS([parameter, parameter_value, ...]) 
             
+            import mlfourd.*;
             p = inputParser;
-            addParameter(p, 'OO',                 imcast(fullfile(pwd, filename(mlpet.O15Builder.OO_MEANVOL_FILEPREFIX)), 'mlfourd.ImagingContext'), ...
+            addParameter(p, 'OO',                 ImagingContext(fullfile(pwd, filename(mlpet.O15Builder.OO_MEANVOL_FILEPREFIX))), ...
                                                   @(x) assert(~isempty(x)));
-            addParameter(p, 'HO',                 imcast(fullfile(pwd, filename(mlsurfer.PETSegstatsBuilder.HO_MEANVOL_FILEPREFIX)), 'mlfourd.ImagingContext'),...
+            addParameter(p, 'HO',                 ImagingContext(fullfile(pwd, filename(mlsurfer.PETSegstatsBuilder.HO_MEANVOL_FILEPREFIX))),...
                                                   @(x) assert(~isempty(x)));
-            addParameter(p, 'T1',                 imcast(fullfile(pwd, 't1_default.nii.gz'), 'mlfourd.ImagingContext'), ...
+            addParameter(p, 'T1',                 ImagingContext(fullfile(pwd, 't1_default.nii.gz')), ...
                                                   @(x) assert(~isempty(x)));
-            addParameter(p, 'MaskWithoutPharynx', imcast(fullfile(pwd, filename(this.MASK_WITHOUT_PHARYNX)), 'mlfourd.ImagingContext'), ...
+            addParameter(p, 'MaskWithoutPharynx', ImagingContext(fullfile(pwd, filename(this.MASK_WITHOUT_PHARYNX))), ...
                                                   @(x) assert(~isempty(x)));
             addParameter(p, 'Workpath',           pwd, ...
                                                   @(x) assert(lexist(x, 'dir')));

@@ -24,7 +24,7 @@ classdef C15OBuilder
         function this = load(filename)
             %  Usage:  this = C15OBuilder.load(filename)
             
-            [~,fprefix] = gzfileparts(filename);
+            [~,fprefix] = myfileparts(filename);
             assert(lstrfind(fprefix, 'oc'));
             this = mlpet.C15OBuilder;
             this.niftid_ = mlfourd.NIfTId.load(filename);

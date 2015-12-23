@@ -1,5 +1,5 @@
-classdef ImgRecParser  < mlio.LogParser  
-	%% IMGRECPARSER   
+classdef EcatLogParser  < mlio.LogParser  
+	%% ECATLOGPARSER   
 
 	%  $Revision$ 
  	%  was created $Date$ 
@@ -21,14 +21,14 @@ classdef ImgRecParser  < mlio.LogParser
             assert(lexist(fn, 'file'));
             [pth, fp, fext] = fileparts(fn); 
             import mlpet.*;
-            if (lstrfind(fext, ImgRecParser.FILETYPE_EXT) || isempty(fext))
-                this = ImgRecParser.loadText(fn); 
+            if (lstrfind(fext, EcatLogParser.FILETYPE_EXT) || isempty(fext))
+                this = EcatLogParser.loadText(fn); 
                 this.filepath_   = pth;
                 this.fileprefix_ = fp;
                 this.filesuffix_ = fext;
                 return 
             end
-            error('mlpet:unsupportedParam', 'ImgRecParser.load does not support file-extension .%s', fext);
+            error('mlpet:unsupportedParam', 'EcatLogParser.load does not support file-extension .%s', fext);
         end
         function this = loadx(fn, ext)
             if (~lstrfind(fn, ext))
@@ -39,7 +39,7 @@ classdef ImgRecParser  < mlio.LogParser
             end
             assert(lexist(fn, 'file'));
             [pth, fp, fext] = filepartsx(fn, ext); 
-            this = mlpet.ImgRecParser.loadText(fn);
+            this = mlpet.EcatLogParser.loadText(fn);
             this.filepath_   = pth;
             this.fileprefix_ = fp;
             this.filesuffix_ = fext;
@@ -54,8 +54,8 @@ classdef ImgRecParser  < mlio.LogParser
     methods (Static, Access = 'protected')
         function this = loadText(fn)
             import mlpet.*;
-            this = ImgRecParser;
-            this.cellContents_ = ImgRecParser.textfileToCell(fn);                      
+            this = EcatLogParser;
+            this.cellContents_ = EcatLogParser.textfileToCell(fn);                      
             this = this.parseVLine(this.findVLine);
         end
     end
@@ -69,7 +69,7 @@ classdef ImgRecParser  < mlio.LogParser
                 this.scanDate     = names.vdate;
                 this.scanTime     = names.vtime;
             else
-                error('mlpet:stringIdentifierNotFound', 'ImgRecParser.vLine');
+                error('mlpet:stringIdentifierNotFound', 'EcatLogParser.vLine');
             end
         end
         function contnt = findVLine(this)

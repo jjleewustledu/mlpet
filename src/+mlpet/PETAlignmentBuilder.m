@@ -11,38 +11,34 @@ classdef PETAlignmentBuilder < mlfsl.AlignmentBuilderPrototype
  	%  $Id$  	 
 
 	methods 
-        function this       = buildUnpacked(this)
-            vtor = mlunpacking.UnpackingVisitor;
-            this = vtor.visitPETAlignmentBuilder(this);
-        end
  		function this       = buildFlirted(this)
-            vtor = mlfsl.FlirtVisitor;
-            this = vtor.visitPETAlignmentBuilder(this);
+            visit = mlfsl.FlirtVisitor;
+            this  = visit.alignPET(this);
         end         
  		function this       = buildFlirtedSmallAngles(this)
-            vtor = mlfsl.FlirtVisitor;
-            this = vtor.visitPETAlignmentBuilderSmallAngles(this);
+            visit = mlfsl.FlirtVisitor;
+            this  = visit.alignSmallAnglesForPET(this);
         end 
  		function this       = buildFlirtedPET2MR(this)
-            vtor = mlfsl.FlirtVisitor;
-            this = vtor.visitAlignmentBuilder(this);
+            visit = mlfsl.FlirtVisitor;
+            this  = visit.align6DOF(this);
         end 
         function [this,xfm] = buildFlirtedPET2Transmission2MR(this)
-            vtor       = mlfsl.FlirtVisitor;
-            [this,xfm] = vtor.visitAlignmentBuilderUsingTransmission(this);
+            visit      = mlfsl.FlirtVisitor;
+            [this,xfm] = visit.alignPETUsingTransmission(this);
         end
  		function this       = buildFlirtedMR2PET(this)
-            vtor = mlfsl.FlirtVisitor;
-            this = vtor.visitAlignmentBuilder2invertXfm(this);
-            this = vtor.visitAlignmentBuilder2applyXfm(this);
+            visit = mlfsl.FlirtVisitor;
+            this  = visit.alignPETUsingTransmission(this);
+            this  = visit.applyTransformOfBuilder(this);
         end  
         function this       = buildFlirtedWithXfm(this)
-            vtor = mlfsl.FlirtVisitor;
-            this = vtor.visitAlignmentBuilder2applyXfm(this);
+            visit = mlfsl.FlirtVisitor;
+            this  = visit.applyTransformOfBuilder(this);
         end
         function [this,xfm] = concatXfms(this, xfms)
-            vtor       = mlfsl.FlirtVisitor;
-            [this,xfm] = vtor.visitAlignmentBuilder2concatXfms(this, xfms);
+            visit      = mlfsl.FlirtVisitor;
+            [this,xfm] = visit.concatTransformsOfBuilder(this, xfms);
         end
         function this       = filterOptimally(this)
             vtor = AveragingVisitor;

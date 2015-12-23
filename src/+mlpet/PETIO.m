@@ -52,7 +52,7 @@ classdef PETIO < mlio.AbstractIO
             addRequired(p, 'fileLocation', @this.wellFormedFileLocation);
             parse(p, fileLoc);
             
-            [p,f,s] = gzfileparts(p.Results.fileLocation);
+            [p,f,s] = myfileparts(p.Results.fileLocation);
             if (isempty(p)); p = pwd; end
             this.filepath   = p;
             this.fileprefix = f;

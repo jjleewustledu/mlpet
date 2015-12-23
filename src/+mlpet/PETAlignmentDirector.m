@@ -95,14 +95,14 @@ classdef PETAlignmentDirector < mlfsl.AlignmentDirectorDecorator
         function ic        = applyXfm(this, ic)
             bldr         = this.alignmentBuilder.clone;
             bldr.product = ic;
-            vtor         = mlfsl.FlirtVisitor;
-            bldr         = vtor.visitAlignmentBuilder2applyXfm(bldr);
+            visit        = mlfsl.FlirtVisitor;
+            bldr         = visit.applyTransformOfBuilder(bldr);
             ic           = bldr.product;
         end
         
  		function this = PETAlignmentDirector(varargin) 
  			%% PETALIGNMENTDIRECTOR 
- 			%  Usage:  this = PETAlignmentDirector(anAlignmentDirectorComponent) 
+ 			%  Usage:  this = PETAlignmentDirector(anIAlignmentDirector) 
 
             this = this@mlfsl.AlignmentDirectorDecorator(varargin{:});
             assert(isa(this.alignmentBuilder, 'mlpet.PETAlignmentBuilder'));
@@ -135,7 +135,7 @@ classdef PETAlignmentDirector < mlfsl.AlignmentDirectorDecorator
             catch ME2
                 handwarning(ME2);
             end
-            prd = imcast(prd, 'mlfourd.ImagingContext');
+            prd = mlfourd.ImagingContext(prd);
         end
     end
 
