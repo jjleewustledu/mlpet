@@ -9,7 +9,7 @@ classdef PETRegistry < mlpatterns.Singleton
  	%% It was developed on Matlab 8.5.0.197613 (R2015a) for MACI64.
  	
 	properties (Constant)
-        SCANNER_LIST     = { 'ecat exact hr+' 'siemens mmr' };
+        SCANNER_LIST     = { 'ecat exact hr+' 'siemens biograph mmr' };
         DISPERSION_LIST  = { 'fwhh' 'sigma'};
         ORIENTATION_LIST = { 'radial' 'tangential' 'in-plane' 'axial' };
     end
