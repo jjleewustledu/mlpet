@@ -12,33 +12,26 @@ classdef PETAlignmentBuilder < mlfsl.AlignmentBuilderPrototype
 
 	methods 
  		function this       = buildFlirted(this)
-            visit = mlfsl.FlirtVisitor;
-            this  = visit.alignPET(this);
+            this = this.buildVisitor.alignPET(this);
         end         
  		function this       = buildFlirtedSmallAngles(this)
-            visit = mlfsl.FlirtVisitor;
-            this  = visit.alignSmallAnglesForPET(this);
+            this = this.buildVisitor.alignSmallAnglesForPET(this);
         end 
  		function this       = buildFlirtedPET2MR(this)
-            visit = mlfsl.FlirtVisitor;
-            this  = visit.align6DOF(this);
+            this = this.buildVisitor.alignMultispectral(this);
         end 
         function [this,xfm] = buildFlirtedPET2Transmission2MR(this)
-            visit      = mlfsl.FlirtVisitor;
-            [this,xfm] = visit.alignPETUsingTransmission(this);
+            [this,xfm] = this.buildVisitor.alignPETUsingTransmission(this);
         end
  		function this       = buildFlirtedMR2PET(this)
-            visit = mlfsl.FlirtVisitor;
-            this  = visit.alignPETUsingTransmission(this);
-            this  = visit.applyTransformOfBuilder(this);
+            this = this.buildVisitor.alignPETUsingTransmission(this);
+            this = this.buildVisitor.transformTrilinear(this);
         end  
         function this       = buildFlirtedWithXfm(this)
-            visit = mlfsl.FlirtVisitor;
-            this  = visit.applyTransformOfBuilder(this);
+            this = this.buildVisitor.transformTrilinear(this);
         end
         function [this,xfm] = concatXfms(this, xfms)
-            visit      = mlfsl.FlirtVisitor;
-            [this,xfm] = visit.concatTransformsOfBuilder(this, xfms);
+            [this,xfm] = this.buildVisitor.concatTransforms(this, xfms);
         end
         function this       = filterOptimally(this)
             vtor = AveragingVisitor;

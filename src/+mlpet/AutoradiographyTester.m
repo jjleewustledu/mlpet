@@ -59,7 +59,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function unittestCRVAutoradiography(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -97,7 +97,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prepareGluT1(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -136,7 +136,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prepareGluT2(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -175,7 +175,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prepareROI(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -224,7 +224,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prepareROIOc(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -285,7 +285,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prepareCRVAutoradiography(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -322,7 +322,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prods = prepareLaif2(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:}); 
             
             import mlperfusion.* mlpet.*;
@@ -353,7 +353,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function preparePET(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -389,7 +389,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function preparePETHersc(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -425,7 +425,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prepareDSC(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -461,7 +461,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prepareDSCHersc(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;

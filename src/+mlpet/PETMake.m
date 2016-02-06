@@ -134,7 +134,7 @@ classdef PETMake < mlfsl.FslMake
                 pcells = dir2cell(pcells);
                 flips  = this.orientationFlips.pet;
                 for p = 1:length(pcells)
-                    if (~isempty(strfind( pcells{p}, mlfourd.NIfTIInterface.FILETYPE_EXT)))
+                    if (~isempty(strfind( pcells{p}, mlfourd.INIfTI.FILETYPE_EXT)))
                         mlpet.PETMake.orientRepair(pcells{p}, flips);
                     end
                 end
@@ -258,14 +258,14 @@ classdef PETMake < mlfsl.FslMake
             %                                            ^ reference fileprefix in current dir
             import mlfsl.* mlfourd.*;
             if (~exist('ref_fp','var')); ref_fp = ''; end
-            [~,msk_fp,~] = filepartsx( msk_fp, mlfourd.NIfTIInterface.FILETYPE_EXT);
-            [~,ref_fp,~] = filepartsx( ref_fp, mlfourd.NIfTIInterface.FILETYPE_EXT);
+            [~,msk_fp,~] = filepartsx( msk_fp, mlfourd.INIfTI.FILETYPE_EXT);
+            [~,ref_fp,~] = filepartsx( ref_fp, mlfourd.INIfTI.FILETYPE_EXT);
                msk_fp    = fileprefix(msk_fp);
                ref_fp    = fileprefix(ref_fp);
             if (~isempty(ref_fp))
-                suff     = ['_on_' ref_fp mlfourd.NIfTIInterface.FILETYPE_EXT];
+                suff     = ['_on_' ref_fp mlfourd.INIfTI.FILETYPE_EXT];
             else
-                suff     = mlfourd.NIfTIInterface.FILETYPE_EXT;
+                suff     = mlfourd.INIfTI.FILETYPE_EXT;
             end            
             disp(['PETMake.quantifyPet is working in folder ' pwd]);
             
@@ -273,7 +273,7 @@ classdef PETMake < mlfsl.FslMake
             
             reg    = Np797Registry.instance(pwd);
             msknii = NIfTI.load(fullfile(this.fslPath, msk_fp));
-            msknii = msknii.forceDouble;
+            msknii = double(msknii);
             petc   = PETconverter(reg.pid, msknii, reg.petBlur, reg.blockSize);
             if (this.makecbf)
                 try

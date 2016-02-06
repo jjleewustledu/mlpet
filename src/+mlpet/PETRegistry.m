@@ -13,11 +13,18 @@ classdef PETRegistry < mlpatterns.Singleton
         DISPERSION_LIST  = { 'fwhh' 'sigma'};
         ORIENTATION_LIST = { 'radial' 'tangential' 'in-plane' 'axial' };
     end
-
-	properties (Dependent)
-    end
     
-    methods % GET
+    methods
+        function g = testStudyData(~, reg)
+            assert(ischar(reg));
+            g = mlpipeline.StudyDataSingletons.instance(reg);
+        end
+        function g = testSessionData(this, reg)
+            assert(ischar(reg));
+            studyData = this.testStudyData(reg);
+            iter = studyData.createIteratorForSessionData;
+            g = iter.next;
+        end
     end
     
     methods (Static)

@@ -53,14 +53,14 @@ classdef PETAlignmentDirector < mlfsl.AlignmentDirectorDecorator
             prd                    = petBldr.product;
         end
         function [prd,xfm] = alignPET2Transmission2MR(this, prd, mrRef)
-            petBldr                = this.alignmentBuilder.clone;
+            petBldr                = this.builder.clone;
             petBldr.product        = prd;
             petBldr.referenceImage = mrRef;
             [petBldr,xfm]          = petBldr.buildFlirtedPET2Transmission2MR;
             prd                    = petBldr.product;
         end
         function prd       = alignMR2PET(this, prd, petRef)
-            mrBldr                = this.alignmentBuilder.clone;
+            mrBldr                = this.builder.clone;
             mrBldr.product        = prd;
             mrBldr.referenceImage = petRef;
             mrBldr.xfm            = fullfile(prd.filepath, ...
@@ -85,7 +85,7 @@ classdef PETAlignmentDirector < mlfsl.AlignmentDirectorDecorator
             bldr.product = prods;
         end
         function prd       = alignPETWithXfm(this, prd, mrRef, xfm) 
-            petBldr                = this.alignmentBuilder.clone;
+            petBldr                = this.builder.clone;
             petBldr.product        = prd;
             petBldr.referenceImage = mrRef;
             petBldr.xfm            = xfm;
@@ -93,10 +93,10 @@ classdef PETAlignmentDirector < mlfsl.AlignmentDirectorDecorator
             prd                    = petBldr.product;
         end
         function ic        = applyXfm(this, ic)
-            bldr         = this.alignmentBuilder.clone;
+            bldr         = this.builder.clone;
             bldr.product = ic;
             visit        = mlfsl.FlirtVisitor;
-            bldr         = visit.applyTransformOfBuilder(bldr);
+            bldr         = visit.transformTrilinear(bldr);
             ic           = bldr.product;
         end
         
@@ -105,7 +105,7 @@ classdef PETAlignmentDirector < mlfsl.AlignmentDirectorDecorator
  			%  Usage:  this = PETAlignmentDirector(anIAlignmentDirector) 
 
             this = this@mlfsl.AlignmentDirectorDecorator(varargin{:});
-            assert(isa(this.alignmentBuilder, 'mlpet.PETAlignmentBuilder'));
+            assert(isa(this.builder, 'mlpet.PETAlignmentBuilder'));
  		end 
     end 
     

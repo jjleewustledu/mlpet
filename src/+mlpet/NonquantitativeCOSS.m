@@ -57,7 +57,7 @@ classdef NonquantitativeCOSS
             this = this.ensureT1OnHo;
             pad = mlpet.PETAlignmentDirector.factory('product', this.t1, 'referenceImage', this.ho);
             pad.xfm = fullfile(this.ho.filepath, [this.t1.fileprefix '_on_' this.ho.fileprefix '.mat']);
-            ic = pad.applyXfm(this.maskWithoutPharynx);
+            ic = pad.alignMR2PET(this.maskWithoutPharynx, this.ho);
             ic = imcast(ic, 'mlfourd.NIfTI');
         end
         function this = set.oo(this, o)

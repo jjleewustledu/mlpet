@@ -202,7 +202,7 @@ classdef TSC < mlpet.AbstractWellData
             for t = 1:Nt
                 cnts(t) = sum(sum(sum(dcecat.wellCounts(:,:,:,t), 1), 2), 3) * (60/dcecat.taus(t)); 
             end
-            cnts = cnts/mlfourd.MaskingNIfTId.sumall(msk);
+            cnts = cnts/dipsum(msk);
         end
         function nf = getNf(this)
             nf = length(this.times);

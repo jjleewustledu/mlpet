@@ -253,7 +253,7 @@ classdef AutoradiographyDirector
             
             dyn  = DynamicNIfTId.load(hofn);
             dyn  = dyn.mcflirtedAfterBlur([10 10 10]);
-            dyn  = dyn.revertFrames(NIfTId.load(hofn), 1:7);
+            dyn  = dyn.withRevertedFrames(NIfTId.load(hofn), 1:7);
             dyn  = dyn.masked(NIfTId.load(AutoradiographyDirector.maskFilename(pth, idx)));
                    dyn.save;
             if (AutoradiographyDirector.AUTO_FREEVIEW)
@@ -290,7 +290,7 @@ classdef AutoradiographyDirector
             mcfFn     = fullfile(pth, 'ep2d_default_mcf.nii.gz');
             maskFn    = fullfile(pth, 'ep2d_mask.nii.gz');
             
-            msk = MaskingNIfTId(NIfTId.load(meanvolFn), 'pthresh', 0.2);
+            msk = MaskingNIfTId(NIfTId.load(meanvolFn), 'threshp', 0.2, 'binarized');
             msk.saveas(maskFn);
             
             dyn = DynamicNIfTId(NIfTId.load(mcfFn), 'mask', msk);
@@ -369,7 +369,7 @@ classdef AutoradiographyDirector
             mnii = mnii.masked(msk);
             
             [aflow,bflow] = AutoradiographyDirector.videenCoeffs(fullfile(pth, [pnum 'ho1_g3.hdr.info']));
-            pett = MaskingNIfTId.sumall(mnii)/MaskingNIfTId.sumall(msk);
+            pett = dipsum(mnii)/dipsum(msk);
             cbf  = aflow*pett*pett + bflow*pett;
             
             fprintf('AutoradiographyDirector.getVideenCbf:\n');

@@ -1,4 +1,4 @@
-classdef EcatExactHRPlus < mlfourd.NIfTIdecorator4 & mlpet.IScannerData
+classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
 	%% ECATEXACTHRPLUS implements mlpet.IScannerData for data from detection array of Ecat Exact HR+ scanners.
     %  Most useful properties will be times, timeInterpolants, counts, countInterpolants.  It is also a NIfTIdecorator.
     %  The corresponding class for well-counter data is mlpet.AbstractWellData.  Also see mlpet.TSC.
@@ -11,7 +11,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator4 & mlpet.IScannerData
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
  	%  $Id$  
 
-    properties (Dependent)        
+    properties (Dependent)
         dt % sec, for timeInterpolants
         
         %% IWellData
@@ -251,9 +251,9 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator4 & mlpet.IScannerData
             dyn = dyn.mcflirtedAfterBlur(blur);
             this.component_ = dyn.component;
         end
-        function this = revertFrames(this, origNiid, frames)
+        function this = withRevertedFrames(this, origNiid, frames)
             dyn = mlfourd.DynamicNIfTId(this.component_); %% KLUDGE to work-around faults with decorators in matlab
-            dyn = dyn.revertFrames(origNiid, frames);
+            dyn = dyn.withRevertedFrames(origNiid, frames);
             this.component_ = dyn.component;
         end
         function this = masked(this, niidMask)
@@ -343,7 +343,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecorator4 & mlpet.IScannerData
                 tp = mlio.TextParser.loadx(this.hdrinfoFqfilename, '.hdrinfo');
                 this.pie_ = tp.parseAssignedNumeric('Pie Slope');
             catch ME
-                error('mlpet:fileNotFound', 'EcatExactHRPlus could not find %s', this.hdrinfoFqfilename);
+                handexcept(ME, 'mlpet:fileNotFound', 'EcatExactHRPlus could not find %s', this.hdrinfoFqfilename);
             end
         end
         function this = setTimeMidpoints(this)

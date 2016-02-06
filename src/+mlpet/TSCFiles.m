@@ -77,7 +77,7 @@ classdef TSCFiles
  			%  Usage:  this = TSCFiles() 
 
             ip = inputParser;
-            addParameter(ip, 'pnumPath', pwd, @(x) lexist(x, 'dir') && lstrfind(x, 'p'));
+            addParameter(ip, 'pnumPath', pwd, @(x) isdir(x) && lstrfind(x, 'p'));
             addParameter(ip, 'scanIndex', 1, @isnumeric);
             addParameter(ip, 'region', '', @ischar);
             parse(ip, varargin{:});

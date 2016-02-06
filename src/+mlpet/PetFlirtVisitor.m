@@ -1,5 +1,7 @@
-classdef PetFlirtVisitor < mlfsl.FlirtVisitor
-	%% PETFLIRTVISITOR  
+classdef PETFlirtVisitor < mlfsl.FlirtVisitor
+	%% PETFLIRTVISITOR 
+    %  overwrites intermediate files used by flirt operations but will not overwrite data from 
+    %  AbstractRegistrationBuilder:  sourceImage, referenceImage, sourceWeight, referenceWeight.
 
 	%  $Revision$
  	%  was created 27-Jan-2016 23:28:30
@@ -15,36 +17,59 @@ classdef PetFlirtVisitor < mlfsl.FlirtVisitor
 
 	methods 		  
         function bldr = motionCorrect(this, bldr)
-            proxy  = bldr.sourceImage.clone;
-            proxyb = proxy.blurred(2*this.pointSpread);
-            proxyb = proxyb.maskedByZ(this.zbounds(proxyb));
-            this.cleanWorkspace(proxyb);
-            proxyb.save;
+            this.ensureBuilderSaved(bldr);
+            [proxysrc,proxyts] = this.ensureMotionCorrectProxies(bldr);
             
             mOpts         = mlfsl.McflirtOptions;
             mOpts.cost    = 'normmi'; % 'normcorr'
             mOpts.dof     = 6;
-            mOpts.in      = proxyb.fqfileprefix;
-            proxyts       = this.proxyTimeSummed(proxyb); % saves proxyts
-            mOpts.reffile = proxyts.fqfileprefix;
-            this.cleanWorkspace(this.mcf_mat_fqdn(proxyb));
+            mOpts.in      = proxysrc;
+            mOpts.reffile = proxyts;
             proxymc       = this.mcflirt__(mOpts); % saves proxymc
             
-            aOpts.input          = bldr.sourceImage.fqfn;
-            aOpts.ref            = proxyts.fqfilename;
+            aOpts.input          = bldr.sourceImage;
+            aOpts.ref            = proxyts;
             aOpts.output         = this.mcf_fqfn(bldr.sourceImage);
             aOpts.transformation = this.mat_fqdn(proxymc);
             bldr.product         = this.applyxfm4D__(aOpts); % saves bldr.product
+            bldr.product.addLog('mlpet.PETFlirtVisitor.motionCorrect');
+            bldr.product.addLog(bldr.sourceImage.getLog.contents);
         end
-        function p = pointSpread(~)
-            reg = mlpet.PETRegistry.instance;
-            p   = reg.petPointSpread;
+        function [bldr,xfm] = registerBijective(this, bldr, proxyBldr)
+            this.ensureBuilderSaved(bldr);
+            this.ensureBuilderSaved(proxyBldr);
+            
+            opts              = mlfsl.FlirtOptions;
+            opts.in           = proxyBldr.sourceImage;
+            opts.ref          = proxyBldr.referenceImage;
+            opts.cost         = 'normmi';
+            opts.dof          = 6;  
+            opts.searchrx     = ' -30 30 ';
+            opts.searchry     = ' -30 30 ';
+            opts.searchrz     = ' -30 30 ';
+            %opts.coarsesearch = ' 20 ';
+            %opts.finesearch   = ' 10 ';
+            opts.inweight     = proxyBldr.sourceWeight;
+            opts.refweight    = proxyBldr.referenceWeight;           
+            opts.init         = this.flirt__(opts);
+            
+            opts.in           = bldr.sourceImage;
+            opts.ref          = bldr.referenceImage;
+            opts.inweight     = bldr.sourceWeight;
+            opts.refweight    = bldr.referenceWeight; 
+            bldr.product      = this.transform__(opts);
+            bldr.product.addLog('mlpet.PETFlirtVisitor.registerBijective');
+            bldr.product.addLog(bldr.sourceImage.getLog.contents);
+            bldr.xfm          = opts.init;
+            xfm               = opts.init;
         end
         
- 		function this = PetFlirtVisitor(varargin)
+ 		function this = PETFlirtVisitor(varargin)
  			this = this@mlfsl.FlirtVisitor(varargin{:});
  		end
     end 
+    
+    %% PROTECTED
     
     methods (Access = protected)
         function cleanWorkspace(this, ic)
@@ -57,11 +82,23 @@ classdef PetFlirtVisitor < mlfsl.FlirtVisitor
                 return
             end
             if (ischar(ic))
-                deleteExisting2([ic '*'])
+                deleteExisting3([ic '*'])
                 return
             end
             error('mlfsl:unsupportedTypeclass', ...
-                  'typeclass of PetFlirtVisitor.cleanWorkspace.ic was %s; \nchar(ic)->%s', class(ic), char(ic));
+                  'typeclass of PETFlirtVisitor.cleanWorkspace.ic was %s; \nchar(ic)->%s', class(ic), char(ic));
+        end
+        function [proxysrc,proxyts] = ensureMotionCorrectProxies(this, bldr)            
+            proxysrc = bldr.sourceImage.clone;            
+            proxysrc = proxysrc.blurred(bldr.blurringFactor*bldr.pointSpread);
+            proxysrc = proxysrc.maskedByZ;
+            this.cleanWorkspace(proxysrc);
+            this.cleanWorkspace(this.mcf_mat_fqdn(proxysrc));
+            proxysrc.save;
+            
+            proxyts = bldr.ensureTimeIndep(proxysrc); 
+            this.cleanWorkspace(proxyts);
+            proxyts.save;
         end
         function fqdn = mat_fqdn(this, ic)
             assert(isa(ic, 'mlfourd.ImagingContext'));
@@ -74,22 +111,6 @@ classdef PetFlirtVisitor < mlfsl.FlirtVisitor
         function fqdn = mcf_mat_fqdn(this, ic)
             assert(isa(ic, 'mlfourd.ImagingContext'));            
             fqdn = [ic.fqfileprefix this.MCF_SUFFIX this.XFM_SUFFIX]; 
-        end
-        function ic_sumt = proxyTimeSummed(this, ic)
-            import mlfourd.*;
-            fqfn = [ic.fqfileprefix DynamicNIfTId.SUMT_SUFFIX DynamicNIfTId.FILETYPE_EXT];
-            if (lexist(fqfn, 'file'))
-                ic_sumt = ImagingContext(fqfn);
-                return
-            end
-            ic_sumt = ic.clone;
-            ic_sumt = ic_sumt.timeSummed;            
-            this.cleanWorkspace(ic_sumt);
-            ic_sumt.save;
-        end
-        function z = zbounds(~, ic)
-            szz = size(ic.niftid, 3);
-            z   = [ceil(0.05*szz) floor(0.95*szz)];
         end
     end
 
