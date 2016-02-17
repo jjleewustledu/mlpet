@@ -21,7 +21,7 @@ classdef PETFlirtVisitor < mlfsl.FlirtVisitor
             [proxysrc,proxyts] = this.ensureMotionCorrectProxies(bldr);
             
             mOpts         = mlfsl.McflirtOptions;
-            mOpts.cost    = 'normmi'; % 'normcorr'
+            mOpts.cost    = 'normcorr'; % 'normmi'
             mOpts.dof     = 6;
             mOpts.in      = proxysrc;
             mOpts.reffile = proxyts;
@@ -91,7 +91,9 @@ classdef PETFlirtVisitor < mlfsl.FlirtVisitor
         function [proxysrc,proxyts] = ensureMotionCorrectProxies(this, bldr)            
             proxysrc = bldr.sourceImage.clone;            
             proxysrc = proxysrc.blurred(bldr.blurringFactor*bldr.pointSpread);
-            proxysrc = proxysrc.maskedByZ;
+            if (~isa(bldr.sessionData, 'mlraichle.SessionData'))
+                proxysrc = proxysrc.maskedByZ;
+            end
             this.cleanWorkspace(proxysrc);
             this.cleanWorkspace(this.mcf_mat_fqdn(proxysrc));
             proxysrc.save;

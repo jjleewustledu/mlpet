@@ -1,5 +1,7 @@
 classdef CRVDeconvolution < mlbayesian.AbstractMcmcProblem 
-	%% CRVDECONVOLUTION   
+	%% CRVDECONVOLUTION estimates dcv as two generalized gamma-variates plus steady-state.  
+    %  It needs a data-derived catheter impulse response.
+    %
     %  http://en.wikipedia.org/wiki/Generalized_gamma_distribution
     %  N.B.  f(tau; a,d,p) = \Gamma^{-1}(d/p) (p/a^d) tau^(d-1) exp(-(tau/a)^p) with a > 0, d > 0, p > 0, t - t0 > 0. 
 
@@ -74,7 +76,7 @@ classdef CRVDeconvolution < mlbayesian.AbstractMcmcProblem
     
     methods (Static)
         function [bsrf1,bsrf2] = solveBsrf(crvFn, hct)
-            %% SOLVEBSRF
+            %% SOLVEBSRF determines the catheter impulse-response by the algorithms of betadcv.
             %  Usage:  [bsrf_id1, bsrf_id2] = CRVDeconvolution.solveBsrf(crv_filename, Hct)
             
             if (~exist('hct', 'var'))
@@ -141,9 +143,10 @@ classdef CRVDeconvolution < mlbayesian.AbstractMcmcProblem
             assert(isa(dccrv, 'mlpet.DecayCorrectedCRV'));
             this.dccrv_ = dccrv;
             load(this.kernelBestFilename_);
-            kernelBest = bsrf120_id1;
-            this.kernel_ = zeros(size(kernelBest));
-            this.kernel_(this.kernelRange_) = kernelBest(this.kernelRange_);
+            %kernelBest = bsrf120_id1;
+            %this.kernel_ = zeros(size(kernelBest));
+            this.kernel_ = kernelBest(this.kernelRange_);
+            this.kernel_(this.kernel_ < 0) = 0;
             this.kernel_ = this.kernel_ / sum(this.kernel_); 
         end    
         
@@ -258,11 +261,12 @@ classdef CRVDeconvolution < mlbayesian.AbstractMcmcProblem
     properties (Access = 'private')
         dccrv_
         kernel_
-        kernelRange_ = 1:120 %12:40
-        kernelBestFilename_ = '/Volumes/SeagateBP3/cvl/np755/Training/bsrf120_id1.mat'
-                             %'/Volumes/InnominateHD2/Arbelaez/GluT/p8425/scan1/bsrf120.mat'
-                             %'/Users/jjlee/Local/src/mlcvl/mlarbelaez/src/+mlarbelaez/kernelBest.mat'
-                             %'/Users/jjlee/Local/src/mlcvl/mlarbelaez/src/+mlarbelaez/kernel57.mat'
+        kernelRange_ = 12:40 % 1:120
+        kernelBestFilename_ = '/Volumes/SeagateBP4/Arbelaez.kernelBest.mat'
+                              %'/Volumes/SeagateBP3/cvl/np755_Bayesian/AUTORADIOGRAPHY/Training/bsrf120_id1.mat' % 6/24/2015
+                              %'/Volumes/SeagateBP4/Arbelaez/GluT/p8425/scan1/bsrf120.mat' % 6/23/2015
+                              %'/Users/jjlee/Local/src/mlcvl/mlarbelaez/src/+mlarbelaez/kernelBest.mat' % 6/18/2015
+                              %'/Users/jjlee/Local/src/mlcvl/mlarbelaez/src/+mlarbelaez/kernel57.mat' % 6/19/2015
     end
     
     methods (Static, Access = 'private')

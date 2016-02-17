@@ -1,5 +1,8 @@
 classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
-	%% CRVAUTORADIOGRAPHY
+	%% CRVAUTORADIOGRAPHY estimates parameters for the Kety autoradiographic method for PET.
+    %  It fits ECAT, CRV and, optionally, DCV data.  A data-derived catheter impulse response is needed.
+    %  Dcv is estimated by two generalized gamma-variates + steady-state.
+    %
     %  Cf:  Raichle, Martin, Herscovitch, Mintun, Markham, 
     %       Brain Blood Flow Measured with Intravenous H_2[^15O].  II.  Implementation and Valication, 
     %       J Nucl Med 24:790-798, 1983.
@@ -49,6 +52,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
                              %'/Volumes/SeagateBP3/cvl/np755/Training/bsrf116_id1.mat'
                              %'/Volumes/InnominateHD2/Arbelaez/GluT/__p8425_JJL__/PET/bsrf120.mat'
                              %'/Users/jjlee/Local/src/mlcvl/mlarbelaez/src/+mlarbelaez/kernel57.mat'
+                             %'/Volumes/SeagateBP4/Arbelaez.kernelBest.mat'
     end
     
     methods %% GET/SET 
@@ -402,8 +406,8 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
         end
         function this = loadKernel(this)
             load(this.kernelBestFqfilename);
-            %kernelBest = bsrf120_id1;
             this.kernel_ = kernelBest(this.kernelRange_);
+            this.kernel_(this.kernel_ < 0) = 0;
             this.kernel_ = this.kernel_ / sum(this.kernel_);  
         end
         function plotParArgs(this, par, args, vars)

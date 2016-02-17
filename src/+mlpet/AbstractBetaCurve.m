@@ -105,12 +105,16 @@ classdef (Abstract) AbstractBetaCurve < mlpet.IBetaCurve & mlio.IOInterface
         end        
         function f = get.wellFqfilename(this)
             try
-               filename = sprintf('%s.wel', str2pnum(this.petio_.fileprefix)); 
-            catch %#ok<CTCH>
-                warning('mlpet:unexpectedRegexResult', 'AbstractBetaCurve.get.wellFqfilename could not file a p-number');
-                filename = [this.petio_.fileprefix(1:end-1) '.wel'];
+               f = sprintf('%s.wel', str2pnum(this.petio_.fqfileprefix));
+               if (~lexist(f))                   
+                   f = sprintf('%s.wel', this.petio_.fqfileprefix(1:end-1));
+                   if (~lexist(f))
+                       error('mlpet:fileNotFound', 'AbstractBetaCurve.wellFqfilename %s not found', f);
+                   end
+               end
+            catch ME
+                handexcept(ME);
             end
-            f = fullfile(this.petio_.filepath, filename);
         end
         function w = get.wellFactor(this)
             assert(~isempty(this.wellMatrix_), ...
@@ -148,6 +152,9 @@ classdef (Abstract) AbstractBetaCurve < mlpet.IBetaCurve & mlio.IOInterface
             
             this.petio_ = mlpet.PETIO(fileLoc);          
             this = this.readWellMatrix;
+        end
+        function c    = char(this)
+            c = this.fqfilename;
         end
         function this = saveas(this, fqfn)
             this.petio_.fqfilename = fqfn;
