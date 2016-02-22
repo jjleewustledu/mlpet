@@ -54,6 +54,17 @@ classdef PETRegistrationBuilder < mlfsl.AbstractRegistrationBuilder
     end
     
 	methods 
+        function this = applyMotionCorrection(this)
+            this.sourceImage = this.ensureTimeDependent(this.sourceImage, this.referenceImage.niftid.size(4));
+            this.referenceImage = this.ensureTimeIndep(this.referenceImage);
+            this.sourceImage.save;
+            this.referenceImage.save;
+            visitor = mlpet.PETFlirtVisitor;
+            this = visitor.applyMotionCorrection(this);
+            
+            deleteExisting(this.sourceImage.fqfn);
+            %deleteExisting(this.referenceImage.fqfn);
+        end    
         function this = motionCorrect(this)
             visitor = mlpet.PETFlirtVisitor;
             this = visitor.motionCorrect(this);
@@ -71,17 +82,6 @@ classdef PETRegistrationBuilder < mlfsl.AbstractRegistrationBuilder
         end
         function obj  = clone(this)
             obj = mlpet.PETRegistrationBuilder(this);
-        end
-    end
-    
-    %% PROTECTED
-    
-    methods (Access = protected)
-        function ic = serializeBlurred(this, ic)
-            import mlfourd.*;
-            ic = ic.blurred(this.petPointSpread);
-            deleteExisting(ic.fqfilename);
-            ic.save;
         end
     end
 

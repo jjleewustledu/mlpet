@@ -31,8 +31,18 @@ classdef PETFlirtVisitor < mlfsl.FlirtVisitor
             aOpts.ref            = proxyts;
             aOpts.output         = this.mcf_fqfn(bldr.sourceImage);
             aOpts.transformation = this.mat_fqdn(proxymc);
+            bldr.xfm             = aOpts.transformation;
             bldr.product         = this.applyxfm4D__(aOpts); % saves bldr.product
             bldr.product.addLog('mlpet.PETFlirtVisitor.motionCorrect');
+            bldr.product.addLog(bldr.sourceImage.getLog.contents);
+        end
+        function bldr = applyMotionCorrection(this, bldr)   
+            aOpts.input          = bldr.sourceImage;
+            aOpts.ref            = bldr.referenceImage;
+            aOpts.output         = this.mcf_fqfn(bldr.sourceImage);
+            aOpts.transformation = bldr.xfm;
+            bldr.product         = this.applyxfm4D__(aOpts); % saves bldr.product
+            bldr.product.addLog('mlpet.PETFlirtVisitor.applyMotionCorrection');
             bldr.product.addLog(bldr.sourceImage.getLog.contents);
         end
         function [bldr,xfm] = registerBijective(this, bldr, proxyBldr)
@@ -91,7 +101,7 @@ classdef PETFlirtVisitor < mlfsl.FlirtVisitor
         function [proxysrc,proxyts] = ensureMotionCorrectProxies(this, bldr)            
             proxysrc = bldr.sourceImage.clone;            
             proxysrc = proxysrc.blurred(bldr.blurringFactor*bldr.pointSpread);
-            if (~isa(bldr.sessionData, 'mlraichle.SessionData'))
+            if (~isa(bldr.sessionData, 'mlraichle.SessionData')) %% KLUDGE
                 proxysrc = proxysrc.maskedByZ;
             end
             this.cleanWorkspace(proxysrc);
