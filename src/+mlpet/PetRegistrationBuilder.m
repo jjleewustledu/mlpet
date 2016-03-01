@@ -53,18 +53,7 @@ classdef PETRegistrationBuilder < mlfsl.AbstractRegistrationBuilder
         end
     end
     
-	methods 
-        function this = applyMotionCorrection(this)
-            this.sourceImage = this.ensureTimeDependent(this.sourceImage, this.referenceImage.niftid.size(4));
-            this.referenceImage = this.ensureTimeIndep(this.referenceImage);
-            this.sourceImage.save;
-            this.referenceImage.save;
-            visitor = mlpet.PETFlirtVisitor;
-            this = visitor.applyMotionCorrection(this);
-            
-            deleteExisting(this.sourceImage.fqfn);
-            %deleteExisting(this.referenceImage.fqfn);
-        end    
+	methods  
         function this = motionCorrect(this)
             visitor = mlpet.PETFlirtVisitor;
             this = visitor.motionCorrect(this);

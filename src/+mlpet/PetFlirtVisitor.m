@@ -36,15 +36,6 @@ classdef PETFlirtVisitor < mlfsl.FlirtVisitor
             bldr.product.addLog('mlpet.PETFlirtVisitor.motionCorrect');
             bldr.product.addLog(bldr.sourceImage.getLog.contents);
         end
-        function bldr = applyMotionCorrection(this, bldr)   
-            aOpts.input          = bldr.sourceImage;
-            aOpts.ref            = bldr.referenceImage;
-            aOpts.output         = this.mcf_fqfn(bldr.sourceImage);
-            aOpts.transformation = bldr.xfm;
-            bldr.product         = this.applyxfm4D__(aOpts); % saves bldr.product
-            bldr.product.addLog('mlpet.PETFlirtVisitor.applyMotionCorrection');
-            bldr.product.addLog(bldr.sourceImage.getLog.contents);
-        end
         function [bldr,xfm] = registerBijective(this, bldr, proxyBldr)
             this.ensureBuilderSaved(bldr);
             this.ensureBuilderSaved(proxyBldr);
@@ -111,18 +102,6 @@ classdef PETFlirtVisitor < mlfsl.FlirtVisitor
             proxyts = bldr.ensureTimeIndep(proxysrc); 
             this.cleanWorkspace(proxyts);
             proxyts.save;
-        end
-        function fqdn = mat_fqdn(this, ic)
-            assert(isa(ic, 'mlfourd.ImagingContext'));
-            fqdn = [ic.fqfileprefix this.XFM_SUFFIX]; 
-        end
-        function fqfn = mcf_fqfn(this, ic)
-            assert(isa(ic, 'mlfourd.ImagingContext'));
-            fqfn = [ic.fqfileprefix this.MCF_SUFFIX ic.filesuffix];
-        end
-        function fqdn = mcf_mat_fqdn(this, ic)
-            assert(isa(ic, 'mlfourd.ImagingContext'));            
-            fqdn = [ic.fqfileprefix this.MCF_SUFFIX this.XFM_SUFFIX]; 
         end
     end
 
