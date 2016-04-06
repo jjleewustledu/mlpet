@@ -71,9 +71,23 @@ classdef DTA < mlpet.AbstractWellData
         EXTENSION = '.dta'        
         TIMES_UNITS = 'sec'
         COUNTS_UNITS = 'well-counter events/mL/sec'
+        READ_HEADER_EXP1 = ...
+            '(?<pnumber>p\d{4})\s+\w*\s*\w*\s*(?<dateScan>\d+(/|-)\d+(/|-)\d+)\s+(?<studyCode>\w+)(?<petIndex>\d)\s+(?<dateProcessing>\d+(/|-)\d+(/|-)\d+)\s+(?<author>\w+)'
+        READ_HEADER_EXP2 = ...
+            '@\d+@\s+(?<pnumber>p\d{4})\s+\w*\s*\w*\s*(?<dateScan>\d+(/|-)\d+(/|-)\d+)\s+(?<studyCode>\w+)(?<petIndex>\d)\s+(?<author>\w+)'
     end
     
-    properties        
+    properties (Dependent)
+        becquerels
+    end
+    
+    methods % GET
+        function b = get.becquerels(this)
+            b = this.counts ./ this.taus;
+        end
+    end
+    
+    properties
         syringeWeightDry
         syringeWeightWet
         sampleTimesDrawn
@@ -95,6 +109,11 @@ classdef DTA < mlpet.AbstractWellData
             else
                 this = this.readDta;
             end
+        end
+        function this = loadSessionData(sessDat)
+            assert(isa(sessDat, 'mlpipeline.SessionData'));
+            this = mlpet.DTA(sessDat.dta_fqfn);
+            this = this.readDta;
         end
         function this = importBlood(b)
             assert(isa(b, 'mlpet.Blood'));
@@ -119,8 +138,8 @@ classdef DTA < mlpet.AbstractWellData
         end
     end
     
-	methods 
-  		function this = DTA(fileLoc) 
+	methods
+  		function this = DTA(fileLoc)
  			%% DTA 
  			%  Usage:  this = DTA(file_location[, read_short_header]) 
             %          this = DTA('/path/to/p1234data/p1234ho1.crv', true)
@@ -130,9 +149,13 @@ classdef DTA < mlpet.AbstractWellData
             this = this@mlpet.AbstractWellData(fileLoc);
             
             if (isempty(this.filesuffix))
-                this.petio_.filesuffix = this.EXTENSION; end
-        end      
-        function save(this)            
+                this.petio_.filesuffix = this.EXTENSION; 
+            end
+        end
+        function b    = becquerelInterpolants(this, varargin)
+            b = this.countInterpolants(varargin{:});
+        end
+        function        save(this)
             fid = fopen(this.fqfilename, 'w');
             fprintf(fid, '%s\n', this.header.string);
             fprintf(fid, '       Corrected     Syringe Weight      Sample Time    Measured   Per\n');
@@ -155,12 +178,8 @@ classdef DTA < mlpet.AbstractWellData
     
     %% PRIVATE
     
-    properties (Access = 'private')
-        READ_HEADER_EXP = '(?<pnumber>p\d{4})\s+\w*\s*\w*\s*(?<dateScan>\d+(/|-)\d+(/|-)\d+)\s+(?<studyCode>\w+)(?<petIndex>\d)\s+(?<dateProcessing>\d+(/|-)\d+(/|-)\d+)\s+(?<author>\w+)'
-    end
-    
     methods (Access = 'private')
-        function this = readShortDta(this)            
+        function this = readShortDta(this)
             fid  = fopen(this.fqfilename);
             this = this.readShortHeader(fid);
             this = this.readData(fid);
@@ -176,7 +195,7 @@ classdef DTA < mlpet.AbstractWellData
             str = textscan(fid, '%s', 1, 'Delimiter', '\n');            
             str = str{1}; str = str{1};
             try
-                h = regexp(str, this.READ_HEADER_EXP, 'names');
+                h = regexp(str, this.READ_HEADER_EXP1, 'names');
                 h.petIndex = str2double(h.petIndex);
                 h.string = strtrim(str);
                 this.header_ = h;
@@ -190,47 +209,89 @@ classdef DTA < mlpet.AbstractWellData
             str = textscan(fid, '%s', 1, 'Delimiter', '\n');            
             str = str{1}; str = str{1};
             try
-                h = regexp(str, this.READ_HEADER_EXP, 'names');
-                h.petIndex = str2double(h.petIndex);
-                h.string = strtrim(str);
-                this.header_ = h;
-            catch %#ok<CTCH>
-                this.header_.string = str;
+                h = regexp(str, this.READ_HEADER_EXP1, 'names');
+                if (~isempty(h))
+                    this = this.readHeader1(fid, str, h);
+                else
+                    h = regexp(str, this.READ_HEADER_EXP2, 'names');
+                    this = this.readHeader2(fid, str, h);
+                end
+            catch ME
+                handerror(ME);
             end
+        end        
+        function this = readHeader1(this, fid, str, h)
+            h.petIndex   = str2double(h.petIndex);
+            h.string     = strtrim(str);
+            this.header_ = h;
+            
                   textscan(fid, '%s',    1, 'Delimiter', '\n');
                   textscan(fid, '%s',    1, 'Delimiter', '\n');
             ts  = textscan(fid, '%d',    1, 'Delimiter', '\n');
-            this.header_.numberScans   = ts{1};
+            this.header_.numberScans = ts{1};
+            
             ts  = textscan(fid, '%d %s', 1, 'Delimiter', '\n');
-            this.header_.scanType      = ts{1};
-            tmp = ts{2};
-            this.header_.scanSymbol    = tmp{1};
+            this.header_.scanType   = ts{1};
+            tmp                     = ts{2};
+            this.header_.scanSymbol = tmp{1};
+            
             ts  = textscan(fid, '%d %d', 1, 'Delimiter', '\n');
-            this.header_.scanStart     = ts{1};
-            this.header_.scanLength    = ts{2};
+            this.header_.scanStart  = ts{1};
+            this.header_.scanLength = ts{2};
+            
             ts  = textscan(fid, '%d %d', 1, 'Delimiter', '\n');
-            this.header_.bankPairs     = [ts{1} ts{2}];
+            this.header_.bankPairs = [ts{1} ts{2}];
+            
             ts  = textscan(fid, '%d %d', 1, 'Delimiter', '\n');
             this.header_.oxygenContent = ts{1};
             this.header_.Hct           = ts{2};
+            
+            len = textscan(fid, '%d',    1, 'Delimiter', '\n'); 
+            this.header_.length = len{1};
+        end        
+        function this = readHeader2(this, fid, str, h)
+            h.petIndex   = str2double(h.petIndex);
+            h.string     = strtrim(str);
+            this.header_ = h;
+            
+                  textscan(fid, '%s',    1, 'Delimiter', '\n');
+                  textscan(fid, '%s',    1, 'Delimiter', '\n');
+            ts  = textscan(fid, '%d',    1, 'Delimiter', '\n');
+            this.header_.numberScans = ts{1};
+            
+            ts  = textscan(fid, '%d %s', 1, 'Delimiter', '\n');
+            this.header_.scanType   = ts{1};
+            tmp                     = ts{2};
+            this.header_.scanSymbol = tmp{1};
+            
+            ts  = textscan(fid, '%d %d', 1, 'Delimiter', '\n');
+            this.header_.scanStart  = ts{1};
+            this.header_.scanLength = ts{2};
+            
+            ts  = textscan(fid, '%d', 1, 'Delimiter', '\n');
+            this.header_.bankPairs = ts{1};
+            
+            ts  = textscan(fid, '%d %d', 1, 'Delimiter', '\n');
+            this.header_.oxygenContent = ts{1};
+            this.header_.Hct           = ts{2};
+            
             len = textscan(fid, '%d',    1, 'Delimiter', '\n'); 
             this.header_.length = len{1};
         end
         function this = readData(this, fid)
             ts = textscan(fid, '%f %f %f %f %f %f %f %f', 'Delimiter', ' ', 'MultipleDelimsAsOne', true);
             this.times_ = ts{1}';
-            this.taus_ = this.times_(2:end) - this.times_(1:end-1);
-            this.taus_(this.length) = this.taus_(end);
             this.counts_ = ts{2}';
             this.syringeWeightDry = ts{3}';
             this.syringeWeightWet = ts{4}';
             this.sampleTimesDrawn = ts{5}';
             this.sampleTimesCounted = ts{6}';
             this.measuredCounts = ts{7}';
-            this.countPeriod = ts{8}';            
+            this.countPeriod = ts{8}';
+            this.taus_ = this.countPeriod;
             this.assertLength; 
         end
-        function assertLength(this)            
+        function assertLength(this)
             if (length(this.times_) ~= this.header.length) %#ok<*ALIGN>
                 error('mlpet:unexpectedDataLength', 'DTA.header.length -> %i, but length(.times_) -> %i', ...
                        this.header.length, length(this.times_)); end
