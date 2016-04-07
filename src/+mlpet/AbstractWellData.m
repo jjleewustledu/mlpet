@@ -15,7 +15,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         useBecquerels = false % boolean for dividing accumulated counts by sampling durations of each time-frame to obtain 1/sec  
     end
     
-	properties (Dependent)        
+	properties (Dependent)
         filename
         filepath
         fileprefix 
@@ -71,7 +71,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         function idx  = get.scanIndex(this)
             idx = this.petio_.scanIndex;
         end
-        function id  = get.tracer(this)
+        function id   = get.tracer(this)
             id = this.petio_.tracer;
         end
         function l    = get.length(this)
@@ -110,7 +110,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
                 this.header_ = h; end            
         end
         
-        function t = get.taus(this)
+        function t   = get.taus(this)
             assert(~isempty(this.taus_));
             t = this.taus_;
         end
@@ -122,7 +122,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         end
     end
     
-	methods 
+	methods
         function this = AbstractWellData(fileLoc)
             %% ABSTRACTWELLDATA
             %  Usage:  this = this@mlpet.AbstractWellData(file_location);
@@ -131,6 +131,9 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
             %          this = this@mlpet.AbstractWellData('p1234ho1')
             
             this.petio_ = mlpet.PETIO(fileLoc);
+        end
+        function c    = char(this)
+            c = this.fqfilename;
         end
         function this = saveas(this, fqfn)
             this.petio_.fqfilename = fqfn;

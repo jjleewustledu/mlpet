@@ -83,7 +83,7 @@ classdef DTA < mlpet.AbstractWellData
     
     methods % GET
         function b = get.becquerels(this)
-            b = this.counts ./ this.taus;
+            b = this.counts; %%% TO CHECK ./ this.taus;
         end
     end
     

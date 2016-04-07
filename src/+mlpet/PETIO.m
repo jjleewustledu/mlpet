@@ -23,7 +23,11 @@ classdef PETIO < mlio.AbstractIO
         function idx = get.scanIndex(this)
             try
                 names = regexp(this.fileprefix, this.SCAN_INDEX_EXPR, 'names');
-                idx = str2double(names.idx);
+                if (~isempty(names))
+                    idx = str2double(names.idx);
+                else
+                    idx = 1;
+                end
             catch ME
                 handwarning(ME);
                 idx = nan;
