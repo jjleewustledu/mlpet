@@ -55,7 +55,7 @@ classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus & mlpet.IDecayCorrection
     
     methods (Access = 'protected')
         function this = updateFileprefix(this)            
-            this.component_.fileprefix = [this.component_.fileprefix '_decayCorrect'];
+            this.component.fileprefix = [this.component.fileprefix '_decayCorrect'];
         end
         function this = setTimeMidpoints_dc(this)
             k_decay = log(2) / this.halfLife;

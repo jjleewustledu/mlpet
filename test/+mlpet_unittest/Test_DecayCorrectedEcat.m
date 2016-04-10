@@ -14,59 +14,59 @@ classdef Test_DecayCorrectedEcat < matlab.unittest.TestCase
  	%  $Id$ 
 
 	properties 
-        unittest_home = '/Volumes/InnominateHD2/Local/test/Arbelaez/GluT/p8047_JJL/PET/scan1'
+        unittest_home = '/Volumes/InnominateHD3/Local/test/Arbelaez/GluT/p8047_JJL/PET/scan1'
  		testObj 
  	end 
 
 	methods (Test) 
         function test_load(this)
             newObj = mlpet.DecayCorrectedEcat.load('p8047gluc1');
-            this.assertEqual(this.testObj.counts, newObj.counts);
+            this.verifyEqual(this.testObj.counts, newObj.counts);
         end
         function test_ctor(this)
-            this.assertEqual(this.testObj.fqfilename, fullfile(this.unittest_home, 'p8047gluc1_decayCorrect.nii.gz'));
-            this.assertEqual(this.testObj.scanIndex, 1);
-            this.assertEqual(this.testObj.tracer, 'gluc');
-            this.assertEqual(this.testObj.length, 44);
-            this.assertEqual(this.testObj.scanDuration, 3.438933000000000e+03);
+            this.verifyEqual(this.testObj.fqfilename, fullfile(this.unittest_home, 'p8047gluc1_decayCorrect.nii.gz'));
+            this.verifyEqual(this.testObj.scanIndex, 1);
+            this.verifyEqual(this.testObj.tracer, 'gluc');
+            this.verifyEqual(this.testObj.length, 44);
+            this.verifyEqual(this.testObj.scanDuration, 3.618933000000000e+03);
         end
         function test_times(this)
-            this.assertEqual(this.testObj.times(4),  1.089330000000000e+02, 'RelTol', 1e-6);
-            this.assertEqual(this.testObj.times(44), 3.438933000000000e+03, 'RelTol', 1e-6);
+            this.verifyEqual(this.testObj.times(4),  1.389330000000000e+02, 'RelTol', 1e-6);
+            this.verifyEqual(this.testObj.times(44), 3.618933000000000e+03, 'RelTol', 1e-6);
         end
         function test_taus(this)
-            this.assertEqual(this.testObj.taus(4), 30);
-            this.assertEqual(this.testObj.taus(44), 180);
+            this.verifyEqual(this.testObj.taus(4), 30);
+            this.verifyEqual(this.testObj.taus(44), 180);
         end
         function test_injectionTime(this)
-            this.assertEqual(this.testObj.injectionTime, 18.9330);
+            this.verifyEqual(this.testObj.injectionTime, 18.9330);
         end
         function test_counts(this)
-            this.assertEqual(this.testObj.counts(64,64,32,4),  567.0287751479, 'RelTol', 1e-5);
-            this.assertEqual(this.testObj.counts(64,64,32,44), 4310.78141304302, 'RelTol', 1e-5);
+            this.verifyEqual(this.testObj.counts(64,64,32,4),  576.776062011719, 'RelTol', 1e-5);
+            this.verifyEqual(this.testObj.counts(64,64,32,44), 4774.94970703125, 'RelTol', 1e-5);
         end
         function test_wellCounts(this)
-            this.assertEqual(this.testObj.wellCounts(64,64,32,4),  83013.0126816526, 'RelTol', 1e-5);
-            this.assertEqual(this.testObj.wellCounts(64,64,32,44), 3786590.39321699, 'RelTol', 1e-5);
+            this.verifyEqual(this.testObj.wellCounts(64,64,32,4),  84440.0154785156, 'RelTol', 1e-5);
+            this.verifyEqual(this.testObj.wellCounts(64,64,32,44), 4194315.82265625, 'RelTol', 1e-5);
         end
         function test_header(this)
-            this.assertEqual(this.testObj.header.injectionTime, 18.933);
-            this.assertEqual(this.testObj.header.string(1:25), 'rec p8047gluc1_frames.img');
-            this.assertEqual(this.testObj.header.frame(4), 5);
-            this.assertEqual(this.testObj.header.start(4), 90);
-            this.assertEqual(this.testObj.header.duration(4), 30);
+            this.verifyEqual(this.testObj.header.injectionTime, 18.933);
+            this.verifyEqual(this.testObj.header.string(1:25), 'rec p8047gluc1_frames.img');
+            this.verifyEqual(this.testObj.header.frame(4), 5);
+            this.verifyEqual(this.testObj.header.start(4), 120);
+            this.verifyEqual(this.testObj.header.duration(4), 30);
         end  
         function test_isotope(this)
-            this.assertEqual(this.testObj.isotope, '11C');
+            this.verifyEqual(this.testObj.isotope, '11C');
         end
         function test_halfLife(this)
-            this.assertEqual(this.testObj.halfLife, 20.334*60);
+            this.verifyEqual(this.testObj.halfLife, 20.334*60);
         end
         function test_pie(this)            
-            this.assertEqual(this.testObj.pie, 4.88);
+            this.verifyEqual(this.testObj.pie, 4.88);
         end 
         function test_wellFactor(this)            
-            this.assertEqual(this.testObj.wellFactor, 20.585);
+            this.verifyEqual(this.testObj.wellFactor, 20.585);
         end
  	end 
 
