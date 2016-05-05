@@ -244,10 +244,7 @@ classdef DTA < mlpet.AbstractWellData
             
             ts  = textscan(fid, '%d %d', 1, 'Delimiter', '\n');
             this.header_.oxygenContent = ts{1};
-            this.header_.Hct           = ts{2};
-            
-            len = textscan(fid, '%d',    1, 'Delimiter', '\n'); 
-            this.header_.length = len{1};
+            this.header_.length = ts{2};
         end        
         function this = readHeader2(this, fid, str, h)
             h.petIndex   = str2double(h.petIndex);

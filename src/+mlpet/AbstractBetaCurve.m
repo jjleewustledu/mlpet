@@ -104,17 +104,18 @@ classdef (Abstract) AbstractBetaCurve < mlpet.IBetaCurve & mlio.IOInterface
             wc = this.betaCounts2wellCounts(this.counts);
         end        
         function f = get.wellFqfilename(this)
-            try
-               f = sprintf('%s.wel', str2pnum(this.petio_.fqfileprefix));
-               if (~lexist(f))                   
-                   f = sprintf('%s.wel', this.petio_.fqfileprefix(1:end-1));
-                   if (~lexist(f))
-                       error('mlpet:fileNotFound', 'AbstractBetaCurve.wellFqfilename %s not found', f);
-                   end
-               end
-            catch ME
-                handexcept(ME);
+            fns = { sprintf('%s.wel', this.petio_.fqfileprefix) ...
+                    sprintf('%s.wel', this.petio_.fqfileprefix(1:end-1)) ...
+                    sprintf('%s.wel', fullfile(this.petio_.filepath,       str2pnum(this.petio_.fileprefix))) ...                    
+                    sprintf('%s.wel', fullfile(this.petio_.filepath, '..', str2pnum(this.petio_.fileprefix))) }; %% KLUDGE
+            for n = 1:length(fns)
+                if (lexist(fns{n}, 'file'))
+                    f = fns{n};
+                    return
+                end
             end
+            error('mlpet:fileNotFound', ...
+                  'AbstractBetaCurve.wellFqfilename not found among:\n\t%s', cell2str(fns, 'AsRow', true));
         end
         function w = get.wellFactor(this)
             assert(~isempty(this.wellMatrix_), ...

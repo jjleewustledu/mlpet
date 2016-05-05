@@ -11,7 +11,7 @@ classdef PETRegistry < mlpatterns.Singleton
 	properties (Constant)
         SCANNER_LIST     = { 'ecat exact hr+' 'siemens biograph mmr' };
         DISPERSION_LIST  = { 'fwhh' 'sigma'};
-        ORIENTATION_LIST = { 'radial' 'tangential' 'in-plane' 'axial' };
+        ORIENTATION_LIST = { 'radial' 'tangential' 'in-plane' 'axial' '3D' };
     end
     
     methods
