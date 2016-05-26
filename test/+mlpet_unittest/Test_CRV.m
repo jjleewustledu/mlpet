@@ -15,7 +15,7 @@ classdef Test_CRV < matlab.unittest.TestCase
 
 	properties 
  		testObj 
-        unittest_home = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet'
+        unittest_home = fullfile(getenv('UNITTESTS'), 'cvl/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet')
  	end 
 
 	methods (Test) 

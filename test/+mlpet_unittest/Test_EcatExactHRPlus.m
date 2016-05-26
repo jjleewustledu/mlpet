@@ -15,7 +15,7 @@ classdef Test_EcatExactHRPlus < matlab.unittest.TestCase
 
 	properties 
  		testObj 
-        unittest_home = '/Volumes/InnominateHD3/Local/test/cvl/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet/p7267ho1_frames'
+        unittest_home = fullfile(getenv('UNITTESTS'), 'cvl/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet/p7267ho1_frames', '')
         pie = 5.2038
  	end 
 

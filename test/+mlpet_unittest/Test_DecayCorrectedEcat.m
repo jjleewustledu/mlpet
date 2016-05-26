@@ -14,7 +14,7 @@ classdef Test_DecayCorrectedEcat < matlab.unittest.TestCase
  	%  $Id$ 
 
 	properties 
-        unittest_home = '/Volumes/InnominateHD3/Local/test/Arbelaez/GluT/p8047_JJL/PET/scan1'
+        unittest_home = fullfile(getenv('UNITTESTS'), 'Arbelaez/GluT/p8047_JJL/PET/scan1', '')
  		testObj 
  	end 
 
