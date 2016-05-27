@@ -79,11 +79,12 @@ classdef AutoradiographyDirector
         end
         function this = loadCRVAutoradiography(maskFn, aifFn, ecatFn, varargin)
             p = inputParser;
-            addRequired(p, 'maskFn',       @(x) lexist(x, 'file'));
-            addRequired(p, 'aifFn',        @(x) lexist(x, 'file'));
-            addRequired(p, 'ecatFn',       @(x) lexist(x, 'file'));
-            addOptional(p, 'dcvShift',  0, @(x) isnumeric(x) && isscalar(x));
-            addOptional(p, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
+            addRequired( p, 'maskFn',       @(x) lexist(x, 'file'));
+            addRequired( p, 'aifFn',        @(x) lexist(x, 'file'));
+            addRequired( p, 'ecatFn',       @(x) lexist(x, 'file'));
+            addParameter(p, 'crvShift',  0, @(x) isnumeric(x) && isscalar(x));
+            addParameter(p, 'dcvShift',  0, @(x) isnumeric(x) && isscalar(x));
+            addParameter(p, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
             parse(p, maskFn, aifFn, ecatFn, varargin{:});            
             [p1,p2] = fileparts(p.Results.aifFn); 
             crvFn = fullfile(p1, [p2 '.crv']);
@@ -93,7 +94,10 @@ classdef AutoradiographyDirector
             this = AutoradiographyDirector( ...
                    CRVAutoradiography.load( ...
                        p.Results.ecatFn, crvFn, dcvFn, p.Results.maskFn, ...
-                       p.Results.ecatShift, p.Results.dcvShift, p.Results.dcvShift));
+                       'ecatShift', p.Results.ecatShift, ...
+                       'crvShift',  p.Results.crvShift, ...
+                       'dcvShift',  p.Results.dcvShift, ...
+                       'pie',       4.79));
         end
         function this = loadPET(maskFn, aifFn, ecatFn, varargin)
             p = inputParser;

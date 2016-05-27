@@ -78,12 +78,13 @@ classdef (Abstract) AutoradiographyBuilder2 < mlbayesian.AbstractMcmcProblem
         end     
         function ecat = loadEcat(varargin)
             p = inputParser;
-            addOptional(p, 'fqfn', [],  @(x) lexist(x, 'file'));
-            addOptional(p, 'ecat', [],  @(x) isa(x, 'mlpet.EcatExactHRPlus'));
+            addOptional( p, 'fqfn', [], @(x) lexist(x, 'file'));
+            addOptional( p, 'ecat', [], @(x) isa(x, 'mlpet.EcatExactHRPlus'));
+            addParameter(p, 'pie',  [], @isnumeric);
             parse(p, varargin{:});
             
             if (~isempty(p.Results.fqfn))
-                ecat = mlpet.EcatExactHRPlus.load(p.Results.fqfn);
+                ecat = mlpet.EcatExactHRPlus(mlfourd.NIfTId.load(p.Results.fqfn), 'pie', p.Results.pie);
                 return
             end
             if (~isempty(p.Results.ecat))

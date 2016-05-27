@@ -20,7 +20,7 @@ classdef DCVRecovery
             %  Dcv is estimated by two generalized gamma-variates + steady-state.
     
             crva = mlarbelaez.CRVAutoradiography.load( ...
-                ecat.fqfilename, crv.fqfilename, dcv.fqfilename, mask.fqfilename); % [ecatshift, crvshift, dcvshift]
+                ecat.fqfilename, crv.fqfilename, dcv.fqfilename, mask.fqfilename); 
             crva = crva.estimateParameters;
             dcv  = crva.itsConcentration_dcv;
         end

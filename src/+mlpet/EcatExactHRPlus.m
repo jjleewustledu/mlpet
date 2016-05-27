@@ -11,6 +11,10 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
  	%  $Id$  
 
+    properties 
+        manuallyRecordedPie
+    end
+    
     properties (Dependent)
         dt % sec, for timeInterpolants
         
@@ -122,7 +126,16 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             end
         end
         function f   = get.wellFqfilename(this)
-            f = fullfile(this.component.filepath, sprintf('%s.wel', str2pnum(this.component.fileprefix)));
+            w = sprintf('%s.wel', str2pnum(this.component.fileprefix));
+            f = fullfile(this.component.filepath, w);
+            g = 0;
+            while (~lexist(f, 'file'))
+                f = fullfile(fileparts(this.component.filepath), w);
+                g = g + 1;
+                if (g > this.DEPTH_SEARCH_FOR_WELL && ~lexist(f, 'file'))
+                    error('mlpet:IOError:fileNotFound', 'EcatExactHRPlust.get.wellFqfilename:  %s not found', f);
+                end
+            end
         end
         function w   = get.wellFactor(this)
             assert(~isempty(this.wellMatrix_), ...
@@ -133,7 +146,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             assert(isnumeric(this.pie_) && ~isempty(this.pie_));
             p = this.pie_;
         end
-        function b    = get.becquerels(this)
+        function b   = get.becquerels(this)
             b = this.petCounts2becquerels(this.counts);
         end
         function wc  = get.tscCounts(this)
@@ -174,15 +187,18 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
     end
     
 	methods
- 		function this = EcatExactHRPlus(cmp) 
+ 		function this = EcatExactHRPlus(varargin) 
  			%% ECATEXACTHRPLUS 
- 			%  Usage:  this = EcatExactHRPlus(file_location) 
-            %          this = EcatExactHRPlus('/path/to/p1234data/p1234ho1.nii.gz')
-            %          this = EcatExactHRPlus('/path/to/p1234data/p1234ho1')
-            %          this = EcatExactHRPlus('p1234ho1') 
+ 			%  Usage:  this = EcatExactHRPlus(INIfTI_object[, 'pie', 4.79])
+            
+            ip = inputParser;
+            addRequired( ip, 'inifti',  @(x) isa(x, 'mlfourd.INIfTI'));
+            addParameter(ip, 'pie', [], @isnumeric);
+            parse(ip, varargin{:});
  			
-            this = this@mlfourd.NIfTIdecoratorProperties(cmp);
+            this = this@mlfourd.NIfTIdecoratorProperties(ip.Results.inifti);
             this = this.append_descrip('decorated by EcatExactHRPlus');
+            this.manuallyRecordedPie = ip.Results.pie;
             
             assert(lexist(this.recFqfilename), 'mlpet.EcatExactHRPlus.ctor:  requires *.img.rec from ecattoanalyze');     
             this = this.readRec;
@@ -340,6 +356,10 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             end
         end
         function this = readPie(this)
+            if (~isempty(this.manuallyRecordedPie))
+                this.pie_ = this.manuallyRecordedPie;
+                return
+            end
             try
                 tp = mlio.TextParser.loadx(this.hdrinfoFqfilename, '.hdrinfo');
                 this.pie_ = tp.parseAssignedNumeric('Pie Slope');

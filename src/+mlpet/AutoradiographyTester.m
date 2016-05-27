@@ -78,7 +78,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
                 fprintf('AutoradiographyTester.prepareGluT is working in %s\n', pwd);
                 this.director_ = ...
                     AutoradiographyDirector.loadCRVAutoradiography( ...
-                        this.maskFnGluT(si), this.hoCrvFn(si), this.hoFn(si), this.gluTShifts(si,c));
+                        this.maskFnGluT(si), this.hoCrvFn(si), this.hoFn(si), 'crvShift', this.gluTShifts(si,c), 'dcvShift', this.gluTShifts(si,c));
                 this.director_ = this.director_.estimateAll;
                 prods{c} = this.director_.product;  %#ok<NASGU>
             catch ME
@@ -116,7 +116,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
                         fprintf('AutoradiographyTester.prepareGluT is working in %s\n', pwd);
                         this.director_ = ...
                             AutoradiographyDirector.loadCRVAutoradiography( ...
-                                this.maskFnGluT(si), this.hoCrvFn(si), this.hoFn(si), this.gluTShifts(si,c));
+                                this.maskFnGluT(si), this.hoCrvFn(si), this.hoFn(si), 'crvShift', this.gluTShifts(si,c), 'dcvShift', this.gluTShifts(si,c));
                         this.director_ = this.director_.estimateAll;
                         prods{c} = this.director_.product;  %#ok<NASGU>
                     catch ME
@@ -155,7 +155,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
                         fprintf('AutoradiographyTester.prepareGluT is working in %s\n', pwd);
                         this.director_ = ...
                             AutoradiographyDirector.loadCRVAutoradiography( ...
-                                this.maskFnGluT(si), this.hoCrvFn(si), this.hoFn(si), this.gluTShifts(si,c));
+                                this.maskFnGluT(si), this.hoCrvFn(si), this.hoFn(si), 'crvShift', this.gluTShifts(si,c), 'dcvShift', this.gluTShifts(si,c));
                         this.director_ = this.director_.estimateAll;
                         prods{c} = this.director_.product;  %#ok<NASGU>
                     catch ME
@@ -203,7 +203,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
                             end
                             this.director_ = ...
                                 AutoradiographyDirector.loadCRVAutoradiography( ...
-                                    fqfn, this.aifFnGluT(si), this.hoFn(si), this.gluTShifts(si,c));
+                                    fqfn, this.aifFnGluT(si), this.hoFn(si), 'crvShift', this.gluTShifts(si,c), 'dcvShift', this.gluTShifts(si,c));
                             this.director_ = this.director_.estimateAll;
                             prods{c} = this.director_.product;  %#ok<NASGU>
                         catch ME
@@ -302,7 +302,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
                     fprintf('AutoradiographyTester.prepareCRVAutoradiography is working in %s\n', pwd);
                     this.director_ = ...
                         AutoradiographyDirector.loadCRVAutoradiography( ...
-                            this.maskFn, this.aifFn, this.ecatFn, this.dcvShifts(c));
+                            this.maskFn, this.aifFn, this.ecatFn, 'crvShift', this.dcvShifts(c), 'dcvShift', this.dcvShifts(c));
                     this.director_ = this.director_.estimateAll;
                     prods{c} = this.director_.product;  %#ok<NASGU>
                 catch ME

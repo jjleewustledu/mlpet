@@ -15,17 +15,16 @@ classdef (Abstract) IScannerData < mlpet.IWellData
         COUNTS_UNITS = 'scanner-array events'
     end   
     
-    properties (Abstract)	
-        taus
-        timeMidpoints
-        injectionTime     
-        recFqfilename         
-        wellFqfilename
-        wellFactor
-        pie
+    properties (Abstract)
         becquerels
         tscCounts
         wellCounts
+        
+        taus
+        timeMidpoints
+        injectionTime     
+        recFqfilename
+        pie
         mask
         nPixels
     end 

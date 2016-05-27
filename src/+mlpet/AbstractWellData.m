@@ -32,7 +32,9 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         scanDuration % sec  
         times
         counts
-        wellCounts %% no need for well-factor; preserves notational consistency
+        wellCounts 
+        wellFactor      
+        wellFqfilename
         header
         
         taus
@@ -100,6 +102,25 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         end
         function wc   = get.wellCounts(this)
             wc = this.counts;
+        end 
+        function w    = get.wellFactor(this)
+            assert(~isempty(this.wellMatrix_), ...
+                'DecayCorrection.get.wellFactor:  this.wellMatrix_ was empty');
+            w = this.wellMatrix_(5,1); 
+        end
+        function f    = get.wellFqfilename(this)
+            fns = { sprintf('%s.wel', this.petio_.fqfileprefix) ...
+                    sprintf('%s.wel', this.petio_.fqfileprefix(1:end-1)) ...
+                    sprintf('%s.wel', fullfile(this.petio_.filepath,       str2pnum(this.petio_.fileprefix))) ...                    
+                    sprintf('%s.wel', fullfile(this.petio_.filepath, '..', str2pnum(this.petio_.fileprefix))) }; %% KLUDGE
+            for n = 1:length(fns)
+                if (lexist(fns{n}, 'file'))
+                    f = fns{n};
+                    return
+                end
+            end
+            error('mlpet:fileNotFound', ...
+                  'AbstractWellData.wellFqfilename not found among:\n\t%s', cell2str(fns, 'AsRow', true));
         end
         function h    = get.header(this)
             assert(~isempty(this.header_));
@@ -131,6 +152,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
             %          this = this@mlpet.AbstractWellData('p1234ho1')
             
             this.petio_ = mlpet.PETIO(fileLoc);
+            this = this.readWellMatrix;
         end
         function c    = char(this)
             c = this.fqfilename;
@@ -140,6 +162,10 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
             this.save;
         end
         function i    = guessIsotope(this)
+            if (lstrfind(this.fileprefix, 'test'))
+                i = '15O';
+                return
+            end
             if (lstrfind(this.tracer, {'ho' 'oo' 'oc' 'co'}))
                 i = '15O';
                 return
@@ -179,7 +205,21 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         taus_
         counts_
         header_
-    end     
+        wellMatrix_
+    end  
+    
+    methods (Access = 'protected')
+        function this = readWellMatrix(this)
+            try
+                fid = fopen(this.wellFqfilename);
+                tmp = textscan(fid, '%f %f %f %f %f');
+                this.wellMatrix_ = cell2mat(tmp);
+                fclose(fid);
+            catch ME
+                handwarning(ME);
+            end
+        end
+    end   
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
 end
