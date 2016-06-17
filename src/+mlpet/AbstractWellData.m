@@ -101,12 +101,15 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
             this.counts_ = c;
         end
         function wc   = get.wellCounts(this)
+            if (isa(this, 'mlpet.CRV'))
+                wc = this.betaCounts2wellCounts(this.counts);
+                return
+            end
             wc = this.counts;
         end 
         function w    = get.wellFactor(this)
-            assert(~isempty(this.wellMatrix_), ...
-                'DecayCorrection.get.wellFactor:  this.wellMatrix_ was empty');
-            w = this.wellMatrix_(5,1); 
+            assert(isnumeric(this.wellFactor_));
+            w = this.wellFactor_;
         end
         function f    = get.wellFqfilename(this)
             fns = { sprintf('%s.wel', this.petio_.fqfileprefix) ...
@@ -152,6 +155,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
             %          this = this@mlpet.AbstractWellData('p1234ho1')
             
             this.petio_ = mlpet.PETIO(fileLoc);
+            this = this.readWellFactor;
             this = this.readWellMatrix;
         end
         function c    = char(this)
@@ -193,6 +197,15 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
                 c = c(varargin{:}); end
         end
         function wc   = wellCountInterpolants(this, varargin)
+            if (isa(this, 'mlpet.CRV'))
+                wc = pchip(this.times, this.wellCounts, this.timeInterpolants);
+                wc = wc(1:length(this.timeInterpolants));
+                
+                if (~isempty(varargin))
+                    wc = wc(varargin{:}); 
+                end
+                return
+            end
             wc = this.countInterpolants(varargin{:});
         end
     end 
@@ -205,19 +218,64 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         taus_
         counts_
         header_
+        wellFactor_
         wellMatrix_
     end  
     
     methods (Access = 'protected')
+        function curve  = betaCounts2wellCounts(this, curve)
+            %% PETCOUNTS2WELLCOUNTS; cf. man pie; does not divide out number of pixels.
+
+            for t = 1:length(curve)
+                curve(t) = this.wellFactor * curve(t); % taus in sec
+            end
+        end
+        function this = readWellFactor(this)
+            if (isa(this, 'mlpet.DCV'))
+                return
+            end
+            if (~isempty(this.wellFactor_) && isnumeric(this.wellFactor_))
+                return
+            end
+            try
+                dtool = mlsystem.DirTool(fullfile(this.filepath, '*.dcv'));
+                for d = 1:dtool.length
+                    dcv = mlpet.DCV.load(dtool.fqfns{d});
+                    if (~isempty(dcv.header.wellf) && isnumeric(dcv.header.wellf))
+                        this.wellFactor_ = dcv.header.wellf;
+                        return
+                    end
+                end
+            catch ME
+                fprintf('AbstractWellData.readWellFactor could not find a well factor in: \n\t%s \n', cell2str(dtool.fqfns));
+                handerror(ME);
+            end
+        end
         function this = readWellMatrix(this)
+            if (isa(this, 'mlpet.DCV'))
+                return
+            end
+            if (~isempty(this.wellFactor_) && isnumeric(this.wellFactor_))
+                return
+            end
             try
                 fid = fopen(this.wellFqfilename);
                 tmp = textscan(fid, '%f %f %f %f %f');
                 this.wellMatrix_ = cell2mat(tmp);
+                if (size(this.wellMatrix_, 1) < 5)
+                    this = this.calculateWellFactor;
+                    return
+                end
+                this.wellFactor_ = this.wellMatrix_(5,1);
                 fclose(fid);
             catch ME
-                handwarning(ME);
+                fprintf('AbstractWellData.readWellMatrix could not textscan %s.\n', this.wellFqfilename);
+                handerror(ME);
             end
+            assert(~isempty(this.wellFactor_) && isnumeric(this.wellFactor_));
+        end
+        function this = calculateWellFactor(~)
+            error('mlpet:notImplemented', 'AbstractWellData.calculateWellFactor');
         end
     end   
 

@@ -36,7 +36,11 @@ classdef PETIO < mlio.AbstractIO
         function t = get.tracer(this) 
             try
                 names = regexp(this.fileprefix, this.TRACER_EXPR, 'names');
-                t = names.tracer;
+                if (~isempty(names))
+                    t = names.tracer;
+                else
+                    t = 'unknown';
+                end
             catch ME
                 handwarning(ME);
                 t = 'unknown';

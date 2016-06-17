@@ -82,6 +82,7 @@ classdef DCV < mlpet.AbstractWellData
             h.nsmo    = uint8(str2double(h.nsmo));
             
             this.header_ = h;
+            this.wellFactor_ = h.wellf;
         end
         function this = readdata(this, fid)
             ts = textscan(fid, '%f %f', 'Delimiter', ' ', 'MultipleDelimsAsOne', true);
