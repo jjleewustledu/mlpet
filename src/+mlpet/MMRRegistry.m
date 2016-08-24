@@ -69,7 +69,7 @@ classdef MMRRegistry < mlpatterns.Singleton
         end     
     end
     
-	methods (Access = 'private') 		  
+	methods (Access = 'private')
  		function this = MMRRegistry(varargin)
  			this = this@mlpatterns.Singleton(varargin{:});
  		end
