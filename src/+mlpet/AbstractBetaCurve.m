@@ -78,7 +78,7 @@ classdef (Abstract) AbstractBetaCurve < mlpet.IBetaCurve & mlio.IOInterface
         end
         function l    = get.length(this)
             assert(~isempty(this.times_));
-            l = length(this.times);
+            l = length(this.times); %#ok<CPROP>
         end
         function sd   = get.scanDuration(this)
             assert(~isempty(this.times_));
