@@ -10,7 +10,7 @@ classdef MMRRegistry < mlpatterns.Singleton
     
     
 	properties (Constant)
-        DISPERSION_LIST  = { 'fwhh' 'sigma'};
+        DISPERSION_LIST  = { 'fwhh' 'sigma' };
     end
     
     methods
@@ -49,7 +49,10 @@ classdef MMRRegistry < mlpatterns.Singleton
     
     methods
         function ps   = petPointSpread(this, varargin)
-            %% PETPOINTSPREAD 
+            %% PETPOINTSPREAD             
+            %  The fwhh at 1cm from axis was measured by:
+            %  Delso, Fuerst Jackoby, et al.  Performance Measurements of the Siemens mMR Integrated Whole-Body PET/MR
+            %  Scanner.  J Nucl Med 2011; 52:1?9.
             %  @params optional dispersion may be "fwhh" (default) or "sigma"
             %  @params optional geometricMean is logical (default is false)
             %  @return a scalar or 3-vector in mm
