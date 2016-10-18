@@ -36,7 +36,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractAutoradiographyTrainer
             this = AutoradiographyTrainer;     
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});         
             
             pwd0 = pwd;
@@ -71,7 +71,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractAutoradiographyTrainer
             this = AutoradiographyTrainer;            
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             pwd0 = pwd;
@@ -102,7 +102,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractAutoradiographyTrainer
             this = AutoradiographyTrainer;            
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             pwd0 = pwd;
@@ -134,7 +134,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractAutoradiographyTrainer
             this = AutoradiographyTrainer;            
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             pwd0 = pwd;
@@ -169,7 +169,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractAutoradiographyTrainer
             this = AutoradiographyTrainer;     
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});         
             
             pwd0 = pwd;
@@ -204,7 +204,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractAutoradiographyTrainer
             this = AutoradiographyTrainer;
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             pwd0 = pwd;
@@ -247,7 +247,7 @@ classdef AutoradiographyTrainer < mlpet.AbstractAutoradiographyTrainer
             this = AutoradiographyTrainer;   
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});             
             
             pwd0 = pwd;

@@ -1,5 +1,8 @@
 classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
-	%% CRVAUTORADIOGRAPHY
+	%% CRVAUTORADIOGRAPHY estimates parameters for the Kety autoradiographic method for PET.
+    %  It fits ECAT, CRV and, optionally, DCV data.  A data-derived catheter impulse response is needed.
+    %  Dcv is estimated by two generalized gamma-variates + steady-state.
+    %
     %  Cf:  Raichle, Martin, Herscovitch, Mintun, Markham, 
     %       Brain Blood Flow Measured with Intravenous H_2[^15O].  II.  Implementation and Valication, 
     %       J Nucl Med 24:790-798, 1983.
@@ -16,13 +19,14 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
  	%  $Id$ 
     
-    properties (Constant)        
-        HERSCOVITCH = true
-        NO_PLOTTING = true
-        KERNEL_BEST_FILENAME = 'kernelBest.mat'
+    properties (Constant)
+        MODEL_HERSCOVITCH = true
     end
     
-	properties 
+    properties
+        noPlotting = false
+        kernelBestFilename = 'kernelBest.mat'
+        
         A0 = 0.01
         Ew = 0.8964
         PS = 0.03169 
@@ -49,21 +53,22 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
                              %'/Volumes/SeagateBP3/cvl/np755/Training/bsrf116_id1.mat'
                              %'/Volumes/InnominateHD2/Arbelaez/GluT/__p8425_JJL__/PET/bsrf120.mat'
                              %'/Users/jjlee/Local/src/mlcvl/mlarbelaez/src/+mlarbelaez/kernel57.mat'
+                             %'/Volumes/SeagateBP4/Arbelaez.kernelBest.mat'
     end
     
     methods %% GET/SET 
         function fn   = get.kernelBestFqfilename(this)
-            fn = fullfile(getenv('ARBELAEZ'), this.KERNEL_BEST_FILENAME);
+            fn = fullfile(getenv('ARBELAEZ'), this.kernelBestFilename);
         end
         function a1   = get.A1(this)
-            if (this.HERSCOVITCH)
+            if (this.MODEL_HERSCOVITCH)
                 a1 = this.PS;
             else
                 a1 = this.Ew;
             end
         end
         function this = set.A1(this, a1)
-            if (this.HERSCOVITCH)
+            if (this.MODEL_HERSCOVITCH)
                 this.PS = a1;
             else
                 this.Ew = a1;
@@ -85,7 +90,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
             T  = this.times(end);
             m = containers.Map;
             m('A0') = struct('fixed', 0, 'min', fL* 0.0098,   'mean', this.A0, 'max', fH* 0.04);
-            if (this.HERSCOVITCH) % physiologic ranges, Herscovitch, JCBFM 7:527-541, 1987, table 2.
+            if (this.MODEL_HERSCOVITCH) % physiologic ranges, Herscovitch, JCBFM 7:527-541, 1987, table 2.
             m('A1') = struct('fixed', 0, 'min',     0.009275, 'mean', this.PS, 'max',     0.03675);
             else
             m('A1') = struct('fixed', 0, 'min',     0.79,     'mean', this.Ew, 'max',     0.93);
@@ -111,13 +116,14 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
     methods (Static)
         function this = load(ecatFn, crvFn, dcvFn, maskFn, varargin)
             ip = inputParser;
-            addRequired(ip, 'ecatFn', @(x) lexist(x, 'file'));
-            addRequired(ip, 'crvFn',  @(x) lexist(x, 'file'));
-            addRequired(ip, 'dcvFn',  @(x) ischar(x));
-            addRequired(ip, 'maskFn', @(x) lexist(x, 'file'));
-            addOptional(ip, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
-            addOptional(ip, 'crvShift',  0, @(x) isnumeric(x) && isscalar(x));
-            addOptional(ip, 'dcvShift',  0, @(x) isnumeric(x) && isscalar(x));
+            addRequired( ip, 'ecatFn', @(x) lexist(x, 'file'));
+            addRequired( ip, 'crvFn',  @(x) lexist(x, 'file'));
+            addRequired( ip, 'dcvFn',  @(x) ischar(x));
+            addRequired( ip, 'maskFn', @(x) lexist(x, 'file'));
+            addParameter(ip, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
+            addParameter(ip, 'crvShift',  0, @(x) isnumeric(x) && isscalar(x));
+            addParameter(ip, 'dcvShift',  0, @(x) isnumeric(x) && isscalar(x));
+            addParameter(ip, 'pie',      [], @isnumeric);
             parse(ip, ecatFn, crvFn, dcvFn, maskFn, varargin{:});
             
             import mlfourd.* mlpet.*;
@@ -126,7 +132,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
                 sprintf('ecatShift %g', ip.Results.ecatShift), ...
                 sprintf('crvShift %g', ip.Results.crvShift), ...
                 sprintf('dcvShift %g', ip.Results.dcvShift));
-            ecatObj = CRVAutoradiography.loadEcat(ip.Results.ecatFn); 
+            ecatObj = CRVAutoradiography.loadEcat(ip.Results.ecatFn, 'pie', ip.Results.pie); 
             crvObj  = CRVAutoradiography.loadCrv( ip.Results.crvFn); 
             dcvObj  = [];
             if (lexist(ip.Results.dcvFn, 'file'))
@@ -192,7 +198,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
             import mlpet.*;
             lambda       = CRVAutoradiography.LAMBDA;
             lambda_decay = CRVAutoradiography.LAMBDA_DECAY;
-            if (           CRVAutoradiography.HERSCOVITCH); A1 = 1 - exp(-A1 / f); end
+            if (           CRVAutoradiography.MODEL_HERSCOVITCH); A1 = 1 - exp(-A1 / f); end
             ci0 = A0 * A1 * f * conv(conc_a, exp(-(A1 * f / lambda + lambda_decay) * t));
             ci0 = ci0(1:length(t));
             
@@ -208,13 +214,19 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
             
             import mlpet.*;
             [t_e,c_e] = CRVAutoradiography.shiftData(ecatSkinny.times, ecatSkinny.becquerels, ecatShift);
-            [t_c,c_c] = CRVAutoradiography.shiftData(    crvObj.times,     crvObj.wellCounts, crvShift);       
-            dt  = min([min(dcvObj.taus) min(crvObj.taus) min(ecatSkinny.taus)]);
-            t   = min([t_c(1) t_e(1)]):dt:min([t_c(end) t_e(end) CRVAutoradiography.TIME_SUP]);
-            c_e = CRVAutoradiography.myPchip(t_e, c_e, t); 
-            c_c = CRVAutoradiography.myPchip(t_c, c_c, t); 
-            c_d = [];
-            if (~isempty(dcvObj))
+            [t_c,c_c] = CRVAutoradiography.shiftData(    crvObj.times,     crvObj.wellCounts, crvShift);   
+            
+            if (isempty(dcvObj))
+                dt  = min([min(crvObj.taus) min(ecatSkinny.taus)]);
+                t   = min([t_c(1) t_e(1)]):dt:min([t_c(end) t_e(end) CRVAutoradiography.TIME_SUP]);
+                c_e = CRVAutoradiography.myPchip(t_e, c_e, t); 
+                c_c = CRVAutoradiography.myPchip(t_c, c_c, t); 
+                c_d = [];
+            else
+                dt  = min([min(dcvObj.taus) min(crvObj.taus) min(ecatSkinny.taus)]);
+                t   = min([t_c(1) t_e(1)]):dt:min([t_c(end) t_e(end) CRVAutoradiography.TIME_SUP]);
+                c_e = CRVAutoradiography.myPchip(t_e, c_e, t); 
+                c_c = CRVAutoradiography.myPchip(t_c, c_c, t); 
                 [t_d,c_d] = CRVAutoradiography.shiftData(    dcvObj.times,     dcvObj.wellCounts, dcvShift);
                 c_d = CRVAutoradiography.myPchip(t_d, c_d, t);
             end
@@ -222,7 +234,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
         end
     end
     
-	methods	  
+	methods
  		function this = CRVAutoradiography(varargin)
  			%% CRVAUTORADIOGRAPHY 
 
@@ -302,7 +314,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
             ed = this.concentration_dcv(a, c1, c2, c3, c4, d, p, q0, t0, this.times);
         end        
         function ps   = adjustParams(this, ps)
-            if (~this.HERSCOVITCH); return; end
+            if (~this.MODEL_HERSCOVITCH); return; end
             manager = this.paramsManager;
             if (ps(manager.paramsIndices('f'))  > ps(manager.paramsIndices('A1')))
                 tmp                             = ps(manager.paramsIndices('A1'));
@@ -325,7 +337,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
         end
              
         function        plotProduct(this)
-            if (this.NO_PLOTTING); return; end
+            if (this.noPlotting); return; end
             figure;
             max_ecat = max( max(this.itsConcentration_ecat), max(this.dependentData));
             max_aif  = max([max(this.itsConcentration_crv) max(this.conc_crv_)]);
@@ -343,7 +355,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
             ylabel(sprintf('arbitrary:  ECAT norm %g, AIF norm %g', max_ecat, max_aif));
         end  
         function        plotParVars(this, par, vars)
-            if (this.NO_PLOTTING); return; end
+            if (this.noPlotting); return; end
             assert(lstrfind(par, properties('mlpet.CRVAutoradiography')));
             assert(isnumeric(vars));
             switch (par)
@@ -364,15 +376,14 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
         end         
     end 
     
-    %% PRIVATE    
+    %% PRIVATE
     
     properties (Access = 'private')
         kernel_
         kernelRange_ = 12:40
     end
     
-    methods (Static, Access = 'private')     
-        
+    methods (Static, Access = 'private')        
         function     reportLoading(varargin)
             fprintf('CRVAutoradiography.reportLoading:\n'); 
             for v = 1:nargin
@@ -402,12 +413,12 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
         end
         function this = loadKernel(this)
             load(this.kernelBestFqfilename);
-            %kernelBest = bsrf120_id1;
             this.kernel_ = kernelBest(this.kernelRange_);
+            this.kernel_(this.kernel_ < 0) = 0;
             this.kernel_ = this.kernel_ / sum(this.kernel_);  
         end
-        function plotParArgs(this, par, args, vars)
-            if (this.NO_PLOTTING); return; end
+        function        plotParArgs(this, par, args, vars)
+            if (this.noPlotting); return; end
             assert(lstrfind(par, properties('mlpet.CRVAutoradiography')));
             assert(iscell(args));
             assert(isnumeric(vars));

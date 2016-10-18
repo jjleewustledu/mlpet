@@ -111,7 +111,7 @@ classdef PETBuilder < mlfsl.FlirtBuilder
             import mlfsl.* mlpet.*;
             imgcmp = ensureCell(imgcmp);
             for n = 1:length(imgcmp)
-                assert(isa(imgcmp{n}, 'mlfourd.NIfTIInterface'));
+                assert(isa(imgcmp{n}, 'mlfourd.INIfTI'));
                 msk = O15Builder.maskFqfp(imgcmp{n});
                 bin = O15Builder.maskBinFqfn(imgcmp{n});
                 FlirtBuilder.fslmaths([imgcmp{n}.fqfp ' -s ' num2str(fwhh2sigma(16))  ' ' msk]);

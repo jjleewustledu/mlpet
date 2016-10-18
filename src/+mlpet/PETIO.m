@@ -23,7 +23,11 @@ classdef PETIO < mlio.AbstractIO
         function idx = get.scanIndex(this)
             try
                 names = regexp(this.fileprefix, this.SCAN_INDEX_EXPR, 'names');
-                idx = str2double(names.idx);
+                if (~isempty(names))
+                    idx = str2double(names.idx);
+                else
+                    idx = 1;
+                end
             catch ME
                 handwarning(ME);
                 idx = nan;
@@ -32,7 +36,11 @@ classdef PETIO < mlio.AbstractIO
         function t = get.tracer(this) 
             try
                 names = regexp(this.fileprefix, this.TRACER_EXPR, 'names');
-                t = names.tracer;
+                if (~isempty(names))
+                    t = names.tracer;
+                else
+                    t = 'unknown';
+                end
             catch ME
                 handwarning(ME);
                 t = 'unknown';

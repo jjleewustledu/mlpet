@@ -15,9 +15,9 @@ classdef Test_PETAutoradiography < matlab.unittest.TestCase
 
 	properties  
  		testObj  
-        dcvFilename  = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet/p7267ho1.dcv'
-        ecatFilename = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/bayesian_pet/p7267ho1_mcf_revf1to7_masked.nii.gz'
-        maskFilename = '/Volumes/InnominateHD2/Local/test/np755/mm01-007_p7267_2008jun16/bayesian_pet/aparc_a2009s+aseg_mask_on_p7267tr1.nii.gz'
+        dcvFilename  = fullfile(getenv('UNITTESTS'), 'cvl/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet/p7267ho1.dcv')
+        ecatFilename = fullfile(getenv('UNITTESTS'), 'cvl/np755/mm01-007_p7267_2008jun16/bayesian_pet/p7267ho1_mcf_revf1to7_masked.nii.gz')
+        maskFilename = fullfile(getenv('UNITTESTS'), 'cvl/np755/mm01-007_p7267_2008jun16/bayesian_pet/aparc_a2009s+aseg_mask_on_p7267tr1.nii.gz')
         test_plots   = false
         test_mcmc    = true
         DCV_SHIFT    = 13

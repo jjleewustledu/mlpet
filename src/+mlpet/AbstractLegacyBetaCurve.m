@@ -91,8 +91,8 @@ classdef AbstractLegacyBetaCurve < mlpet.ILegacyBetaCurve
             %          this = this@mlpet.AbstractLegacyBetaCurve('p1234ho1', '/path/to/p1234data')
             
             p = inputParser;
-            addRequired(p, 'fileprefix',            @this.wellFormedStudyId);
-            addOptional(p, 'filepath', pwd,      @(x) lexist(x, 'dir'));
+            addRequired(p, 'fileprefix',    @this.wellFormedStudyId);
+            addOptional(p, 'filepath', pwd, @isdir);
             parse(p, varargin{:});
             
             this.fileprefix_  = p.Results.fileprefix;

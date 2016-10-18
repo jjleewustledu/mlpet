@@ -15,7 +15,7 @@ classdef PETNIfTId < mlfourd.NIfTId
 
     methods (Static) 
         function nii = load(fn, varargin)
-            %% LOAD reads NIfTI objects from the file-system with file-names ending in NIfTId.SUPPORTED_EXTENSIONS.
+            %% LOAD reads NIfTI objects from the file-system 
             %  Freesurfer's mri_convert provides imaging format support.  If no file-extension is included, LOAD will attempt guesses.
             %  Usage:  nifti = PETNIfTId.load(filename[, description])                   
             

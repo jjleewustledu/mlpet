@@ -78,7 +78,7 @@ classdef (Abstract) AbstractBetaCurve < mlpet.IBetaCurve & mlio.IOInterface
         end
         function l    = get.length(this)
             assert(~isempty(this.times_));
-            l = length(this.times);
+            l = length(this.times); %#ok<CPROP>
         end
         function sd   = get.scanDuration(this)
             assert(~isempty(this.times_));
@@ -104,13 +104,18 @@ classdef (Abstract) AbstractBetaCurve < mlpet.IBetaCurve & mlio.IOInterface
             wc = this.betaCounts2wellCounts(this.counts);
         end        
         function f = get.wellFqfilename(this)
-            try
-               filename = sprintf('%s.wel', str2pnum(this.petio_.fileprefix)); 
-            catch %#ok<CTCH>
-                warning('mlpet:unexpectedRegexResult', 'AbstractBetaCurve.get.wellFqfilename could not file a p-number');
-                filename = [this.petio_.fileprefix(1:end-1) '.wel'];
+            fns = { sprintf('%s.wel', this.petio_.fqfileprefix) ...
+                    sprintf('%s.wel', this.petio_.fqfileprefix(1:end-1)) ...
+                    sprintf('%s.wel', fullfile(this.petio_.filepath,       str2pnum(this.petio_.fileprefix))) ...                    
+                    sprintf('%s.wel', fullfile(this.petio_.filepath, '..', str2pnum(this.petio_.fileprefix))) }; %% KLUDGE
+            for n = 1:length(fns)
+                if (lexist(fns{n}, 'file'))
+                    f = fns{n};
+                    return
+                end
             end
-            f = fullfile(this.petio_.filepath, filename);
+            error('mlpet:fileNotFound', ...
+                  'AbstractBetaCurve.wellFqfilename not found among:\n\t%s', cell2str(fns, 'AsRow', true));
         end
         function w = get.wellFactor(this)
             assert(~isempty(this.wellMatrix_), ...
@@ -148,6 +153,9 @@ classdef (Abstract) AbstractBetaCurve < mlpet.IBetaCurve & mlio.IOInterface
             
             this.petio_ = mlpet.PETIO(fileLoc);          
             this = this.readWellMatrix;
+        end
+        function c    = char(this)
+            c = this.fqfilename;
         end
         function this = saveas(this, fqfn)
             this.petio_.fqfilename = fqfn;

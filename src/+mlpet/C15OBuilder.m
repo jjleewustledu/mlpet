@@ -39,8 +39,7 @@ classdef C15OBuilder
             import mlfourd.*;
             mNiid = MaskingNIfTId(this.niftid_);
             a     = mNiid.maskedMean(mask);
-        end
-        
+        end        
  		function this = C15OBuilder(varargin)
  			%% C15OBUILDER
  			%  Usage:  this = C15OBuilder() 			

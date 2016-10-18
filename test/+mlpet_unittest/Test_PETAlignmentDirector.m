@@ -57,7 +57,7 @@ classdef Test_PETAlignmentDirector < mlfourd_unittest.Test_mlfourd
             this.verifyClass(collec, 'mlfourd.ImagingComposite');
             prds = this.testObj.alignSequentially(collec);
             this.verifyClass(prds, 'mlfourd.ImagingContext');
-            prds = prds.imcomponent;
+            prds = prds.composite;
             for p = 1:length(prds)
                 this.assertEntropies(this.E_sequen{p}, prds.get(p).fqfilename);
             end
@@ -68,7 +68,7 @@ classdef Test_PETAlignmentDirector < mlfourd_unittest.Test_mlfourd
             this.verifyClass(collec, 'mlfourd.ImagingComposite');
             prds = this.testObj.alignIndependently(collec, this.t1cntxt);
             this.verifyClass(prds, 'mlfourd.ImagingContext');
-            prds = prds.imcomponent;
+            prds = prds.composite;
             for p = 1:length(prds)
                 this.assertEntropies(this.E_indep{p}, prds.get(p).fqfilename);
             end

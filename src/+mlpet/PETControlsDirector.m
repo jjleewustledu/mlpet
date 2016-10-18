@@ -108,7 +108,7 @@ classdef PETControlsDirector < mlfsl.AlignmentDirectorDecorator
         function ic   = get.oefMni(this)
             oeffn = fullfile(this.fslPath, filename([this.OEFNQ_FILEPREFIX '_on_' this.MNIREF_FILEPREFIX]));
             if (~lexist(oeffn, 'file'))
-                bldr = this.alignmentBuilder.clone;
+                bldr = this.builder.clone;
                 bldr.product = fullfile(this.fslPath, filename(this.OEFNQ_FILEPREFIX));
                 bldr.referenceImage = this.mniRef;
                 bldr.xfm = fullfile(this.fslPath, filename([this.rphoFileprefix '_on_' this.MNIREF_FILEPREFIX], '.mat'));
@@ -129,11 +129,11 @@ classdef PETControlsDirector < mlfsl.AlignmentDirectorDecorator
             xfms = { pcd.xfmFilename(ooOnHo.fqfilename) ...
                      pcd.xfmFilename(hoOnMni.fqfilename) };
                  
-            pcd.alignmentBuilder.product        = pcd.rpoo;
-            pcd.alignmentBuilder.referenceImage = pcd.mniRef;
-            [pcd.alignmentBuilder, ...
-             pcd.alignmentBuilder.xfm]          = pcd.alignmentBuilder.concatXfms(xfms);            
-            pcd.alignmentBuilder                = pcd.alignmentBuilder.buildFlirtedWithXfm;
+            pcd.builder.product        = pcd.rpoo;
+            pcd.builder.referenceImage = pcd.mniRef;
+            [pcd.builder, ...
+             pcd.builder.xfm]          = pcd.builder.concatXfms(xfms);            
+            pcd.builder                = pcd.builder.buildFlirtedWithXfm;
         end
         function oef = constructOEF(pth)
             cd(pth);
@@ -193,7 +193,7 @@ classdef PETControlsDirector < mlfsl.AlignmentDirectorDecorator
             xfms = { this.xfmFilename(imcast(prd1, 'fqfilename')) ...
                      this.xfmFilename(imcast(prd2, 'fqfilename')) };
             
-            petBldr                = this.alignmentBuilder.clone;
+            petBldr                = this.builder.clone;
             petBldr.product        = prd;
             petBldr.referenceImage = this.mniRef;            
             [petBldr,petBldr.xfm]  = petBldr.concatXfms(xfms);            
@@ -208,14 +208,14 @@ classdef PETControlsDirector < mlfsl.AlignmentDirectorDecorator
             prd                   = ctBldr.product;
         end
         function prd   = alignPET2CT(this, prd)
-            petBldr                = this.alignmentBuilder.clone;
+            petBldr                = this.builder.clone;
             petBldr.product        = prd;
             petBldr.referenceImage = this.ctRef;
             petBldr                = petBldr.buildFlirtedSmallAngles;
             prd                    = petBldr.product;
         end
         function pet1  = alignPET2PET(this, pet, petRef)
-            petBldr                = this.alignmentBuilder.clone;
+            petBldr                = this.builder.clone;
             petBldr.product        = pet;
             petBldr.referenceImage = petRef;
             petBldr                = petBldr.buildFlirtedSmallAngles;
@@ -238,7 +238,7 @@ classdef PETControlsDirector < mlfsl.AlignmentDirectorDecorator
  			%  ... 
  			
             this = this@mlfsl.AlignmentDirectorDecorator(varargin{:});
-            assert(isa(this.alignmentBuilder, 'mlpet.PETAlignmentBuilder'));
+            assert(isa(this.builder, 'mlpet.PETAlignmentBuilder'));
             this.sessionPath = pwd;
  		end 
     end 

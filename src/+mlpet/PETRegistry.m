@@ -9,15 +9,22 @@ classdef PETRegistry < mlpatterns.Singleton
  	%% It was developed on Matlab 8.5.0.197613 (R2015a) for MACI64.
  	
 	properties (Constant)
-        SCANNER_LIST     = { 'ecat exact hr+' 'siemens mmr' };
+        SCANNER_LIST     = { 'ecat exact hr+' 'siemens biograph mmr' };
         DISPERSION_LIST  = { 'fwhh' 'sigma'};
-        ORIENTATION_LIST = { 'radial' 'tangential' 'in-plane' 'axial' };
-    end
-
-	properties (Dependent)
+        ORIENTATION_LIST = { 'radial' 'tangential' 'in-plane' 'axial' '3D' };
     end
     
-    methods % GET
+    methods
+        function g = testStudyData(~, reg)
+            assert(ischar(reg));
+            g = mlpipeline.StudyDataSingletons.instance(reg);
+        end
+        function g = testSessionData(this, reg)
+            assert(ischar(reg));
+            studyData = this.testStudyData(reg);
+            iter = studyData.createIteratorForSessionData;
+            g = iter.next;
+        end
     end
     
     methods (Static)

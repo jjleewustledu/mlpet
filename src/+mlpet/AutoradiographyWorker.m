@@ -59,7 +59,7 @@ classdef AutoradiographyWorker
             maskfn = fullfile(pwd, ['aparc_a2009s+aseg_mask_on_' pnum 'tr1.nii.gz']);
             dyn  = DynamicNIfTId.load(hofn);
             dyn  = dyn.mcflirtedAfterBlur([16 16 16]);
-            dyn  = dyn.revertFrames(NIfTId.load(hofn), 1:7);
+            dyn  = dyn.withRevertedFrames(NIfTId.load(hofn), 1:7);
             dyn  = dyn.masked(NIfTId.load(maskfn));
             dyn  = dyn.volumeSummed;
             tvec = sqeeze(dyn.img);

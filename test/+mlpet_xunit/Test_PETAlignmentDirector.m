@@ -61,7 +61,7 @@ classdef Test_PETAlignmentDirector < MyTestCase
             assertTrue( isa(collec, 'mlfourd.ImagingComposite'));
             prds = this.pad.alignSequentially(collec);
             assertTrue(isa(prds, 'mlfourd.ImagingContext'));
-            prds = prds.imcomponent;
+            prds = prds.composite;
             for p = 1:length(prds)
                 this.assertEntropies(this.E_sequen{p}, prds.get(p).fqfilename);
             end
@@ -72,7 +72,7 @@ classdef Test_PETAlignmentDirector < MyTestCase
             assertTrue( isa(collec, 'mlfourd.ImagingComposite'));
             prds = this.pad.alignIndependently(collec, this.t1cntxt);
             assertTrue(isa(prds, 'mlfourd.ImagingContext'));
-            prds = prds.imcomponent;
+            prds = prds.composite;
             for p = 1:length(prds)
                 this.assertEntropies(this.E_indep{p}, prds.get(p).fqfilename);
             end

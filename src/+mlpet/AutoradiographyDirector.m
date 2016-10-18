@@ -79,11 +79,12 @@ classdef AutoradiographyDirector
         end
         function this = loadCRVAutoradiography(maskFn, aifFn, ecatFn, varargin)
             p = inputParser;
-            addRequired(p, 'maskFn',       @(x) lexist(x, 'file'));
-            addRequired(p, 'aifFn',        @(x) lexist(x, 'file'));
-            addRequired(p, 'ecatFn',       @(x) lexist(x, 'file'));
-            addOptional(p, 'dcvShift',  0, @(x) isnumeric(x) && isscalar(x));
-            addOptional(p, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
+            addRequired( p, 'maskFn',       @(x) lexist(x, 'file'));
+            addRequired( p, 'aifFn',        @(x) lexist(x, 'file'));
+            addRequired( p, 'ecatFn',       @(x) lexist(x, 'file'));
+            addParameter(p, 'crvShift',  0, @(x) isnumeric(x) && isscalar(x));
+            addParameter(p, 'dcvShift',  0, @(x) isnumeric(x) && isscalar(x));
+            addParameter(p, 'ecatShift', 0, @(x) isnumeric(x) && isscalar(x));
             parse(p, maskFn, aifFn, ecatFn, varargin{:});            
             [p1,p2] = fileparts(p.Results.aifFn); 
             crvFn = fullfile(p1, [p2 '.crv']);
@@ -93,7 +94,10 @@ classdef AutoradiographyDirector
             this = AutoradiographyDirector( ...
                    CRVAutoradiography.load( ...
                        p.Results.ecatFn, crvFn, dcvFn, p.Results.maskFn, ...
-                       p.Results.ecatShift, p.Results.dcvShift, p.Results.dcvShift));
+                       'ecatShift', p.Results.ecatShift, ...
+                       'crvShift',  p.Results.crvShift, ...
+                       'dcvShift',  p.Results.dcvShift, ...
+                       'pie',       4.79));
         end
         function this = loadPET(maskFn, aifFn, ecatFn, varargin)
             p = inputParser;
@@ -253,7 +257,7 @@ classdef AutoradiographyDirector
             
             dyn  = DynamicNIfTId.load(hofn);
             dyn  = dyn.mcflirtedAfterBlur([10 10 10]);
-            dyn  = dyn.revertFrames(NIfTId.load(hofn), 1:7);
+            dyn  = dyn.withRevertedFrames(NIfTId.load(hofn), 1:7);
             dyn  = dyn.masked(NIfTId.load(AutoradiographyDirector.maskFilename(pth, idx)));
                    dyn.save;
             if (AutoradiographyDirector.AUTO_FREEVIEW)
@@ -290,7 +294,7 @@ classdef AutoradiographyDirector
             mcfFn     = fullfile(pth, 'ep2d_default_mcf.nii.gz');
             maskFn    = fullfile(pth, 'ep2d_mask.nii.gz');
             
-            msk = MaskingNIfTId(NIfTId.load(meanvolFn), 'pthresh', 0.2);
+            msk = MaskingNIfTId(NIfTId.load(meanvolFn), 'threshp', 0.2, 'binarized');
             msk.saveas(maskFn);
             
             dyn = DynamicNIfTId(NIfTId.load(mcfFn), 'mask', msk);
@@ -369,7 +373,7 @@ classdef AutoradiographyDirector
             mnii = mnii.masked(msk);
             
             [aflow,bflow] = AutoradiographyDirector.videenCoeffs(fullfile(pth, [pnum 'ho1_g3.hdr.info']));
-            pett = MaskingNIfTId.sumall(mnii)/MaskingNIfTId.sumall(msk);
+            pett = dipsum(mnii)/dipsum(msk);
             cbf  = aflow*pett*pett + bflow*pett;
             
             fprintf('AutoradiographyDirector.getVideenCbf:\n');

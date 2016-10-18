@@ -59,7 +59,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function unittestCRVAutoradiography(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -78,7 +78,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
                 fprintf('AutoradiographyTester.prepareGluT is working in %s\n', pwd);
                 this.director_ = ...
                     AutoradiographyDirector.loadCRVAutoradiography( ...
-                        this.maskFnGluT(si), this.hoCrvFn(si), this.hoFn(si), this.gluTShifts(si,c));
+                        this.maskFnGluT(si), this.hoCrvFn(si), this.hoFn(si), 'crvShift', this.gluTShifts(si,c), 'dcvShift', this.gluTShifts(si,c));
                 this.director_ = this.director_.estimateAll;
                 prods{c} = this.director_.product;  %#ok<NASGU>
             catch ME
@@ -97,7 +97,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prepareGluT1(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -116,7 +116,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
                         fprintf('AutoradiographyTester.prepareGluT is working in %s\n', pwd);
                         this.director_ = ...
                             AutoradiographyDirector.loadCRVAutoradiography( ...
-                                this.maskFnGluT(si), this.hoCrvFn(si), this.hoFn(si), this.gluTShifts(si,c));
+                                this.maskFnGluT(si), this.hoCrvFn(si), this.hoFn(si), 'crvShift', this.gluTShifts(si,c), 'dcvShift', this.gluTShifts(si,c));
                         this.director_ = this.director_.estimateAll;
                         prods{c} = this.director_.product;  %#ok<NASGU>
                     catch ME
@@ -136,7 +136,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prepareGluT2(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -155,7 +155,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
                         fprintf('AutoradiographyTester.prepareGluT is working in %s\n', pwd);
                         this.director_ = ...
                             AutoradiographyDirector.loadCRVAutoradiography( ...
-                                this.maskFnGluT(si), this.hoCrvFn(si), this.hoFn(si), this.gluTShifts(si,c));
+                                this.maskFnGluT(si), this.hoCrvFn(si), this.hoFn(si), 'crvShift', this.gluTShifts(si,c), 'dcvShift', this.gluTShifts(si,c));
                         this.director_ = this.director_.estimateAll;
                         prods{c} = this.director_.product;  %#ok<NASGU>
                     catch ME
@@ -175,7 +175,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prepareROI(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -203,7 +203,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
                             end
                             this.director_ = ...
                                 AutoradiographyDirector.loadCRVAutoradiography( ...
-                                    fqfn, this.aifFnGluT(si), this.hoFn(si), this.gluTShifts(si,c));
+                                    fqfn, this.aifFnGluT(si), this.hoFn(si), 'crvShift', this.gluTShifts(si,c), 'dcvShift', this.gluTShifts(si,c));
                             this.director_ = this.director_.estimateAll;
                             prods{c} = this.director_.product;  %#ok<NASGU>
                         catch ME
@@ -224,7 +224,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prepareROIOc(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -285,7 +285,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prepareCRVAutoradiography(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -302,7 +302,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
                     fprintf('AutoradiographyTester.prepareCRVAutoradiography is working in %s\n', pwd);
                     this.director_ = ...
                         AutoradiographyDirector.loadCRVAutoradiography( ...
-                            this.maskFn, this.aifFn, this.ecatFn, this.dcvShifts(c));
+                            this.maskFn, this.aifFn, this.ecatFn, 'crvShift', this.dcvShifts(c), 'dcvShift', this.dcvShifts(c));
                     this.director_ = this.director_.estimateAll;
                     prods{c} = this.director_.product;  %#ok<NASGU>
                 catch ME
@@ -322,7 +322,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prods = prepareLaif2(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:}); 
             
             import mlperfusion.* mlpet.*;
@@ -353,7 +353,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function preparePET(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -389,7 +389,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function preparePETHersc(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -425,7 +425,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prepareDSC(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;
@@ -461,7 +461,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         function prepareDSCHersc(varargin)
             
             p = inputParser;
-            addOptional(p, 'figFolder', pwd, @(x) lexist(x, 'dir'));
+            addOptional(p, 'figFolder', pwd, @isdir);
             parse(p, varargin{:});            
             
             import mlperfusion.* mlpet.*;

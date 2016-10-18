@@ -54,7 +54,7 @@ classdef DecayCorrection < mlpet.IDecayCorrection
         end
         function cnts = correctedCounts(this, cnts, varargin)
             %% CORRECTEDCOUNTS corrects positron decay
-            %  Usage:  counts = this.correctedBetaCounts(counts[, times, denom]) % numeric counts  
+            %  Usage:  counts = this.correctedCounts(counts[, times, denom]) % numeric counts  
             
             p = inputParser;
             addRequired(p, 'cnts',                      @isnumeric);
@@ -64,8 +64,6 @@ classdef DecayCorrection < mlpet.IDecayCorrection
             denom = ones(size(cnts));
             if (isa(this.client_, 'mlpet.IScannerData'))
                 cnts = correctedScannerCounts(this, cnts, p.Results.times, denom, 1);
-            elseif (isa(this.client_, 'mlpet.IBetaCurve'))
-                cnts = correctedBetaCounts(   this, cnts, p.Results.times, denom, 1);
             elseif (isa(this.client_, 'mlpet.IWellData'))
                 cnts = correctedWellCounts(   this, cnts, p.Results.times, denom, 1);
             else
@@ -75,7 +73,7 @@ classdef DecayCorrection < mlpet.IDecayCorrection
         end
         function cnts = uncorrectedCounts(this, cnts, varargin)
             %% UNCORRECTEDCOUNTS reintroduces positron decay
-            %  Usage:  counts = this.uncorrectedBetaCounts(counts[, times, denom]) % numeric counts  
+            %  Usage:  counts = this.uncorrectedCounts(counts[, times, denom]) % numeric counts  
             
             p = inputParser;
             addRequired(p, 'cnts',                      @isnumeric);
@@ -85,8 +83,6 @@ classdef DecayCorrection < mlpet.IDecayCorrection
             denom = ones(size(cnts));
             if (isa(this.client_, 'mlpet.IScannerData'))
                 cnts = correctedScannerCounts(this, cnts, p.Results.times, denom, -1);
-            elseif (isa(this.client_, 'mlpet.IBetaCurve'))
-                cnts = correctedBetaCounts(   this, cnts, p.Results.times, denom, -1);
             elseif (isa(this.client_, 'mlpet.IWellData'))
                 cnts = correctedWellCounts(   this, cnts, p.Results.times, denom, -1);
             else
@@ -110,10 +106,6 @@ classdef DecayCorrection < mlpet.IDecayCorrection
     end
     
     methods (Access = 'private')
-        function cnts = correctedBetaCounts(this, cnts, times, denom, sig)
-            sig = sign(sig);
-            cnts = cnts .* exp(sig * this.lambda * times) ./ denom;
-        end
         function cnts = correctedWellCounts(this, cnts, times, denom, sig)
             sig = sign(sig);
             cnts = cnts .* exp(sig * this.lambda * times) ./ denom;

@@ -13,9 +13,10 @@ classdef TSC < mlpet.AbstractWellData
         EXTENSION = '.tsc'
         TIMES_UNITS = 'sec'
         COUNTS_UNITS = 'scanner events'
+        ROW_COL_HEADER = '%f %f'
     end
     
-    properties 
+    properties
         regionIndex = 1
     end
     
@@ -79,20 +80,7 @@ classdef TSC < mlpet.AbstractWellData
             this = mlpet.TSC(ip.Results.tscLoc);
             this.regionIndex = ip.Results.regionIndex;
             this = this.readtsc;
-        end
-        function this = loadGluTFiles(files)
-            %% LOADGLUTFILES is a convenience method for processing GluT studies
-            
-            assert(isa(files, 'mlarbelaez.GluTFiles'));
-            this = mlpet.TSC.load( ...
-                files.tscFqfilename, files.ecatFqfilename, files.dtaFqfilename, files.maskFqfilename);
-        end
-        function this = loadNp755Files(files)
-            %% LOADNP755FILES is a convenience method for processing np755 studies
-            
-            assert(isa(files, 'mlderdeyn.Np755Files'));
-            this = mlpet.TSC.load( ...
-                files.tscFqfilename, files.ecatFqfilename, files.dtaFqfilename, files.maskFqfilename);
+            this = this.excludeZeroCounts;
         end
         function this = load(tscLoc, ecatLoc, dtaLoc, maskLoc, varargin)
             %% LOAD loads ecat, dta and mask datafiles, then generates and saves a new tsc datafile
@@ -124,6 +112,24 @@ classdef TSC < mlpet.AbstractWellData
                 this.save;
             end
         end
+        function this = loadGluTFiles(files)
+            %% LOADGLUTFILES is a convenience method for processing GluT studies
+            
+            assert(isa(files, 'mlarbelaez.GluTFiles'));
+            this = mlpet.TSC.load( ...
+                files.tscFqfilename, files.ecatFqfilename, files.dtaFqfilename, files.maskFqfilename);
+        end
+        function this = loadNp755Files(files)
+            %% LOADNP755FILES is a convenience method for processing np755 studies
+            
+            assert(isa(files, 'mlderdeyn.Np755Files'));
+            this = mlpet.TSC.load( ...
+                files.tscFqfilename, files.ecatFqfilename, files.dtaFqfilename, files.maskFqfilename);
+        end
+        function this = loadSessionData(sessDat)
+            assert(isa(sessDat, 'mlpipeline.SessionData'));
+            this = mlpet.TSC(sessDat.tsc_fqfn, sessDat.pet_fqfn, sessDat.dta_fqfn, sessDat.mask_fqfn);
+        end
         function msk  = makeMask(maskFqfn)
             %% MAKEMASK accepts a f. q. filename for creating a MaskingNIfTId object.
             
@@ -141,7 +147,7 @@ classdef TSC < mlpet.AbstractWellData
         end  
     end
 
-	methods 	
+	methods
  		function this = TSC(tscLoc)
             %% TSC
  			%  Usage:  this = TSC(tsc_file_location, ecat_file_location,  dta_file_location) 
@@ -190,6 +196,12 @@ classdef TSC < mlpet.AbstractWellData
     end
     
     methods (Access = 'protected') 
+        function this = excludeZeroCounts(this)
+            nonzero      = this.counts_ ~= 0;
+            this.counts_ = this.counts_(nonzero);
+            this.taus_   = this.taus_(  nonzero);
+            this.times_  = this.times_( nonzero);
+        end
         function cnts = squeezeVoxels(this, ecat, msk)
             %% SQUEEZEVOXELS integrates over space with masking, multiplies by 60/tau, tau in sec, 
             %  then divides amplitudes by the number of pixels;
@@ -202,9 +214,9 @@ classdef TSC < mlpet.AbstractWellData
             for t = 1:Nt
                 cnts(t) = sum(sum(sum(dcecat.wellCounts(:,:,:,t), 1), 2), 3) * (60/dcecat.taus(t)); 
             end
-            cnts = cnts/mlfourd.MaskingNIfTId.sumall(msk);
+            cnts = cnts/dipsum(msk);
         end
-        function nf = getNf(this)
+        function nf   = getNf(this)
             nf = length(this.times);
             dd = this.dta_.times(this.dta_.length);
             for f = 1:nf
@@ -235,7 +247,7 @@ classdef TSC < mlpet.AbstractWellData
             ts = textscan(fid, '%s', 1, 'Delimiter', '\n');
             ts = ts{1}; 
             this.header_.string = ts{1};
-            ts = textscan(fid, '%f, %f', 1, 'Delimiter', '\n');
+            ts = textscan(fid, this.ROW_COL_HEADER, 1, 'Delimiter', '\n');
             this.header_.rows = ts{1};
             this.header_.cols = ts{2};
         end

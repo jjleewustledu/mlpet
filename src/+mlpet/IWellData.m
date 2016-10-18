@@ -8,6 +8,10 @@ classdef (Abstract) IWellData
  	%  and checked into repository $URL$,  
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
  	%  $Id$ 
+    
+    properties (Constant)        
+        DEPTH_SEARCH_FOR_WELL = 3
+    end
  	 
     properties (Abstract, Constant)
         EXTENSION
@@ -23,7 +27,9 @@ classdef (Abstract) IWellData
         dt % sec        
         times
         counts
-        wellCounts
+        wellCounts   
+        wellFactor      
+        wellFqfilename
         header
         noclobber
     end 

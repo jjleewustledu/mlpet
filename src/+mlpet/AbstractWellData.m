@@ -15,7 +15,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         useBecquerels = false % boolean for dividing accumulated counts by sampling durations of each time-frame to obtain 1/sec  
     end
     
-	properties (Dependent)        
+	properties (Dependent)
         filename
         filepath
         fileprefix 
@@ -32,7 +32,9 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         scanDuration % sec  
         times
         counts
-        wellCounts %% no need for well-factor; preserves notational consistency
+        wellCounts 
+        wellFactor      
+        wellFqfilename
         header
         
         taus
@@ -71,12 +73,12 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         function idx  = get.scanIndex(this)
             idx = this.petio_.scanIndex;
         end
-        function id  = get.tracer(this)
+        function id   = get.tracer(this)
             id = this.petio_.tracer;
         end
         function l    = get.length(this)
             assert(~isempty(this.times_));
-            l = length(this.times);
+            l = length(this.times); %#ok<CPROP>
         end
         function sd   = get.scanDuration(this)
             assert(~isempty(this.times_));
@@ -99,7 +101,29 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
             this.counts_ = c;
         end
         function wc   = get.wellCounts(this)
+            if (isa(this, 'mlpet.CRV'))
+                wc = this.betaCounts2wellCounts(this.counts);
+                return
+            end
             wc = this.counts;
+        end 
+        function w    = get.wellFactor(this)
+            assert(isnumeric(this.wellFactor_));
+            w = this.wellFactor_;
+        end
+        function f    = get.wellFqfilename(this)
+            fns = { sprintf('%s.wel', this.petio_.fqfileprefix) ...
+                    sprintf('%s.wel', this.petio_.fqfileprefix(1:end-1)) ...
+                    sprintf('%s.wel', fullfile(this.petio_.filepath,       str2pnum(this.petio_.fileprefix))) ...                    
+                    sprintf('%s.wel', fullfile(this.petio_.filepath, '..', str2pnum(this.petio_.fileprefix))) }; %% KLUDGE
+            for n = 1:length(fns)
+                if (lexist(fns{n}, 'file'))
+                    f = fns{n};
+                    return
+                end
+            end
+            error('mlpet:fileNotFound', ...
+                  'AbstractWellData.wellFqfilename not found among:\n\t%s', cell2str(fns, 'AsRow', true));
         end
         function h    = get.header(this)
             assert(~isempty(this.header_));
@@ -110,7 +134,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
                 this.header_ = h; end            
         end
         
-        function t = get.taus(this)
+        function t   = get.taus(this)
             assert(~isempty(this.taus_));
             t = this.taus_;
         end
@@ -122,7 +146,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         end
     end
     
-	methods 
+	methods
         function this = AbstractWellData(fileLoc)
             %% ABSTRACTWELLDATA
             %  Usage:  this = this@mlpet.AbstractWellData(file_location);
@@ -131,12 +155,21 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
             %          this = this@mlpet.AbstractWellData('p1234ho1')
             
             this.petio_ = mlpet.PETIO(fileLoc);
+            this = this.readWellFactor;
+            this = this.readWellMatrix;
+        end
+        function c    = char(this)
+            c = this.fqfilename;
         end
         function this = saveas(this, fqfn)
             this.petio_.fqfilename = fqfn;
             this.save;
         end
         function i    = guessIsotope(this)
+            if (lstrfind(this.fileprefix, 'test'))
+                i = '15O';
+                return
+            end
             if (lstrfind(this.tracer, {'ho' 'oo' 'oc' 'co'}))
                 i = '15O';
                 return
@@ -164,6 +197,15 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
                 c = c(varargin{:}); end
         end
         function wc   = wellCountInterpolants(this, varargin)
+            if (isa(this, 'mlpet.CRV'))
+                wc = pchip(this.times, this.wellCounts, this.timeInterpolants);
+                wc = wc(1:length(this.timeInterpolants));
+                
+                if (~isempty(varargin))
+                    wc = wc(varargin{:}); 
+                end
+                return
+            end
             wc = this.countInterpolants(varargin{:});
         end
     end 
@@ -176,7 +218,66 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         taus_
         counts_
         header_
-    end     
+        wellFactor_
+        wellMatrix_
+    end  
+    
+    methods (Access = 'protected')
+        function curve  = betaCounts2wellCounts(this, curve)
+            %% PETCOUNTS2WELLCOUNTS; cf. man pie; does not divide out number of pixels.
+
+            for t = 1:length(curve)
+                curve(t) = this.wellFactor * curve(t); % taus in sec
+            end
+        end
+        function this = readWellFactor(this)
+            if (isa(this, 'mlpet.DCV'))
+                return
+            end
+            if (~isempty(this.wellFactor_) && isnumeric(this.wellFactor_))
+                return
+            end
+            try
+                dtool = mlsystem.DirTool(fullfile(this.filepath, '*.dcv'));
+                for d = 1:dtool.length
+                    dcv = mlpet.DCV.load(dtool.fqfns{d});
+                    if (~isempty(dcv.header.wellf) && isnumeric(dcv.header.wellf))
+                        this.wellFactor_ = dcv.header.wellf;
+                        return
+                    end
+                end
+            catch ME
+                fprintf('AbstractWellData.readWellFactor could not find a well factor in: \n\t%s \n', cell2str(dtool.fqfns));
+                handerror(ME);
+            end
+        end
+        function this = readWellMatrix(this)
+            if (isa(this, 'mlpet.DCV'))
+                return
+            end
+            if (~isempty(this.wellFactor_) && isnumeric(this.wellFactor_))
+                return
+            end
+            try
+                fid = fopen(this.wellFqfilename);
+                tmp = textscan(fid, '%f %f %f %f %f');
+                this.wellMatrix_ = cell2mat(tmp);
+                if (size(this.wellMatrix_, 1) < 5)
+                    this = this.calculateWellFactor;
+                    return
+                end
+                this.wellFactor_ = this.wellMatrix_(5,1);
+                fclose(fid);
+            catch ME
+                fprintf('AbstractWellData.readWellMatrix could not textscan %s.\n', this.wellFqfilename);
+                handerror(ME);
+            end
+            assert(~isempty(this.wellFactor_) && isnumeric(this.wellFactor_));
+        end
+        function this = calculateWellFactor(~)
+            error('mlpet:notImplemented', 'AbstractWellData.calculateWellFactor');
+        end
+    end   
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
 end

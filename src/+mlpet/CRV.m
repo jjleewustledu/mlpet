@@ -1,4 +1,4 @@
-classdef CRV < mlpet.AbstractBetaCurve 
+classdef CRV < mlpet.AbstractWellData 
 	%% CRV objectifies Snyder-Videen *.crv files, which directly records beta-detected events from an arterial line.
     %  It is not decay-corrected.  It replaces the first two count measurements with the third.
     %  Cf. man metproc
@@ -31,7 +31,7 @@ classdef CRV < mlpet.AbstractBetaCurve
             %          this = CRV('/path/to/p1234data/p1234ho1')
             %          this = CRV('p1234ho1')
 
-            this = this@mlpet.AbstractBetaCurve(fileLoc);
+            this = this@mlpet.AbstractWellData(fileLoc);
             if (isempty(this.filesuffix))
                 this.petio_.filesuffix = this.EXTENSION; end
             this = this.readcrv;
