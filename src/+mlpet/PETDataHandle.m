@@ -1,4 +1,4 @@
-classdef PETDataHandle < StudyDataSingleton
+classdef PETDataHandle < mlpipeline.StudyDataSingleton
 	%% PETDATAHANDLE  
 
 	%  $Revision$
