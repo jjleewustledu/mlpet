@@ -1,8 +1,8 @@
-classdef ArterialSamplingBuilder < mlpipeline.IDataBuilder
-	%% ARTERIALSAMPLINGBUILDER  
+classdef IMMRData 
+	%% IMMRDATA  
 
 	%  $Revision$
- 	%  was created 06-Jan-2017 16:03:15
+ 	%  was created 24-Jan-2017 02:34:25
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
@@ -15,9 +15,9 @@ classdef ArterialSamplingBuilder < mlpipeline.IDataBuilder
 
 	methods 
 		  
- 		function this = ArterialSamplingBuilder(varargin)
- 			%% ARTERIALSAMPLINGBUILDER
- 			%  Usage:  this = ArterialSamplingBuilder()
+ 		function this = IMMRData(varargin)
+ 			%% IMMRDATA
+ 			%  Usage:  this = IMMRData()
 
  			
  		end

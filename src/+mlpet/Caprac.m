@@ -1,8 +1,8 @@
-classdef ArterialSamplingBuilder < mlpipeline.IDataBuilder
-	%% ARTERIALSAMPLINGBUILDER  
+classdef Caprac < mlpet.ICapracData & mlpet.IBloodData & mlpet.IMMRData
+	%% CAPRAC  
 
 	%  $Revision$
- 	%  was created 06-Jan-2017 16:03:15
+ 	%  was created 23-Jan-2017 19:39:41
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
@@ -15,9 +15,9 @@ classdef ArterialSamplingBuilder < mlpipeline.IDataBuilder
 
 	methods 
 		  
- 		function this = ArterialSamplingBuilder(varargin)
- 			%% ARTERIALSAMPLINGBUILDER
- 			%  Usage:  this = ArterialSamplingBuilder()
+ 		function this = Caprac(varargin)
+ 			%% CAPRAC
+ 			%  Usage:  this = Caprac()
 
  			
  		end
