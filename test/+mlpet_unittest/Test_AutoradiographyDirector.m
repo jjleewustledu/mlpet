@@ -18,7 +18,7 @@ classdef Test_AutoradiographyDirector < matlab.unittest.TestCase
         testObj2
         testObj3
         
-        workPath  = '/Volumes/SeagateBP3/cvl/np755/mm01-007_p7267_2008jun16/bayesian_pet'
+        workPath  = '/Volumes/SeagateBP4/cvl/np755/mm01-007_p7267_2008jun16/bayesian_pet'
         pie       = 5.2038;
         dcvShift  = 18
         dscShift  = 18
@@ -49,10 +49,10 @@ classdef Test_AutoradiographyDirector < matlab.unittest.TestCase
             fn = fullfile(this.workPath, 'aparc_a2009s+aseg_mask_on_p7267tr1.nii.gz');
         end
         function fn = get.ecatFn(this)
-            fn = fullfile(this.workPath, 'p7267ho1_mcf_revf1to7_161616fwhh_masked.nii.gz');
+            fn = fullfile(this.workPath, 'p7267ho1_mcf_revf1to7_masked.nii.gz');
         end
         function fn = get.recFn(this)
-            fn = fullfile(this.workPath, 'p7267ho1_mcf_revf1to7_161616fwhh_masked.img.rec');
+            fn = fullfile(this.workPath, 'p7267ho1_mcf_revf1to7_masked.img.rec');
         end
         function fn = get.recFn0(this)
             fn = fullfile(this.workPath, 'p7267ho1.img.rec');
@@ -97,8 +97,8 @@ classdef Test_AutoradiographyDirector < matlab.unittest.TestCase
         function test_runItsAutoradiography2(this)
             this.testObj2 = this.testObj2.runItsAutoradiography;
         end
-        function test_runItsAutoradiography3(this)
-            this.testObj3 = this.testObj3.runItsAutoradiography;
+        function test_estimateParameters3(this)
+            this.testObj3 = this.testObj3.estimateParameters;
         end
  	end 
 
@@ -106,15 +106,16 @@ classdef Test_AutoradiographyDirector < matlab.unittest.TestCase
         function this = Test_AutoradiographyDirector
             this = this@matlab.unittest.TestCase;
             
+            pushd(this.workPath);
             if (~lexist(this.recFn, 'file'))
                 mlbash(sprintf('cp %s %s', this.recFn0, this.recFn)); end
             
- 			this.testObj  = mlpet.AutoradiographyDirector.loadPET( ...
-                            this.maskFn, this.aifFn, this.pie, this.ecatFn, this.dcvShift, this.ecatShift);
- 			this.testObj2 = mlpet.AutoradiographyDirector.loadDSC( ...
-                            this.maskFn, this.dscMaskFn, this.dscFn, this.pie, this.ecatFn, this.dscShift, this.ecatShift);
+%  			this.testObj  = mlpet.AutoradiographyDirector.loadPET( ...
+%                             this.maskFn, this.aifFn, this.ecatFn, this.dcvShift, this.ecatShift);
+%  			this.testObj2 = mlpet.AutoradiographyDirector.loadDSC( ...
+%                             this.maskFn, this.dscMaskFn, this.dscFn, this.ecatFn, this.dscShift, this.ecatShift);
  			this.testObj3 = mlpet.AutoradiographyDirector.loadVideen( ...
-                            this.maskFn, this.aifFn, this.pie, this.ecatFn, this.dcvShift, this.ecatShift);
+                            this.maskFn, this.aifFn, this.ecatFn, this.dcvShift, this.ecatShift);
         end
     end
     

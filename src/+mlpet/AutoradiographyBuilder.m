@@ -1,4 +1,4 @@
-classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem   
+classdef (Abstract) AutoradiographyBuilder < mlpet.AbstractPerfusionProblem   
 	%% AUTORADIOGRAPHYBUILDER is the abstract interface for Autoradiography builders
     %  such as PETAutoradiography, DSCAutoradiography.  Empty methods may be
     %  overridden as needed.
@@ -26,7 +26,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
         map 
     end
     
-    properties         
+    properties
         xLabel = 'times/s'
         yLabel = 'concentration/(well-counts/mL)'
     end
@@ -164,7 +164,7 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
             %                                                                        ^ IScannerData
             %  for DSC*Autoradiography, concentration_a <- concentrationBar_a
 
- 			this = this@mlbayesian.AbstractPerfusionProblem(conc_a, times_i, conc_i); 
+ 			this = this@mlpet.AbstractPerfusionProblem(conc_a, times_i, conc_i); 
             ip = inputParser;
             addRequired(ip, 'conc_a',  @isnumeric);
             addRequired(ip, 'times_i', @isnumeric);
@@ -172,7 +172,6 @@ classdef (Abstract) AutoradiographyBuilder < mlbayesian.AbstractPerfusionProblem
             addOptional(ip, 'mask', [], @(x) isa(x, 'mlfourd.INIfTI'));
             addOptional(ip, 'aif',  [], @(x) isa(x, 'mlperfusion.ILaif') || isa(x, 'mlpet.IWellData'));
             addOptional(ip, 'ecat', [], @(x) isa(x, 'mlpet.IScannerData'));   
-            addRequired(ip, 'conc_d',  @isnumeric);         
             addOptional(ip, 'dcv',  [], @(x) isa(x, 'mlperfusion.ILaif') || isa(x, 'mlpet.IWellData'));
             parse(ip, conc_a, times_i, conc_i, varargin{:});
             

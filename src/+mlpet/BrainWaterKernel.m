@@ -1,4 +1,4 @@
-classdef BrainWaterKernel < mlbayesian.AbstractPerfusionProblem
+classdef BrainWaterKernel < mlpet.AbstractPerfusionProblem
 	%% BRAINWATERKERNEL
     %  http://en.wikipedia.org/wiki/Generalized_gamma_distribution
     %  N.B.  f(tau; a,d,p) = \Gamma^{-1}(d/p) (p/a^d) tau^(d-1) exp(-(tau/a)^p) with a > 0, d > 0, p > 0, t - t0 > 0.   
@@ -296,7 +296,7 @@ classdef BrainWaterKernel < mlbayesian.AbstractPerfusionProblem
  			%% BRAINWATERKERNEL 
  			%  Usage:  this = BrainWaterKernel(Laif2_object, times_dcv, conc_dcv) 
             
- 			this = this@mlbayesian.AbstractPerfusionProblem(conc_a, times_i, conc_i);
+ 			this = this@mlpet.AbstractPerfusionProblem(conc_a, times_i, conc_i);
             ip = inputParser;
             addRequired(ip, 'conc_a',  @isnumeric);
             addRequired(ip, 'times_i', @isnumeric);

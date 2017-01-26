@@ -19,8 +19,8 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
 	properties 
         A0 = 0.391698
         f  = 0.00956157346232341 % mL/s/mL, [15O]H_2O
-        af = 8.583821E-07
-        bf = 1.341018E-02
+        af = 2.035279E-06
+        bf = 2.096733E-02
     end
 
     properties (Dependent)
@@ -93,15 +93,15 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
             end
             error('mlpet:requiredObjectNotFound', 'VideenAutoradiography.loadMask');
         end
-        function this = simulateMcmc(A0, af, bf, f, t, conc_a, map, pie, timeLimits)
+        function this = simulateMcmc(A0, af, bf, f, t, conc_a, map, pie, timeLimits, mask, aif, ecat)
             import mlpet.*;       
             conc_i = VideenAutoradiography.concentration_i(A0, af, bf, f, t, conc_a, pie, timeLimits); % simulated
-            this   = VideenAutoradiography(conc_a, t, conc_i);
+            this   = VideenAutoradiography(conc_a, t, conc_i, mask, aif, ecat);
             this   = this.estimateParameters(map) %#ok<NOPRT>
         end   
         function ci   = concentration_i(A0, af, bf, f, t, conc_a, pie, timeLimits)
             import mlpet.*;
-            petti    = VideenAutoradiography.pett_i(f, t, conc_a);            
+            petti    = VideenAutoradiography.pett_i(f, t, conc_a);
             sumPetti = sum(petti(timeLimits(1):timeLimits(2))) * (t(2) - t(1)); % well-counts     
             ci       = A0 * petti * VideenAutoradiography.sumPettExpect(af, bf, f, pie) / sumPetti;
         end
@@ -136,7 +136,7 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
         function tl   = getTimeLimits
             dt = mlsystem.DirTool('p*ho*_f*.nii.gz');
             assert(1 == dt.length);            
-            names = regexp(dt.fns{1}, 'p\d+ho\d_f(?<t0>\d+)to(?<tf>\d+)_161616fwhh.nii.gz', 'names');
+            names = regexp(dt.fns{1}, 'p\d+ho\d_f(?<t0>\d+)to(?<tf>\d+).nii.gz', 'names'); % _161616fwhh
             tl(1) = str2double(names.t0);
             tl(2) = str2double(names.tf);
         end
@@ -156,7 +156,8 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
         
         function this = simulateItsMcmc(this, conc_a)
             this = mlpet.VideenAutoradiography.simulateMcmc( ...
-                   this.A0, this.af, this.bf, this.f, this.times, conc_a, this.map, this.pie, this.timeLimits);
+                   this.A0, this.af, this.bf, this.f, this.times, conc_a, this.map, this.pie, this.timeLimits, ...
+                   this.mask, this.aif, this.ecat);
         end
         function ci   = itsConcentration_i(this)
             ci = mlpet.VideenAutoradiography.concentration_i( ...

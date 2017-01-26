@@ -175,7 +175,7 @@ classdef AutoradiographyDirector
                    VideenAutoradiography.load( ...
                        p.Results.maskFn, p.Results.aifFn, p.Results.ecatFn, ...
                        p.Results.dcvShift, p.Results.ecatShift));
-        end        
+        end
         
         %% PREPARATIONS
         

@@ -21,7 +21,7 @@ classdef (Abstract) AutoradiographyBuilder2 < mlbayesian.AbstractMcmcProblem
         map 
     end
     
-    properties         
+    properties
         xLabel = 'times/s'
         yLabel = 'concentration/(well-counts/mL)'
     end
@@ -181,7 +181,7 @@ classdef (Abstract) AutoradiographyBuilder2 < mlbayesian.AbstractMcmcProblem
     end
     
 	methods
- 		function this = AutoradiographyBuilder2(times, conc_ecat, varargin) 
+ 		function this = AutoradiographyBuilder2(times, conc_ecat, varargin)
  			%% AUTORADIOGRAPHYBUILDER2  
 
  			this = this@mlbayesian.AbstractMcmcProblem(times, conc_ecat); 

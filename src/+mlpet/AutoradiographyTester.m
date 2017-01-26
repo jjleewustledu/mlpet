@@ -506,6 +506,8 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
         end
     end
     
+    %% PRIVATE
+    
     properties (Access = 'private')
         subjectsDir_
         moyamoyaCases_
