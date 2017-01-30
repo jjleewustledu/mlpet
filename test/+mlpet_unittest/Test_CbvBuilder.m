@@ -1,12 +1,12 @@
-classdef Test_MMR < matlab.unittest.TestCase
-	%% TEST_MMR 
+classdef Test_CbvBuilder < matlab.unittest.TestCase
+	%% TEST_CBVBUILDER 
 
-	%  Usage:  >> results = run(mlpet_unittest.Test_MMR)
- 	%          >> result  = run(mlpet_unittest.Test_MMR, 'test_dt')
+	%  Usage:  >> results = run(mlpet_unittest.Test_CbvBuilder)
+ 	%          >> result  = run(mlpet_unittest.Test_CbvBuilder, 'test_dt')
  	%  See also:  file:///Applications/Developer/MATLAB_R2014b.app/help/matlab/matlab-unit-test-framework.html
 
 	%  $Revision$
- 	%  was created 23-Jan-2017 19:49:57
+ 	%  was created 28-Jan-2017 04:35:07
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlpet/test/+mlpet_unittest.
@@ -28,14 +28,14 @@ classdef Test_MMR < matlab.unittest.TestCase
 	end
 
  	methods (TestClassSetup)
-		function setupMMR(this)
+		function setupCbvBuilder(this)
  			import mlpet.*;
- 			this.testObj_ = MMR;
+ 			this.testObj_ = CbvBuilder;
  		end
 	end
 
  	methods (TestMethodSetup)
-		function setupMMRTest(this)
+		function setupCbvBuilderTest(this)
  			this.testObj = this.testObj_;
  			this.addTeardown(@this.cleanFiles);
  		end

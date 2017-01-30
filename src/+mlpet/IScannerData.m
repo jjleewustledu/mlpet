@@ -1,4 +1,4 @@
-classdef (Abstract) IScannerData < mlpet.IWellData
+classdef IScannerData
 	%% ISCANNERDATA   
 
 	%  $Revision$ 
@@ -9,28 +9,25 @@ classdef (Abstract) IScannerData < mlpet.IWellData
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
  	%  $Id$  	 
 
-    properties (Constant) 
-        EXTENSION    = '.nii.gz'
-        TIMES_UNITS  = 'sec'
-        COUNTS_UNITS = 'scanner-array events'
-    end   
-    
-    properties (Abstract)
-        becquerels
-        tscCounts
-        wellCounts
-        
-        taus
+    properties (Abstract)        
+        sessionData
+        doseAdminTime
+        dt
+        time0
+        timeF
+        times
         timeMidpoints
-        injectionTime     
-        recFqfilename
-        pie
-        mask
-        nPixels
+        taus        
+        counts
+        becquerels
     end 
     
-    methods (Abstract)        
-        wellCountInterpolants(this)
+    methods (Abstract)
+        timeInterpolants(this)
+        timeMidpointInterpolants(this)
+        tauInterpolants(this)
+        countInterpolants(this)
+        becquerelInterpolants(this)
     end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

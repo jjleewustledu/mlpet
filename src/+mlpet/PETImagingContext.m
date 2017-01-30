@@ -9,20 +9,6 @@ classdef PETImagingContext < mlfourd.ImagingContext
  	%% It was developed on Matlab 8.5.0.197613 (R2015a) for MACI64.
  	
         
-    properties (Dependent)
-        biographMMR
-        ecatExactHRPlus
-    end
-
-    methods %% GET
-        function f = get.biographMMR(this)
-            %f = this.state_.biographMMR;
-        end
-        function f = get.ecatExactHRPlus(this)
-            %f = this.state_.ecatExactHRPlus;
-        end
-    end
-        
     methods (Static)
         function this = load(obj)
             %% LOAD:  cf. ctor
@@ -32,6 +18,21 @@ classdef PETImagingContext < mlfourd.ImagingContext
     end
     
 	methods 
+        function p = petNIfTId(this, varargin)
+            ip = inputParser;
+            addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
+            parse(ip, varargin{:});
+            switch (lower(ip.Results.sessionData.petPlatform))
+                case 'ecat'
+                    p = mlpet.EcatExactHRPlus(this.niftid);
+                case 'mmr'
+                    p = mlsiemens.BiographMMR(this.niftid);
+                otherwise
+                    error('mlpet:unsupportedSwitchCase', ...
+                        'PETImagingContext.petNIfTId received %s', ip.Results.sessionData.petPlatform);
+            end
+        end
+        
         function     add(this, varargin)
             %% ADD
             %  @param varargin are added to a composite imaging state
@@ -236,6 +237,7 @@ classdef PETImagingContext < mlfourd.ImagingContext
             %  @return new window with a view of the imaging state
             %  @throws mlfourd:IOError
             
+            this.ensureAnyFormsSaved(varargin{:});
             this.state_.view(varargin{:});
         end
         function z = zeros(this, varargin)

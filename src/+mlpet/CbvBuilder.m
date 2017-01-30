@@ -1,8 +1,8 @@
-classdef IMMRData 
-	%% IMMRDATA  
+classdef CbvBuilder 
+	%% CBVBUILDER  
 
 	%  $Revision$
- 	%  was created 24-Jan-2017 02:34:25
+ 	%  was created 28-Jan-2017 04:35:05
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
@@ -15,6 +15,12 @@ classdef IMMRData
 
 	methods 
 		  
+ 		function this = CbvBuilder(varargin)
+ 			%% CBVBUILDER
+ 			%  Usage:  this = CbvBuilder()
+
+ 			
+ 		end
  	end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

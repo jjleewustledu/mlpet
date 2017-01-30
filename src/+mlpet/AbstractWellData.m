@@ -30,8 +30,10 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         tracer
         length
         scanDuration % sec  
+        
         times
         counts
+        
         wellCounts 
         wellFactor      
         wellFqfilename
@@ -223,14 +225,14 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
     end  
     
     methods (Access = 'protected')
-        function curve  = betaCounts2wellCounts(this, curve)
+        function curve = betaCounts2wellCounts(this, curve)
             %% PETCOUNTS2WELLCOUNTS; cf. man pie; does not divide out number of pixels.
 
             for t = 1:length(curve)
                 curve(t) = this.wellFactor * curve(t); % taus in sec
             end
         end
-        function this = readWellFactor(this)
+        function this  = readWellFactor(this)
             if (isa(this, 'mlpet.DCV'))
                 return
             end
@@ -251,7 +253,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
                 handerror(ME);
             end
         end
-        function this = readWellMatrix(this)
+        function this  = readWellMatrix(this)
             if (isa(this, 'mlpet.DCV'))
                 return
             end
@@ -274,7 +276,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
             end
             assert(~isempty(this.wellFactor_) && isnumeric(this.wellFactor_));
         end
-        function this = calculateWellFactor(~)
+        function this  = calculateWellFactor(~)
             error('mlpet:notImplemented', 'AbstractWellData.calculateWellFactor');
         end
     end   

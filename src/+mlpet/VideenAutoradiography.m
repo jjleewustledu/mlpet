@@ -17,10 +17,17 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
  	%  $Id$ 
     
 	properties 
-        A0 = 0.391698
-        f  = 0.00956157346232341 % mL/s/mL, [15O]H_2O
-        af = 2.035279E-06
-        bf = 2.096733E-02
+        % map is fixed except for f
+        A0 = 0.241984
+        f  = 0.00987298 % mL/s/mL, [15O]H_2O
+        af = 2.035279E-06 % from metcalc
+        bf = 2.096733E-02 % "
+        
+        %  N.B. from mlpet_unittest.Test_VideenAutoradiography
+        %  pie       = 5.2038;
+        %  dcvShift  = -18
+        %  dscShift  = -18
+        %  ecatShift = -6
     end
 
     properties (Dependent)
@@ -41,10 +48,10 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
         end
         function m  = get.map(this)
             m = containers.Map;
-            m('A0') = struct('fixed', 0, 'min', 0.3,    'mean', this.A0, 'max', 0.5);
+            m('A0') = struct('fixed', 0, 'min', eps,    'mean', this.A0, 'max', 2);
             m('af') = struct('fixed', 1, 'min', 1e-7,   'mean', this.af, 'max', 1e-5); 
             m('bf') = struct('fixed', 1, 'min', 1e-3,   'mean', this.bf, 'max', 1e-1);
-            m('f')  = struct('fixed', 0, 'min', 0.0053, 'mean', this.f,  'max', 0.012467); 
+            m('f')  = struct('fixed', 1, 'min', 0.5*0.0053, 'mean', this.f,  'max', 2*0.012467);
         end
         function p  = get.pie(this)
             assert(isnumeric(this.pie_) && isscalar(this.pie_));

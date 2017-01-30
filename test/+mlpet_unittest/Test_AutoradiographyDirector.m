@@ -20,9 +20,15 @@ classdef Test_AutoradiographyDirector < matlab.unittest.TestCase
         
         workPath  = '/Volumes/SeagateBP4/cvl/np755/mm01-007_p7267_2008jun16/bayesian_pet'
         pie       = 5.2038;
-        dcvShift  = 18
-        dscShift  = 18
-        ecatShift = 5
+        dcvShift  = -16 %-18
+        dscShift  = -16 %-18
+        ecatShift = 0 %-6
+        
+        % whole-brain CBF = 56.417 mL/100g/min on vidi, 40% uthresh
+        %                 = 0.00987298 1/s        
+        %              af = 2.035279E-06 from metcalc
+        %              bf = 2.096733E-02 
+        % estimated    A0 = 0.290615
     end 
     
     properties (Dependent)
@@ -49,10 +55,10 @@ classdef Test_AutoradiographyDirector < matlab.unittest.TestCase
             fn = fullfile(this.workPath, 'aparc_a2009s+aseg_mask_on_p7267tr1.nii.gz');
         end
         function fn = get.ecatFn(this)
-            fn = fullfile(this.workPath, 'p7267ho1_mcf_revf1to7_masked.nii.gz');
+            fn = fullfile(this.workPath, 'p7267ho1_161616fwhh_masked.nii.gz');
         end
         function fn = get.recFn(this)
-            fn = fullfile(this.workPath, 'p7267ho1_mcf_revf1to7_masked.img.rec');
+            fn = fullfile(this.workPath, 'p7267ho1_161616fwhh_masked.img.rec');
         end
         function fn = get.recFn0(this)
             fn = fullfile(this.workPath, 'p7267ho1.img.rec');
@@ -97,8 +103,8 @@ classdef Test_AutoradiographyDirector < matlab.unittest.TestCase
         function test_runItsAutoradiography2(this)
             this.testObj2 = this.testObj2.runItsAutoradiography;
         end
-        function test_estimateParameters3(this)
-            this.testObj3 = this.testObj3.estimateParameters;
+        function test_estimateAll3(this)
+            this.testObj3 = this.testObj3.estimateAll;
         end
  	end 
 

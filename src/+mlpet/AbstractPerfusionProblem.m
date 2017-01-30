@@ -75,12 +75,12 @@ classdef (Abstract) AbstractPerfusionProblem < mlbayesian.AbstractMcmcProblem
             tito = max(1, ti - 1);
         end
         function m = moment1(t, c)
-            import mlbayesian.*;
+            import mlpet.*;
             tto = t(AbstractPerfusionProblem.indexTakeOff(c));
             m = sum((t - tto) .* c) / sum(c);
         end
         function [times,counts] = shiftData(times0, counts0, Dt)
-            import mlbayesian.*
+            import mlpet.*
             if (Dt > 0)
                 [times,counts] = AbstractPerfusionProblem.shiftDataRight(times0, counts0, Dt);
             else

@@ -75,7 +75,7 @@ classdef Test_TSC < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.counts(43), 955681.423487817, 'RelTol', 1e-6);
         end
         function test_header(this)
-            this.verifyEqual(this.testObj.header.injectionTime, 18.9330);
+            this.verifyEqual(this.testObj.header.doseAdminTime, 18.9330);
             this.verifyEqual(this.testObj.header.string(1:14), 'rec p8047gluc1');
             this.verifyEqual(this.testObj.header.start(43), 3420);
             this.verifyEqual(this.testObj.header.duration(43), 180);

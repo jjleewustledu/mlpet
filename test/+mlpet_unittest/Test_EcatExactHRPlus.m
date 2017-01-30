@@ -52,7 +52,7 @@ classdef Test_EcatExactHRPlus < matlab.unittest.TestCase
             this.verifyEqual(obj.wellCountInterpolants(4), 655.6788, 'RelTol', 1e-5);
         end
         function test_header(this)
-            this.verifyEqual(this.testObj.header.injectionTime, 41.333);
+            this.verifyEqual(this.testObj.header.doseAdminTime, 41.333);
             this.verifyEqual(this.testObj.header.string(1:23), 'rec p7267ho1_frames.img');
             this.verifyEqual(this.testObj.header.frame(4), 5);
             this.verifyEqual(this.testObj.header.start(4), 8); 

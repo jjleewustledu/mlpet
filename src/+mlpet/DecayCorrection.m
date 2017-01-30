@@ -10,7 +10,7 @@ classdef DecayCorrection < mlpet.IDecayCorrection
  	%  $Id$  	 
     
     properties (Constant)
-        ISOTOPES = {'15O' '11C'};
+        ISOTOPES = {'15O' '11C' '18F'};
     end
     
     properties (Dependent)
@@ -32,6 +32,8 @@ classdef DecayCorrection < mlpet.IDecayCorrection
                     h = 20.334*60; % sec
                 case '15O'
                     h = 122.1; % sec
+                case '18F'
+                    h = 109.77120*60; % sec
                 otherwise
                     error('mlpet:unsupportedState', ...
                         'DecayCorrection.get.halflife did not recognize this.isotope -> %s', this.isotope);
