@@ -1,4 +1,4 @@
-classdef IAifData 
+classdef IAifData < mldata.ITimingData
 	%% IAIFDATA  
 
 	%  $Revision$
@@ -11,18 +11,17 @@ classdef IAifData
 
 	properties (Abstract)
         sessionData
- 		dt
-        time0
-        timeF
-        times
+        doseAdminDatetime 
         counts
         becquerels
+        efficiencyFactor
+        isotope
  	end
 
 	methods (Abstract)      
-        timeInterpolants(this)
         countInterpolants(this)
         becquerelInterpolants(this)
+        shiftTimes(this, dt)
  	end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

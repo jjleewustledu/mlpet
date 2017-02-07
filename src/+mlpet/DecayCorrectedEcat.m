@@ -1,4 +1,4 @@
-classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus & mlpet.IDecayCorrection  
+classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus 
 	%% DECAYCORRECTEDECAT implements mlpet.IScannerData for data from detection array of Ecat Exact HR+ scanners, then
     %  applies decay correction for the half-life of the selected isotope.  Most useful properties will be
     %  times, timeInterpolants, counts, countInterpolants.  It is also a NIfTIdecorator.
@@ -11,19 +11,6 @@ classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus & mlpet.IDecayCorrection
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
  	%  $Id$ 
  	 
-	properties (Dependent) 
-        isotope
-        halfLife
-    end 
-    
-    methods %% GET
-        function i = get.isotope(this)
-            i = this.decayCorrection_.isotope;
-        end
-        function h = get.halfLife(this)
-            h = this.decayCorrection_.halfLife;
-        end
-    end    
     
     methods (Static)
         function this = load(fileLoc)
@@ -41,7 +28,7 @@ classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus & mlpet.IDecayCorrection
             assert(~isa(cmp, 'mlpet.DecayCorrectedEcat'));
             
             this.decayCorrection_ = mlpet.DecayCorrection(this);
-            this.counts = this.decayCorrection_.correctedCounts(this.counts, this.times);
+            this.counts = this.decayCorrection_.correctedCounts(this.counts);
             this = this.updateFileprefix;
             this = this.setTimeMidpoints_dc;
         end 
@@ -58,7 +45,7 @@ classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus & mlpet.IDecayCorrection
             this.component.fileprefix = [this.component.fileprefix '_decayCorrect'];
         end
         function this = setTimeMidpoints_dc(this)
-            k_decay = log(2) / this.halfLife;
+            k_decay = log(2) / this.decayCorrection_.halfLife;
             this.timeMidpoints_ = this.times;
             for t = 2:this.length
                 this.timeMidpoints_(t) = this.times(t-1) - (1/k_decay) * log(0.5*(exp(-k_decay*this.taus(t)) + 1));

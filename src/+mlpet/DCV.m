@@ -1,8 +1,8 @@
 classdef DCV < mlpet.AbstractWellData
 	%% DCV objectifies Snyder-Videen *.dcv files, replacing the first two count measurements with the third,
     %  adding hand-measured counts at the end for assessment of detector drift.  Dcv files record beta-detector events,
-    %  which have been corrected for positron half-life, with deconvolution of the dispersion of the cannulated
-    %  arterial line and with beta-detector events multiplied by well-factors to yield well-counter units.
+    %  which have been corrected for positron-emitter half-life, with deconvolution of the dispersion of the cannulated
+    %  arterial line and with beta-detector events multiplied by well-factors to yield well-counter-normalized units.
     %  Cf. man betadcv, metproc
 
 	%  $Revision$ 
@@ -12,16 +12,11 @@ classdef DCV < mlpet.AbstractWellData
  	%  and checked into repository $URL$,  
  	%  developed on Matlab 8.3.0.532 (R2014a) 
  	%  $Id$ 
-
-    properties (Constant)
-        EXTENSION = '.dcv'     
-        TIMES_UNITS = 'sec'
-        COUNTS_UNITS = 'beta-detector events, decay-corrected, deconvolved'
-    end    
+    
     
     methods (Static)
-        function this = load(fileLoc)
-            this = mlpet.DCV(fileLoc);
+        function this = load(varargin)
+            this = mlpet.DCV(varargin{:});
         end
     end
     
@@ -34,7 +29,8 @@ classdef DCV < mlpet.AbstractWellData
 
             this = this@mlpet.AbstractWellData(fileLoc);
             if (isempty(this.filesuffix))
-                this.petio_.filesuffix = this.EXTENSION; end
+                this.petio_.filesuffix = '.dcv'; end
+            
             this = this.readdcv;
         end  
         function this = save(this)
@@ -51,7 +47,7 @@ classdef DCV < mlpet.AbstractWellData
     %% PRIVATE
     
     properties (Access = 'private')
-        HEADER_EXPRESSION_ = ...
+        DCV_HEADER_EXPRESSION_ = ...
             ['(?<clock>\d+:\d+)\s+(?<samples>\d+)\s+(?<n1>\d+.\d+)\s+(?<n2>\d+.\d+)\s+' ...
              'WELLF=\s*(?<wellf>\d+.\d+)\s+T0=\s*(?<t0>\d+.\d+)\s+K1=\s*(?<k1>\d+.\d+)\s+E=\s*(?<e>\d*.\d+)\s+NSMO=\s*(?<nsmo>\d+)\s+' ...
              '(?<fqfilename>\w+.\w+)']
@@ -69,7 +65,7 @@ classdef DCV < mlpet.AbstractWellData
         function this = readheader(this, fid)
             str = textscan(fid, '%s', 1, 'Delimiter', '\n');
             str = str{1}; str = str{1};
-            h   = regexp(str, this.HEADER_EXPRESSION_, 'names');
+            h   = regexp(str, this.DCV_HEADER_EXPRESSION_, 'names');
             
             h.string  = strtrim(str);
             h.samples = uint8(str2double(h.samples));

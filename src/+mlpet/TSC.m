@@ -10,9 +10,6 @@ classdef TSC < mlpet.AbstractWellData
  	%  $Id$ 
  	 
     properties (Constant)
-        EXTENSION = '.tsc'
-        TIMES_UNITS = 'sec'
-        COUNTS_UNITS = 'scanner events'
         ROW_COL_HEADER = '%f %f'
     end
     

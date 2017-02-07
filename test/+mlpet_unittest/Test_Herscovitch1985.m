@@ -21,119 +21,191 @@ classdef Test_Herscovitch1985 < matlab.unittest.TestCase
         %              bf = 2.096733E-02 
         % estimated    A0 = 0.290615
         
-        dcvShiftHO  = -18
-        ecatShiftHO = -6
-        dcvShiftOO  = nan
-        ecatShiftOO = nan
-        sessionData
+        a1 = 1.9819e-06
+        a2 = 0.021906
+        b1 = -0.415287610631909
+        b2 = 281.397582270965
+        b3 = -33.2866801445654
+        b4 = 15880.6096474159
+        aifShiftHO  = -18
+        scannerShiftHO = -6
+        aifShiftOO  = -20
+        scannerShiftOO = -10
+        fracHOMetab = 0.42
+        ooFracTime  = 115
+        ooPeakTime  = 19 - 10
+        sessionData      
+        
+        aif
+        scanner
  		testObj
  	end
 
 	methods (Test)
         function test_ctor(this)
+            this = this.configTracer('HO');
+            this.verifyClass(this.aif, 'mlpet.BloodSucker');
+            this.verifyClass(this.scanner, 'mlpet.EcatExactHRPlus');
             this.verifyClass(this.testObj, 'mlpet.Herscovitch1985');
         end
-        function test_plotHO(this)
-            obj = this.configTracer(this.testObj, 'HO');
-            obj.plotAif;
-            obj.plotWholebrain(obj.flows);
+        function test_plotAif(this)
+            this = this.configTracer('OO');
+            this.testObj.plotAif;
+            if (strcmp(this.sessionData.tracer, 'OO'))
+                this.testObj.plotAifHOMetab;
+                this.testObj.plotAifOO;
+            end
         end
-        function test_plotOO(this)  
-            obj = this.configTracer(this.testObj, 'OO');   
-            obj.plotAif;
-            obj.plotWholebrain(obj.flows);
-        end
-        
-        function test_buildHOobs(this)
-            obj = this.configTracer(this.testObj, 'HO');
-            obj = obj.buildPetobs('flows', obj.flows);
-            this.verifyEqual(obj.product, nan(1,10));
-        end
-        function test_buildOOobs(this)
-            obj = this.configTracer(this.testObj, 'OO');
-            obj = obj.buildPetobs('flows', obj.flows);
-            this.verifyEqual(obj.product, nan(1,10));
+        function test_plotScannerWholebrain(this)
+            this = this.configTracer('OO');
+            this.testObj.plotScannerWholebrain;
         end
         
         function test_buildA1A2(this)
-            obj = this.configTracer(this.testObj, 'HO');
-            obj = obj.buildPetobs;
-            obj = obj.buildA1A2;
-            this.verifyEqual(obj.a1, 2.035279E-06, 'RelTol', 0.01);
-            this.verifyEqual(obj.a2, 2.096733E-02, 'RelTol', 0.01);
+            this = this.configTracer('HO');
+            obj = this.testObj.buildA1A2;
+            this.verifyEqual(obj.product(1), this.a1, 'RelTol', 0.01);
+            this.verifyEqual(obj.product(2), this.a2, 'RelTol', 0.01);
         end
-        function test_buildA3A4(this)
-            obj = this.configTracer(this.testObj, 'OO');
-            obj = obj.buildPetobs;
-            obj = obj.buildA3A4;
-            this.verifyEqual(obj.a3, nan, 'RelTol', 0.01);
-            this.verifyEqual(obj.a4, nan, 'RelTol', 0.01);
+        function test_buildB1B2(this)
+            this = this.configTracer('OO');
+            obj = this.testObj;
+            obj = obj.buildB1B2;
+            this.verifyEqual(obj.product(1), this.b1, 'RelTol', 0.01);
+            this.verifyEqual(obj.product(2), this.b2, 'RelTol', 0.01);
         end
-        
-        function test_cbfWholebrain(this)
-            obj = this.testObj.buildCbfWholebrain;
-            obj.product.view;
-        end
-        function test_cbvWholebrain(this)
-            obj = this.testObj.buildCbvWholebrain;
-            obj.product.view;
-        end
-        function test_oefWholebrain(this)
-            obj = this.testObj.buildOefWholebrain;
-            obj.product.view;
+        function test_buildB3B4(this)
+            this = this.configTracer('OO');
+            obj = this.testObj;
+            obj = obj.buildB3B4;
+            this.verifyEqual(obj.product(1), this.b3, 'RelTol', 0.01);
+            this.verifyEqual(obj.product(2), this.b4, 'RelTol', 0.01);
         end
         
-        function test_cbfMap(this)
-            obj = this.testObj.buildCbfMap;
-            obj.product.view;
+        function test_buildCbfWholebrain(this)
+            this = this.configTracer('HO');
+            obj = this.testObj;
+            obj.a1 = this.a1;
+            obj.a2 = this.a2;
+            obj = obj.buildCbfWholebrain;
+            this.verifyEqual(obj.product, 54.6647121712165, 'RelTol', 0.0001);
         end
-        function test_cbvMap(this)
-            obj = this.testObj.buildCbvMap;
-            obj.product.view;
+        function test_buildCbvWholebrain(this)
+            this = this.configTracer('OC');
+            obj = this.testObj.buildCbvWholebrain;            
+            this.verifyEqual(obj.product, 2.174532514791524, 'RelTol', 0.0001);
         end
-        function test_oefMap(this)
-            obj = this.testObj.buildOefMap;
+        function test_buildOefWholebrain(this)
+            this = this.configTracer('OO');
+            obj = this.testObj;            
+            obj.b1 = this.b1;
+            obj.b2 = this.b2;
+            obj.b3 = this.b3;
+            obj.b4 = this.b4;
+            obj.cbf = obj.sessionData.cbf('typ','mlpet.PETImagingContext');
+            obj.cbv = obj.sessionData.cbv('typ','mlpet.PETImagingContext');
+            obj = obj.buildOefWholebrain;
+            this.verifyEqual(obj.product, nan, 'RelTol', 0.0001);
+        end
+        
+        function test_buildCbfMap(this)
+            this = this.configTracer('HO');
+            obj    = this.testObj;
+            obj.a1 = this.a1;
+            obj.a2 = this.a2;
+            obj    = obj.buildCbfMap;
+            this.verifyTrue(isa(obj.product, 'mlpet.PETImagingContext'));
             obj.product.view;
+            %obj.product.saveas(this.sessionData.cbf('typ','fqfn'));
+        end
+        function test_buildCbvMap(this)
+            this = this.configTracer('OC');
+            obj  = this.testObj.buildCbvMap;
+            this.verifyTrue(isa(obj.product, 'mlpet.PETImagingContext'));
+            obj.product.view;
+            %obj.product.saveas(this.sessionData.cbv('typ','fqfn'));
+        end
+        function test_buildOefMap(this)
+            this = this.configTracer('OO');
+            obj = this.testObj;
+            obj.b1 = this.b1;
+            obj.b2 = this.b2;
+            obj.b3 = this.b3;
+            obj.b4 = this.b4;
+            obj.cbf = obj.sessionData.cbf('typ','mlpet.PETImagingContext');
+            obj.cbv = obj.sessionData.cbv('typ','mlpet.PETImagingContext');
+            obj = obj.buildOefMap;
+            this.verifyTrue(isa(obj.product, 'mlpet.PETImagingContext'));
+            obj.product.view;
+            %obj.product.saveas(this.sessionData.oef('typ','fqfn'));
         end
 	end
 
  	methods (TestClassSetup)
 		function setupHerscovitch1985(this)
- 			import mlpet.* mlderdeyn.*;
-            studyd = StudyDataSingleton.instance;
+            studyd = mlderdeyn.StudyDataSingleton.instance;
             sessp = fullfile(studyd.subjectsDir, 'mm01-007_p7267_2008jun16', '');
-            this.sessionData = SessionData('studyData', studyd, 'sessionPath', sessp, 'tracer', '');
- 			this.testObj_ = Herscovitch1985('sessionData', this.sessionData);
+            sessp = sessp{1};
+            this.sessionData = mlderdeyn.SessionData('studyData', studyd, 'sessionPath', sessp, 'tracer', '');
+            setenv(upper('Test_Herscovitch1985'), '1');
+            this.addTeardown(@this.teardownHerscovitch1985);
  		end
 	end
 
  	methods (TestMethodSetup)
 		function setupHerscovitch1985Test(this)
- 			this.testObj = this.testObj_;
- 			this.addTeardown(@this.cleanFiles);
+ 			%this.testObj = this.testObj_;
+ 			%this.addTeardown(@this.cleanFiles);
  		end
 	end
 
 	properties (Access = private)
- 		testObj_
+ 		%testObj_
  	end
 
 	methods (Access = private)
-        function obj = configTracer(this, obj, tr)
+        function this = configTracer(this, tr)
+            import mlpet.* mlfourd.*;
             switch (tr)
                 case 'HO'
-                    obj.tracer = 'HO';
-                    obj.rhoAShift = this.dcvShiftHO;
-                    obj.rhoObsShift = this.ecatShiftHO;
+                    pic = this.sessionData.ho('typ', 'mlpet.PETImagingContext');
+                    this.sessionData.tracer = 'HO';
+                    this.scanner = EcatExactHRPlus(pic.niftid, ...
+                        'sessionData', this.sessionData, ...
+                        'scannerTimeShift', this.scannerShiftHO);                    
+                    this.aif = BloodSucker('scannerData', this.scanner, 'aifTimeShift', this.aifShiftHO);
                 case 'OO'
-                    obj.tracer = 'OO';
-                    obj.rhoAShift = this.dcvShiftOO;
-                    obj.rhoObsShift = this.ecatShiftOO;
+                    pic = this.sessionData.oo('typ', 'mlpet.PETImagingContext');
+                    this.sessionData.tracer = 'OO';
+                    this.scanner = EcatExactHRPlus(pic.niftid, ...
+                        'sessionData', this.sessionData, ...
+                        'scannerTimeShift', this.scannerShiftOO);                    
+                    this.aif = BloodSucker('scannerData', this.scanner, 'aifTimeShift', this.aifShiftOO);
                 case 'OC'
-                    obj.tracer = 'OC';
+                    pic = this.sessionData.oc('typ', 'mlpet.PETImagingContext');
+                    this.sessionData.tracer = 'OC';
+                    this.scanner = EcatExactHRPlus(pic.niftid, ...
+                        'sessionData', this.sessionData);                    
+                    this.aif = BloodSucker('scannerData', this.scanner, 'aifTimeShift', -15);
                 otherwise
                     error('mlpet:unsupportedSwitchCase', 'Test_Herscovitch1985.configTracer');
             end
+            if (strcmp(tr, 'OC'))
+                timeDur = 0;
+            else
+                timeDur = 40;
+            end
+ 			this.testObj = Herscovitch1985( ...
+                'sessionData', this.sessionData, ...
+                'scanner', this.scanner, ...
+                'aif', this.aif, ...
+                'timeDuration', timeDur);
+            this.testObj.ooPeakTime  = this.ooPeakTime;
+            this.testObj.ooFracTime  = this.ooFracTime;
+            this.testObj.fracHOMetab = this.fracHOMetab;
+        end
+        function teardownHerscovitch1985(this)
+            setenv(upper('Test_Herscovitch1985'), '0');
         end
 		function cleanFiles(this)
  		end

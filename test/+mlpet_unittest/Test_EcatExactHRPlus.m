@@ -31,7 +31,7 @@ classdef Test_EcatExactHRPlus < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.times(60), 1.613330000000000e+02);
         end
         function test_timeInterpolants(this)
-            this.verifyEqual(this.testObj.timeInterpolants(60), 1.613330000000000e+02);
+            this.verifyEqual(this.testObj.timeInterpolants(60), 102.333);
         end
         function test_counts(this)
             this.verifyEqual(this.testObj.counts(64,64,30,4), 63);
@@ -40,19 +40,23 @@ classdef Test_EcatExactHRPlus < matlab.unittest.TestCase
         function test_countInterpolants(this)
             obj = this.testObj;
             obj.counts = obj.counts(64,64,30,:);
-            this.verifyEqual(obj.countInterpolants(4), 63, 'RelTol', 1e-5);
+            this.verifyEqual(obj.countInterpolants(4), 36.5287927350427, 'RelTol', 1e-5);
         end
         function test_wellCounts(this)
             this.verifyEqual(this.testObj.wellCounts(64,64,30,4), 655.6788);
             this.verifyEqual(this.testObj.wellCounts(64,64,30,60), 1300.95);
+            
+            this.testObj = this.testObj.volumeSummed;
+            this.verifyEqual(max(this.testObj.wellCounts), 285232225.9248, 'RelTol', 1e-8);
+            this.verifyEqual(min(this.testObj.wellCounts), 2253151.7316,   'RelTol', 1e-8);
         end
         function test_wellCountInterpolants(this)
             obj = this.testObj;
             obj.counts = obj.counts(64,64,30,:);
-            this.verifyEqual(obj.wellCountInterpolants(4), 655.6788, 'RelTol', 1e-5);
+            this.verifyEqual(obj.wellCountInterpolants(4), 380.177063269231, 'RelTol', 1e-5);
         end
         function test_header(this)
-            this.verifyEqual(this.testObj.header.doseAdminTime, 41.333);
+            this.verifyEqual(this.testObj.header.doseAdminDatetime, 41.333);
             this.verifyEqual(this.testObj.header.string(1:23), 'rec p7267ho1_frames.img');
             this.verifyEqual(this.testObj.header.frame(4), 5);
             this.verifyEqual(this.testObj.header.start(4), 8); 

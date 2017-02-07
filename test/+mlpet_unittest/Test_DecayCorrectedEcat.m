@@ -38,8 +38,8 @@ classdef Test_DecayCorrectedEcat < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.taus(4), 30);
             this.verifyEqual(this.testObj.taus(44), 180);
         end
-        function test_doseAdminTime(this)
-            this.verifyEqual(this.testObj.doseAdminTime, 18.9330);
+        function test_doseAdminDatetime(this)
+            this.verifyEqual(this.testObj.doseAdminDatetime, []);
         end
         function test_counts(this)
             this.verifyEqual(this.testObj.counts(64,64,32,4),  576.776062011719, 'RelTol', 1e-5);
@@ -50,7 +50,7 @@ classdef Test_DecayCorrectedEcat < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.wellCounts(64,64,32,44), 4194315.82265625, 'RelTol', 1e-5);
         end
         function test_header(this)
-            this.verifyEqual(this.testObj.header.doseAdminTime, 18.933);
+            this.verifyEqual(this.testObj.header.doseAdminDatetime, 18.933);
             this.verifyEqual(this.testObj.header.string(1:25), 'rec p8047gluc1_frames.img');
             this.verifyEqual(this.testObj.header.frame(4), 5);
             this.verifyEqual(this.testObj.header.start(4), 120);
@@ -58,9 +58,6 @@ classdef Test_DecayCorrectedEcat < matlab.unittest.TestCase
         end  
         function test_isotope(this)
             this.verifyEqual(this.testObj.isotope, '11C');
-        end
-        function test_halfLife(this)
-            this.verifyEqual(this.testObj.halfLife, 20.334*60);
         end
         function test_pie(this)            
             this.verifyEqual(this.testObj.pie, 4.88);

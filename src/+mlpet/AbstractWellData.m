@@ -38,6 +38,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         wellFactor      
         wellFqfilename
         header
+        isotope
         
         taus
         timeMidpoints
@@ -110,7 +111,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
             wc = this.counts;
         end 
         function w    = get.wellFactor(this)
-            assert(isnumeric(this.wellFactor_));
+            %assert(isnumeric(this.wellFactor_));
             w = this.wellFactor_;
         end
         function f    = get.wellFqfilename(this)
@@ -134,6 +135,24 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         function this = set.header(this, h)
             if (isstruct(h) || ischar(h))
                 this.header_ = h; end            
+        end
+        function i    = get.isotope(this)
+            
+            % N.B. order of testing lstrfind
+            if (lstrfind(this.fileprefix, 'test'))
+                i = '15O';
+                return
+            end
+            if (lstrfind(this.tracer, {'ho' 'oo' 'oc' 'co'}))
+                i = '15O';
+                return
+            end
+            if (lstrfind(this.tracer, 'g'))
+                i = '11C';
+                return
+            end            
+            error('mlpet:indeterminatePropertyValue', ...
+                'AbstractWellData.guessIsotope could not recognize the isotope of %s', this.fileprefix);
         end
         
         function t   = get.taus(this)
@@ -166,22 +185,6 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         function this = saveas(this, fqfn)
             this.petio_.fqfilename = fqfn;
             this.save;
-        end
-        function i    = guessIsotope(this)
-            if (lstrfind(this.fileprefix, 'test'))
-                i = '15O';
-                return
-            end
-            if (lstrfind(this.tracer, {'ho' 'oo' 'oc' 'co'}))
-                i = '15O';
-                return
-            end
-            if (lstrfind(this.tracer, 'g'))
-                i = '11C';
-                return
-            end            
-            error('mlpet:indeterminatePropertyValue', ...
-                'AbstractWellData.guessIsotope could not recognize the isotope of %s', this.fileprefix);
         end
         function t    = timeInterpolants(this, varargin)
             assert(~isempty(this.times_));

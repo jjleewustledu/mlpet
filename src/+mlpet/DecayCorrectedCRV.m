@@ -1,4 +1,4 @@
-classdef DecayCorrectedCRV < mlpet.CRV & mlpet.IDecayCorrection 
+classdef DecayCorrectedCRV < mlpet.CRV 
 	%% DECAYCORRECTEDCRV objectifies Snyder-Videen *.crv files with positron decay-correction.  
     %  Correction is also made to beta-detector events to yield well-counter units.
     %  Cf. man metproc 
@@ -11,19 +11,6 @@ classdef DecayCorrectedCRV < mlpet.CRV & mlpet.IDecayCorrection
  	%  developed on Matlab 8.3.0.532 (R2014a) 
  	%  $Id$ 
     
-	properties (Dependent)        
-        isotope
-        halfLife
-    end 
-    
-    methods %% GET
-        function i = get.isotope(this)
-            i = this.decayCorrection_.isotope;
-        end
-        function h = get.halfLife(this)
-            h = this.decayCorrection_.halfLife;
-        end
-    end    
     
     methods (Static)
         function this = load(fileLoc)
@@ -42,7 +29,7 @@ classdef DecayCorrectedCRV < mlpet.CRV & mlpet.IDecayCorrection
             assert(~isa(crv, 'mlpet.DecayCorrectedCRV'));
             
             this.decayCorrection_ = mlpet.DecayCorrection(this);
-            this.counts = this.decayCorrection_.correctedCounts(this.counts, this.times);
+            this.counts = this.decayCorrection_.correctedCounts(this.counts);
         end 
     end 
     

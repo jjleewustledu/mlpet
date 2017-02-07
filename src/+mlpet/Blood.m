@@ -62,7 +62,7 @@ classdef Blood
     %     Modified blood.inc 09-May-95 by TOV to add SCANNER.
     %% 
     
-    properties (Constant)          
+    properties (Constant)
         % Densities of whole blood and plasma taken from:
         % Herscovitch & Raichle (1985) J. Cereb Blood Flow Metabol, 5:65
         BLOODDEN = 1.05 % density of blood (g/ml)
@@ -88,9 +88,11 @@ classdef Blood
             '1-[11C]-D-glucose                        '};
     end
 
-	properties  
+	properties
         
-        bloodData % mlpet.IBloodData, mlpet.Bloodxlsx preferred 
+        bloodData % mlpet.IBloodData, mlpet.Bloodxlsx preferred
+        drawn
+        counted
         tbSyringeUsed = false
         header = '' % header string
         miscIsotope = nan % for use with SCANTYPE == 6

@@ -1,4 +1,4 @@
-classdef DecayCorrection < mlpet.IDecayCorrection
+classdef DecayCorrection
 	%% DECAYCORRECTION   
 
 	%  $Revision$ 
@@ -9,33 +9,26 @@ classdef DecayCorrection < mlpet.IDecayCorrection
  	%  developed on Matlab 8.4.0.150421 (R2014b) 
  	%  $Id$  	 
     
-    properties (Constant)
-        ISOTOPES = {'15O' '11C' '18F'};
-    end
     
     properties (Dependent)
         isotope
         halfLife
     end
     
-    methods %% GET, SET
-        function i = get.isotope(this)
-            i = this.isotope_;
+    methods %% GET
+        function g = get.isotope(this)
+            g = this.client_.isotope;
         end
-        function this = set.isotope(this, i)
-            assert(lstrfind(i, this.ISOTOPES));
-            this.isotope_ = i;
-        end
-        function h = get.halfLife(this)
+        function g = get.halfLife(this)
             switch (this.isotope)
                 case '11C'
-                    h = 20.334*60; % sec
+                    g = 20.334*60; % sec
                 case '15O'
-                    h = 122.1; % sec
+                    g = 122.1; % sec
                 case '18F'
-                    h = 109.77120*60; % sec
+                    g = 109.77120*60; % sec
                 otherwise
-                    error('mlpet:unsupportedState', ...
+                    error('mlpet:unsupportedSwitchCase', ...
                         'DecayCorrection.get.halflife did not recognize this.isotope -> %s', this.isotope);
             end
         end
@@ -44,56 +37,23 @@ classdef DecayCorrection < mlpet.IDecayCorrection
     methods
         function this = DecayCorrection(varargin)
             %% DECAYCORRECTION
- 			%  Usage:  this = this@mlpet.DecayCorrection(IWellData_client);
+ 			%  Usage:  this = this@mlpet.DecayCorrection(IAifData_obj|IWellData_obj);
 
-            p = inputParser;
-            addRequired(p, 'client',   @(x) isa(x, 'mlpet.IWellData'));
-            parse(p, varargin{:});
+            ip = inputParser;
+            addRequired( ip, 'client',  @(x) isa(x, 'mlpet.IAifData') || isa(x, 'mlpet.IWellData'));
+            parse(ip, varargin{:});
             
-            this.client_ = p.Results.client;
-            this.petio_ = mlpet.PETIO(p.Results.client.fqfilename);
-            this.isotope = this.client_.guessIsotope;            
+            this.client_ = ip.Results.client;
         end
-        function cnts = correctedCounts(this, cnts, varargin)
-            %% CORRECTEDCOUNTS corrects positron decay
-            %  Usage:  counts = this.correctedCounts(counts[, times, denom]) % numeric counts  
+        function c = correctedCounts(this, c, varargin)
+            %% CORRECTEDCOUNTS corrects positron decay from zero-time or this.client_.times(1). 
             
-            p = inputParser;
-            addRequired(p, 'cnts',                      @isnumeric);
-            addOptional(p, 'times', this.client_.times, @isnumeric);
-            parse(p, cnts, varargin{:});
-            
-            denom = ones(size(cnts));
-            if (isa(this.client_, 'mlpet.IScannerData'))
-                cnts = correctedScannerCounts(this, cnts, p.Results.times, denom, 1);
-            elseif (isa(this.client_, 'mlpet.IWellData'))
-                cnts = correctedWellCounts(   this, cnts, p.Results.times, denom, 1);
-            else
-                error('mlpet:unsupportedTypeClass', ...
-                      'DecayCorrection.correctedCounts does not support clients of type %s', class(this.client_));
-            end
+            c = this.adjustCounts(c, 1, varargin{:});
         end
-        function cnts = uncorrectedCounts(this, cnts, varargin)
-            %% UNCORRECTEDCOUNTS reintroduces positron decay
-            %  Usage:  counts = this.uncorrectedCounts(counts[, times, denom]) % numeric counts  
+        function c = uncorrectedCounts(this, c, varargin)
+            %% UNCORRECTEDCOUNTS reintroduces positron decay from zero-time or this.client_.times(1).
             
-            p = inputParser;
-            addRequired(p, 'cnts',                      @isnumeric);
-            addOptional(p, 'times', this.client_.times, @isnumeric);
-            parse(p, cnts, varargin{:});
-            
-            denom = ones(size(cnts));
-            if (isa(this.client_, 'mlpet.IScannerData'))
-                cnts = correctedScannerCounts(this, cnts, p.Results.times, denom, -1);
-            elseif (isa(this.client_, 'mlpet.IWellData'))
-                cnts = correctedWellCounts(   this, cnts, p.Results.times, denom, -1);
-            else
-                error('mlpet:unsupportedTypeClass', ...
-                      'DecayCorrection.correctedCounts does not support clients of type %s', class(this.client_));
-            end
-        end
-        function l    = lambda(this)
-            l = log(2) / this.halfLife;
+            c = this.adjustCounts(c, -1, varargin{:});
         end
     end
     
@@ -101,33 +61,54 @@ classdef DecayCorrection < mlpet.IDecayCorrection
     
     properties (Access = 'private')
         client_
-        
-        petio_
-        isotope_
-        wellMatrix_
     end
     
-    methods (Access = 'private')
-        function cnts = correctedWellCounts(this, cnts, times, denom, sig)
-            sig = sign(sig);
-            cnts = cnts .* exp(sig * this.lambda * times) ./ denom;
+    methods (Access = 'private')        
+        function c = adjustCounts(this, varargin)
+            %% ADJUSTCOUNTS (un)corrects positron decay from zero-time this.client_.times(1). 
+            
+            ip = inputParser;
+            addRequired(ip, 'c', @isnumeric);
+            addRequired(ip, 'sgn', @(x) abs(x) == 1);
+            addOptional(ip, 'tzero', 0, @isnumeric);
+            parse(ip, varargin{:});
+            if (isa(this.client_, 'mlpet.IScannerData'))
+                c = adjustScannerCounts(this, ip.Results.c, ip.Results.sgn, ip.Results.tzero);
+                return
+            end
+            if (isa(this.client_, 'mlpet.IAifData') || isa(this.client_, 'mlpet.IWellData'))
+                c = adjustAifCounts(   this, ip.Results.c, ip.Results.sgn, ip.Results.tzero);
+                return
+            end
+            error('mlpet:unsupportedTypeClass', ...
+                'DecayCorrection.correctedCounts does not support clients of type %s', class(this.client_));
         end
-        function cnts = correctedScannerCounts(this, cnts, times, denom, sig)
-            sig = sign(sig);
-            switch (length(size(cnts)))
+        function c = adjustAifCounts(this, c, sgn, tzero)
+            sgn   = sign(sgn);
+            times = this.client_.times - tzero;
+            c     = c.*exp(sgn*this.lambdaHalflife*times);
+        end
+        function c = adjustScannerCounts(this, c, sgn, tzero)
+            sgn   = sign(sgn);
+            times = this.client_.times - tzero;
+            switch (length(size(c)))
                 case 2
-                    cnts = cnts .* exp(sig * this.lambda * times(t)) ./ denom;
+                    c = c.*exp(sgn*this.lambdaHalflife*times);
                 case 3
-                    for t = 1:size(cnts,3)
-                        cnts(:,:,t) = cnts(:,:,t) .* exp(sig * this.lambda * times(t)) ./ denom(t);
+                    for t = 1:size(c,3)
+                        c(:,:,t) = c(:,:,t).*exp(sgn*this.lambdaHalflife*times(t));
                     end
                 case 4
-                    for t = 1:size(cnts,4)
-                        cnts(:,:,:,t) = cnts(:,:,:,t) .* exp(sig * this.lambda * times(t)) ./ denom(t);
+                    for t = 1:size(c,4)
+                        c(:,:,:,t) = c(:,:,:,t).*exp(sgn*this.lambdaHalflife*times(t));
                     end
                 otherwise
-                    error('mlpet:unsupportedArraySize', 'size(DecayCorrection.correctedScannerCounts.cnts) -> %s', mat2str(size(cnts)));
+                    error('mlpet:unsupportedArraySize', ...
+                          'size(DecayCorrection.adjustScannerCounts.cnts) -> %s', mat2str(size(c)));
             end 
+        end
+        function l = lambdaHalflife(this)
+            l = log(2) / this.halfLife;
         end
     end
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

@@ -12,7 +12,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
  	%  $Id$  
 
     properties 
-        manuallyRecordedPie
+        manuallyRecordedPie        
     end
     
     properties (Dependent)
@@ -21,22 +21,25 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
         
         scanIndex % integer, e.g., last char in 'p1234ho1'
         tracer % char, e.g., 'ho'
-        length % integer, number valid frames
         scanDuration % sec   
         header
         
         %% IScannerData
         
-        sessionData  
-        doseAdminTime  
+        sessionData
+        datetime0
+        doseAdminDatetime  
  		dt
         time0
         timeF
+        timeDuration
         times
         timeMidpoints %% cf. man petproc
         taus
         counts 
         becquerels
+        isotope
+        efficiencyFactor
         
         %% new 
        
@@ -45,11 +48,13 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
         nPixels
         pie
         recFqfilename
+        scannerTimeShift
         textParserRec
         tscCounts
         wellFactor
         wellFqfilename
-        wellCounts        
+        wellCounts      
+        W
     end 
 
     methods %% GET
@@ -63,10 +68,6 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
         function t    = get.tracer(this)
             names = regexp(this.component.fileprefix, mlpet.PETIO.TRACER_EXPR, 'names');
             t = names.tracer;
-        end
-        function l    = get.length(this)
-            assert(~isempty(this.times_));
-            l = length(this.times); %#ok<CPROP>
         end
         function sd   = get.scanDuration(this)
             assert(~isempty(this.times_));
@@ -86,15 +87,18 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
         function g    = get.sessionData(this)
             g = this.sessionData_;
         end
-        function t    = get.doseAdminTime(this)
-            t = this.header.doseAdminTime;
+        function t    = get.datetime0(this)
+            t = [];
+        end
+        function t    = get.doseAdminDatetime(this)
+            t = this.header.doseAdminDatetime;
         end
         function g    = get.dt(this)
             if (~isempty(this.dt_))
                 g = this.dt_;
                 return
             end            
-            g = min(this.taus)/2;
+            g = min(this.taus);
         end
         function this = set.dt(this, s)
             assert(isnumeric(s));
@@ -122,6 +126,16 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             assert(isnumeric(s));
             this.timeF_ = s;
         end
+        function g    = get.timeDuration(this)
+            g = this.timeF - this.time0;
+        end
+        function this = set.timeDuration(this, s)
+            if (isnumeric(s) && s < this.times(end) - this.time0);
+                this.timeF = this.time0 + s;
+                return
+            end
+            warning('mlpet:setPropertyIgnored', 'EcatExactHRPlus.set.timeDuration');
+        end
         function t    = get.times(this)
             assert(~isempty(this.times_));
             t = this.times_;
@@ -140,11 +154,11 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
         end
         function c    = get.counts(this)
             assert(~isempty(this.component.img));
-            if (size(this.component.img,4) > length(this.times)) %#ok<CPROP>
+            if (size(this.component.img,4) > length(this.times)) 
                 warning('mlpet:unexpectedDataSize', ...
                         'EcatExactHRPlus.get.counts found size(this.component)->%s, length(this.times)->%i', ...
-                        num2str(size(this.component)), length(this.times)); %#ok<CPROP>
-                this.component.img = this.component.img(:,:,:,1:length(this.times)); %#ok<CPROP>
+                        num2str(size(this.component)), length(this.times)); 
+                this.component.img = this.component.img(:,:,:,1:length(this.times)); 
             end
             c = this.component.img;
             c = double(c);
@@ -157,15 +171,37 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
         function b    = get.becquerels(this)
             b = this.petCounts2becquerels(this.counts);
         end
+        function i    = get.isotope(this)
+            tr = lower(this.tracer);
+            
+            % N.B. order of testing lstrfind
+            if (lstrfind(tr, {'ho' 'oo' 'oc' 'co'}))
+                i = '15O';
+                return
+            end
+            if (lstrfind(tr, 'fdg'))
+                i = '18F';
+                return
+            end 
+            if (lstrfind(tr, 'g'))
+                i = '11C';
+                return
+            end            
+            error('mlpet:indeterminatePropertyValue', ...
+                'EcatExactHRPlus.guessIsotope could not recognize the isotope of %s', this.tracer);
+        end  
+        function e    = get.efficiencyFactor(this)
+            e = this.W;
+        end
         
         %% new
         
         function fn  = get.hdrinfoFqfilename(this)
             pnum = str2pnum(this.component.fileprefix);
             dtl  = mlsystem.DirTool( ...
-                   fullfile(this.component.filepath, sprintf('%sho*.hdrinfo', pnum)));
+                   fullfile(this.component.filepath, '..', '..', 'hdr_backup', sprintf('%sho*.hdrinfo', pnum)));
             fn   = dtl.fqfns{1};
-        end  
+        end          
         function m   = get.mask(this)
             m = this.mask_;
         end
@@ -189,6 +225,9 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
                     'cp %s/%s%s%i.img.rec %s', ...
                     this.component.filepath, str2pnum(this.component.fileprefix), this.tracer, this.scanIndex, f));
             end
+        end
+        function t   = get.scannerTimeShift(this)
+            t = this.scannerTimeShift_;
         end
         function fp  = get.textParserRec(this)
             fp = this.textParserRec_;
@@ -216,7 +255,10 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
                     error('mlpet:IOError:fileNotFound', 'EcatExactHRPlust.get.wellFqfilename:  %s not found', f);
                 end
             end
-        end         
+        end      
+        function w   = get.W(this)
+            w = 60*this.dt*this.pie;
+        end
     end
     
     methods (Static)
@@ -232,20 +274,31 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
     
 	methods
  		function this = EcatExactHRPlus(cmp, varargin)
-            this = this@mlfourd.NIfTIdecoratorProperties(cmp, varargin{:});
+            assert(isa(cmp, 'mlfourd.INIfTI'));
+            this = this@mlfourd.NIfTIdecoratorProperties(cmp);
             if (nargin == 1 && isa(cmp, 'mlpet.EcatExactHRPlus'))
                 this = this.component;
                 return
             end
-            this = this.append_descrip('decorated by EcatExactHRPlus');
-            assert(lexist(this.recFqfilename), ...
-                'mlpet.EcatExactHRPlus.ctor:  requires *.img.rec from ecattoanalyze');     
+            
+            ip = inputParser;
+            addParameter(ip, 'sessionData', []);
+            addParameter(ip, 'scannerTimeShift', 0, @isnumeric);
+            parse(ip, varargin{:});
+            this.sessionData_ = ip.Results.sessionData;
+            this.scannerTimeShift_ = ip.Results.scannerTimeShift;
+            
+            this = this.append_descrip('decorated by EcatExactHRPlus');   
             this = this.readRec;
             this = this.readWellMatrix; 
             this = this.setTimeMidpoints;
             this = this.readPie;
+            this = this.shiftTimes(this.scannerTimeShift);
         end 
         
+        function len  = length(this)
+            len = length(this.times);
+        end
         function this = save(this)
             this.component.fqfileprefix = sprintf('%s_%s', this.component.fqfileprefix, datestr(now, 30));
             this.component.save;
@@ -254,15 +307,22 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             this.component.fqfilename = fqfn;
             this.save;
         end        
-        
+        function this = shiftTimes(this, Dt)
+            if (0 == Dt); return; end
+            if (2 == length(this.component.size))                
+                [this.times_,this.component.img] = shiftVector(this.times_, this.component.img, Dt);
+                return
+            end
+            [this.times_,this.component.img] = shiftTensor(this.times_, this.component.img, Dt);
+        end
         function [t,this] = timeInterpolants(this, varargin)
-            if (~isempty(this.timesInterpolants_))
-                t = this.timesInterpolants_;
+            if (~isempty(this.timeInterpolants_))
+                t = this.timeInterpolants_;
                 return
             end
             
             t = this.time0:this.dt:this.timeF;
-            this.timesInterpolants_ = t;
+            this.timeInterpolants_ = t;
             if (~isempty(varargin))
                 t = t(varargin{:}); end
         end
@@ -283,7 +343,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
                 return
             end
             
-            t = this.dt*ones(1, length(this.timeInterpolants)); %#ok<CPROPLC>
+            t = this.dt*ones(1, length(this.timeInterpolants)); 
             this.tauInterpolants_ = t;
             if (~isempty(varargin))
                 t = t(varargin{:}); end
@@ -300,30 +360,29 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             if (~isempty(varargin))
                 c = c(varargin{:}); end
         end        
-        
-        function i    = guessIsotope(this)
-            tr = lower(this.tracer);
-            if (lstrfind(tr, {'ho' 'oo' 'oc' 'co'}))
-                i = '15O';
-                return
-            end
-            if (lstrfind(tr, 'fdg'))
-                i = '18F';
-                return
-            end 
-            if (lstrfind(tr, 'g'))
-                i = '11C';
-                return
-            end            
-            error('mlpet:indeterminatePropertyValue', ...
-                'EcatExactHRPlus.guessIsotope could not recognize the isotope of %s', this.tracer);
-        end         
+            
+        function this = blurred(this, blur)
+            bl = mlfourd.BlurringNIfTId(this.component);
+            bl = bl.blurred(blur);
+            this.component = bl.component;
+        end
         function this = masked(this, msk)
             assert(isa(msk, 'mlfourd.INIfTI'));
             this.mask_ = msk;
             dyn = mlfourd.DynamicNIfTId(this.component); %% KLUDGE to work-around faults with decorators in matlab
             dyn = dyn.masked(msk);
             this.component = dyn.component;
+        end
+        function this = petobs(this)
+            this.fileprefix = [this.fileprefix '_obs'];
+            
+            [~,idx0] = max(this.times >= this.time0);
+            [~,idxF] = max(this.times >= this.timeF);
+            if (idx0 == idxF)
+                this.img = squeeze(this.counts);
+                return
+            end
+            this.img = trapz(this.times(idx0:idxF), this.counts(:,:,:,idx0:idxF), 4);
         end
         function this = timeSummed(this)
             dyn = mlfourd.DynamicNIfTId(this.component); %% KLUDGE to work-around faults with decorators in matlab
@@ -340,6 +399,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             dyn = mlfourd.DynamicNIfTId(this.component); %% KLUDGE to work-around faults with decorators in matlab
             dyn = dyn.volumeSummed;
             this.component = dyn.component;
+            this.component.img = this.component.img';
         end
         function wc   = wellCountInterpolants(this, varargin)
             wc = pchip(this.times, this.wellCounts, this.timeInterpolants);
@@ -354,6 +414,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
     
     properties (Access = 'protected')
         sessionData_
+        
         dt_
         time0_
         timeF_
@@ -367,12 +428,15 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
         header_
         mask_
         pie_
+        scannerTimeShift_
         textParserRec_
         wellMatrix_
     end
     
     methods (Access = 'protected')
         function this = readRec(this)
+            assert(lexist(this.recFqfilename), ...
+                'mlpet.EcatExactHRPlus.readRec:  requires *.img.rec from ecattoanalyze');  
             try
                 tp = mlio.TextParser.loadx(this.recFqfilename, '.img.rec');
                 this = this.readHeader(tp);
@@ -385,7 +449,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             end
         end
         function this = readHeader(this, txtPars)
-            this.header_.doseAdminTime  = txtPars.parseAssignedNumeric('Start time');
+            this.header_.doseAdminDatetime  = txtPars.parseAssignedNumeric('Start time');
             this.header_.string         = char(txtPars);
         end
         function this = readSchedule(this, txtPars)
@@ -414,7 +478,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             
         end
         function this = readTimes(this)
-            this.times_ = this.header.start + this.header.doseAdminTime;
+            this.times_ = this.header.start + this.header.doseAdminDatetime;
             % decay corrections must be to time of injection
         end
         function this = readTaus(this)
@@ -449,10 +513,10 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             end            
         end
         function img  = petCounts2becquerels(this, img)
-            %% PETCOUNTS2BECQUERELS; cf. man pie; does not divide out number of pixels.
+            %% PETCOUNTS2BECQUERELS; cf. man pie; does not divide out number/volume of pixels.
             
             img = double(img);
-            switch (length(size(img))) %#ok<CPROPLC>
+            switch (length(size(img))) 
                 case 2
                     img = img * this.pie ./ this.taus'; % taus in sec <-> taus in min * 60
                 case 3
@@ -468,12 +532,12 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             end
         end
         function img  = petCounts2wellCounts(this, img)
-            %% PETCOUNTS2WELLCOUNTS; cf. man pie; does not divide out number of pixels.
+            %% PETCOUNTS2WELLCOUNTS; cf. man pie; does not divide out number/volume of pixels.
                         
             img = double(img);
-            switch (length(size(img))) %#ok<CPROPLC>
+            switch (length(size(img))) 
                 case 2
-                    img = img .* this.taus' * this.pie; % taus in sec <-> taus in min * 60
+                    img = img .* this.taus(1:length(img)) * this.pie; % taus in sec <-> taus in min * 60
                 case 3
                     for t = 1:size(img, 3)
                         img(:,:,t) = img(:,:,t) * this.taus(t) * this.pie; % taus in sec <-> taus in min * 60
@@ -487,10 +551,10 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             end
         end
         function img  = petCounts2tscCounts(this, img)
-            %% PETCOUNTS2TSCCOUNTS; cf. man pie, mlpet.TSC; does not divide out number of pixels.
+            %% PETCOUNTS2TSCCOUNTS; cf. man pie, mlpet.TSC; does not divide out number/volume of pixels.
             
             img = double(img);
-            switch (length(size(img))) %#ok<CPROPLC>
+            switch (length(size(img))) 
                 case 2
                     img = img .* 60 * this.pie;
                 case 3

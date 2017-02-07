@@ -68,9 +68,6 @@ classdef DTA < mlpet.AbstractWellData
     %%
 
     properties (Constant)
-        EXTENSION = '.dta'        
-        TIMES_UNITS = 'sec'
-        COUNTS_UNITS = 'well-counter events/mL/sec'
         READ_HEADER_EXP1 = ...
             '(?<pnumber>p\d{4})\s+\w*\s*\w*\s*(?<dateScan>\d+(/|-)\d+(/|-)\d+)\s+(?<studyCode>\w+)(?<petIndex>\d)\s+(?<dateProcessing>\d+(/|-)\d+(/|-)\d+)\s+(?<author>\w+)'
         READ_HEADER_EXP2 = ...
@@ -149,7 +146,7 @@ classdef DTA < mlpet.AbstractWellData
             this = this@mlpet.AbstractWellData(fileLoc);
             
             if (isempty(this.filesuffix))
-                this.petio_.filesuffix = this.EXTENSION; 
+                this.petio_.filesuffix = '.dta'; 
             end
         end
         function b    = becquerelInterpolants(this, varargin)

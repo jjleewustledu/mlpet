@@ -62,9 +62,6 @@ classdef Test_DecayCorrectedCRV < matlab.unittest.TestCase
         function test_isotope(this)
             this.verifyEqual(this.testObj.isotope, '15O');
         end
-        function test_halfLife(this)
-            this.verifyEqual(this.testObj.halfLife, 122.1);
-        end
         function test_wellFactor(this)            
             this.verifyEqual(this.testObj.wellFactor, 11.3142);
         end

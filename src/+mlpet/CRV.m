@@ -10,12 +10,7 @@ classdef CRV < mlpet.AbstractWellData
  	%  and checked into repository $URL$,  
  	%  developed on Matlab 8.3.0.532 (R2014a) 
  	%  $Id$  	 
-
-    properties (Constant)
-        EXTENSION = '.crv'
-        TIMES_UNITS = 'sec'
-        COUNTS_UNITS = 'beta-detector events'
-    end
+    
     
     methods (Static)
         function this = load(fileLoc)
@@ -33,7 +28,7 @@ classdef CRV < mlpet.AbstractWellData
 
             this = this@mlpet.AbstractWellData(fileLoc);
             if (isempty(this.filesuffix))
-                this.petio_.filesuffix = this.EXTENSION; end
+                this.petio_.filesuffix = '.crv'; end
             this = this.readcrv;
         end  
         function save(~)

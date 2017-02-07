@@ -13,9 +13,11 @@ classdef Bloodxlsx < mlpet.IBloodData
  		 xlsxFilename
          sheetLabel
          dryWeight  % as col vector
-         wetWeight  % as col vector
+         wetWeight  % as col vector         
+         drawn
          drawnMin   % as col vector
          drawnSec   % as col vector
+         counted
          countedMin % as col vector
          countedSec % as col vector
          counts     % as col vector
@@ -26,7 +28,7 @@ classdef Bloodxlsx < mlpet.IBloodData
          scanDate = ''
          scanIndex = nan
          scanType = nan
- 	end 
+    end 
 
 	methods 		  
  		function this = Bloodxlsx(varargin) 

@@ -1,6 +1,6 @@
-classdef AbstractAifData < mlpet.IAifData & mlio.IOInterface
+classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
 	%% ABSTRACTAIFDATA
-    %  Yet abstract:  counts, becquerels
+    %  Yet abstract:  properties counts, becquerels; static method load; method save
 
 	%  $Revision$
  	%  was created 29-Jan-2017 18:46:45
@@ -15,21 +15,23 @@ classdef AbstractAifData < mlpet.IAifData & mlio.IOInterface
         %% IAifData
         
         sessionData
+        datetime0
+        doseAdminDatetime
  		dt
         time0
         timeF
+        timeDuration
         times
+        timeMidpoints
+        taus
+        efficiencyFactor
+        isotope        
+        counts
+        becquerels
         
-        %% IOInterface
+        %% new
         
-        filename
-        filepath
-        fileprefix 
-        filesuffix
-        fqfilename
-        fqfileprefix
-        fqfn
-        fqfp        
+        W
     end
     
     methods %% GET, SET
@@ -37,159 +39,152 @@ classdef AbstractAifData < mlpet.IAifData & mlio.IOInterface
         %% IAifData
         
         function g    = get.sessionData(this)
-            g = this.sessionData_;
+            g = this.scannerData_.sessionData;
         end
         function this = set.sessionData(this, s)
             assert(isa(s, 'mlpipeline.SessionData'));
-            this.sessionData_ = s;
-        end        
+            this.scannerData_.sessionData = s;
+        end
+        function g    = get.datetime0(this)
+            g = this.timingData_.datetime0;
+        end
+        function this = set.datetime0(this, s)
+            this.timingData_.datetime0 = s;
+        end
+        function g    = get.doseAdminDatetime(this)
+            g = this.scannerData_.doseAdminDatetime;
+        end
+        function this = set.doseAdminDatetime(this, s)
+            assert(isa(s, 'datetime'));
+            this.scannerData_.doseAdminDatetime = s;
+        end
         function g    = get.dt(this)
-            if (~isempty(this.dt_))
-                g = this.dt_;
-                return
-            end            
-            g = min(this.times(2:end) - this.times(1:end-1))/2;
+            g = this.timingData_.dt;
         end
         function this = set.dt(this, s)
-            assert(isnumeric(s));
-            this.dt_ = s;
+            this.timingData_.dt = s;
         end
         function g    = get.time0(this)
-            if (~isempty(this.time0_))
-                g = this.time0_;
-                return
-            end            
-            g = this.times(1);
+            g = this.timingData_.time0;
         end
         function this = set.time0(this, s)
-            assert(isnumeric(s));
-            this.time0_ = s;
+            this.timingData_.time0 = s;
         end
         function g    = get.timeF(this)
-            if (~isempty(this.timeF_))
-                g = this.timeF_;
-                return
-            end            
-            g = this.times(end);
+            g = this.timingData_.timeF;
         end
         function this = set.timeF(this, s)
+            this.timingData_.timeF = s;
+        end
+        function g    = get.timeDuration(this)
+            g = this.timingData_.timeDuration;
+        end
+        function this = set.timeDuration(this, s)
+            if (isnumeric(s) && s < this.times(end) - this.time0)
+                this.timeF = this.time0 + s;
+                return
+            end            
+            warning('mlpet:setPropertyIgnored', 'AbstractAifData.set.timeDuration');
+        end
+        function g    = get.times(this)
+            g = this.timingData_.times;
+        end
+        function this = set.times(this, s)
+            this.timingData_.times = s;
+        end
+        function g    = get.timeMidpoints(this)
+            g = this.timingData_.timeMidpoints;
+        end
+        function g    = get.taus(this)
+            g = this.timingData_.taus;
+        end
+        function g    = get.efficiencyFactor(this)
+            g = this.efficiencyFactor_;
+        end
+        function g    = get.isotope(this)
+            g = this.scannerData_.isotope;
+        end
+        function g    = get.counts(this)
+            assert(~isempty(this.counts_));
+            if (length(this.counts_) > length(this.times)) 
+                warning('mlpet:unexpectedDataSize', ...
+                        'BloodSucker.get.counts found size(this.counts_)->%s, length(this.times)->%i', ...
+                        num2str(length(this.counts_)), length(this.times)); 
+                this.counts_ = this.counts_(1:length(this.times));
+            end
+            g = this.counts_;
+        end
+        function this = set.counts(this, s)
             assert(isnumeric(s));
-            this.timeF_ = s;
+            assert(length(s) == length(this.times));
+            this.counts_ = s;            
         end
-        function t    = get.times(this)
-            assert(~isempty(this.times_));
-            t = this.times_;
-        end
-        function this = set.times(this, t)
-            assert(isnumeric(t));
-            this.times_ = t;
+        function g    = get.becquerels(this)
+            g = this.efficiencyFactor*this.counts./this.taus;
         end
         
-        %% IOInterface
+        %% new
         
-        function f = get.filename(this)
-            f = this.petio_.filename;
-        end
-        function f = get.filepath(this)
-            f = this.petio_.filepath;
-        end
-        function f = get.fileprefix(this)
-            f = this.petio_.fileprefix;
-        end
-        function f = get.filesuffix(this)
-            f = this.petio_.filesuffix;
-        end
-        function f = get.fqfilename(this)
-            f = this.petio_.fqfilename;
-        end
-        function f = get.fqfileprefix(this)
-            f = this.petio_.fqfileprefix;
-        end
-        function f = get.fqfn(this)
-            f = this.petio_.fqfn;
-        end
-        function f = get.fqfp(this)
-            f = this.petio_.fqfp;
+        function g = get.W(this)
+            g = this.scannerData_.W*this.dt/this.scannerData_.dt;
         end
     end
 
 	methods 
  		function this = AbstractAifData(varargin)
             ip = inputParser;
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'scannerData', [], @(x) isa(x, 'mlpet.IScannerData'));
             parse(ip, varargin{:});
             
-            this.sessionData_ = ip.Results.sessionData;
-            this.petio_ = mlpet.PETIO(this.sessionData.aif('typ', 'fqfn'));
+            this.scannerData_ = ip.Results.scannerData;
+            this.timingData_ = mldata.TimingData;
         end
         
         %% IAifData
         
-        function [t,this] = timeInterpolants(this, varargin)
-            if (~isempty(this.timesInterpolants_))
-                t = this.timesInterpolants_;
-                return
-            end
-            
-            t = this.time0:this.dt:this.timeF;
-            this.timesInterpolants_ = t;
-            if (~isempty(varargin))
-                t = t(varargin{:}); end
+        function len      = length(this)
+            len = this.timingData_.length;
         end
-        function c = countInterpolants(this, varargin)
+        function [t,this] = timeInterpolants(this, varargin)
+            [t,this] = this.timingData_.timeInterpolants(varargin{:});
+        end
+        function [t,this] = timeMidpointInterpolants(this, varargin)
+            [t,this] = this.timingData_.timeMidpointInterpolants(varargin{:});
+        end
+        function [t,this] = tauInterpolants(this, varargin)
+            [t,this] = this.timingData_.tauInterpolants(varargin{:});
+        end    
+        function c        = countInterpolants(this, varargin)
             c = pchip(this.times, this.counts, this.timeInterpolants);            
             if (~isempty(varargin))
                 c = c(varargin{:}); end
         end
-        function b = becquerelInterpolants(this, varargin)
+        function ci       = countsIntegral(this)
+            [~,idx0] = max(this.times >= this.time0);
+            [~,idxF] = max(this.times >= this.timeF);
+            ci = trapz(this.times(idx0:idxF), this.counts(idx0:idxF));
+        end
+        function b        = becquerelInterpolants(this, varargin)
             b = pchip(this.times, this.becquerels, this.timeInterpolants);            
             if (~isempty(varargin))
                 b = b(varargin{:}); end
-        end        
-        
-        %% IOInterface
-        
-        function c = char(this)
-            c = this.fqfilename;
         end
-        
-        %% new
-        
-        function i = guessIsotope(this)
-            tr = lower(this.sessionData.tracer);
-            if (lstrfind(tr, {'ho' 'oo' 'oc' 'co'}))
-                i = '15O';
-                return
-            end
-            if (lstrfind(tr, 'fdg'))
-                i = '18F';
-                return
-            end 
-            if (lstrfind(tr, 'g'))
-                i = '11C';
-                return
-            end            
-            error('mlpet:indeterminatePropertyValue', ...
-                'AbstractAifData.guessIsotope could not recognize the isotope of %s', this.sessionData.tracer);
-        end 
+        function bi       = becquerelsIntegral(this)
+            [~,idx0] = max(this.times >= this.time0);
+            [~,idxF] = max(this.times >= this.timeF);
+            bi = trapz(this.times(idx0:idxF), this.becquerels(idx0:idxF));
+        end
     end 
     
     %% PROTECTED
     
     properties (Access = protected)
-        sessionData_
-        dt_
-        time0_
-        timeF_
-        times_   
-        timesInterpolants_
-    end
-    
-    %% PRIVATE
-    
-    properties (Access = private)
-        petio_
-    end    
+        counts_
+        efficiencyFactor_ = nan
+        scannerData_
+        timingData_
+    end  
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end

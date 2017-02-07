@@ -15,7 +15,6 @@ classdef IWellData
     
     properties (Abstract)
         header
-        length % integer, number valid frames
         noclobber
         scanDuration % sec  
         scanIndex % integer, e.g., last char in 'p1234ho1'

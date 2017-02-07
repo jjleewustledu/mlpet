@@ -13,18 +13,15 @@ classdef (Abstract) IBloodData
 	properties (Abstract)	 
          dryWeight  % as col vector
          wetWeight  % as col vector
+         drawn      % datetime
          drawnMin   % as col vector
          drawnSec   % as col vector
+         counted    % datetime
          countedMin % as col vector
          countedSec % as col vector
          counts     % as col vector
-         nSyringes
+         nSyringes  % quantity of syringes used
          variableCountTime % as col vector
-         
-         pNumber
-         scanDate
-         scanIndex
-         scanType
  	end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
