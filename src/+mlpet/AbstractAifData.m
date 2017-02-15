@@ -10,6 +10,10 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
  	
 
+    properties
+        pumpRate = 5 % mL/min
+    end
+    
 	properties (Dependent)
         
         %% IAifData
@@ -18,6 +22,8 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         datetime0
         doseAdminDatetime
  		dt
+        index0
+        indexF
         time0
         timeF
         timeDuration
@@ -31,6 +37,9 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         
         %% new
         
+        becquerelsPerCC % Bq/cc
+        decaysPerCC % Bq*s/cc
+        specificActivity
         W
     end
     
@@ -64,6 +73,18 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         function this = set.dt(this, s)
             this.timingData_.dt = s;
         end
+        function g    = get.index0(this)
+            g = this.timingData_.index0;
+        end
+        function this = set.index0(this, s)
+            this.timingData_.index0 = s;
+        end
+        function g    = get.indexF(this)
+            g = this.timingData_.indexF;
+        end
+        function this = set.indexF(this, s)
+            this.timingData_.indexF = s;
+        end
         function g    = get.time0(this)
             g = this.timingData_.time0;
         end
@@ -80,11 +101,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             g = this.timingData_.timeDuration;
         end
         function this = set.timeDuration(this, s)
-            if (isnumeric(s) && s < this.times(end) - this.time0)
-                this.timeF = this.time0 + s;
-                return
-            end            
-            warning('mlpet:setPropertyIgnored', 'AbstractAifData.set.timeDuration');
+            this.timingData_.timeDuration = s;
         end
         function g    = get.times(this)
             g = this.timingData_.times;
@@ -106,12 +123,6 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         end
         function g    = get.counts(this)
             assert(~isempty(this.counts_));
-            if (length(this.counts_) > length(this.times)) 
-                warning('mlpet:unexpectedDataSize', ...
-                        'BloodSucker.get.counts found size(this.counts_)->%s, length(this.times)->%i', ...
-                        num2str(length(this.counts_)), length(this.times)); 
-                this.counts_ = this.counts_(1:length(this.times));
-            end
             g = this.counts_;
         end
         function this = set.counts(this, s)
@@ -120,14 +131,40 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             this.counts_ = s;            
         end
         function g    = get.becquerels(this)
+            assert(length(this.counts) == length(this.taus), 'mlpet:arraySizeMismatch', 'AbstractAifData.get.becquerels');
             g = this.efficiencyFactor*this.counts./this.taus;
+        end
+        function this = set.becquerels(this, s)
+            this.counts_ = s.*this.taus/this.efficiencyFactor;
         end
         
         %% new
         
-        function g = get.W(this)
+        function g    = get.becquerelsPerCC(this)
+            g = this.becquerels/this.visibleVolume;
+        end
+        function this = set.becquerelsPerCC(this, s)
+            this.counts_ = this.visibleVolume*s.*this.taus/this.efficiencyFactor;
+        end
+        function g    = get.decaysPerCC(this)
+            g = this.becquerelsPerCC.*this.taus;
+        end
+        function this = set.decaysPerCC(this, s)
+            this.counts_ = this.visibleVolume*s/this.efficiencyFactor;
+        end
+        function g    = get.specificActivity(this)
+            g = this.(this.scannerData_.SPECIFIC_ACTIVITY_KIND);
+        end
+        function this = set.specificActivity(this, s)
+            this.(this.scannerData_.SPECIFIC_ACTIVITY_KIND) = s;
+        end
+        function g    = get.W(this)
             g = this.scannerData_.W*this.dt/this.scannerData_.dt;
         end
+    end
+    
+    methods (Abstract)
+        v = visibleVolume(this)
     end
 
 	methods 
@@ -139,6 +176,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             
             this.scannerData_ = ip.Results.scannerData;
             this.timingData_ = mldata.TimingData;
+            this.timingData_.dt = this.scannerData_.dt;
         end
         
         %% IAifData
@@ -160,20 +198,42 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             if (~isempty(varargin))
                 c = c(varargin{:}); end
         end
-        function ci       = countsIntegral(this)
-            [~,idx0] = max(this.times >= this.time0);
-            [~,idxF] = max(this.times >= this.timeF);
-            ci = trapz(this.times(idx0:idxF), this.counts(idx0:idxF));
-        end
         function b        = becquerelInterpolants(this, varargin)
             b = pchip(this.times, this.becquerels, this.timeInterpolants);            
             if (~isempty(varargin))
                 b = b(varargin{:}); end
         end
+        function ci       = countsIntegral(this)
+            idx0 = this.index0;
+            idxF = this.indexF;
+            ci = trapz(this.times(idx0:idxF), this.counts(idx0:idxF));
+        end
         function bi       = becquerelsIntegral(this)
-            [~,idx0] = max(this.times >= this.time0);
-            [~,idxF] = max(this.times >= this.timeF);
+            idx0 = this.index0;
+            idxF = this.indexF;
             bi = trapz(this.times(idx0:idxF), this.becquerels(idx0:idxF));
+        end
+        
+        %% new
+        
+        function bi       = becquerelsPerCCIntegral(this)
+            idx0 = this.index0;
+            idxF = this.indexF;
+            bi = trapz(this.times(idx0:idxF), this.becquerelsPerCC(idx0:idxF));
+        end
+        function di       = decaysPerCCIntegral(this)
+            idx0 = this.index0;
+            idxF = this.indexF;
+            di = trapz(this.times(idx0:idxF), this.decaysPerCC(idx0:idxF));
+        end
+        function sa       = specificActivityIntegral(this)
+            sa = this.becquerelsPerCCIntegral;
+        end      
+        function s        = datetime2sec(this, dt)
+            s = this.timingData_.datetime2sec(dt);
+        end
+        function dt       = sec2datetime(this, s)
+            dt = this.timingData_.sec2datetime(s);
         end
     end 
     

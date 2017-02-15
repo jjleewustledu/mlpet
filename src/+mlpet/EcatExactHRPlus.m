@@ -130,7 +130,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             g = this.timeF - this.time0;
         end
         function this = set.timeDuration(this, s)
-            if (isnumeric(s) && s < this.times(end) - this.time0);
+            if (isnumeric(s) && s < this.times(end) - this.time0)
                 this.timeF = this.time0 + s;
                 return
             end
@@ -507,7 +507,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             end
         end
         function this = setTimeMidpoints(this)
-            this.timeMidpoints_ = this.times;
+            this.timeMidpoints_ = this.times; %% KLUDGE?
             for t = 2:this.length
                 this.timeMidpoints_(t) = (this.times(t-1) + this.times(t))/2;
             end            

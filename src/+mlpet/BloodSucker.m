@@ -75,6 +75,9 @@ classdef BloodSucker < mlpet.AbstractAifData
         function wi   = wellCountsIntegral(this)
             wi = this.countsIntegral;
         end
+        function v    = visibleVolume(this)
+            v = this.pumpRate*min(this.taus)/60;
+        end
     end 
     
     %% PROTECTED
