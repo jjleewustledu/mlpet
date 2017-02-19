@@ -19,10 +19,11 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         %% IAifData
         
         sessionData
-        datetime0
+        datetime0 % determines datetime of this.times(1)
         doseAdminDatetime
  		dt
         index0
+        interpolatedTimeShift
         indexF
         time0
         timeF
@@ -85,6 +86,16 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         function this = set.indexF(this, s)
             this.timingData_.indexF = s;
         end
+        function g    = get.interpolatedTimeShift(this)
+            g = this.timingData_.interpolatedTimeShift;
+        end
+        function this = set.interpolatedTimeShift(this, s)
+            if (abs(s) > 0)
+                this.timingData_.interpolatedTimeShift = s;
+                this.decayCorrection_ = mlpet.DecayCorrection(this);
+                [~,this.counts] = this.decayCorrection_.shiftUncorrectedCounts(this.times, this.counts, s);
+            end
+        end
         function g    = get.time0(this)
             g = this.timingData_.time0;
         end
@@ -131,31 +142,34 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             this.counts_ = s;            
         end
         function g    = get.becquerels(this)
-            assert(length(this.counts) == length(this.taus), 'mlpet:arraySizeMismatch', 'AbstractAifData.get.becquerels');
-            g = this.efficiencyFactor*this.counts./this.taus;
+            g = this.becquerelsPerCC_.*this.visibleVolume;
         end
         function this = set.becquerels(this, s)
-            this.counts_ = s.*this.taus/this.efficiencyFactor;
+            assert(isnumeric(s));
+            this.becquerelsPerCC_ = s./this.visibleVolume;
         end
         
         %% new
         
         function g    = get.becquerelsPerCC(this)
-            g = this.becquerels/this.visibleVolume;
+            g = this.becquerelsPerCC_;
         end
         function this = set.becquerelsPerCC(this, s)
-            this.counts_ = this.visibleVolume*s.*this.taus/this.efficiencyFactor;
+            assert(isnumeric(s));
+            this.becquerelsPerCC_ = s;
         end
         function g    = get.decaysPerCC(this)
             g = this.becquerelsPerCC.*this.taus;
         end
         function this = set.decaysPerCC(this, s)
-            this.counts_ = this.visibleVolume*s/this.efficiencyFactor;
+            assert(isnumeric(s));
+            this.becquerelsPerCC = s./this.taus;
         end
         function g    = get.specificActivity(this)
             g = this.(this.scannerData_.SPECIFIC_ACTIVITY_KIND);
         end
         function this = set.specificActivity(this, s)
+            assert(isnumeric(s));
             this.(this.scannerData_.SPECIFIC_ACTIVITY_KIND) = s;
         end
         function g    = get.W(this)
@@ -240,7 +254,9 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
     %% PROTECTED
     
     properties (Access = protected)
+        becquerelsPerCC_
         counts_
+        decayCorrection_
         efficiencyFactor_ = nan
         scannerData_
         timingData_

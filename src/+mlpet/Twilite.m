@@ -9,6 +9,10 @@ classdef Twilite < mlpet.AbstractAifData
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
  	
     
+    properties (Constant)
+        VISIBLE_VOLUME = 0.14
+    end
+    
 	properties (Dependent)
         tableTwilite
     end
@@ -34,16 +38,18 @@ classdef Twilite < mlpet.AbstractAifData
             addParameter(ip, 'scannerData', @(x) isa(x, 'mlpet.IScannerData'));
             addParameter(ip, 'twiliteCrv', '', @(x) lexist(x, 'file'));
             addParameter(ip, 'aifTimeShift', 0, @isnumeric);
-            addParameter(ip, 'efficiencyFactor', 51.74, @isnumeric); % 0.5654*0.487/7.775e-3, 223*0.304
+            addParameter(ip, 'efficiencyFactor', 0.5654*0.487/7.775e-3, @isnumeric); % 0.5654*0.487/7.775e-3, 223*0.304, 51.74
             parse(ip, varargin{:});
             
  			this = this@mlpet.AbstractAifData('scannerData', ip.Results.scannerData);
             this.fqfilename = ip.Results.twiliteCrv;
             this.tableTwilite_ = this.readtable;
             this.timingData_ = this.updatedTimingData;
-            this.timingData_.interpolatedTimeShift = ip.Results.aifTimeShift;
+            this.efficiencyFactor_ = ip.Results.efficiencyFactor;          
             this.counts_ = this.tableTwilite2counts;
-            this.efficiencyFactor_ = ip.Results.efficiencyFactor;
+            this.interpolatedTimeShift = ip.Results.aifTimeShift;  
+            assert(length(this.counts) == length(this.taus), 'mlpet:arraySizeMismatch', 'Twilite.ctor');
+            this.becquerelsPerCC_ = this.efficiencyFactor*this.counts./this.taus./this.visibleVolume;
         end
         
         function this = crossCalibrate(this, varargin)
@@ -87,8 +93,8 @@ classdef Twilite < mlpet.AbstractAifData
             assert(isnumeric(Dt) && isscalar(Dt));
             this.timingData_.interpolatedTimeShift = Dt;
         end
-        function v    = visibleVolume(~)
-            v = 0.14; % empirically measured on Twilite
+        function v    = visibleVolume(this)
+            v = this.VISIBLE_VOLUME*ones(size(this.times)); % empirically measured on Twilite
         end
     end
     
@@ -114,6 +120,7 @@ classdef Twilite < mlpet.AbstractAifData
             td.times = this.tableTwilite2times;
             td.time0 = td.datetime2sec(this.scannerData_.sec2datetime(this.scannerData_.time0));
             td.timeF = td.datetime2sec(this.scannerData_.sec2datetime(this.scannerData_.timeF));
+            td.dt = min(td.taus)/2;
         end
     end
 

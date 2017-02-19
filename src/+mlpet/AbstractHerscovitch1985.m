@@ -42,6 +42,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
         ooPeakTime   % time of peak of O[15O] AIF
         ooFracTime   % time of measuring H2[15O] of metabolism in plasma 
         fracHOMetab % fraction of H2[15O] in whole blood
+        resolveTag = 'op_fdg'
     end
 
 	properties (Dependent)
@@ -186,7 +187,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
             sc = sc.petobs;
             sc.img = sc.img*this.MAGIC;            
             sc.img = this.a1*sc.img.*sc.img + this.a2*sc.img;
-            sc.fileprefix = this.sessionData.cbf('typ', 'fp');
+            sc.fileprefix = this.sessionData.cbf('typ','fp','suffix',this.resolveTag);
             sc = sc.blurred(this.petPointSpread);
             this.product_ = mlpet.PETImagingContext(sc.component);
         end
@@ -194,8 +195,8 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
             this  = this.ensureMask;
             mskvs = this.mask.volumeSummed;
             
-            if (lexist(this.sessionData.cbf('typ','fqfn')))
-                cbf_ = this.sessionData.cbf('typ','mlpet.PETImagingContext');
+            if (lexist(this.sessionData.cbf('typ','fqfn','suffix',this.resolveTag)))
+                cbf_ = this.sessionData.cbf('typ','mlpet.PETImagingContext','suffix',this.resolveTag);
             else
                 this = this.buildCbfMap;
                 cbf_ = this.product;
@@ -248,8 +249,8 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
             this  = this.ensureMask;
             mskvs = this.mask.volumeSummed;
             
-            if (lexist(this.sessionData.cbv('typ','fqfn')))
-                cbv_ = this.sessionData.cbv('typ','mlpet.PETImagingContext');
+            if (lexist(this.sessionData.cbv('typ','fqfn','suffix',this.resolveTag)))
+                cbv_ = this.sessionData.cbv('typ','mlpet.PETImagingContext','suffix',this.resolveTag);
             else
                 this = this.buildCbvMap;
                 cbv_ = this.product;
@@ -276,15 +277,15 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
             dimg = this.oefDenom;
             sc.img = this.is0to1(nimg./dimg);
             sc = sc.blurred(this.petPointSpread);
-            sc.fileprefix = this.sessionData.oef('typ', 'fp');
+            sc.fileprefix = this.sessionData.oef('typ','fp','suffix',this.resolveTag);
             this.product_ = mlpet.PETImagingContext(sc.component);
         end
         function this = buildOefWholebrain(this, varargin)
             this  = this.ensureMask;
             mskvs = this.mask.volumeSummed;
             
-            if (lexist(this.sessionData.cbv('typ','fqfn')))
-                oef_ = this.sessionData.cbv('typ','mlpet.PETImagingContext');
+            if (lexist(this.sessionData.oef('typ','fqfn','suffix',this.resolveTag)))
+                oef_ = this.sessionData.oef('typ','mlpet.PETImagingContext');
             else
                 this = this.buildOefMap;
                 oef_ = this.product;
@@ -292,6 +293,20 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
             oef_  = oef_.masked(this.mask.niftid);
             oefvs = oef_.volumeSummed;
             this.product_ = oefvs.double/mskvs.double;
+        end
+        function this = buildCmro2Wholebrain(this, varargin)
+            this  = this.ensureMask;
+            mskvs = this.mask.volumeSummed;
+            
+            if (lexist(this.sessionData.cmro2('typ','fqfn','suffix',this.resolveTag)))
+                cmro2_ = this.sessionData.cmro2('typ','mlpet.PETImagingContext');
+            else
+                this = this.buildCmro2Map;
+                cmro2_ = this.product;
+            end
+            cmro2_  = cmro2_.masked(this.mask.niftid);
+            cmro2vs = cmro2_.volumeSummed;
+            this.product_ = cmro2vs.double/mskvs.double;
         end
         
         %% support for buildOefWholebrain
@@ -316,7 +331,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
             img = img .* ~isnan(img);
             img = img .* (img > 0) .* (img < 1);
             
-            msk = mlfourd.ImagingContext(fullfile(this.sessionData.vLocation, 'brainmaskBinarized.4dfp.ifh'));
+            msk = this.sessionData.mask('typ','mlfourd.ImagingContext');
             msk = msk.blurred(this.petPointSpread);
             img = img.*msk.niftid.img;
             img = img/dipmax(img);

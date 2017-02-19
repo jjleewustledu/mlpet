@@ -45,6 +45,25 @@ classdef DecayCorrection
             
             this.client_ = ip.Results.client;
         end
+        function [t,c] = shiftCorrectedCounts(~, t, c, Dtzero)
+            assert(isnumeric(c));
+            assert(isnumeric(Dtzero));
+            if (abs(Dtzero) < eps)
+                return
+            end
+            [t,c] = shiftNumeric(t, c, Dtzero, false);
+        end
+        function [t,c] = shiftUncorrectedCounts(this, t, c, Dtzero)
+            assert(isnumeric(c));
+            assert(isnumeric(Dtzero));
+            tzero = seconds(this.client_.doseAdminDatetime - this.client_.datetime0) - Dtzero;
+            if (abs(tzero) < eps)
+                return
+            end
+            c = this.correctedCounts(c, tzero);
+            [t,c] = shiftNumeric(t, c, Dtzero, false);
+            c = this.uncorrectedCounts(c, tzero);
+        end
         function c = correctedCounts(this, c, varargin)
             %% CORRECTEDCOUNTS corrects positron decay from zero-time or this.client_.times(1). 
             
@@ -71,13 +90,17 @@ classdef DecayCorrection
             addRequired(ip, 'c', @isnumeric);
             addRequired(ip, 'sgn', @(x) abs(x) == 1);
             addOptional(ip, 'tzero', 0, @isnumeric);
-            parse(ip, varargin{:});
+            parse(ip, varargin{:});            
+            if (abs(ip.Results.tzero) < eps)
+                c = ip.Results.c;
+                return
+            end
             if (isa(this.client_, 'mlpet.IScannerData'))
                 c = adjustScannerCounts(this, ip.Results.c, ip.Results.sgn, ip.Results.tzero);
                 return
             end
             if (isa(this.client_, 'mlpet.IAifData') || isa(this.client_, 'mlpet.IWellData'))
-                c = adjustAifCounts(   this, ip.Results.c, ip.Results.sgn, ip.Results.tzero);
+                c = adjustAifCounts(    this, ip.Results.c, ip.Results.sgn, ip.Results.tzero);
                 return
             end
             error('mlpet:unsupportedTypeClass', ...

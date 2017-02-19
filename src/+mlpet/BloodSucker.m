@@ -56,9 +56,11 @@ classdef BloodSucker < mlpet.AbstractAifData
             this.fqfilename      = this.bloodSuckerDcv_.fqfilename;
             
             dc = DecayCorrection(this);
-            this.counts_ = dc.uncorrectedCounts(this.counts_, -this.aifTimeShift);
             this = this.shiftTimes(this.aifTimeShift);
-            this = this.estimateEfficiencyFactor;
+            this = this.estimateEfficiencyFactor;            
+            this.counts_ = dc.uncorrectedCounts(this.counts_, -this.aifTimeShift);
+            assert(length(this.counts) == length(this.taus), 'mlpet:arraySizeMismatch', 'Twilite.ctor');
+            this.becquerelsPerCC_ = this.efficiencyFactor*this.counts./this.taus./this.visibleVolume;
         end
         
         function save(~)
