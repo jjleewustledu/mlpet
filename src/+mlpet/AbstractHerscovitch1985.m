@@ -380,8 +380,8 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
             end
         end
         function this = ensureMask(this)
-            if (isempty(this.mask_))
-                this.mask_ = this.sessionData.mask('typ', 'mlfourd.ImagingContext');
+            if (~lexist(this.mask_.fqfilename))
+                [~,this.mask_] = this.scanner.mskt;
             end
         end
     end
