@@ -6,7 +6,7 @@ classdef Twilite < mlpet.AbstractAifData
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
- 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
+ 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.
  	
     
     properties (Constant)
@@ -38,7 +38,7 @@ classdef Twilite < mlpet.AbstractAifData
             addParameter(ip, 'scannerData', @(x) isa(x, 'mlpet.IScannerData'));
             addParameter(ip, 'twiliteCrv', '', @(x) lexist(x, 'file'));
             addParameter(ip, 'aifTimeShift', 0, @isnumeric);
-            addParameter(ip, 'efficiencyFactor', 0.5654*0.487/7.775e-3, @isnumeric); % 0.5654*0.487/7.775e-3, 223*0.304, 51.74
+            addParameter(ip, 'efficiencyFactor', 0.5*147.95, @isnumeric);
             parse(ip, varargin{:});
             
  			this = this@mlpet.AbstractAifData('scannerData', ip.Results.scannerData);
@@ -120,7 +120,7 @@ classdef Twilite < mlpet.AbstractAifData
             td.times = this.tableTwilite2times;
             td.time0 = td.datetime2sec(this.scannerData_.sec2datetime(this.scannerData_.time0));
             td.timeF = td.datetime2sec(this.scannerData_.sec2datetime(this.scannerData_.timeF));
-            td.dt = min(td.taus)/2;
+            td.dt = min(td.taus); % N.B. consistency of dt between Twilite and IScannerData
         end
     end
 

@@ -12,7 +12,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
- 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
+ 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.
  	
 
     properties (Abstract)
@@ -107,7 +107,107 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
         fwhh   = petPointSpread
     end
     
-    methods (Static)      
+    methods (Static)    
+        function [sessd,ct4rb] = godoMasks(varargin)
+            ip = inputParser;
+            addRequired(ip, 'obj', @isstruct);
+            addOptional(ip, 'tracer', 'FDG', @ischar);
+            parse(ip, varargin{:});
+            
+            try
+                sessf = ip.Results.obj.sessf;
+                v = ip.Results.obj.v;
+                
+                import mlraichle.* mlpet.*;
+                studyd = StudyData;
+                vloc = fullfile(studyd.subjectsDir, sessf, sprintf('V%i', v), '');
+                assert(isdir(vloc));
+                sessd = SessionData('studyData', studyd, 'sessionPath', fileparts(vloc));
+                sessd.vnumber = v;
+                sessd.attenuationCorrected = true;
+                sessd.tracer = ip.Results.tracer;
+
+                pushd(vloc);
+                diary(sprintf('AbstractHerscovitch1985.godoMasks_%s_V%i.log', sessf, v));
+                [~,msktn] = AbstractHerscovitch1985.mskt(sessd);
+                [~,ct4rb] = AbstractHerscovitch1985.brainmaskBinarized(sessd, msktn);                
+                aa        = AbstractHerscovitch1985.aparcAseg(sessd, ct4rb);
+                sessd.selectedMask = [aa.fqfp '.4dfp.ifh'];
+                popd(vloc);
+            catch ME
+                handwarning(ME);
+            end
+        end    
+        function [m,n] = mskt(sessd)
+            import mlfourdfp.*;
+            f = [sessd.tracerRevision('typ','fqfp') '_sumt'];
+            f1 = mybasename(FourdfpVisitor.ensureSafeOn(f));
+            if (lexist([f1 '_mskt.4dfp.ifh'], 'file') && lexist([f1 '_msktNorm.4dfp.ifh'], 'file'))
+                m = mlfourd.ImagingContext([f1 '_mskt.4dfp.ifh']);
+                n = mlfourd.ImagingContext([f1 '_msktNorm.4dfp.ifh']);
+                return
+            end
+            
+            lns_4dfp(f, f1);
+            
+            ct4rb = CompositeT4ResolveBuilder('sessionData', sessd);
+            ct4rb.msktgenImg(f1);          
+            m = mlfourd.ImagingContext([f1 '_mskt.4dfp.ifh']);
+            n = m.numericalNiftid;
+            n.img = n.img/n.dipmax;
+            n.fileprefix = [f1 '_msktNorm'];
+            n.filesuffix = '.4dfp.ifh';
+            n.save;
+            n = mlfourd.ImagingContext(n);
+        end
+        function [b,ct4rb] = brainmaskBinarized(sessd, msktNorm)
+            fdgSumt = mlpet.PETImagingContext([sessd.tracerRevision('typ','fqfp') '_sumt.4dfp.ifh']); 
+            fnii = fdgSumt.numericalNiftid;
+            msktNorm = mlfourd.ImagingContext(msktNorm);
+            mnii = msktNorm.numericalNiftid;
+            fnii = fnii.*mnii;
+            fdgSumt = mlpet.PETImagingContext(fnii);
+            fdgSumt.filepath = pwd;
+            fdgSumt.fileprefix = [sessd.tracerRevision('typ','fqfp') '_sumt_brain'];
+            fdgSumt.filesuffix = '.4dfp.ifh';
+            fdgSumt.save;
+            
+            brainmask = mlfourd.ImagingContext(sessd.brainmask);
+            brainmask.fourdfp;
+            brainmask.filepath = pwd;
+            brainmask.save;
+            
+            ct4rb = mlfourdfp.CompositeT4ResolveBuilder( ...
+                'sessionData', sessd, ...
+                'theImages', {fdgSumt.fileprefix brainmask.fileprefix});
+            if (lexist(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh'], 'file'))
+                b = mlpet.PETImagingContext(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh']);
+                return
+            end
+            ct4rb = ct4rb.resolve;
+            b = ct4rb.product{2};
+            b.numericalNiftid;
+            b = b.binarizeBlended;
+            b.saveas(['brainmaskBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh']);
+        end
+        function aa = aparcAseg(sessd, ct4rb)
+            if (lexist(sessd.maskAparcAseg('typ','.4dfp.ifh'), 'file'))
+                aa = mlpet.PETImagingContext(sessd.maskAparcAseg('typ','.4dfp.ifh'));
+                return
+            end
+            
+            aa = sessd.aparcAseg('typ', 'mgz');
+            aa = sessd.mri_convert(aa, 'aparcAseg.nii');
+            aa = mybasename(aa);
+            sessd.nifti_4dfp_4(aa);
+            aa = ct4rb.t4img_4dfp( ...
+                sessd.brainmask('typ','fp'), aa, 'opts', '-n'); 
+            aa = mlfourd.ImagingContext([aa '.4dfp.ifh']);
+            aa.numericalNiftid;
+            aa = aa.binarizeBlended(0); % set threshold to intensity floor
+            aa.saveas(['aparcAsegBinarizeBlended_' ct4rb.resolveTag '.4dfp.ifh']);
+        end  
+        
         function cbf = estimateModelCbf(As, petobs)
             cbf = petobs.^2*As(1) + petobs*As(2);
         end    
@@ -135,7 +235,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
             addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScannerData'));
             addParameter(ip, 'aif', [], @(x) isa(x, 'mlpet.IAifData'));
             addParameter(ip, 'timeDuration', this.TIME_DURATION, @isnumeric);
-            addParameter(ip, 'mask', this.sessionData.mask('typ', 'mlfourd.ImagingContext'), ...
+            addParameter(ip, 'mask', this.sessionData.maskAparcAseg('typ', 'mlfourd.ImagingContext'), ...
                 @(x) isa(x, 'mlfourd.ImagingData'));
             parse(ip, varargin{:});
                    
@@ -251,6 +351,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
             
             if (lexist(this.sessionData.cbv('typ','fqfn','suffix',this.resolveTag)))
                 cbv_ = this.sessionData.cbv('typ','mlpet.PETImagingContext','suffix',this.resolveTag);
+                cbv_.numericalNiftid;
             else
                 this = this.buildCbvMap;
                 cbv_ = this.product;
@@ -381,7 +482,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
         end
         function this = ensureMask(this)
             if (~lexist(this.mask_.fqfilename))
-                [~,this.mask_] = this.scanner.mskt;
+                this.mask_ = this.sessionData.maskAparcAseg('typ', 'mlfourd.ImagingContext');
             end
         end
     end

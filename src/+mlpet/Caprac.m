@@ -6,7 +6,7 @@ classdef Caprac < mlpet.AbstractAifData
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
- 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
+ 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.
  	
 
 	properties 
@@ -100,7 +100,7 @@ classdef Caprac < mlpet.AbstractAifData
             addParameter(ip, 'scannerData', @(x) isa(x, 'mlpet.IScannerData'));
             addParameter(ip, 'capracXlsx', '', @(x) lexist(x, 'file'));
             addParameter(ip, 'aifTimeShift', 0, @isnumeric);
-            addParameter(ip, 'efficiencyFactor', 1/0.9499, @isnumeric);
+            addParameter(ip, 'efficiencyFactor', 1, @isnumeric);
             parse(ip, varargin{:});
             
             this = this@mlpet.AbstractAifData('scannerData', ip.Results.scannerData);    
