@@ -11,13 +11,21 @@ classdef Twilite < mlpet.AbstractAifData
     
     properties (Constant)
         VISIBLE_VOLUME = 0.14
+        BASELINE_TIMEPOINTS = 60
     end
     
 	properties (Dependent)
+        countsBaseline
         tableTwilite
     end
     
     methods %% GET, SET
+        function g = get.countsBaseline(this)
+            baselineSmpl = this.counts(1:this.BASELINE_TIMEPOINTS);
+            baselineDyn = max(baselineSmpl)/min(baselineSmpl);
+            assert(0.5 < baselineDyn && baselineDyn < 2);
+            g = mean(baselineSmpl);
+        end
         function g = get.tableTwilite(this)
             g = this.tableTwilite_;
         end
@@ -46,10 +54,10 @@ classdef Twilite < mlpet.AbstractAifData
             this.tableTwilite_ = this.readtable;
             this.timingData_ = this.updatedTimingData;
             this.efficiencyFactor_ = ip.Results.efficiencyFactor;          
-            this.counts_ = this.tableTwilite2counts;
+            this.counts = this.tableTwilite2counts;
             this.interpolatedTimeShift = ip.Results.aifTimeShift;  
             assert(length(this.counts) == length(this.taus), 'mlpet:arraySizeMismatch', 'Twilite.ctor');
-            this.becquerelsPerCC_ = this.efficiencyFactor*this.counts./this.taus./this.visibleVolume;
+            this.becquerelsPerCC = this.efficiencyFactor*(this.counts - this.countsBaseline)./this.taus./this.visibleVolume;
         end
         
         function this = crossCalibrate(this, varargin)

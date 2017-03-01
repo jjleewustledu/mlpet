@@ -59,9 +59,19 @@ classdef Caprac < mlpet.AbstractAifData
 
     methods (Static)
         function dt = datetime(varargin)
-            dt = datetime(varargin{:}, 'ConvertFrom', 'excel1904');
-            dt.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
-            dt = mlpet.Caprac.offsetDate(dt, 4, 0, 1);
+            for v = 1:length(varargin)
+                if (ischar(varargin{v}))
+                    try
+                        varargin{v} = datetime(varargin{v}, 'InputFormat', 'HH:mm:ss', 'TimeZone', 'local');
+                    catch ME
+                        handwarning(ME);
+                        varargin{v} = datetime(varargin{v}, 'InputFormat', 'HH:mm', 'TimeZone', 'local');
+                    end
+                end
+                dt = datetime(varargin{v}, 'ConvertFrom', 'excel1904', 'TimeZone', 'local');
+                dt.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
+                dt = mlpet.Caprac.offsetDate(dt, 4, 0, 1);
+            end
         end
         function d  = getDate(dt)
             if (~isa(dt, 'datetime'))
@@ -115,12 +125,12 @@ classdef Caprac < mlpet.AbstractAifData
             
             dc = mlpet.DecayCorrection(this);
             tshift = seconds(this.doseAdminDatetime - this.datetime0);
-            if (tshift > 3600) % KLUDGE
+            if (tshift > 600) % KLUDGE
                 warning('mpet:unexpectedParamValue', 'Caprac.ctor.tshift->%i', tshift);
                 tshift = 0; 
             end 
             if (this.uncorrected)
-                this.becquerelsPerCC_ = dc.uncorrectedCounts(this.becquerelsPerCC_, tshift);
+                this.becquerelsPerCC = dc.uncorrectedCounts(this.becquerelsPerCC, tshift);
             end
         end
         

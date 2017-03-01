@@ -10,6 +10,10 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.
  	
 
+    properties (Constant)
+        SPECIFIC_ACTIVITY_KIND = 'becquerelsPerCCIntegral' % 'decaysPerCCIntegral'
+    end
+    
     properties
         pumpRate = 5 % mL/min
     end
@@ -72,6 +76,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             g = this.timingData_.dt;
         end
         function this = set.dt(this, s)
+            assert(s > 0);
             this.timingData_.dt = s;
         end
         function g    = get.index0(this)
@@ -139,6 +144,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         function this = set.counts(this, s)
             assert(isnumeric(s));
             assert(length(s) == length(this.times));
+            assert(all(s > 0));
             this.counts_ = s;            
         end
         function g    = get.becquerels(this)
@@ -146,7 +152,8 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         end
         function this = set.becquerels(this, s)
             assert(isnumeric(s));
-            this.becquerelsPerCC_ = s./this.visibleVolume;
+            assert(all(s > 0));
+            this.becquerelsPerCC = s./this.visibleVolume;
         end
         
         %% new
@@ -156,13 +163,15 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         end
         function this = set.becquerelsPerCC(this, s)
             assert(isnumeric(s));
-            this.becquerelsPerCC_ = s;
+            assert(all(s > 0));
+            this.becquerelsPerCC = s;
         end
         function g    = get.decaysPerCC(this)
             g = this.becquerelsPerCC.*this.taus;
         end
         function this = set.decaysPerCC(this, s)
             assert(isnumeric(s));
+            assert(all(s > 0));
             this.becquerelsPerCC = s./this.taus;
         end
         function g    = get.specificActivity(this)
@@ -242,7 +251,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             di = trapz(this.times(idx0:idxF), this.decaysPerCC(idx0:idxF));
         end
         function sa       = specificActivityIntegral(this)
-            sa = this.becquerelsPerCCIntegral;
+            sa = this.(this.SPECIFIC_ACTIVITY_KIND);
         end      
         function s        = datetime2sec(this, dt)
             s = this.timingData_.datetime2sec(dt);
