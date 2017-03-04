@@ -16,7 +16,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
  	%  by $Author$,  
  	%  last modified $LastChangedDate$ 
  	%  and checked into repository $URL$,  
- 	%  developed on Matlab 8.4.0.150421 (R2014b) 
+ 	%  developed on Matlab 8.4.0.150421 (R2014b).  Copyright 2014 John Joowon Lee. 
  	%  $Id$ 
     
     properties (Constant)
@@ -188,7 +188,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
             cdcv = (1-c3) * (1-c1) * q0 * CRVAutoradiography.gammaVariate(a, d, p, t0, t) + ...
                    (1-c3) *    c1  * q0 * CRVAutoradiography.gammaVariate(a, d, p, t0+c2, t) + ...
                       c3  *          q0 * CRVAutoradiography.steadyState(c4, t0, t);
-            cdcv = cdcv .* exp(-CRVAutoradiography.LAMBDA_DECAY * t); 
+            cdcv = cdcv .* exp(-LAMBDA_DECAY * t); 
         end
         function ccrv = concentration_crv(conc_ucdcv, kernel)
             ccrv = conv(conc_ucdcv, kernel);
@@ -197,7 +197,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
         function ci   = concentration_ecat(A0, A1, T0, f, t, conc_a)
             import mlpet.*;
             lambda       = CRVAutoradiography.LAMBDA;
-            lambda_decay = CRVAutoradiography.LAMBDA_DECAY;
+            lambda_decay = LAMBDA_DECAY;
             if (           CRVAutoradiography.MODEL_HERSCOVITCH); A1 = 1 - exp(-A1 / f); end
             ci0 = A0 * A1 * f * conv(conc_a, exp(-(A1 * f / lambda + lambda_decay) * t));
             ci0 = ci0(1:length(t));

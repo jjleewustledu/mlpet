@@ -6,7 +6,7 @@ classdef Herscovitch1985 < mlpet.AbstractHerscovitch1985
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
- 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.
+ 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee. 
  	
         
     properties
@@ -23,7 +23,7 @@ classdef Herscovitch1985 < mlpet.AbstractHerscovitch1985
             import mlpet.*;
             f = AbstractHerscovitch1985.cbfToInvs(cbf);
             lam  = AbstractHerscovitch1985.LAMBDA;
-            lamd = AbstractHerscovitch1985.LAMBDA_DECAY;  
+            lamd = LAMBDA_DECAY;  
             aifti = ensureRowVector(aif.timeInterpolants);
             aifwi = ensureRowVector(aif.wellCountInterpolants);
             petobs = zeros(length(f), length(aifti));

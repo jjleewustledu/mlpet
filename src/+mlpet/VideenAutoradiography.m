@@ -13,7 +13,7 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
  	%  by $Author$,  
  	%  last modified $LastChangedDate$ 
  	%  and checked into repository $URL$,  
- 	%  developed on Matlab 8.4.0.150421 (R2014b) 
+ 	%  developed on Matlab 8.4.0.150421 (R2014b).  Copyright 2014 John Joowon Lee.
  	%  $Id$ 
     
 	properties 
@@ -124,7 +124,7 @@ classdef VideenAutoradiography < mlpet.AutoradiographyBuilder
         function ci   = pett_i(f, t, conc_a)
             import mlpet.*;
             lambda = VideenAutoradiography.LAMBDA;
-            lambda_decay = VideenAutoradiography.LAMBDA_DECAY;
+            lambda_decay = LAMBDA_DECAY;
             ci     = f * conv(conc_a, exp(-(f/lambda + lambda_decay) * t));
             ci     = ci(1:length(t));
         end

@@ -179,7 +179,7 @@ classdef Blood
             x = this.bloodData.counts;
         end
         function hl = get.HALFLIFE(this)
-            list = [122.1 597.8 1223. 4100. 6583.2 1.0e9];
+            list = [122.2416 9.97*60 20.33424*60 67.719*60 109.77120*60 1.0e9]; % wikipedia.org, 2017
             hl = list(this.ISOTOPE);
         end
         function is = get.ISOTOPE(this) 

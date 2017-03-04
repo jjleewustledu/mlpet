@@ -8,12 +8,11 @@ classdef (Abstract) AutoradiographyBuilder < mlpet.AbstractPerfusionProblem
  	%  by $Author$,  
  	%  last modified $LastChangedDate$ 
  	%  and checked into repository $URL$,  
- 	%  developed on Matlab 8.5.0.197613 (R2015a) 
+ 	%  developed on Matlab 8.5.0.197613 (R2015a).  Copyright 2015 John Joowon Lee.  
  	%  $Id$ 
     
     properties (Constant)
         LAMBDA = 0.95           % brain-blood equilibrium partition coefficient, mL/mL, Herscovitch, Raichle, JCBFM (1985) 5:65
-        LAMBDA_DECAY = 0.005677 % KLUDGE:  hard-coded [15O] half-life because propagating this.decayCorrection_ to static methods is difficult
         BRAIN_DENSITY = 1.05    % assumed mean brain density, g/mL
         RBC_FACTOR = 0.766      % per Tom Videen, metproc.inc, line 193
         TIME_SUP = 120          % sec

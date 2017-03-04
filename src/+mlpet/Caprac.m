@@ -194,8 +194,8 @@ classdef Caprac < mlpet.AbstractAifData
         function v    = visibleVolume(this)
             mass = this.tableCaprac_.well.MassSample_G;
             mass = mass(this.validSamples_);
-            mass = mass/mlpet.AbstractHerscovitch1985.BRAIN_DENSITY;
-            v    = ensureRowVector(mass); % empirically measured on Caprac
+            v    = mass/mlpet.Blood.BLOODDEN;
+            v    = ensureRowVector(v); % empirically measured on Caprac
         end
     end 
     

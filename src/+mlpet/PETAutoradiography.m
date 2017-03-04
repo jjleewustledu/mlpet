@@ -13,7 +13,7 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
  	%  by $Author$,  
  	%  last modified $LastChangedDate$ 
  	%  and checked into repository $URL$,  
- 	%  developed on Matlab 8.4.0.150421 (R2014b) 
+ 	%  developed on Matlab 8.4.0.150421 (R2014b).  Copyright 2014 John Joowon Lee. 
  	%  $Id$ 
     
 	properties 
@@ -90,7 +90,7 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
         function ci   = concentration_i(A0, Ew, f, t0, t, conc_a)
             import mlpet.*;
             lambda = PETAutoradiography.LAMBDA;
-            lambda_decay = PETAutoradiography.LAMBDA_DECAY;
+            lambda_decay = LAMBDA_DECAY;
             ci0    = A0 * Ew * f * conv(conc_a, exp(-(Ew * f / lambda + lambda_decay) * t));
             ci0    = ci0(1:length(t));
             

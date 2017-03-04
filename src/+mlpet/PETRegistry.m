@@ -83,6 +83,7 @@ classdef PETRegistry < mlpatterns.Singleton
             addOptional(p, 'dispersion',     'fwhh',           @(s) lstrfind(lower(s), this.DISPERSION_LIST));
             addOptional(p, 'orientation',    'in-plane',       @(s) lstrfind(lower(s), this.ORIENTATION_LIST));
             addOptional(p, 'geometricMean',   false,           @islogical);
+            addOptional(p, 'mean',            false,           @islogical);
             parse(p, varargin{:});
             r = abs(p.Results.radialPosition);
             switch (lower(p.Results.orientation))
@@ -104,6 +105,9 @@ classdef PETRegistry < mlpatterns.Singleton
             end
             if (strcmp(p.Results.dispersion, 'sigma'))
                 ps = fwhh2sigma(ps);
+            end
+            if (p.Results.mean)
+                ps = mean(ps)*ones(1,length(ps)); 
             end
             if (p.Results.geometricMean)
                 ps = norm(ps); % 2-norm, Euclidean mean

@@ -23,7 +23,6 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
     
     properties (Constant)
         LAMBDA = 0.95           % brain-blood equilibrium partition coefficient, mL/mL, Herscovitch, Raichle, JCBFM (1985) 5:65
-        LAMBDA_DECAY = 0.005677 % KLUDGE:  hard-coded [15O] half-life for propagating to static methods
         BRAIN_DENSITY = 1.05    % assumed mean brain density, g/mL
         RBC_FACTOR = 0.766      % per Tom Videen, metproc.inc, line 193  
         SMALL_LARGE_HCT_RATIO = 0.85 % Grubb, et al., 1978               
@@ -141,7 +140,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
             addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScannerData'));
             addParameter(ip, 'aif', [], @(x) isa(x, 'mlpet.IAifData'));
             addParameter(ip, 'timeDuration', this.TIME_DURATION, @isnumeric);
-            addParameter(ip, 'mask', this.sessionData.maskAparcAseg('typ', 'mlfourd.ImagingContext'), ...
+            addParameter(ip, 'mask', this.sessionData.aparcAsegBinarized('typ', 'mlfourd.ImagingContext'), ...
                 @(x) isa(x, 'mlfourd.ImagingData'));
             parse(ip, varargin{:});
                    
@@ -354,7 +353,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
         end
         function img  = is0to1(this, img)
             
-            msk = this.sessionData.mask('typ','mlfourd.ImagingContext');
+            msk = this.sessionData.aparcAsegBinarized('typ','mlfourd.ImagingContext');
             img = img.*msk.niftid.img;            
             img(~isfinite(img)) = 0;
             img(isnan(img)) = 0;
@@ -409,7 +408,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
             if (~lexist(this.mask_.fqfilename))
                 sessd = this.sessionData;
                 sessd.tracer = 'FDG';
-                this.mask_ = sessd.maskAparcAseg('typ', 'mlfourd.ImagingContext');
+                this.mask_ = sessd.aparcAsegBinarized('typ', 'mlfourd.ImagingContext');
                 this.sessionData.nifti_4dfp_ng(this.mask_.fqfp);
             end
         end

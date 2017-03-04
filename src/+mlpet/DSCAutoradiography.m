@@ -13,7 +13,7 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
  	%  by $Author$,  
  	%  last modified $LastChangedDate$ 
  	%  and checked into repository $URL$,  
- 	%  developed on Matlab 8.4.0.150421 (R2014b) 
+ 	%  developed on Matlab 8.4.0.150421 (R2014b).  Copyright 2014 John Joowon Lee.  
  	%  $Id$     
     
 	properties 
@@ -120,7 +120,7 @@ classdef DSCAutoradiography < mlpet.AutoradiographyBuilder
         function ci   = concentration_i(A0, Ew, a, d, f, ir, n, p, q0, t0, t, aif, aDose)
             import mlpet.*;
             lambda = DSCAutoradiography.LAMBDA;
-            lambda_decay = DSCAutoradiography.LAMBDA_DECAY;
+            lambda_decay = LAMBDA_DECAY;
             
             dt     = t(2) - t(1);
             conc_a = q0 * aDose * dt * ...
