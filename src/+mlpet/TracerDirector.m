@@ -12,6 +12,7 @@ classdef TracerDirector
 	properties (Dependent)
         builder
         product
+        sessionData
     end
     
     methods %% GET
@@ -20,6 +21,9 @@ classdef TracerDirector
         end
         function g = get.product(this)
             g = this.builder_.product;
+        end
+        function g = get.sessionData(this)
+            g = this.builder_.sessionData;
         end
     end
 
@@ -34,21 +38,6 @@ classdef TracerDirector
             parse(ip, varargin{:});
             
             this.builder_ = ip.Results.builder;
-        end
-        
-        function b = configureNAC(~, b)
-            assert(isa(b, 'mlpipeline.IDataBuilder'));
-            sessd = b.sessionData;
-            sessd.attenuationCorrected = false;
-            sessd.rnumber = 1;
-            b.sessionData = sessd;
-        end
-        function b = configureAC(~, b)
-            assert(isa(b, 'mlpipeline.IDataBuilder'));
-            sessd = b.sessionData;
-            sessd.attenuationCorrected = true;
-            sessd.rnumber = 1;
-            b.sessionData = sessd;
         end
  	end 
 

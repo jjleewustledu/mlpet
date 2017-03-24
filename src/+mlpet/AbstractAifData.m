@@ -144,7 +144,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         function this = set.counts(this, s)
             assert(isnumeric(s));
             assert(length(s) == length(this.times));
-            assert(all(s > 0));
+            s(s < 0) = 0;
             this.counts_ = s;            
         end
         function g    = get.becquerels(this)
@@ -152,7 +152,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         end
         function this = set.becquerels(this, s)
             assert(isnumeric(s));
-            assert(all(s > 0));
+            s(s < 0) = 0;
             this.becquerelsPerCC = s./this.visibleVolume;
         end
         
@@ -163,16 +163,16 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         end
         function this = set.becquerelsPerCC(this, s)
             assert(isnumeric(s));
-            assert(all(s > 0));
-            this.becquerelsPerCC = s;
+            s(s < 0) = 0;
+            this.becquerelsPerCC_ = s;
         end
         function g    = get.decaysPerCC(this)
             g = this.becquerelsPerCC.*this.taus;
         end
         function this = set.decaysPerCC(this, s)
             assert(isnumeric(s));
-            assert(all(s > 0));
-            this.becquerelsPerCC = s./this.taus;
+            s(s < 0) = 0;
+            this.becquerelsPerCC_ = s./this.taus;
         end
         function g    = get.specificActivity(this)
             g = this.(this.scannerData_.SPECIFIC_ACTIVITY_KIND);

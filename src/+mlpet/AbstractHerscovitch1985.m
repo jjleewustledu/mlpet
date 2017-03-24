@@ -12,7 +12,21 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
- 	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.
+ 	%  It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2016, 2017 John Joowon Lee,
+    %  jjlee@wustl.edu.
+    %
+    %  This program is free software: you can redistribute it and/or modify
+    %  it under the terms of the GNU General Public License as published by
+    %  the Free Software Foundation, version 3.
+    %
+    %  This program is distributed in the hope that it will be useful,
+    %  but WITHOUT ANY WARRANTY; without even the implied warranty of
+    %  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    %  GNU General Public License for more details.
+    % 
+    %  You should have received a copy of the GNU General Public License
+    %  along with this program.  If not, see 
+    %% <https://www.gnu.org/licenses/gpl-3.0.en.html>.
  	
 
     properties (Abstract)
@@ -112,7 +126,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
         fwhh   = petPointSpread
     end
     
-    methods (Static)        
+    methods (Static)
         function cbf = estimateModelCbf(As, petobs)
             cbf = petobs.^2*As(1) + petobs*As(2);
         end    
@@ -124,7 +138,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
         end
     end
     
-	methods		  
+	methods
  		function this = AbstractHerscovitch1985(varargin)
  			%% ABSTRACTHERSCOVITCH1985
  			%  Usage:  this = AbstractHerscovitch1985()
