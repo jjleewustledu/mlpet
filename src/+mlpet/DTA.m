@@ -76,11 +76,19 @@ classdef DTA < mlpet.AbstractWellData
     
     properties (Dependent)
         becquerels
+        specificActivity
     end
     
     methods % GET
         function b = get.becquerels(this)
-            b = this.counts; %%% TO CHECK ./ this.taus;
+            b = this.counts; % DTA file column counts is divided by taus; cf. mlpet.Blood
+        end
+        function g = get.specificActivity(this)
+            g = this.counts;
+        end
+        function this = set.specificActivity(this, s)
+            assert(isnumeric(s));
+            this.counts = s;
         end
     end
     
@@ -107,10 +115,18 @@ classdef DTA < mlpet.AbstractWellData
                 this = this.readDta;
             end
         end
-        function this = loadSessionData(sessDat)
-            assert(isa(sessDat, 'mlpipeline.SessionData'));
+        function this = loadSessionData(sessDat, varargin)
+            ip = inputParser;
+            addRequired(ip, 'sessDat',          @(x) isa(x, 'mlpipeline.SessionData'));
+            addOptional(ip, 'shortHead', false, @islogical);
+            parse(ip, sessDat, varargin{:});
+            
             this = mlpet.DTA(sessDat.dta_fqfn);
-            this = this.readDta;
+            if (ip.Results.shortHead)
+                this = this.readShortDta;
+            else
+                this = this.readDta;
+            end
         end
         function this = importBlood(b)
             assert(isa(b, 'mlpet.Blood'));

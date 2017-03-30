@@ -27,6 +27,7 @@ classdef TSC < mlpet.AbstractWellData
         
         becquerels
         becquerelInterpolants
+        specificActivity
     end
     
     methods %% GET 
@@ -57,6 +58,9 @@ classdef TSC < mlpet.AbstractWellData
         end
         function bi  = get.becquerelInterpolants(this)
             bi = pchip(this.times, this.counts ./ this.taus, this.timeInterpolants);
+        end
+        function b   = get.specificActivity(this)
+            b = this.counts ./ this.taus;
         end
     end
     
