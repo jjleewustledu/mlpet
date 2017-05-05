@@ -32,7 +32,6 @@ classdef TracerDirector
  			%% TRACERDIRECTOR
  			%  Usage:  this = TracerDirector(builder_object)
             
-            import mlraichle.*;
             ip = inputParser;
             addRequired(ip, 'builder', @(x) isa(x, 'mlpipeline.IDataBuilder'));
             parse(ip, varargin{:});
