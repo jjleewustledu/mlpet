@@ -12,6 +12,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
  	 
     properties
         dt = 1 % sec, for timeInterpolants
+        isPlasma = []
         useBecquerels = false % boolean for dividing accumulated counts by sampling durations of each time-frame to obtain 1/sec  
         scannerData
     end

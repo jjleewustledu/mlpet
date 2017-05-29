@@ -16,6 +16,7 @@ classdef IAifData < mldata.ITimingData
         becquerels
         efficiencyFactor
         isotope
+        isPlasma
  	end
 
 	methods (Abstract)      

@@ -15,6 +15,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
     end
     
     properties
+        isPlasma = []
         pumpRate = 5 % mL/min
     end
     

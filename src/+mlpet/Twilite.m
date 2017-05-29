@@ -96,6 +96,8 @@ classdef Twilite < mlpet.AbstractAifData
             tbl.Properties.VariableNames{'Var7'} = 'coincidence';
             tbl.Properties.VariableNames{'Var8'} = 'channel1';
             tbl.Properties.VariableNames{'Var9'} = 'channel2';
+            
+            this.isPlasma = false;
         end
         function this = shiftTimes(this, Dt)
             assert(isnumeric(Dt) && isscalar(Dt));

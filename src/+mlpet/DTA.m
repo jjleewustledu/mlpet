@@ -148,6 +148,8 @@ classdef DTA < mlpet.AbstractWellData
             this.header_.Hct           = b.HEMATOCRIT;
             this.times_                = b.TIMESECS;
             this.counts_               = b.CORCNTS;
+            
+            this.isPlasma = false;
         end
     end
     
@@ -300,6 +302,7 @@ classdef DTA < mlpet.AbstractWellData
             this.countPeriod = ts{8}';
             this.taus_ = this.countPeriod;
             this.assertLength; 
+            this.isPlasma = false;
         end
         function assertLength(this)
             if (length(this.times_) ~= this.header.length) %#ok<*ALIGN>

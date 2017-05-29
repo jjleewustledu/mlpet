@@ -23,6 +23,7 @@ classdef IWellData
         dt % sec        
         times
         counts
+        isPlasma
         wellCounts   
         wellFactor      
         wellFqfilename

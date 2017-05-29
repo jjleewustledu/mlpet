@@ -186,6 +186,7 @@ classdef Caprac < mlpet.AbstractAifData
             this.tableCaprac_ = tbl;
             this.validSamples_ = ~isnat(tbl.well.TIMEDRAWN_Hh_mm_ss) & ...
                                  strcmp(tbl.well.TRACER, '[18F]DG');
+            this.isPlasma = false;
         end
         function this = shiftTimes(this, Dt)
             assert(isnumeric(Dt) && isscalar(Dt));
