@@ -31,7 +31,6 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
 
     properties (Abstract)
         MAGIC
-        TIME_DURATION
         canonFlows
     end
     
@@ -55,9 +54,6 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
         cbf
         cbv
         oef
-        ooPeakTime   % time of peak of O[15O] AIF
-        ooFracTime   % time of measuring H2[15O] of metabolism in plasma 
-        fracHOMetab % fraction of H2[15O] in whole blood
     end
 
 	properties (Dependent)
@@ -153,19 +149,17 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
             ip.KeepUnmatched = true;
             addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScannerData'));
             addParameter(ip, 'aif', [], @(x) isa(x, 'mlpet.IAifData'));
-            addParameter(ip, 'timeDuration', this.TIME_DURATION, @isnumeric);
+            addParameter(ip, 'timeDuration', [], @isnumeric);
             addParameter(ip, 'mask', this.sessionData.aparcAsegBinarized('typ', 'mlfourd.ImagingContext'), ...
                 @(x) isa(x, 'mlfourd.ImagingData'));
             parse(ip, varargin{:});
                    
             this.aif_ = ip.Results.aif;
-            if (ip.Results.timeDuration > 0)
+            this.scanner_ = ip.Results.scanner;  
+            if (~isempty(ip.Results.timeDuration))
                 this.aif_.timeDuration = ip.Results.timeDuration;
-            else
-                this.aif_.timeDuration = this.TIME_DURATION;
-            end
-            this.scanner_ = ip.Results.scanner;            
-            this.scanner_.timeDuration = ip.Results.timeDuration;
+                this.scanner_.timeDuration = ip.Results.timeDuration;
+            end          
             this.mask_ = ip.Results.mask;
         end
         
@@ -382,6 +376,19 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
         function f    = flowOO(this)
             img = this.cbf.niftid.img;
             f = this.b3*img.^2 + this.b4*img;
+        end        
+        
+        function t = ooPeakTime(~)
+            % time of peak of O[15O] AIF
+            error('mlsiemens:notImplemented', 'Herscovitch1985.ooPeakTime');
+        end
+        function t = ooFracTime(~)
+            % time of measuring H2[15O] of metabolism in plasma 
+            error('mlsiemens:notImplemented', 'Herscovitch1985.ooFracTime');
+        end
+        function f = fracHOMetab(~)
+            % fraction of H2[15O] in whole blood
+            error('mlsiemens:notImplemented', 'Herscovitch1985.fracHOMetab');
         end
  	end 
     

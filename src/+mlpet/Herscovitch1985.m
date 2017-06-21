@@ -25,7 +25,6 @@ classdef Herscovitch1985 < mlpet.AbstractHerscovitch1985
         
     properties
         MAGIC = 0.5711 % KLUDGE
-        TIME_DURATION = 40
         canonFlows = 10:10:100 % mL/100 g/min
     end
     

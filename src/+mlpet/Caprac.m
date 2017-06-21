@@ -114,7 +114,7 @@ classdef Caprac < mlpet.AbstractAifData
             parse(ip, varargin{:});
             
             this = this@mlpet.AbstractAifData('scannerData', ip.Results.scannerData);    
-            this.fqfilename = this.sessionData.CCIRRadMeasurementsTable;        
+            this.fqfilename = this.sessionData.CCIRRadMeasurements;        
  			[~,this] = readtable(this); 
             this.scannerData_          = this.updatedScannerData;
             this.timingData_           = this.updatedTimingData;

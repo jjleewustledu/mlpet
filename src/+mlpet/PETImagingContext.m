@@ -18,21 +18,6 @@ classdef PETImagingContext < mlfourd.ImagingContext
     end
     
 	methods 
-        function p = petNIfTId(this, varargin)
-            ip = inputParser;
-            addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
-            parse(ip, varargin{:});
-            switch (lower(ip.Results.sessionData.petPlatform))
-                case 'ecat'
-                    p = mlpet.EcatExactHRPlus(this.niftid);
-                case 'mmr'
-                    p = mlsiemens.BiographMMR(this.niftid);
-                otherwise
-                    error('mlpet:unsupportedSwitchCase', ...
-                        'PETImagingContext.petNIfTId received %s', ip.Results.sessionData.petPlatform);
-            end
-        end
-        
         function     add(this, varargin)
             %% ADD
             %  @param varargin are added to a composite imaging state
