@@ -92,8 +92,9 @@ classdef DecayCorrection
             addOptional(ip, 'tzero', 0, @isnumeric);
             parse(ip, varargin{:});            
             if (abs(ip.Results.tzero) < eps)
-                c = ip.Results.c;
-                return
+                error('mlpet:unexpectedInputValue', 'DecayCorrection.adjustCounts.tzero->%g', ip.Results.tzero);
+                %c = ip.Results.c;
+                %return
             end
             if (isa(this.client_, 'mlpet.IScannerData'))
                 c = adjustScannerCounts(this, ip.Results.c, ip.Results.sgn, ip.Results.tzero);

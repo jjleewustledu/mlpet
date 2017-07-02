@@ -30,7 +30,6 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         
         scanIndex   
         tracer
-        length
         scanDuration % sec  
         
         times
@@ -80,10 +79,6 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         end
         function id   = get.tracer(this)
             id = this.petio_.tracer;
-        end
-        function l    = get.length(this)
-            assert(~isempty(this.times_));
-            l = length(this.times); %#ok<CPROP>
         end
         function sd   = get.scanDuration(this)
             assert(~isempty(this.times_));
@@ -183,6 +178,14 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         end
         function c    = char(this)
             c = this.fqfilename;
+        end
+        function len  = length(this)
+            assert(length(this.times) == length(this.counts));
+            len = length(this.times);
+        end
+        function len  = lengthInterpolants(this)
+            assert(length(this.timeInterpolants) == length(this.countInterpolants));
+            len = length(this.timeInterpolants);
         end
         function this = saveas(this, fqfn)
             this.petio_.fqfilename = fqfn;

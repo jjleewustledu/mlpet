@@ -6,7 +6,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
     %  2. Videen TO, Perlmutter JS, Herscovitch P, Raichle ME (1987) Brain blood volume, flow, and oxygen utilization 
     %  measured with 15O radiotracers and positron emission tomography: revised metabolic computations. 
     %  J Cereb Blood Flow Metab 7(4):513?516.
-
+    %
 	%  $Revision$
  	%  was created 06-Feb-2017 21:31:05
  	%  by jjlee,

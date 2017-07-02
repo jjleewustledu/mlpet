@@ -29,7 +29,7 @@ classdef DecayCorrectedCRV < mlpet.CRV
             assert(~isa(crv, 'mlpet.DecayCorrectedCRV'));
             
             this.decayCorrection_ = mlpet.DecayCorrection(this);
-            this.counts = this.decayCorrection_.correctedCounts(this.counts);
+            this.counts = this.decayCorrection_.correctedCounts(this.counts, 1);
         end 
     end 
     
