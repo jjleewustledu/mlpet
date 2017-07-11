@@ -1,5 +1,5 @@
-classdef TracerDirector 
-	%% TRACERDIRECTOR  
+classdef TracerKineticsDirector 
+	%% TRACERKINETICSDIRECTOR  
 
 	%  $Revision$
  	%  was created 01-Jan-2017 19:29:04
@@ -66,8 +66,8 @@ classdef TracerDirector
             tf = this.builder_.constructKineticsPassed(varargin{:});
         end
         
- 		function this = TracerDirector(varargin)
- 			%% TRACERDIRECTOR
+ 		function this = TracerKineticsDirector(varargin)
+ 			%% TRACERKINETICSDIRECTOR
  			%  @param required 'builder' is a 'mlpet.ITracerBuilder'
             
             ip = inputParser;

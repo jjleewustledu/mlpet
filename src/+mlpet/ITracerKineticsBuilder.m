@@ -1,5 +1,5 @@
-classdef ITracerBuilder 
-	%% ITRACERBUILDER  
+classdef ITracerKineticsBuilder 
+	%% ITRACERKINETICSBUILDER  
 
 	%  $Revision$
  	%  was created 30-May-2017 20:59:48 by jjlee,
@@ -11,7 +11,10 @@ classdef ITracerBuilder
  	end
 
 	methods (Abstract)
-		  
+        gatherConvertedAC(this)
+        resolveRoisOnAC(this)
+        constructKinetics(this)
+        constructKineticsPassed(this)
  	end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

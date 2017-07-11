@@ -12,6 +12,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
  	%  $Id$  
 
     properties 
+        isPlasma
         manuallyRecordedPie        
     end
     
@@ -200,6 +201,10 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             pnum = str2pnum(this.component.fileprefix);
             dtl  = mlsystem.DirTool( ...
                    fullfile(this.component.filepath, '..', '..', 'hdr_backup', sprintf('%sho*.hdrinfo', pnum)));
+            if (0 == length(dtl))  %#ok<ISMT>
+                dtl  = mlsystem.DirTool( ...
+                    fullfile(this.component.filepath, '..', 'hdr_backup', sprintf('%sho*.hdrinfo', pnum)));
+            end
             fn   = dtl.fqfns{1};
         end          
         function m   = get.mask(this)

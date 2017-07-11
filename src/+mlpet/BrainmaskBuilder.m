@@ -1,6 +1,6 @@
 classdef BrainmaskBuilder < mlpet.RoisBuilder
 	%% BRAINMASKBUILDER builds binary masks of the brain, cerebellum and brainstem for use by 
-    %  various project directors, e.g., mlraichle.HyperglycemiaDirector, mlraichle.HoDirector, mlpet.TracerDirector.
+    %  various project directors, e.g., mlraichle.HyperglycemiaDirector, mlraichle.HoDirector.
     %  Access the roi with property product.
 
 	%  $Revision$

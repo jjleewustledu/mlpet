@@ -28,7 +28,7 @@ classdef DecayCorrectedEcat < mlpet.EcatExactHRPlus
             assert(~isa(cmp, 'mlpet.DecayCorrectedEcat'));
             
             this.decayCorrection_ = mlpet.DecayCorrection(this);
-            this.counts = this.decayCorrection_.correctedCounts(this.counts);
+            this.counts = this.decayCorrection_.correctedCounts(this.counts, this.times(1));
             this = this.updateFileprefix;
             this = this.setTimeMidpoints_dc;
         end 

@@ -1,4 +1,4 @@
-classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
+classdef TracerBuilder < mlpipeline.AbstractDataBuilder
 	%% TRACERBUILDER.
 
 	%  $Revision$
@@ -19,51 +19,7 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
         framesResolveBuilder
         roisBuilder
     end    
-    
-    methods (Static)
-        function viewStudyConverted(varargin)
-            ip = inputParser;
-            addParameter(ip, 'ac', false, @islogical);
-            addParameter(ip, 'tracer', 'FDG', @ischar);
-            parse(ip, varargin{:});
-            
-            fv = mlfourdfp.FourdfpVisitor;
-            studyd = mlraichle.StudyData;
-            cd(studyd.subjectsDir);
-            subjs = mlsystem.DirTool('HYGLY*');
-            for d = 1:length(subjs)
-                for v = 1:2
-                    try
-                        sessd = mlraichle.SessionData( ...
-                            'studyData', studyd, 'sessionPath', subjs.fqdns{d}, 'vnumber', v, ...
-                            'tracer', ip.Results.tracer, 'ac', ip.Results.ac);
-                        cd(sessd.tracerListmodeLocation);
-                        if (~lexist(sessd.tracerListmodeSif('typ','fn'), 'file'))
-                            fv.sif_4dfp(sessd.tracerListmodeMhdr('typ','fp'))
-                        end
-                    catch ME
-                        handwarning(ME);
-                    end
-                end
-            end
-            for d = 1:length(subjs)
-                for v = 1:2
-                    try
-                        sessd = mlraichle.SessionData( ...
-                            'studyData', studyd, 'sessionPath', subjs.fqdns{d}, 'vnumber', v, ...
-                            'tracer', ip.Results.tracer, 'ac', ip.Results.ac);
-                        cd(sessd.tracerListmodeLocation);
-                        ic = mlfourd.ImagingContext(sessd.tracerListmodeSif('typ','fn'));
-                        ic.viewer = 'fslview';
-                        ic.view;
-                    catch ME
-                        handwarning(ME);
-                    end
-                end
-            end
-        end
-    end
-    
+        
     methods 
         
         %% GET/SET
@@ -92,38 +48,7 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
         %%
         
         function this = gatherConvertedAC(this)
-            %% GATHERCONVERTEDAC ensures working directories, cropped tracer field-of-view, tracer blurred to point-spread, 
-            %  HO_sumt, T1 and umapSynth.  Working format is 4dfp.
-            
-            bv       = this.buildVisitor;
-            meth     = [class(this) '.gatherConvertedAC'];
-            sessd    = this.sessionData;
-            sessdNAC = sessd;
-            sessdNAC.attenuationCorrected = false;
-            
-            % actions
-            
-            pwd0 = sessd.petLocation;
-            ensuredir(pwd0);
-            pushd(pwd0);
-            assert(lexist_4dfp(sessd.tracerListmodeMhdr), '%s could not find %s', meth, sessd.tracerListmodeMhdr);            
-            if (~lexist_4dfp(sessd.ho))
-                if (~lexist_4dfp(sessd.tracerListmodeSif('typ', 'fqfp')))
-                    bv.sif_4dfp(sessd.tracerListmodeMhdr, sessd.tracerListmodeSif('typ', 'fqfp'));
-                end
-                bv.cropfrac_4dfp(0.5, sessd.tracerListmodeSif('typ', 'fqfp'), sessd.ho);
-            end
-            if (~lexist_4dfp(sessd.ho('suffix', sessd.petPointSpreadSuffix)))
-                bv.imgblur_4dfp(sessd.ho, mean(sessd.petPointSpread));
-            end
-            if (~lexist_4dfp(sessd.ho('suffix', '_sumt')))
-                m =  bv.ifhMatrixSize(sessd.ho('typ', 'fqfn'));
-                bv.actmapf_4dfp(sprintf('"%i+"', m(4)), sessd.ho, 'options', '-asumt');
-            end
-            assert(lexist_4dfp(sessd.T1));
-            assert(lexist_4dfp(sessdNAC.umapSynth));
-            popd(pwd0);
-        end        
+        end 
         function [this,aab] = resolveRoisOnAC(this, varargin)
             %% RESOLVEROISONAC
             %  @params named 'roisBuild' is an 'mlrois.IRoisBuilder'
@@ -139,7 +64,6 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
             pwd0 = sessd.petLocation;
             ensuredir(pwd0);
             pushd(pwd0);
-            import mlraichle.*;
             bmb = mlpet.BrainmaskBuilder('sessionData', sessd);
             [~,ct4rb] = bmb.brainmaskBinarized( ...
                 'tracer', this.sessionData.tracerRevisionSumt('typ', 'mlfourd.ImagingContext'));
@@ -149,7 +73,11 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
         
  		function this = TracerBuilder(varargin)
  			%% TRACERBUILDER
- 			%  @param named 'buildVisitor' is an mlfourdfp.FourdfpVisitor.
+            %  @params named 'logger' is an mlpipeline.AbstractLogger.
+            %  @params named 'product' is the initial state of the product to build.
+            %  @params named 'sessionData' is an mlpipeline.ISessionData.
+ 			%  @params named 'buildVisitor' is an mlfourdfp.FourdfpVisitor.
+            %  @params named 'roisBuild' is an mlrois.IRoisBuilder.
  			
             this = this@mlpipeline.AbstractDataBuilder(varargin{:});
             ip = inputParser;
