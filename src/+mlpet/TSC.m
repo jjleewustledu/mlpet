@@ -116,7 +116,7 @@ classdef TSC < mlpet.AbstractWellData
         function this = loadGluTFiles(files)
             %% LOADGLUTFILES is a convenience method for processing GluT studies
             
-            assert(isa(files, 'mlarbelaez.GluTFiles'));
+            assert(lstrfind(class(files), 'mlarbelaez.GluTFiles'));
             this = mlpet.TSC.load( ...
                 files.tscFqfilename, files.ecatFqfilename, files.dtaFqfilename, files.maskFqfilename);
         end

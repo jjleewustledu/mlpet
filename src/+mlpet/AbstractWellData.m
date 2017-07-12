@@ -158,6 +158,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         end
         function tmp = get.timeMidpoints(this)
             tmp = this.times;
+            tmp(1) = this.times_(1)/2;
             for t = 2:this.length
                 tmp(t) = (this.times_(t-1) + this.times_(t))/2;
             end

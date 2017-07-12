@@ -231,6 +231,9 @@ classdef DTA < mlpet.AbstractWellData
                     h = regexp(str, this.READ_HEADER_EXP2, 'names');
                     this = this.readHeader2(fid, str, h);
                 end
+                if (0 == this.header_.length)
+                    this = this.readHeader3(fid); %% KLUDGE
+                end
             catch ME
                 handerror(ME);
             end
@@ -290,6 +293,10 @@ classdef DTA < mlpet.AbstractWellData
             len = textscan(fid, '%d',    1, 'Delimiter', '\n'); 
             this.header_.length = len{1};
         end
+        function this = readHeader3(this, fid)            
+            ts  = textscan(fid, '%d', 1, 'Delimiter', '\n');
+            this.header_.length = ts{1};
+        end  
         function this = readData(this, fid)
             ts = textscan(fid, '%f %f %f %f %f %f %f %f', 'Delimiter', ' ', 'MultipleDelimsAsOne', true);
             this.times_ = ts{1}';
@@ -300,7 +307,7 @@ classdef DTA < mlpet.AbstractWellData
             this.sampleTimesCounted = ts{6}';
             this.measuredCounts = ts{7}';
             this.countPeriod = ts{8}';
-            this.taus_ = this.countPeriod;
+            this.taus_ = this.times_(2:end) - this.times_(1:end-1);
             this.assertLength; 
             this.isPlasma = false;
         end
