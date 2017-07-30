@@ -12,6 +12,7 @@ classdef BloodSucker < mlpet.AbstractAifData
     properties (Dependent)
         bloodSuckerCrv
         bloodSuckerDcv
+        sessionData
         wellCounts
         aifTimeShift
     end
@@ -22,6 +23,9 @@ classdef BloodSucker < mlpet.AbstractAifData
         end
         function g = get.bloodSuckerDcv(this)
             g = this.bloodSuckerDcv_;
+        end
+        function g = get.sessionData(this)
+            g = this.sessionData_;
         end
         function g = get.wellCounts(this)
             g = this.counts;
@@ -67,6 +71,8 @@ classdef BloodSucker < mlpet.AbstractAifData
             error('mlpet:notImplemented', 'BloodSucker.save');
         end
         function this = shiftTimes(this, Dt)
+            %% SHIFTTIMES provides time-coordinate transformation
+            
             assert(isnumeric(Dt));
             [this.times,this.counts_] = shiftVector(this.times, this.counts_, Dt);
             %this.scannerData_ = this.scannerData_.shiftTimes(Dt);

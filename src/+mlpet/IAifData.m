@@ -1,4 +1,4 @@
-classdef IAifData < mldata.ITimingData
+classdef IAifData < mlpet.IScannerData
 	%% IAIFDATA  
 
 	%  $Revision$
@@ -10,19 +10,12 @@ classdef IAifData < mldata.ITimingData
  	
 
 	properties (Abstract)
-        sessionData
-        doseAdminDatetime 
-        counts
-        becquerels
-        efficiencyFactor
-        isotope
         isPlasma
  	end
 
-	methods (Abstract)      
-        countInterpolants(this)
-        becquerelInterpolants(this)
-        shiftTimes(this, dt)
+	methods (Abstract)
+        this = shiftTimes(this, dt) 
+        this = shiftWorldlines(this, dt)     
  	end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

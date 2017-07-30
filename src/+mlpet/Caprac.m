@@ -28,6 +28,7 @@ classdef Caprac < mlpet.AbstractAifData
         datetimeDrawn
         DACGe68      
         scannerData
+        sessionData
         tableCaprac        
     end
     
@@ -42,7 +43,7 @@ classdef Caprac < mlpet.AbstractAifData
             g = s.*duration(c - d);
         end
         function g = get.datetimeDrawn(this)
-            g = this.datetimes;
+            g = this.datetime;
         end
         function g = get.DACGe68(this)
             g = this.tableCaprac_.well.DECAY_APERTURECORRGE_68_Kdpm_G;
@@ -52,13 +53,32 @@ classdef Caprac < mlpet.AbstractAifData
         function g = get.scannerData(this)
             g = this.scannerData_;
         end
+        function g = get.sessionData(this)
+            g = this.sessionData_;
+        end
         function g = get.tableCaprac(this)
             g = this.tableCaprac_;
         end
     end
 
     methods (Static)
-        function dt = datetime(varargin)
+        function this = load(varargin)
+            this = mlpet.Caprac(varargin{:});
+        end
+    end
+      
+	methods 		  
+        function this = crossCalibrate(this, varargin)
+            ip = inputParser;
+            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScanner'));
+            addParameter(ip, 'wellCounter', [], @(x) isa(x, 'mlpet.IBloodData'));
+            addParameter(ip, 'aifSampler', this, @(x) isa(x, 'mlpet.IAifData'));
+            parse(ip, varargin{:});
+            
+            cc = mlpet.CrossCalibrator(varargin{:});
+            this.efficiencyFactor_ = cc.wellCounterEfficiency;
+        end
+        function dt   = datetime(this, varargin)
             for v = 1:length(varargin)
                 if (ischar(varargin{v}))
                     try
@@ -70,90 +90,16 @@ classdef Caprac < mlpet.AbstractAifData
                 end
                 dt = datetime(varargin{v}, 'ConvertFrom', 'excel1904', 'TimeZone', 'local');
                 dt.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
-                dt = mlpet.Caprac.offsetDate(dt, 4, 0, 1);
+                dt = this.correctDateToReferenceDate(dt);
             end
         end
-        function d  = getDate(dt)
-            if (~isa(dt, 'datetime'))
-                dt = mlpet.Caprac.datetime(dt);
-            end
-            d.Year  = dt.Year;
-            d.Month = dt.Month;
-            d.Day   = dt.Day;
-        end
-        function dt = offsetDate(dt, Y,M,D)
-            dt.Year  = dt.Year + Y;
-            dt.Month = dt.Month + M;
-            dt.Day   = dt.Day + D;
-            dt.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
-        end
-        function dt = setDate(dt, d)
-            if (~isa(dt, 'datetime'))
-                dt = mlpet.Caprac.datetime(dt);
-            end
-            dt.Year  = d.Year;
-            dt.Month = d.Month;
-            dt.Day   = d.Day;
-            dt.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
-        end
-        function this = load(varargin)
-            this = mlpet.Caprac(varargin{:});
-        end
-    end
-      
-	methods 		  
- 		function this = Caprac(varargin)
- 			%% CAPRAC
- 			%  Usage:  this = Caprac()
-
-            ip = inputParser;
-            addParameter(ip, 'scannerData', @(x) isa(x, 'mlpet.IScannerData'));
-            addParameter(ip, 'capracXlsx', '', @(x) lexist(x, 'file'));
-            addParameter(ip, 'aifTimeShift', 0, @isnumeric);
-            addParameter(ip, 'efficiencyFactor', 1, @isnumeric);
-            parse(ip, varargin{:});
-            
-            this = this@mlpet.AbstractAifData('scannerData', ip.Results.scannerData);    
-            this.fqfilename = this.sessionData.CCIRRadMeasurements;        
- 			[~,this] = readtable(this); 
-            this.scannerData_          = this.updatedScannerData;
-            this.timingData_           = this.updatedTimingData;
-            this.efficiencyFactor_     = ip.Results.efficiencyFactor;
-            this.counts_               = this.tableCaprac2counts;
-            this.interpolatedTimeShift = ip.Results.aifTimeShift;              
-            this.becquerelsPerCC_      = this.tableCaprac2becquerelsPerCC;
-            
-            dc = mlpet.DecayCorrection(this);
-            tshift = seconds(this.doseAdminDatetime - this.datetime0);
-            if (tshift > 600) % KLUDGE
-                warning('mpet:unexpectedParamValue', 'Caprac.ctor.tshift->%i', tshift);
-                tshift = 0; 
-            end 
-            if (this.uncorrected)
-                this.becquerelsPerCC = dc.uncorrectedCounts(this.becquerelsPerCC, tshift);
-            end
-        end
-        
-        function this = crossCalibrate(this, varargin)
-            ip = inputParser;
-            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScanner'));
-            addParameter(ip, 'wellCounter', [], @(x) isa(x, 'mlpet.IBloodData'));
-            addParameter(ip, 'aifSampler', this, @(x) isa(x, 'mlpet.IAifData'));
-            parse(ip, varargin{:});
-            
-            cc = mlpet.CrossCalibrator(varargin{:});
-            this.efficiencyFactor_ = cc.wellCounterEfficiency;
-        end
-        function dt = datetimes(this, varargin)
+        function dt   = fdgDatetimes(this, varargin)
             dt = this.tableCaprac_.well.TIMEDRAWN_Hh_mm_ss;
             dt = dt(this.validSamples_);
             dt = dt - this.clockDurationOffsets(5);
             if (~isempty(varargin))
                 dt = dt(varargin{:});
             end
-        end
-        function save(~)
-            error('mlpet:notImplemented', 'Caprac.save');
         end
         function [tbl,this] = readtable(this, varargin)
             ip = inputParser;
@@ -181,16 +127,20 @@ classdef Caprac < mlpet.AbstractAifData
             
             this.timingData_.datetime0 = this.datetime(tbl.tradmin{1, 'ADMINistrationTime_Hh_mm_ss'});
             tbl.well.TIMEDRAWN_Hh_mm_ss = ...
-                this.replaceDate( ...
+                this.correctDateToReferenceDate( ...
                     this.datetime(tbl.well.TIMEDRAWN_Hh_mm_ss));
             this.tableCaprac_ = tbl;
             this.validSamples_ = ~isnat(tbl.well.TIMEDRAWN_Hh_mm_ss) & ...
                                  strcmp(tbl.well.TRACER, '[18F]DG');
             this.isPlasma = false;
         end
+        function        save(~)
+            error('mlpet:notImplemented', 'Caprac.save');
+        end
         function this = shiftTimes(this, Dt)
+            %% SHIFTTIMES provides time-coordinate transformation
             assert(isnumeric(Dt) && isscalar(Dt));
-            this.timingData_.interpolatedTimeShift = Dt;
+            this.timingData_ = this.timingData_.shiftTimes(Dt);
         end
         function v    = visibleVolume(this)
             mass = this.tableCaprac_.well.MassSample_G;
@@ -198,6 +148,39 @@ classdef Caprac < mlpet.AbstractAifData
             v    = mass/mlpet.Blood.BLOODDEN;
             v    = ensureRowVector(v); % empirically measured on Caprac
         end
+        
+ 		function this = Caprac(varargin)
+ 			%% CAPRAC
+ 			%  Usage:  this = Caprac()
+
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'scannerData', @(x) isa(x, 'mlpet.IScannerData'));
+            addParameter(ip, 'xlsxObj', @(x) isa(x, 'mlpipeline.IXlsxObjScanData'));
+            addParameter(ip, 'aifTimeShift', 0, @isnumeric);
+            addParameter(ip, 'efficiencyFactor', 1, @isnumeric);
+            parse(ip, varargin{:});
+            
+            this = this@mlpet.AbstractAifData(varargin{:});    
+            this.fqfilename = this.sessionData.CCIRRadMeasurements;        
+ 			[~,this] = readtable(this); 
+            this.scannerData_          = this.updatedScannerData;
+            this.timingData_           = this.updatedTimingData;
+            this.efficiencyFactor_     = ip.Results.efficiencyFactor;
+            this.counts_               = this.tableCaprac2counts;
+            this                       = this.shiftTimes(ip.Results.aifTimeShift);         
+            this.becquerelsPerCC_      = this.tableCaprac2becquerelsPerCC;
+            
+            dc = mlpet.DecayCorrection(this);
+            tshift = seconds(this.doseAdminDatetime - this.datetime0);
+            if (tshift > 600) % KLUDGE
+                warning('mpet:unexpectedParamValue', 'Caprac.ctor.tshift->%i', tshift);
+                tshift = 0; 
+            end 
+            if (this.uncorrected)
+                this.becquerelsPerCC = dc.uncorrectedCounts(this.becquerelsPerCC, tshift);
+            end
+        end        
     end 
     
     %% PROTECTED
@@ -208,12 +191,17 @@ classdef Caprac < mlpet.AbstractAifData
     end
 
     methods (Access = protected)
-        function dt = replaceDate(this, dt)
-            dt0 = this.timingData_.datetime0;
-            dt = this.setDate(dt, dt0);
+        function dt = correctDateToReferenceDate(this, dt)
+            dt = this.xlsxObjScanData.correctDateToReferenceDate(dt);
+        end
+        function d  = extractDateOnly(this, dt)
+            d = this.xlsxObj_.extractDateOnly(dt);
+        end
+        function dt = replaceDateOnly(this, dt, d)
+            dt = this.xlsxObj_.replaceDataOnly(dt, d);
         end
         function t  = tableCaprac2times(this)
-            t = seconds(this.datetimes - this.datetimes(1));
+            t = seconds(this.fdgDatetimes - this.fdgDatetimes(1));
             t = ensureRowVector(t);
         end
         function c  = tableCaprac2counts(this)
@@ -234,7 +222,7 @@ classdef Caprac < mlpet.AbstractAifData
         function td = updatedTimingData(this)
             td           = this.timingData_;
             td.times     = this.tableCaprac2times;
-            td.datetime0 = this.setDate(td.datetime0, this.getDate(this.datetimes(1)));
+            td.datetime0 = this.replaceDateOnly(td.datetime0, this.extractDateOnly(this.fdgDatetimes(1)));
             td.time0     = td.datetime2sec(this.scannerData_.sec2datetime(this.scannerData_.time0));
             td.timeF     = td.datetime2sec(this.scannerData_.sec2datetime(this.scannerData_.timeF));
             td.dt        = min(td.taus);

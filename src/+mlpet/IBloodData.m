@@ -22,7 +22,10 @@ classdef (Abstract) IBloodData
          counts     % as col vector
          nSyringes  % quantity of syringes used
          variableCountTime % as col vector
- 	end 
+    end 
+    
+    methods (Abstract)        
+    end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
 end

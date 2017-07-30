@@ -13,7 +13,6 @@ classdef IPETData
         % accept parameter 'type', {'folder' 'path'}
         f = hdrinfoLocation(this, ~)
         f = petLocation(    this, ~)
-        f = scanLocation(   this, ~)
         
         % accept parameter 'type', {'filename' 'fn' 'fqfn' 'fileprefix' 'fp' 'fqfp' 'folder' 'path' 'ext' 'imagingContext'}
         f = ct(  this, ~)

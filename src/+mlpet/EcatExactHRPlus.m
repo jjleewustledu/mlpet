@@ -313,12 +313,23 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
             this.save;
         end        
         function this = shiftTimes(this, Dt)
+            %% SHIFTTIMES provides time-coordinate transformation
+            
             if (0 == Dt); return; end
             if (2 == length(this.component.size))                
                 [this.times_,this.component.img] = shiftVector(this.times_, this.component.img, Dt);
                 return
             end
             [this.times_,this.component.img] = shiftTensor(this.times_, this.component.img, Dt);
+        end
+        function this     = shiftWorldlines(this, Dt)    
+            
+            if (0 == Dt); return; end        
+            this = this.shiftTimes(Dt);
+            if (~isempty(this.component.img))
+                this.component.img = this.decayCorrection_.adjustCounts(this.component.img, -sign(Dt), Dt);
+            end
+            error('mlpet:incompletelyImplemented', 'EcatExactHRPlus:shiftWorldlines');
         end
         function [t,this] = timeInterpolants(this, varargin)
             if (~isempty(this.timeInterpolants_))

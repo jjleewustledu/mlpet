@@ -1,5 +1,6 @@
 classdef DecayCorrection
-	%% DECAYCORRECTION   
+	%% DECAYCORRECTION.
+    %  Method functions corrected* uncorrected* adjust* are synonyms.
 
 	%  $Revision$ 
  	%  was created $Date$ 
@@ -11,68 +12,111 @@ classdef DecayCorrection
     
     
     properties (Dependent)
+        decayConstant % \alpha = log(2)/\tau_{1/2}
+        halflife
         isotope
-        halfLife
+        nuclide % legacy synonym
     end
     
-    methods %% GET
+    methods 
+        
+        %% GET
+        
+        function g = get.decayConstant(this)
+            g = this.radionuclide_.decayConstant;
+        end
+        function g = get.halflife(this)
+            g = this.radionuclide_.halflife;
+        end
         function g = get.isotope(this)
-            g = this.client_.isotope;
+            g = this.radionuclide_.isotope;
         end
-        function g = get.halfLife(this)
-            switch (this.isotope)
-                case '11C'
-                    g = 20.334*60; % sec
-                case '15O'
-                    g = 122.1; % sec
-                case '18F'
-                    g = 109.77120*60; % sec
-                otherwise
-                    error('mlpet:unsupportedSwitchCase', ...
-                        'DecayCorrection.get.halflife did not recognize this.isotope -> %s', this.isotope);
-            end
+        function g = get.nuclide(this)
+            g = this.radionuclide_.nuclide;
         end
-    end
-
-    methods
-        function this = DecayCorrection(varargin)
-            %% DECAYCORRECTION
- 			%  Usage:  this = this@mlpet.DecayCorrection(IAifData_obj|IWellData_obj);
-
-            ip = inputParser;
-            addRequired( ip, 'client',  @(x) isa(x, 'mlpet.IAifData') || isa(x, 'mlpet.IWellData'));
-            parse(ip, varargin{:});
+    
+        %%
+        
+        function c = adjustCounts(this, varargin)
+            %% ADJUSTCOUNTS (un)corrects positron decay from zero-time or this.client_.time0. 
+            %  @params c is counts, activity, specific activity
+            %  @params sgn is the sign of the adjustment 2^{sgn*t/t_halflife}
+            %  @params tzero is the timepoint for the reference activity
             
-            this.client_ = ip.Results.client;
-        end
-        function [t,c] = shiftCorrectedCounts(~, t, c, Dtzero)
-            assert(isnumeric(c));
-            assert(isnumeric(Dtzero));
-            if (abs(Dtzero) < eps)
-                return
+            ip = inputParser;
+            addRequired(ip, 'c', @isnumeric);
+            addRequired(ip, 'sgn', @(x) abs(x) == 1);
+            addOptional(ip, 'tzero', this.client_.time0, @(x) isnumeric(x) || isdatetime(x));
+            parse(ip, varargin{:});
+            tzero = ip.Results.tzero;
+            if (isdatetime(tzero))
+                tzero = seconds(tzero - this.client_.datetime0);                
             end
-            [t,c] = shiftNumeric(t, c, Dtzero, false);
-        end
-        function [t,c] = shiftUncorrectedCounts(this, t, c, Dtzero)
-            assert(isnumeric(c));
-            assert(isnumeric(Dtzero));
-            tzero = seconds(this.client_.doseAdminDatetime - this.client_.datetime0) - Dtzero;
+            
             if (abs(tzero) < eps)
+                error('mlpet:unexpectedInputValue', 'DecayCorrection.adjustCounts.tzero->%g', tzero);
+                %c = ip.Results.c;
+                %return
+            end
+            if (isa(this.client_, 'mlpet.IScannerData'))
+                c = adjustScannerCounts(this, ip.Results.c, ip.Results.sgn, tzero);
                 return
             end
-            c = this.correctedCounts(c, tzero);
-            [t,c] = shiftNumeric(t, c, Dtzero, false);
-            c = this.uncorrectedCounts(c, tzero);
+            if (isa(this.client_, 'mlpet.IAifData') || isa(this.client_, 'mlpet.IWellData') || isstruct(this.client_))
+                c = adjustAifCounts(    this, ip.Results.c, ip.Results.sgn, tzero);
+                return
+            end
+            error('mlpet:unsupportedTypeClass', ...
+                'DecayCorrection.correctedCounts does not support clients of type %s', class(this.client_));
+        end
+        function c = correctedActivities(this, c, varargin)
+            %% CORRECTEDACTIVITIES removes effects of positron decay from zero-time or this.client_.time0. 
+            %  @params c is counts, activity, specific activity
+            %  @params zeroTime is numeric, optional
+            
+            c = this.correctedCounts(c, varargin{:});
         end
         function c = correctedCounts(this, c, varargin)
-            %% CORRECTEDCOUNTS corrects positron decay from zero-time or this.client_.times(1). 
+            %% CORRECTEDCOUNTS removes effects of positron decay from zero-time or this.client_.time0. 
+            %  @params c is counts, activity, specific activity
+            %  @params zeroTime is numeric, optional
             
             c = this.adjustCounts(c, 1, varargin{:});
         end
+        function c = uncorrectedActivities(this, c, varargin)
+            %% UNCORRECTEDACTIVITIES removes effects of positron decay from zero-time or this.client_.time0. 
+            %  @params c is counts, activity, specific activity
+            %  @params zeroTime is numeric, optional
+            
+            c = this.uncorrectedCounts(c, varargin{:});
+        end
         function c = uncorrectedCounts(this, c, varargin)
-            %% UNCORRECTEDCOUNTS reintroduces positron decay from zero-time or this.client_.times(1).
+            %% UNCORRECTEDCOUNTS reintroduces effects of positron decay from zero-time or this.client_.time0.
+            %  @params c is counts, activity, specific activity
+            %  @params zeroTime is numeric, optional
             
             c = this.adjustCounts(c, -1, varargin{:});
+        end
+        function c = adjustActivities(this, varargin)
+            %% ADJUSTACTIVITIES (un)corrects positron decay from zero-time or this.client_.time0. 
+            
+            c = this.adjustCounts(varargin{:});
+        end
+        
+        function this = DecayCorrection(varargin)
+            %% DECAYCORRECTION
+ 			%  @params client is IAifData_obj | IWellData_obj | struct.
+            %  struct should have at minimum fields:  isotope, time0, times, counts.
+
+            ip = inputParser;
+            addRequired( ip, 'client',  @(x) isa(x, 'mlpet.IScannerData') || ...
+                                             isa(x, 'mlpet.IAifData') || ...
+                                             isa(x, 'mlpet.IWellData') || ...
+                                             isstruct(x));
+            parse(ip, varargin{:});
+            
+            this.client_ = ip.Results.client;
+            this.radionuclide_ = mlpet.Radionuclides(this.client_.isotope);
         end
     end
     
@@ -80,59 +124,33 @@ classdef DecayCorrection
     
     properties (Access = 'private')
         client_
+        radionuclide_
     end
     
     methods (Access = 'private')        
-        function c = adjustCounts(this, varargin)
-            %% ADJUSTCOUNTS (un)corrects positron decay from zero-time this.client_.times(1). 
-            
-            ip = inputParser;
-            addRequired(ip, 'c', @isnumeric);
-            addRequired(ip, 'sgn', @(x) abs(x) == 1);
-            addOptional(ip, 'tzero', 0, @isnumeric);
-            parse(ip, varargin{:});            
-            if (abs(ip.Results.tzero) < eps)
-                error('mlpet:unexpectedInputValue', 'DecayCorrection.adjustCounts.tzero->%g', ip.Results.tzero);
-                %c = ip.Results.c;
-                %return
-            end
-            if (isa(this.client_, 'mlpet.IScannerData'))
-                c = adjustScannerCounts(this, ip.Results.c, ip.Results.sgn, ip.Results.tzero);
-                return
-            end
-            if (isa(this.client_, 'mlpet.IAifData') || isa(this.client_, 'mlpet.IWellData'))
-                c = adjustAifCounts(    this, ip.Results.c, ip.Results.sgn, ip.Results.tzero);
-                return
-            end
-            error('mlpet:unsupportedTypeClass', ...
-                'DecayCorrection.correctedCounts does not support clients of type %s', class(this.client_));
-        end
         function c = adjustAifCounts(this, c, sgn, tzero)
             sgn   = sign(sgn);
             times = this.client_.times - tzero;
-            c     = c.*exp(sgn*this.lambdaHalflife*times);
+            c     = c.*exp(sgn*this.decayConstant*times);
         end
         function c = adjustScannerCounts(this, c, sgn, tzero)
             sgn   = sign(sgn);
             times = this.client_.times - tzero;
             switch (length(size(c)))
                 case 2
-                    c = c.*exp(sgn*this.lambdaHalflife*times);
+                    c = c.*exp(sgn*this.decayConstant*times);
                 case 3
                     for t = 1:size(c,3)
-                        c(:,:,t) = c(:,:,t).*exp(sgn*this.lambdaHalflife*times(t));
+                        c(:,:,t) = c(:,:,t).*exp(sgn*this.decayConstant*times(t));
                     end
                 case 4
                     for t = 1:size(c,4)
-                        c(:,:,:,t) = c(:,:,:,t).*exp(sgn*this.lambdaHalflife*times(t));
+                        c(:,:,:,t) = c(:,:,:,t).*exp(sgn*this.decayConstant*times(t));
                     end
                 otherwise
                     error('mlpet:unsupportedArraySize', ...
                           'size(DecayCorrection.adjustScannerCounts.cnts) -> %s', mat2str(size(c)));
             end 
-        end
-        function l = lambdaHalflife(this)
-            l = log(2) / this.halfLife;
         end
     end
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

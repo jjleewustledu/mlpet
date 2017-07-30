@@ -9,9 +9,9 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.
  	
-
+    
     properties (Constant)
-        SPECIFIC_ACTIVITY_KIND = 'becquerelsPerCCIntegral' % 'decaysPerCCIntegral'
+        SPECIFIC_ACTIVITY_INTEGRAL_KIND = 'becquerelsPerCCIntegral' % 'decaysPerCCIntegral'
     end
     
     properties
@@ -23,12 +23,10 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         
         %% IAifData
         
-        sessionData
         datetime0 % determines datetime of this.times(1)
         doseAdminDatetime
  		dt
         index0
-        interpolatedTimeShift
         indexF
         time0
         timeF
@@ -47,19 +45,17 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         decaysPerCC % Bq*s/cc
         specificActivity
         W
+        sessionData
     end
     
-    methods %% GET, SET
+    methods (Abstract)
+        v = visibleVolume(this)
+    end
+    
+    methods
         
-        %% IAifData
+        %% GET, SET
         
-        function g    = get.sessionData(this)
-            g = this.scannerData_.sessionData;
-        end
-        function this = set.sessionData(this, s)
-            assert(isa(s, 'mlpipeline.SessionData'));
-            this.scannerData_.sessionData = s;
-        end
         function g    = get.datetime0(this)
             g = this.timingData_.datetime0;
         end
@@ -91,16 +87,6 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         end
         function this = set.indexF(this, s)
             this.timingData_.indexF = s;
-        end
-        function g    = get.interpolatedTimeShift(this)
-            g = this.timingData_.interpolatedTimeShift;
-        end
-        function this = set.interpolatedTimeShift(this, s)
-            if (abs(s) > 0)
-                this.timingData_.interpolatedTimeShift = s;
-                this.decayCorrection_ = mlpet.DecayCorrection(this);
-                [~,this.counts] = this.decayCorrection_.shiftUncorrectedCounts(this.times, this.counts, s);
-            end
         end
         function g    = get.time0(this)
             g = this.timingData_.time0;
@@ -157,8 +143,6 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             this.becquerelsPerCC = s./this.visibleVolume;
         end
         
-        %% new
-        
         function g    = get.becquerelsPerCC(this)
             g = this.becquerelsPerCC_;
         end
@@ -185,23 +169,9 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         function g    = get.W(this)
             assert(this.dt == this.scannerData_.dt);
             g = this.scannerData_.W;
-        end
-    end
-    
-    methods (Abstract)
-        v = visibleVolume(this)
-    end
-
-	methods 
- 		function this = AbstractAifData(varargin)
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'scannerData', [], @(x) isa(x, 'mlpet.IScannerData'));
-            parse(ip, varargin{:});
-            
-            this.scannerData_ = ip.Results.scannerData;
-            this.timingData_ = mldata.TimingData;
-            this.timingData_.dt = this.scannerData_.dt;
+        end        
+        function g    = get.sessionData(this)
+            g = this.xlsxObj_.sessionData;
         end
         
         %% IAifData
@@ -239,7 +209,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             bi = trapz(this.times(idx0:idxF), this.becquerels(idx0:idxF));
         end
         
-        %% new
+        %% 
         
         function bi       = becquerelsPerCCIntegral(this)
             idx0 = this.index0;
@@ -252,13 +222,51 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             di = trapz(this.times(idx0:idxF), this.decaysPerCC(idx0:idxF));
         end
         function sa       = specificActivityIntegral(this)
-            sa = this.(this.SPECIFIC_ACTIVITY_KIND);
+            sa = this.(this.SPECIFIC_ACTIVITY_INTEGRAL_KIND);
         end      
         function s        = datetime2sec(this, dt)
             s = this.timingData_.datetime2sec(dt);
         end
         function dt       = sec2datetime(this, s)
             dt = this.timingData_.sec2datetime(s);
+        end
+        function this     = shiftTimes(this, Dt)
+            if (Dt == 0)
+                return
+            end
+            this.timingData_ = this.timingData_.shiftTimes(Dt);
+        end
+        function this     = shiftWorldlines(this, Dt)
+            if (Dt == 0)
+                return
+            end          
+            this.timingData_ = this.timingData_.shiftTimes(Dt);
+            if (~isempty(this.counts_))
+                this.counts_ = this.decayCorrection_.adjustCounts(this.counts_, -sign(Dt), Dt);
+            end
+            if (~isempty(this.becquerelsPerCC_))
+                this.counts_ = this.decayCorrection_.adjustCounts(this.becquerelsPerCC_, -sign(Dt), Dt);
+            end
+            error('mlpet:incompletelyImplemented', 'AbstractAifData:shiftTimeInterpolants');
+        end
+        
+ 		function this = AbstractAifData(varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'filename',    @(x) lexist(x, 'file'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'scannerData', @(x) isa(x, 'mlpet.IScannerData'));
+            addParameter(ip, 'xlsxObj',     @(x) isa(x, 'mlpipeline.IXlsxObjScanData'));
+            addParameter(ip, 'aifTimeShift', 0, @isnumeric);
+            parse(ip, varargin{:});
+            
+            this.fqfilename     = ip.Results.filename;
+            this.sessionData_   = ip.Results.sessionData;
+            this.scannerData_   = ip.Results.scannerData;
+            this.xlsxObj_       = ip.Results.xlsxObj;
+            this.timingData_    = mldata.TimingData;
+            this.decayCorrection_ = mlpet.DecayCorrection(this);
+            this                = this.shiftTimes(ip.Results.aifTimeShift);
         end
     end 
     
@@ -270,7 +278,9 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         decayCorrection_
         efficiencyFactor_ = nan
         scannerData_
+        sessionData_
         timingData_
+        xlsxObj_
     end  
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

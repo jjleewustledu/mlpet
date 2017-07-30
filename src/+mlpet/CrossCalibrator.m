@@ -14,28 +14,36 @@ classdef CrossCalibrator
  	end
 
 	methods 
+        function ef   = efficiencyFactor(this)
+            ef = this.reference_.calibrationMeasurement / this.toCalibrate_.calibrationMeasurement;
+        end
 		  
  		function this = CrossCalibrator(varargin)
  			%% CROSSCALIBRATOR
- 			%  Usage:  this = CrossCalibrator()
+            %  @params named reference must be one of:
+            %  mlpipeline.IXlsxObjScanData, mlpet.IScanner, mlpet.IAifData, mlpet.IBloodData
+            %  @params toCalibrate 
  			
             ip = inputParser;
-            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScanner'));
-            addParameter(ip, 'wellCounter', [], @(x) isa(x, 'mlpet.IBloodData'));
-            addParameter(ip, 'aifSampler', this, @(x) isa(x, 'mlpet.IAifData'));
-            parse(ip, varargin{:});
+            addRequired(ip,  'toCalibrate',     @(x) isa(x, 'mlpet.IScannerData') || ...
+                                                     isa(x, 'mlpet.IAifData') || ...
+                                                     isa(x, 'mlpet.IBloodData') || ...
+                                                     isa(x, 'mlpet.IWellData'));
+            addParameter(ip, 'reference', [], @(x)   isa(x, 'mlpipeline.IXlsxObjScanData') || ...
+                                                     isa(x, 'mlpet.IScannerData') || ...
+                                                     isa(x, 'mlpet.IAifData') || ...
+                                                     isa(x, 'mlpet.IBloodData') || ...
+                                                     isa(x, 'mlpet.IWellData'));
+            parse(ip, varargin{:});            
             
-            
-            this.scanner_     = ip.Results.scanner;
-            this.wellCounter_ = ip.Results.wellCounter;
-            this.aifSampler_  = ip.Results.aifSampler;
+            this.toCalibrate_ = ip.Results.toCalibrate;
+            this.reference_   = ip.Results.reference;
  		end
     end
     
     properties (Access = private)
-        scanner_
-        wellCounter_
-        aifSampler_
+        reference_
+        toCalibrate_
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

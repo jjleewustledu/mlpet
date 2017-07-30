@@ -24,7 +24,31 @@ classdef Test_Twilite < matlab.unittest.TestCase
  			this.assumeEqual(1,1);
  			this.verifyEqual(1,1);
  			this.assertEqual(1,1);
- 		end
+        end
+        function test_crossCalibrate(this)
+        end
+        function test_specificActivity(this)
+        end
+        function test_times(this)
+        end
+        function test_timeMidpoints(this)
+        end
+        function test_taus(this)
+        end
+        function test_datetime(this)
+        end
+        function test_doseAdminDatetime(this)
+        end
+        function test_timeInterpolants(this)
+        end
+        function test_timeMidpointInterpolants(this)
+        end
+        function test_tauInterpolants(this)
+        end
+        function test_shiftTimes(this)
+        end
+        function test_shiftWorldlines(this)
+        end
 	end
 
  	methods (TestClassSetup)
