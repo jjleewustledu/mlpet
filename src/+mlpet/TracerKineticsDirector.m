@@ -33,6 +33,10 @@ classdef TracerKineticsDirector
             g = this.builder_.sessionData;
         end
         
+        function this = set.sessionData(this, s)            
+            assert(isa(s, 'mlpipeline.SessionData'));
+            this.builder_.sessionData = s;
+        end
         function this = set.roisBuilder(this, s)
             assert(isa(s, 'mlrois.IRoisBuilder'));
             this.builder_.roisBuilder = s;
@@ -71,7 +75,7 @@ classdef TracerKineticsDirector
  			%  @param required 'builder' is a 'mlpet.ITracerBuilder'
             
             ip = inputParser;
-            addRequired(ip, 'builder', @(x) isa(x, 'mlpet.ITracerBuilder'));
+            addRequired(ip, 'builder', @(x) isa(x, 'mlpet.ITracerKineticsBuilder'));
             parse(ip, varargin{:});
             
             this.builder_ = ip.Results.builder;
@@ -89,5 +93,5 @@ classdef TracerKineticsDirector
     end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
- end
+end 
 
