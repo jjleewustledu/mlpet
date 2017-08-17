@@ -20,9 +20,9 @@ classdef CrossCalibrator
 		  
  		function this = CrossCalibrator(varargin)
  			%% CROSSCALIBRATOR
-            %  @params named reference must be one of:
+            %  @param named reference must be one of:
             %  mlpipeline.IXlsxObjScanData, mlpet.IScanner, mlpet.IAifData, mlpet.IBloodData
-            %  @params toCalibrate 
+            %  @param toCalibrate 
  			
             ip = inputParser;
             addRequired(ip,  'toCalibrate',     @(x) isa(x, 'mlpet.IScannerData') || ...

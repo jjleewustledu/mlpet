@@ -587,7 +587,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
         end
     end
     
-    %% DEPRECATED
+    %  @deprecated
     
     methods (Hidden)        
         function this = mcflirtedAfterBlur(this, blur)

@@ -48,7 +48,7 @@ classdef TracerKineticsDirector
             %% CONSTRUCTKINETICS requests that the builder prepare filesystems, coregistrations and 
             %  resolve-projections of ancillary data to tracer data.  
             %  Subsequently, it requests that the builder construct kinetics.
-            %  @params named 'roisBuild' is an 'mlrois.IRoisBuilder'.
+            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'.
             
             ip = inputParser;
             addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
@@ -60,7 +60,7 @@ classdef TracerKineticsDirector
         end
         function tf = constructKineticsPassed(this, varargin)
             %% CONSTRUCTKINETICSPASSED
-            %  @params named 'roisBuild' is an 'mlrois.IRoisBuilder'.
+            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'.
             %  @returns tf logical.
             
             ip = inputParser;

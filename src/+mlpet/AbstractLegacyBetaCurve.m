@@ -116,6 +116,8 @@ classdef AbstractLegacyBetaCurve < mlpet.ILegacyBetaCurve
             d = this.counts;
         end
         function c    = cell(this)
+            %  @deprecated
+            
             warning('mlpet:deprecatedMethodFunction', ...
                 'AbstractLegacyBetaCurve.cell is deprecated and will be removed in future development');
             c = {this.times this.counts};

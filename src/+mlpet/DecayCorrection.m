@@ -39,9 +39,9 @@ classdef DecayCorrection
         
         function c = adjustCounts(this, varargin)
             %% ADJUSTCOUNTS (un)corrects positron decay from zero-time or this.client_.time0. 
-            %  @params c is counts, activity, specific activity
-            %  @params sgn is the sign of the adjustment 2^{sgn*t/t_halflife}
-            %  @params tzero is the timepoint for the reference activity
+            %  @param c is counts, activity, specific activity
+            %  @param sgn is the sign of the adjustment 2^{sgn*t/t_halflife}
+            %  @param tzero is the timepoint for the reference activity
             
             ip = inputParser;
             addRequired(ip, 'c', @isnumeric);
@@ -71,29 +71,29 @@ classdef DecayCorrection
         end
         function c = correctedActivities(this, c, varargin)
             %% CORRECTEDACTIVITIES removes effects of positron decay from zero-time or this.client_.time0. 
-            %  @params c is counts, activity, specific activity
-            %  @params zeroTime is numeric, optional
+            %  @param c is counts, activity, specific activity
+            %  @param zeroTime is numeric, optional
             
             c = this.correctedCounts(c, varargin{:});
         end
         function c = correctedCounts(this, c, varargin)
             %% CORRECTEDCOUNTS removes effects of positron decay from zero-time or this.client_.time0. 
-            %  @params c is counts, activity, specific activity
-            %  @params zeroTime is numeric, optional
+            %  @param c is counts, activity, specific activity
+            %  @param zeroTime is numeric, optional
             
             c = this.adjustCounts(c, 1, varargin{:});
         end
         function c = uncorrectedActivities(this, c, varargin)
             %% UNCORRECTEDACTIVITIES removes effects of positron decay from zero-time or this.client_.time0. 
-            %  @params c is counts, activity, specific activity
-            %  @params zeroTime is numeric, optional
+            %  @param c is counts, activity, specific activity
+            %  @param zeroTime is numeric, optional
             
             c = this.uncorrectedCounts(c, varargin{:});
         end
         function c = uncorrectedCounts(this, c, varargin)
             %% UNCORRECTEDCOUNTS reintroduces effects of positron decay from zero-time or this.client_.time0.
-            %  @params c is counts, activity, specific activity
-            %  @params zeroTime is numeric, optional
+            %  @param c is counts, activity, specific activity
+            %  @param zeroTime is numeric, optional
             
             c = this.adjustCounts(c, -1, varargin{:});
         end
@@ -105,7 +105,7 @@ classdef DecayCorrection
         
         function this = DecayCorrection(varargin)
             %% DECAYCORRECTION
- 			%  @params client is IAifData_obj | IWellData_obj | struct.
+ 			%  @param client is IAifData_obj | IWellData_obj | struct.
             %  struct should have at minimum fields:  isotope, time0, times, counts.
 
             ip = inputParser;

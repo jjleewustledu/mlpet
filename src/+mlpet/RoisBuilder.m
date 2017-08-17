@@ -23,8 +23,8 @@ classdef RoisBuilder < mlpipeline.AbstractDataBuilder & mlrois.IRoisBuilder
         function aab = aparcAsegBinarized(this, varargin)
             %% APARCASEGBINARIZED uses a pre-existing ct4rb to orthogonally project aparcAseg to the target of ct4rb,
             %  then binarize.
-            %  @params required t4rb is an mlfourdfp.IT4ResolveBuilder.
-            %  @params optional reuse is logical; default true -> use aparcAsegBinarized_op_tracerRevision.4dfp.ifh.
+            %  @param required t4rb is an mlfourdfp.IT4ResolveBuilder.
+            %  @param optional reuse is logical; default true -> use aparcAsegBinarized_op_tracerRevision.4dfp.ifh.
             %  returns aab, an mlfourd.ImagingContext.
             
             ip = inputParser;
@@ -48,7 +48,7 @@ classdef RoisBuilder < mlpipeline.AbstractDataBuilder & mlrois.IRoisBuilder
                 sessd.nifti_4dfp_4(aa);
             end
             t4rb = ip.Results.t4rb;
-            aa = t4rb.t4img_4dfp(sessd.brainmask('typ','fp'), mybasename(aa), 'opts', '-n'); % target is specified by t4rb
+            aa = t4rb.t4img_4dfp_0(sessd.brainmask('typ','fp'), mybasename(aa), 'options', '-n'); % target is specified by t4rb
             aa = mlfourd.ImagingContext([aa '.4dfp.ifh']);
             nn = aa.numericalNiftid;
             nn.saveas(['aparcAseg_' t4rb.resolveTag '.4dfp.ifh']);
@@ -62,7 +62,7 @@ classdef RoisBuilder < mlpipeline.AbstractDataBuilder & mlrois.IRoisBuilder
         end
         function [mskt,msktNorm] = msktgenImg(this, varargin)
             %% MSKTGENIMG calls mpr2atl_4dfp and msktgen_4dfp on tracerFn to create quasi-binary masks.
-            %  @params optional tracerFn is char; default is this.sessiondata.tracerRevisionSumt.
+            %  @param optional tracerFn is char; default is this.sessiondata.tracerRevisionSumt.
             %  @returns mskt     is a quasi-binary mask with max ~ 1000 (mlfourd.ImagingContext)
             %  @returns msktNorm is a quasi-binary mask with max = 1    (mlfourd.ImagingContext)            
             
@@ -114,9 +114,9 @@ classdef RoisBuilder < mlpipeline.AbstractDataBuilder & mlrois.IRoisBuilder
         
  		function this = RoisBuilder(varargin)
  			%% ROISBUILDER
-            %  @params named 'logger' is an mlpipeline.AbstractLogger.
-            %  @params named 'product' is the initial state of the product to build.
-            %  @params named 'sessionData' is an mlpipeline.ISessionData.
+            %  @param named 'logger' is an mlpipeline.AbstractLogger.
+            %  @param named 'product' is the initial state of the product to build.
+            %  @param named 'sessionData' is an mlpipeline.ISessionData.
 
  			this = this@mlpipeline.AbstractDataBuilder(varargin{:});
             this.buildVisitor_ = mlfourdfp.FourdfpVisitor;

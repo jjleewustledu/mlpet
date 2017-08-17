@@ -53,8 +53,8 @@ classdef MMRRegistry < mlpatterns.Singleton
             %  The fwhh at 1cm from axis was measured by:
             %  Delso, Fuerst Jackoby, et al.  Performance Measurements of the Siemens mMR Integrated Whole-Body PET/MR
             %  Scanner.  J Nucl Med 2011; 52:1?9.
-            %  @params optional dispersion may be "fwhh" (default) or "sigma"
-            %  @params optional geometricMean is logical (default is false)
+            %  @param optional dispersion may be "fwhh" (default) or "sigma"
+            %  @param optional geometricMean is logical (default is false)
             %  @return a scalar or 3-vector in mm
         
             ip = inputParser;

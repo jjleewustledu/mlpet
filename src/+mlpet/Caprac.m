@@ -229,7 +229,8 @@ classdef Caprac < mlpet.AbstractAifData
         end
     end
     
-    %% HIDDEN, DEPRECATED
+    %% HIDDEN
+    %  @deprecated
     
     properties (Hidden)        
         variableCountTime = nan

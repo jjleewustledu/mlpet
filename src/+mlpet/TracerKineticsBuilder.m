@@ -30,12 +30,12 @@ classdef TracerKineticsBuilder < mlpet.TracerBuilder & mlpet.ITracerKineticsBuil
         
  		function this = TracerKineticsBuilder(varargin)
  			%% TRACERKINETICSBUILDER
-            %  @params named 'logger' is an mlpipeline.AbstractLogger.
-            %  @params named 'product' is the initial state of the product to build.
-            %  @params named 'sessionData' is an mlpipeline.ISessionData.
- 			%  @params named 'buildVisitor' is an mlfourdfp.FourdfpVisitor.
-            %  @params named 'roisBuild' is an mlrois.IRoisBuilder.
-            %  @params named 'kinetics' is an mlkinetics.AbstractKinetics.
+            %  @param named 'logger' is an mlpipeline.AbstractLogger.
+            %  @param named 'product' is the initial state of the product to build.
+            %  @param named 'sessionData' is an mlpipeline.ISessionData.
+ 			%  @param named 'buildVisitor' is an mlfourdfp.FourdfpVisitor.
+            %  @param named 'roisBuild' is an mlrois.IRoisBuilder.
+            %  @param named 'kinetics' is an mlkinetics.AbstractKinetics.
 
  			this = this@mlpet.TracerBuilder(varargin{:});
             ip = inputParser;

@@ -118,7 +118,7 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
         end 
         function [this,aab] = resolveRoisOnAC(this, varargin)
             %% RESOLVEROISONAC
-            %  @params named 'roisBuild' is an 'mlrois.IRoisBuilder'
+            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'
             %  @returns aab, an mlfourd.ImagingContext from mlpet.BrainmaskBuilder.aparcAsegBinarized.
             
             ip = inputParser;
@@ -140,11 +140,11 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
         
  		function this = TracerBuilder(varargin)
  			%% TRACERBUILDER
-            %  @params named 'logger' is an mlpipeline.AbstractLogger.
-            %  @params named 'product' is the initial state of the product to build.
-            %  @params named 'sessionData' is an mlpipeline.ISessionData.
- 			%  @params named 'buildVisitor' is an mlfourdfp.FourdfpVisitor.
-            %  @params named 'roisBuild' is an mlrois.IRoisBuilder.
+            %  @param named 'logger' is an mlpipeline.AbstractLogger.
+            %  @param named 'product' is the initial state of the product to build.
+            %  @param named 'sessionData' is an mlpipeline.ISessionData.
+ 			%  @param named 'buildVisitor' is an mlfourdfp.FourdfpVisitor.
+            %  @param named 'roisBuild' is an mlrois.IRoisBuilder.
  			
             this = this@mlpipeline.AbstractDataBuilder(varargin{:});
             

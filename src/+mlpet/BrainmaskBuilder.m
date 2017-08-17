@@ -24,8 +24,8 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
         
         function [bmbb,ct4rb] = brainmaskBinarized(this, varargin)
             %% BRAINMASKBINARIZED resolves brainmaskBinarizeBlended to tracer
-            %  @params named tracer is an mlfourd.ImagingContext.
-            %  @params named reuse is logical; reusing existing brainmaskBinarizeBlended is default.
+            %  @param named tracer is an mlfourd.ImagingContext.
+            %  @param named reuse is logical; reusing existing brainmaskBinarizeBlended is default.
             %  @returns bmbb, brainmaskBinarizeBlended, as mlfourd.ImagingContext.
             %  @returns ct4rb as mlfourdfp.CompositeT4ResolveBuilder.
             
@@ -91,9 +91,9 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
  		function this = BrainmaskBuilder(varargin)
  			%% BRAINMASKBUILDER ensures there exists sessionData.vLocation/brainmask.4dfp.ifh;
             %  it is set as the initial state of this.product.
-            %  @params named 'logger' is an mlpipeline.AbstractLogger.
-            %  @params named 'product' is the initial state of the product to build.
- 			%  @params named 'sessionData' is an 'mlpipeline.ISessionData'.
+            %  @param named 'logger' is an mlpipeline.AbstractLogger.
+            %  @param named 'product' is the initial state of the product to build.
+ 			%  @param named 'sessionData' is an 'mlpipeline.ISessionData'.
 
  			this = this@mlpet.RoisBuilder(varargin{:});
             
