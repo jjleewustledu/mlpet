@@ -68,6 +68,27 @@ classdef TracerKineticsDirector
             parse(ip, varargin{:});
             
             tf = this.builder_.constructKineticsPassed(varargin{:});
+        end        
+        function [this,aab] = resolveRoisOnAC(this, varargin)
+            %% RESOLVEROISONAC
+            %  @param named 'roisBuilder' is an 'mlrois.IRoisBuilder'
+            %  @returns aab, an mlfourd.ImagingContext from mlpet.BrainmaskBuilder.aparcAsegBinarized.
+            
+            ip = inputParser;
+            addParameter(ip, 'roisBuilder', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
+            parse(ip, varargin{:});            
+            sessd = this.sessionData;
+            
+            % actions
+            
+            pwd0 = sessd.petLocation;
+            ensuredir(pwd0);
+            pushd(pwd0);
+            bmb = mlpet.BrainmaskBuilder('sessionData', sessd);
+            [~,ct4rb] = bmb.brainmaskBinarized( ...
+                'tracer', this.sessionData.tracerRevisionSumt('typ', 'mlfourd.ImagingContext'));
+            aab = bmb.aparcAsegBinarized(ct4rb);
+            popd(pwd0);
         end
         
  		function this = TracerKineticsDirector(varargin)

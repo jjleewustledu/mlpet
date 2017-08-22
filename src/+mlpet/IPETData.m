@@ -10,11 +10,11 @@ classdef IPETData
  	
     
 	methods (Abstract)
-        % accept parameter 'type', {'folder' 'path'}
+        % accept parameter 'typ', {'folder' 'path'}
         f = hdrinfoLocation(this, ~)
         f = petLocation(    this, ~)
         
-        % accept parameter 'type', {'filename' 'fn' 'fqfn' 'fileprefix' 'fp' 'fqfp' 'folder' 'path' 'ext' 'imagingContext'}
+        % accept parameter 'typ', {'filename' 'fn' 'fqfn' 'fileprefix' 'fp' 'fqfp' 'folder' 'path' 'ext' 'imagingContext'}
         f = ct(  this, ~)
         f = fdg( this, ~)
         f = gluc(this, ~)

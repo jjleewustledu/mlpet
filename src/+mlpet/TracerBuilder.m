@@ -1,5 +1,5 @@
 classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
-	%% TRACERBUILDER.
+	%% TRACERBUILDER
 
 	%  $Revision$
  	%  was created 9-Mar-2017 15:39
@@ -7,26 +7,13 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlfourdfp/src/+mlfourdfp.
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee. 	
-
-     
-    properties (Constant)
-        MAX_MONOLITH_LENGTH = 8
-    end
-    
-	properties
-        activeFrames % frame1:frameEnd
-        indexOfReference
-        recoverNACFolder = false 
-    end
     
     properties (Dependent)
         buildVisitor
         compositeResolveBuilder
-        finished
-        framesResolveBuilder
-        resolveTag
+        resolveBuilder
         roisBuilder
-    end    
+    end
         
     methods 
         
@@ -38,18 +25,8 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
         function g    = get.compositeResolveBuilder(this)
             g = this.compositeResolveBuilder_;
         end
-        function g    = get.finished(this)
-            g = this.product.finished;
-        end
-        function g    = get.framesResolveBuilder(this)
-            g = this.framesResolveBuilder_;
-        end
-        function g    = get.resolveTag(this)
-            g = this.sessionData.resolveTag;
-        end
-        function this = set.resolveTag(this, s)
-            assert(ischar(s));
-            this.sessionData.resolveTag = s;
+        function g    = get.resolveBuilder(this)
+            g = this.resolveBuilder_;
         end
         function g    = get.roisBuilder(this)
             g = this.roisBuilder_;
@@ -62,89 +39,120 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
         %%
         
         function this = locallyStageTracer(this)
-            this.prepareNACLocation;         
-            this = this.buildTracerNAC;
-            this.prepareMR;
-        end
-        function        prepareNACLocation(this)
-            %% PREPARENACLOCATION recovers the NAC location from backup or creates it de novo.
+            %% LOCALLYSTAGETRACER 
+            %  @param this.sessionData must be well-formed with valid methods:
+            %  tracerLocation, tracerLocation, tracerListmodeMhdr, tracerListmodeSif, tracerMhdr, tracerSif, mprage, atlas.
+            %  @param valid named param vendorSupport in ctor.
+            %  @param recoverBackup logical:  if recoverBackup then [this.sessionData.tracerLocation '-Backup'] must be a well-formed dir.
+            %  @return this.product := vendorSupport->cropfrac(this.sessionData.tracerSif) as mlfourdfp.ImagingContext.
             
-            sessd = this.sessionData;
-            if (this.recoverNACFolder)
-                movefile([sessd.tracerNACLocation '-Backup'], sessd.tracerNACLocation);
+            this.prepareTracerLocation;         
+            this.prepareListmodeMhdr;
+            this.prepareMprToAtlasT4;
+            this = this.prepareTracerRevision;
+        end
+        function this = prepareTracerLocation(this, varargin)
+            %% PREPARETRACERLOCATION
+            %  @param this.sessionData has valid method tracerLocation.
+            %  @param doRecovery is logical (default false).  If true then backup exists at [tracerLocation '-Backup'].
+            %  @return this.product_ := tracerLocation on the filesystem, a filepath.  
+            
+            ip = inputParser;
+            addOptional(ip, 'doRecovery', false, @islogical);
+            parse(ip, varargin{:});
+            
+            tracerLoc = this.sessionData.tracerLocation;
+            if (ip.Results.doRecovery)
+                movefile([tracerLoc '-Backup'], tracerLoc);
                 return
             end            
-            if (~isdir(sessd.tracerNACLocation))
-                mkdir(sessd.tracerNACLocation);
-            end            
+            if (~isdir(tracerLoc))
+                mkdir(tracerLoc);
+            end  
+            this.product_ = tracerLoc;
         end
-        function this = buildTracerNAC(this)
-            %% BUILDTRACERNAC builds 4dfp-formatted tracer NAC images; use to prep data before conveying to clusters.
-            %  See also:  mlfourdfp.FourdfpVisitor.sif_4dfp.
+        function this = prepareListmodeMhdr(this)
+            %% PREPARELISTMODEMHDR
+            %  @param this.sessionData has valid methods tracerLocation, tracerListmodeMhdr, tracerListmodeSif, tracerMhdr, tracerSif.
+            %  @return tracerListmodeMhdr, tracerMhdr, tracerListmodeSif, tracerSif exist.
+            %  @return this.product_ := tracerSif as mlfourd.ImagingContext.
             
-            sessd = this.sessionData;
-            mhdr  = sessd.tracerListmodeMhdr( 'typ', 'fqfp');
-            nac   = sessd.tracerNAC('typ', 'fqfp');
+            lmMhdr = this.sessionData.tracerListmodeMhdr('typ', 'fqfp');
+            lmSif  = this.sessionData.tracerListmodeSif( 'typ', 'fqfp');
+            sif    = this.sessionData.tracerSif(         'typ', 'fqfp');
             
-            if (this.buildVisitor.lexist_4dfp(nac))
-                return
+            assert(lexist(this.sessionData.tracerListmodeMhdr), ...
+                'mlpet:fileNotFound', ...
+                'TracerBuilder.prepareListmodeMhdr could not find %s; review e7tools/JSRecon12', ...
+                this.sessionData.tracerListmodeMhdr);
+            if (~this.buildVisitor.lexist_4dfp(lmSif))
+                pwd0 = pushd(fileparts(lmSif));
+                this.buildVisitor.sif_4dfp(lmMhdr);
+                popd(pwd0);
+            end   
+            if (~this.buildVisitor.lexist_4dfp(sif))
+                pwd0 = pushd(fileparts(sif));
+                this.buildVisitor.lns_4dfp(lmSif);
+                popd(pwd0);
             end
-            if (~this.buildVisitor.lexist_4dfp(mhdr))
-                fprintf('mlraichle.T4ResolveBuilder.buildTracerNAC:  building %s\n', mhdr);
-                cd(fileparts(mhdr));
-                this.buildVisitor.sif_4dfp(mhdr);
-            end
-            if (~isdir(sessd.tracerNACLocation))
-                mkdir(sessd.tracerNACLocation);
-            end     
-            pwd0 = pushd(sessd.tracerNACLocation);
-            this.buildVisitor.lns_4dfp(mhdr);
-            popd(pwd0);
-            %movefile([mhdr '.4dfp.*'], sessd.tracerNACLocation);
+            this.product_ = mlfourd.ImagingContext([sif '.4dfp.ifh']);
         end
-        function        prepareMR(this)
-            %% PREPAREMR runs msktgenMprage as needed for use by resolve.
+        function this = prepareMprToAtlasT4(this)
+            %% PREPAREMPRTOATLAST4
+            %  @param this.sessionData has valid methods mprage, atlas.
+            %  @return this.product_ := [mprage '_to_' atlas '_t4'] existing in the same folder as mprage.
             
             sessd      = this.sessionData;
             mpr        = sessd.mprage('typ', 'fp');
             atl        = sessd.atlas('typ', 'fp');
             mprToAtlT4 = [mpr '_to_' atl '_t4'];            
             if (~lexist(fullfile(sessd.mprage('typ', 'path'), mprToAtlT4)))
-                cd(sessd.mprage('typ', 'path'));
+                pwd0 = pushd(sessd.mprage('typ', 'path'));
                 this.compositeResolveBuilder.msktgenMprage(mpr, atl);
+                popd(pwd0);
             end
+            this.product_ = mprToAtlT4;
         end
-        function this = gatherConvertedAC(this)
-        end 
-        function [this,aab] = resolveRoisOnAC(this, varargin)
-            %% RESOLVEROISONAC
-            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'
-            %  @returns aab, an mlfourd.ImagingContext from mlpet.BrainmaskBuilder.aparcAsegBinarized.
+        function this = prepareTracerRevision(this)
+            %% PREPARETRACERREVISION
+            %  @param valid param named vendorSupport in ctor.
+            %  @param valid this.sessionData.
+            %  @return this.product := vendorSupport->cropfrac(this.sessionData.tracerSif) as mlfourdfp.ImagingContext.
             
-            ip = inputParser;
-            addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
-            parse(ip, varargin{:});            
-            sessd = this.sessionData;
+            this.vendorSupport_.ensureTracerSymlinks; 
+            import mlfourd.*;
+            if (this.buildVisitor.lexist_4dfp(this.sessionData.tracerRevision('typ','fqfp')))                
+                this.product_ = ImagingContext(this.sessionData.tracerRevision);
+                return
+            end
+            this.product_ = ImagingContext( ...
+                [this.vendorSupport_.cropfrac(this.vendorSupport_.sif) this.sessionData.filetypeExt]);
+        end
+        function this = locallyStageModalities(this)
+            %% LOCALLYSTAGEMODALITIES
+            %  @param existing T1, t2, tof, umapSynth on the filesystem.
+            %  @return sym-links to T1, t2, tof, umapSynth in the pwd.  
             
-            % actions
-            
-            pwd0 = sessd.petLocation;
-            ensuredir(pwd0);
-            pushd(pwd0);
-            bmb = mlpet.BrainmaskBuilder('sessionData', sessd);
-            [~,ct4rb] = bmb.brainmaskBinarized( ...
-                'tracer', this.sessionData.tracerRevisionSumt('typ', 'mlfourd.ImagingContext'));
-            aab = bmb.aparcAsegBinarized(ct4rb);
-            popd(pwd0);
+            bv = this.buildVisitor;
+            bv.lns_4dfp(this.T1('typ','fqfp'));            
+            bv.lns_4dfp(this.t2('typ','fqfp'));            
+            bv.lns_4dfp(this.tof('typ','fqfp'));
+            bv.lns_4dfp(this.umapSynth('tracer', '', 'typ', 'fqfp'));
+        end
+        function pth  = logPath(this)
+            pth = fullfile(this.sessionData.tracerLocation, 'Log', '');
+            if (~isdir(pth))
+                mkdir(pth);
+            end
         end
         
  		function this = TracerBuilder(varargin)
  			%% TRACERBUILDER
-            %  @param named 'logger' is an mlpipeline.AbstractLogger.
-            %  @param named 'product' is the initial state of the product to build.
-            %  @param named 'sessionData' is an mlpipeline.ISessionData.
  			%  @param named 'buildVisitor' is an mlfourdfp.FourdfpVisitor.
-            %  @param named 'roisBuild' is an mlrois.IRoisBuilder.
+            %  @param named 'roisBuilder' is an mlrois.IRoisBuilder.
+            %  @param named 'resolveBuilder' is an mlfourdfp.T4ResolveBuilder.
+            %  @param named 'compositeResolveBuilder' is an mlfourdp.CompositeT4ResolveBuilder.
+            %  @param named 'vendorSupport' is, e.g., mlsiemens.MMRBuilder.
  			
             this = this@mlpipeline.AbstractDataBuilder(varargin{:});
             
@@ -153,89 +161,30 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
             ip.KeepUnmatched = true;
             addParameter(ip, 'buildVisitor', ...
                 FourdfpVisitor, @(x) isa(x, 'mlfourdfp.FourdfpVisitor'));
-            addParameter(ip, 'roisBuild', ...
-                mlpet.BrainmaskBuilder( ...
-                    'sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
-%             addParameter(ip, 'framesResolveBuild', ...
-%                 T4ResolveBuilder( ...
-%                     'sessionData', this.sessionData), @(x) isa(x, 'mlfourdfp.T4ResolveBuilder'));
-%             addParameter(ip, 'compositeResolveBuild', ...
-%                 CompositeT4ResolveBuilder( ...
-%                     'sessionData', this.sessionData), @(x) isa(x, 'mlfourdfp.CompositeT4ResolveBuilder'));
+            addParameter(ip, 'roisBuilder', ...
+                mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
+            addParameter(ip, 'resolveBuilder', ...
+                [], @(x) isa(x, 'mlfourdfp.T4ResolveBuilder') || isempty(x));
+            addParameter(ip, 'compositeResolveBuilder', ...
+                [], @(x) isa(x, 'mlfourdfp.CompositeT4ResolveBuilder') || isempty(x));
             addParameter(ip, 'vendorSupport', ...
                 mlsiemens.MMRBuilder('sessionData', this.sessionData));
             parse(ip, varargin{:});
             
-            this.buildVisitor_ = ip.Results.buildVisitor;
-            this.roisBuilder_ = ip.Results.roisBuild;
-%            this.framesResolveBuilder_ = ip.Results.framesResolveBuild;
-%            this.compositeResolveBuilder_ = ip.Results.compositeResolveBuild;
-            this.vendorSupport_ = ip.Results.vendorSupport;
+            this.buildVisitor_            = ip.Results.buildVisitor;
+            this.roisBuilder_             = ip.Results.roisBuilder;
+            this.resolveBuilder_          = ip.Results.resolveBuilder;
+            this.compositeResolveBuilder_ = ip.Results.compositeResolveBuilder;
+            this.vendorSupport_           = ip.Results.vendorSupport;
         end        
  	end 
     
     %% PROTECTED
     
-    methods (Access = 'protected')
-        function fr   = firstFortranTimeFrame(this)
-            NNativeFrames = this.framesResolveBuilder.imageFrames.readLength(this.sessionData.tracerRevision('typ', 'fqfp'));
-            NUmapFrames   = this.framesResolveBuilder.imageFrames.readLength(this.sessionData.tracerResolved('typ', 'fqfp'));
-            fr = NNativeFrames - NUmapFrames + 1;
-        end
-        function fp   = frameFileprefix(~, fp, fr)
-            fp = sprintf('%s_frame%i', fp, fr);
-        end
-        function f    = epochNumber(~, str)
-            names = regexp(str, '\w+(-|_)(E|e)poch(?<f>\d+)', 'names');
-            f = str2double(names.f);
-        end
-        function f    = segmentNumber(~, str)
-            names = regexp(str, '\w+(-|_)(S|s)eg(?<f>\d+)', 'names');
-            f = str2double(names.f);
-        end
-        function f    = frameNumber(~, str, offset)
-            names = regexp(str, '\w+(-|_)(F|f)rame(?<f>\d+)', 'names');
-            f = str2double(names.f) + offset;
-        end
-        function pth  = logPath(this)
-            pth = fullfile(this.sessionData.tracerLocation, 'Log', '');
-            if (~isdir(pth))
-                mkdir(pth);
-            end
-        end
-        function this = pasteFrames(this, varargin)
-            
-            ip = inputParser;
-            addRequired(ip, 'ipr', @isstruct);
-            addOptional(ip, 'tag', '', @ischar);
-            parse(ip, varargin{:});
-            ipr = ip.Results.ipr;
-            tag = mybasename(ip.Results.tag);
-            
-            assert(isfield(  ipr, 'dest'));
-            assert(ischar(   ipr.dest));
-            assert(isfield  (ipr, 'frames'));
-            assert(isnumeric(ipr.frames));
-            
-            pasteList = sprintf('%s_%s_paste.lst', ipr.dest, tag);
-            if (lexist(pasteList)); delete(pasteList); end
-            
-            fid = fopen(pasteList, 'w');
-            for f = 1:length(ipr.frames)
-                if (ipr.frames(f))
-                    fqfp = this.frameFileprefix(ipr.dest, f);
-                    fprintf(fid, '%s_%s.4dfp.img\n', fqfp, tag);
-                end
-            end
-            fclose(fid);
-            this.buildVisitor.paste_4dfp(pasteList, [ipr.dest '_' tag], 'options', '-a ');
-        end
-    end
-        
     properties (Access = protected)
         buildVisitor_
         compositeResolveBuilder_
-        framesResolveBuilder_
+        resolveBuilder_
         roisBuilder_
         vendorSupport_
     end    
