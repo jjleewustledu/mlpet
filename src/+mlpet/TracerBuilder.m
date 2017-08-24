@@ -128,22 +128,45 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
             this.product_ = ImagingContext( ...
                 [this.vendorSupport_.cropfrac(this.vendorSupport_.sif) this.sessionData.filetypeExt]);
         end
-        function this = locallyStageModalities(this)
+        function this = locallyStageModalities(this, varargin)
             %% LOCALLYSTAGEMODALITIES
             %  @param existing T1, t2, tof, umapSynth on the filesystem.
+            %  @param named fourdfp are 4dfp fileprefixes.
+            %  @param named fqfn are filenames.
             %  @return sym-links to T1, t2, tof, umapSynth in the pwd.  
             
             bv = this.buildVisitor;
+            
+            ip = inputParser;
+            addParameter(ip, 'fourdfp', '', @(x) bv.lexist_4dfp(x));
+            addParameter(ip, 'fqfn',    '', @(x) lexist(x, 'file'));
+            parse(ip, varargin{:});
+            
             bv.lns_4dfp(this.T1('typ','fqfp'));            
             bv.lns_4dfp(this.t2('typ','fqfp'));            
             bv.lns_4dfp(this.tof('typ','fqfp'));
             bv.lns_4dfp(this.umapSynth('tracer', '', 'typ', 'fqfp'));
+            if (~isempty(ip.Results.fourdfp))
+                cellfun(@(x) bv.lns_4dfp(x), ensureCell(ip.Results.fourdfp), 'UniformOutput', false);
+            end
+            if (~isempty(ip.Results.fqfn))
+                cellfun(@(x) bv.lns(x),      ensureCell(ip.Results.fqfn),    'UniformOutput', false);
+            end
         end
         function pth  = logPath(this)
             pth = fullfile(this.sessionData.tracerLocation, 'Log', '');
             if (~isdir(pth))
                 mkdir(pth);
             end
+        end
+        function this  = updateFinished(this, varargin)
+            ip = inputParser;
+            addParameter(ip, 'tag', ...
+                sprintf('%s_%s', lower(this.sessionData.tracerRevision('typ','fp')), class(this)), ...
+                @ischar);
+            parse(ip, varargin{:});
+            
+            this.finished_ = mlpipeline.Finished(this, 'path', this.logPath, 'tag', ip.Results.tag);
         end
         
  		function this = TracerBuilder(varargin)

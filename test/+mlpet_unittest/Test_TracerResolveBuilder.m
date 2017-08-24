@@ -52,7 +52,7 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             this.testObj = this.testObj.partitionMonolith;
             fprintf('test_partitionMonolith.s(4):\t');
             for idx = 1:length(this.testObj)
-                this.verifyEqual(this.testObj(idx).epoch, idx);
+                this.verifyEqual(this.testObj(idx).sessionData.epoch, idx);
                 p = this.testObj(idx).product;
                 f = p.fourdfp;
                 if (f.rank > 3)
@@ -92,24 +92,27 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             this.testObj   = this.testObj.partitionMonolith;
             this.testObj   = this.testObj.motionCorrectFrames;  
             this.testObj   = this.testObj.motionCorrectModalities; 
-            this.testObj   = this.testObj.motionUncorrectUmapToEpochs( ...
-                this.testObj.compositeResolveBuilder.product);
-            this.verifyEqual(this.testObj.product.fileprefix, 'umapSynth_op_fdgv1e1to9r1_frame9');
+            prod           = this.testObj.product;
+            
+            assert(~isempty(this.testObj.resolveBuilder), ...
+                'ensure motionCorrectFrames has completed successfully');
+            this.testObj.sessionData = this.testObj.resolveBuilder.sessionData;
+            this.testObj             = this.testObj.motionUncorrectUmapToEpochs(prod);
+            this.verifyEqual(this.testObj(8).product.fileprefix, 'umapSynth_op_fdgv1e1to9r1_frame8');
         end
         function test_motionUncorrectUmapToFrames(this)
             this.testObj   = this.testObj.partitionMonolith;
             this.testObj   = this.testObj.motionCorrectFrames;  
             this.testObj   = this.testObj.motionCorrectModalities; 
-            this.testObj   = this.testObj.motionUncorrectUmapToFrames( ...
-                this.testObj.compositeResolveBuilder.product);
-            this.verifyEqual(this.testObj.product.fileprefix, '');
+            this.testObj   = this.testObj.motionUncorrectUmapToFrames(this.testObj.product);
+            this.verifyEqual(this.testObj(8).product.fileprefix, 'umapSynth_op_fdgv1e8r1_frame8');
         end
         function test_motionUncorrectUmap(this)
             this.testObj   = this.testObj.partitionMonolith;
             this.testObj   = this.testObj.motionCorrectFrames;  
             this.testObj   = this.testObj.motionCorrectModalities; 
             this.testObj   = this.testObj.motionUncorrectUmap;
-            this.verifyEqual(this.testObj.product.fileprefix, '');
+            this.verifyEqual(this.testObj.product.fileprefix, 'umapSynth');
         end
 	end
 

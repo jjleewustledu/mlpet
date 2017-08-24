@@ -16,7 +16,6 @@ classdef ITracerBuilder
         buildVisitor
         compositeResolveBuilder
         resolveBuilder
-        resolveTag
         roisBuilder
     end
 
