@@ -164,9 +164,11 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
             addParameter(ip, 'tag', ...
                 sprintf('%s_%s', lower(this.sessionData.tracerRevision('typ','fp')), class(this)), ...
                 @ischar);
+            addParameter(ip, 'tag2', '', @ischar);
             parse(ip, varargin{:});
             
-            this.finished_ = mlpipeline.Finished(this, 'path', this.logPath, 'tag', ip.Results.tag);
+            this.finished_ = mlpipeline.Finished(this, ...
+                'path', this.logPath, 'tag', sprintf('%s%s', ip.Results.tag, ip.Results.tag2));
         end
         
  		function this = TracerBuilder(varargin)

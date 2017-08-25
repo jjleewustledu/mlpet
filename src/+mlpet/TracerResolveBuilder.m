@@ -129,27 +129,28 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  @return t4-resolve results on tracer, this.ctSourceFqfn, T1, t2
             %  @return mutations to this.{compositeResolveBuilder,sessionData,product}.
             
-            %assert(strcmp(this.resolveBuilder_.resolveTag, 'op_fdgv1e1to9r1_frame9'));  
+            %assert(strcmp(this.resolveBuilder_.resolveTag, 'op_fdgv1e1to9r1_frame9')); 
+            pwd0 = pushd(this.product_.filepath);   
             this.sessionData_.rnumber = 1;
-            this.locallyStageModalities('fourdfp', this.ctSourceFqfn);            
+            this.locallyStageModalities('fourdfp', this.ctSourceFqfn);    
             theImages = {this.product_.fileprefix ... 
                          this.ctSourceFp ...
-                         this.T1( 'typ','fp') ...
-                         this.t2( 'typ','fp')};    
+                         this.T1('typ','fp') ...
+                         this.t2('typ','fp')};    
             this.compositeResolveBuilder_ = mlfourdfp.CompositeT4ResolveBuilder( ...
                 'sessionData', this.sessionData_, ...
                 'theImages', theImages, ...
                 'NRevisions', 2);    
                         
             % update this.{compositeResolveBuilder_,sessionData_,product_}                      
-            pwd0 = this.product_.filepath;
             this.compositeResolveBuilder_ = this.compositeResolveBuilder_.resolve; 
             this.compositeResolveBuilder_ = this.compositeResolveBuilder_.t4img_4dfp( ...
-                fullfile(pwd0, sprintf('%sr0_to_%s_t4', this.ctSourceFp, this.compositeResolveBuilder_.resolveTag)), ...
-                fullfile(pwd0, this.umapSynth('tracer', '', 'typ', 'fp')), ...
-                'out', fullfile(pwd0, this.umap(this.compositeResolveBuilder_.resolveTag, 'typ', 'fp')));
+                sprintf('%sr0_to_%s_t4', this.ctSourceFp, this.compositeResolveBuilder_.resolveTag), ...
+                this.umapSynth('tracer', '', 'typ', 'fp'), ...
+                'out', this.umap(this.compositeResolveBuilder_.resolveTag, 'typ', 'fp'));
             this.sessionData_ = this.compositeResolveBuilder_.sessionData;
             this.product_     = this.compositeResolveBuilder_.product;
+            popd(pwd0);
         end
         function this = motionUncorrectUmap(this)
             %% MOTIONUNCORRECTUMAP
@@ -221,7 +222,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     rB_.rnumber           = 1;
                     rB_.resolveTag        = rB_.resolveTagFrame(idxRef, 'reset', true);
                     rB_.sessionData.epoch = idxRef;
-                    rB_                   = rB_.updateFinished;
+                    rB_                   = rB_.updateFinished( ...
+                        'tag2', sprintf('_motionUncorrectUmapToEpochs_%s', umapOpParent.fileprefix));
                     rB_                   = rB_.resolve;
                     rB_                   = rB_.t4img_4dfp( ...
                         sprintf('%sr0_frame%i_to_%s_t4', tracerEpochPrev, idxRefPrev, rB_.resolveTag), ...
@@ -284,10 +286,46 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             end
         end	
         function this = reconstituteUmaps(this, those, parent)
-            for idxRef = 1:length(those)
-                those(idxRef).umap(rB_.resolveTag, 'typ', 'fqfp')
+            
+            contraction = those(1).product.fourdfp;
+            assert(3 == contraction.rank);
+            
+            import mlfourd.*;
+            bv     = this.buildVisitor;
+            idxRef = 1;
+            while (idxRef < length(those))
+                idxRef = idxRef + 1;   
+                if (bv.lexist_4dfp(           those(idxRef).umap(rB_.resolveTag, 'typ', 'fqfp')))
+                    icIdxRef = ImagingContext(those(idxRef).umap(rB_.resolveTag, 'typ', 'fqfp'));
+                elseif (bv.lexist_4dfp(              parent.umap(rB_.resolveTag, 'typ', 'fqfp')))
+                    icIdxRef = ImagingContext(parent.umap(rB_.resolveTag, 'typ', 'fqfp')); 
+                else
+                    error('mlpet:filesystemErr', ...
+                        'TracerResolveBuilder.reconstituteComposites could not find %s', ffp_.fqfn);
+                end                
+                contraction.img(:,:,:,e) = icIdxRef.fourdfp.img;
+            end
+            
+            this.resolveBuilder_.resolveTag = '';
+            this.sessionData_.epoch         = [];
+            this.sessionData_.rnumber       = 1; 
+            contraction.fqfilename          = this.umap('', 'typ', 'fqfn');
+            this.product_                   = ImagingContext(contraction);            
+            if (~lexist(this.product_.fqfilename, 'file'))
+                this.product_.save;
             end
         end
+        function this = partitionUmaps(this)
+            sz = size(this.product.fourdfp);
+            nFrames = sz(4);
+            for p = 1:nFrames
+                partFfp = this.product_.fourdfp;
+                partFfp.img = partFfp.img(:,:,:,p);
+                partFfp.fileprefix = sprintf('%s_frame%i', partFfp.fileprefix, p);
+                partFfp.save;
+            end
+        end
+        
         function sz   = sizeTracerRevision(this)
             %% SIZETRACERREVISION
             %  @return sz, the size of the image data specified by this.tracerRevision.
