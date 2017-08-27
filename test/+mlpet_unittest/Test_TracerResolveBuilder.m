@@ -104,8 +104,10 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             this.testObj   = this.testObj.partitionMonolith;
             this.testObj   = this.testObj.motionCorrectFrames;  
             this.testObj   = this.testObj.motionCorrectModalities; 
+            this.verifyEqual(this.testObj.product.fileprefix, 'umapSynth_op_fdgv1e1to9r1_frame9');
             this.testObj   = this.testObj.motionUncorrectUmapToFrames(this.testObj.product);
-            this.verifyEqual(this.testObj(8).product.fileprefix, 'umapSynth_op_fdgv1e8r1_frame8');
+            this.verifyEqual(this.testObj(1).product.fileprefix, 'umapSynth_op_fdgv1e9r1_frame9_op_fdgv1e9r1_frame1');
+            this.verifyEqual(this.testObj(8).product.fileprefix, 'umapSynth_op_fdgv1e9r1_frame9_op_fdgv1e9r1_frame8');
         end
         function test_motionUncorrectUmap(this)
             this.testObj   = this.testObj.partitionMonolith;
