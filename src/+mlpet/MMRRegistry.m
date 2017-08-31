@@ -39,7 +39,7 @@ classdef MMRRegistry < mlpatterns.Singleton
             end
             
             if (isempty(uniqueInstance))
-                this = mlpet.MMRRegistry();
+                this = mlsiemens.MMRRegistry();
                 uniqueInstance = this;
             else
                 this = uniqueInstance;
@@ -58,16 +58,20 @@ classdef MMRRegistry < mlpatterns.Singleton
             %  @return a scalar or 3-vector in mm
         
             ip = inputParser;
-            addOptional(ip, 'dispersion',    'fwhh', @(s) lstrfind(lower(s), this.DISPERSION_LIST));
-            addOptional(ip, 'geometricMean',  false, @islogical);
+            addOptional( ip, 'dispersion',       'fwhh', @(s) lstrfind(lower(s), this.DISPERSION_LIST));
+            addParameter(ip, 'mean',             true,   @islogical);
+            addParameter(ip, 'tag_imgblur_4dfp', false,  @islogical);
             parse(ip, varargin{:});
             
             ps = [4.3 4.3 4.3];
             if (strcmp(ip.Results.dispersion, 'sigma'))
                 ps = fwhh2sigma(ps);
             end
-            if (ip.Results.geometricMean)
-                ps = norm(ps); % 2-norm, Euclidean mean
+            if (ip.Results.mean)
+                ps = mean(ps);
+            end
+            if (ip.Results.imgblur_4dfp)
+                ps = sprintf('_b%i', floor(10*mean(ps)));
             end
         end     
     end
