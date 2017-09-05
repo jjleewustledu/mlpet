@@ -1,4 +1,4 @@
-classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
+classdef TracerBuilder < mlpipeline.AbstractDataBuilder
 	%% TRACERBUILDER
 
 	%  $Revision$
@@ -37,6 +37,19 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
         end
 
         %%
+        
+        function this = setNeverTouch(this, s)
+            assert(islogical(s));
+            this.finished_.neverTouch = s;
+            this.compositeResolveBuilder_.finished_.neverTouch = s;
+            this.resolveBuilder_.finished_.neverTouch = s;
+        end
+        function g = getNeverTouch(this)
+            g0 = this.finished_.neverTouch;       
+            g1 = this.compositeResolveBuilder_.finished_.neverTouch;
+            g2 = this.resolveBuilder_.finished_.neverTouch;
+            g  = g0 && g1 && g2;
+        end
         
         function this = locallyStageTracer(this)
             %% LOCALLYSTAGETRACER 
@@ -159,7 +172,7 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder & mlpet.ITracerBuilder
                 mkdir(pth);
             end
         end
-        function this  = updateFinished(this, varargin)
+        function this = updateFinished(this, varargin)
             ip = inputParser;
             addParameter(ip, 'tag', ...
                 sprintf('%s_%s', lower(this.sessionData.tracerRevision('typ','fp')), class(this)), ...

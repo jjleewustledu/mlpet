@@ -18,6 +18,7 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
  		testObj
         tic0
         view = false
+        vnumber = 2
  	end
 
 	methods (Test)
@@ -69,33 +70,88 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             fprintf('\n');
         end
         function test_motionCorrectEpochs(this)
-            this.testObj    = this.testObj.partitionMonolith;
-            this.testObj(9) = this.testObj(9).motionCorrectEpochs;
-            this.verifyEqual( this.testObj(9).product.fileprefix, 'fdgv1e9r1');
-            this.testObj(8) = this.testObj(8).motionCorrectEpochs;
-            this.verifyEqual( this.testObj(8).product.fileprefix, 'fdgv1e8r2_op_fdgv1e8r1_frame8_sumt');
+            this.testObj             = this.testObj.partitionMonolith;            
+            [this.testObj(8),summed] = this.testObj(8).motionCorrectEpochs;            
+            this.testObj(9)          = this.testObj(9).motionCorrectEpochs;
+                         
+            this.verifyEqual(this.testObj(8).product.fqfileprefix, ...
+                sprintf('%s/V%i/FDG_V%i-NAC/E8/fdgv%ie8r2_op_fdgv%ie8r1_frame8', ...
+                this.pwd0, this.vnumber, this.vnumber, this.vnumber, this.vnumber));  
+            
+            this.verifyEqual(summed.product.fqfileprefix, ...
+                sprintf('%s/V%i/FDG_V%i-NAC/E8/fdgv%ie8r2_op_fdgv%ie8r1_frame8_sumt', ...
+                this.pwd0, this.vnumber, this.vnumber, this.vnumber, this.vnumber));  
+            
+            this.verifyEqual(this.testObj(9).product.fqfileprefix, ...
+                sprintf('%s/V%i/FDG_V%i-NAC/E9/fdgv%ie9r1', ...
+                this.pwd0, this.vnumber, this.vnumber, this.vnumber));                  
         end
-        function test_reconstituteComposites(this)
+        function test_reconstituteComposites(~)
         end
         function test_motionCorrectFrames(this)
-            this.testObj   = this.testObj.partitionMonolith;
-            this.testObj   = this.testObj.motionCorrectFrames;   
-            this.verifyEqual(this.testObj.product.fileprefix, 'fdgv1e1to9r2_op_fdgv1e1to9r1_frame9_sumt');         
+            this.testObj = this.testObj.partitionMonolith;
+            [this.testObj,multiEpochOfSummed,reconstitutedSummed] = this.testObj.motionCorrectFrames;   
+            
+            this.verifyEqual(this.testObj(7).product.fqfileprefix, ...
+                sprintf('%s/V%i/FDG_V%i-NAC/E7/fdgv%ie7r2_op_fdgv%ie7r1_frame8', ...
+                this.pwd0, this.vnumber, this.vnumber, this.vnumber, this.vnumber));
+            
+            this.verifyEqual(multiEpochOfSummed(7).product.fqfileprefix, ...
+                sprintf('%s/V%i/FDG_V%i-NAC/E7/fdgv%ie7r2_op_fdgv%ie7r1_frame8_sumt', ...
+                this.pwd0, this.vnumber, this.vnumber, this.vnumber, this.vnumber));
+            
+            this.verifyEqual(reconstitutedSummed.product.fqfileprefix, ...
+                sprintf('%s/V%i/FDG_V%i-NAC/E1to9/fdgv%ie1to9r2_op_fdgv%ie1to9r1_frame9_sumt', ...
+                this.pwd0, this.vnumber, this.vnumber, this.vnumber, this.vnumber));
         end
         function test_motionCorrectModalities(this)
-            this.testObj   = this.testObj.partitionMonolith;
-            this.testObj   = this.testObj.motionCorrectFrames;  
-            [this.testObj,parent] = this.testObj.motionCorrectModalities;  
-            this.verifyEqual(this.testObj.product.fileprefix, 'umapSynth_op_fdgv1e1to9r1_frame9');
-            this.verifyEqual(parent.product.fileprefix, 'fdgv1e1to9r2_op_fdgv1e1to9r1_frame9');
+            this.testObj = this.testObj.partitionMonolith;
+            [this.testObj,~,reconstitutedSummed] = this.testObj.motionCorrectFrames;  
+            reconstitutedSummed = reconstitutedSummed.motionCorrectModalities;  
+            
+            this.verifyEqual(reconstitutedSummed.product.fqfileprefix, ...
+                sprintf('%s/V%i/FDG_V%i-NAC/E1to9/umapSynth_op_fdgv%ie1to9r1_frame9', ...
+                this.pwd0, this.vnumber, this.vnumber, this.vnumber));
+        end
+        function test_motionUncorrectToEpochs(this)
+            this.testObj = this.testObj.partitionMonolith;
+            [this.testObj,multiEpochOfSummed,reconstitutedSummed] = this.testObj.motionCorrectFrames;  
+            reconstitutedSummed = reconstitutedSummed.motionCorrectModalities;  
+            umapOnFrame9 = reconstitutedSummed.product;             
+            
+            reconstitutedSummed = reconstitutedSummed.setNeverTouch(true);  
+            for c = 1:length(multiEpochOfSummed)
+                multiEpochOfSummed(c) = multiEpochOfSummed(c).setNeverTouch(true);
+            end
+            uncorrected = reconstitutedSummed.motionUncorrectToEpochs(umapOnFrame9, multiEpochOfSummed);
+            this.verifyEqual( ...
+                uncorrected(1).product.fqfilename, ...
+                fullfile(this.pwd0, 'V1', 'FDG_V1-NAC', 'E1to9', ...
+                sprintf('umapSynth_op_fdgv%ie1to9r1_frame1.4dfp.ifh', this.vnumber)));
+        end
+        function test_motionUncorrectToFrames(this)
+            this.testObj = this.testObj.partitionMonolith;
+            [this.testObj,multiEpochOfSummed,reconstitutedSummed] = this.testObj.motionCorrectFrames;  
+            reconstitutedSummed = reconstitutedSummed.motionCorrectModalities;  
+            umapOnFrame9 =reconstitutedSummed.product;       
+               
+            reconstitutedSummed = reconstitutedSummed.setNeverTouch(true);
+            for c = 1:length(multiEpochOfSummed)
+                multiEpochOfSummed(c) = multiEpochOfSummed(c).setNeverTouch(true);
+            end            
+            uncorrected = reconstitutedSummed.motionUncorrectToFrames(umapOnFrame9, multiEpochOfSummed);
+            this.verifyEqual(uncorrected(1).product.fileprefix, ...
+                sprintf('umapSynth_op_fdgv%ie1to9r1_frame1', this.vnumber));
+            this.verifyEqual(uncorrected(8).product.fileprefix, ...
+                sprintf('umapSynth_op_fdgv%ie1to9r1_frame8', this.vnumber));
         end
         function test_motionUncorrectUmapToEpochs(this)
             this.testObj   = this.testObj.partitionMonolith;
             this.testObj   = this.testObj.motionCorrectFrames;  
-            this.testObj   = this.testObj.motionCorrectModalities;             
+            this.testObj   = this.testObj.motionCorrectModalities;   
+            prod = this.testObj.product;             
             
-            this.testObj.neverTouchFinished = true;
-            prod = this.testObj.product;            
+            this.testObj = this.testObj.setNeverTouch(true); 
             assert(~isempty(this.testObj.resolveBuilder), ...
                 'ensure motionCorrectFrames has completed successfully');
             this.testObj.sessionData = this.testObj.resolveBuilder.sessionData;
@@ -108,19 +164,18 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             this.testObj   = this.testObj.motionCorrectFrames;  
             this.testObj   = this.testObj.motionCorrectModalities; 
             
-            this.testObj.neverTouchFinished = true;
+            this.testObj = this.testObj.setNeverTouch(true);
             this.verifyEqual(this.testObj.product.fileprefix,    'umapSynth_op_fdgv1e1to9r1_frame9');
             this.testObj   = this.testObj.motionUncorrectUmapToFrames(this.testObj.product);
             this.verifyEqual(this.testObj(1).product.fileprefix, 'umapSynth_op_fdgv1e1to9r1_frame1');
             this.verifyEqual(this.testObj(8).product.fileprefix, 'umapSynth_op_fdgv1e1to9r1_frame8');
         end
         function test_motionUncorrectUmap(this)
-            [this.testObj,mono]     = this.testObj.partitionMonolith;
-            this.testObj            = this.testObj.motionCorrectFrames;  
-            [tracerSum,tracerMulti] = this.testObj.motionCorrectModalities; 
-            [tracerSum,tracerMulti] = tracerSum.motionUncorrectUmap(tracerMulti, mono);
-            this.verifyEqual(tracerSum.product.fileprefix, 'umapSynth');
-            this.verifyEqual(tracerMulti.product.fileprefix, 'umapSynth');
+            this.testObj = this.testObj.partitionMonolith;
+            [this.testObj,multiEpochOfSummed,reconstitutedSummed] = this.testObj.motionCorrectFrames;  
+            reconstitutedSummed = reconstitutedSummed.motionCorrectModalities;             
+            reconstitutedSummed.motionUncorrectUmap(multiEpochOfSummed);
+            
         end
 	end
 
@@ -129,7 +184,7 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
  			import mlraichle.*;
             studyd = StudyData;
             sessp  = fullfile(studyd.subjectsDir, this.hyglyNN, '');
-            sessd  = SessionData('studyData', studyd, 'sessionPath', sessp);
+            sessd  = SessionData('studyData', studyd, 'sessionPath', sessp, 'vnumber', this.vnumber);
  			this.testObj_ = mlpet.TracerResolveBuilder('sessionData', sessd, 'NRevisions', 2);
             this.pwd0 = pushd(sessp);
  			this.addTeardown(@this.cleanClassFiles);
@@ -151,6 +206,7 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
 	methods (Access = private)
 		function cleanClassFiles(this)
             cd(this.pwd0);
+            datestr(now)
  		end
 		function cleanMethodFiles(this)
             toc(this.tic0);
