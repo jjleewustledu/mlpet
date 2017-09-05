@@ -40,15 +40,26 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
         
         function this = setNeverTouch(this, s)
             assert(islogical(s));
-            this.finished_.neverTouch = s;
+            this.finished_.neverTouch = s;  
             this.compositeResolveBuilder_.finished_.neverTouch = s;
             this.resolveBuilder_.finished_.neverTouch = s;
         end
         function g = getNeverTouch(this)
-            g0 = this.finished_.neverTouch;       
-            g1 = this.compositeResolveBuilder_.finished_.neverTouch;
-            g2 = this.resolveBuilder_.finished_.neverTouch;
-            g  = g0 && g1 && g2;
+            g = this.finished_.neverTouch;     
+            if (~isempty(this.compositeResolveBuilder_))
+                try
+                    g = g && this.compositeResolveBuilder_.finished_.neverTouch; %#ok<*NASGU>
+                catch ME
+                    handwarning(ME);
+                end
+            end
+            if (~isempty(this.resolveBuilder_))
+                try
+                    g = g && this.resolveBuilder_.finished_.neverTouch;
+                catch ME
+                    handwarning(ME);
+                end
+            end
         end
         
         function this = locallyStageTracer(this)
