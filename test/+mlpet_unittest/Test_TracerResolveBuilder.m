@@ -12,13 +12,13 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
  	
 	properties
         fast = false
-        hyglyNN = 'HYGLY28'
+        hyglyNN = 'HYGLY34'
         pwd0
  		registry
  		testObj
         tic0
         view = false
-        vnumber = 2
+        vnumber = 1
  	end
 
 	methods (Test)
@@ -47,7 +47,7 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
                 sprintf('%s_to_%s_t4', sessd.mprage('typ','fp'), sessd.atlas('typ','fp'))))); % prepareMprToAtlasT4
             if (this.view)
                 this.testObj.product.view;
-            end % prepareTracerRevision
+            end 
         end
         function test_partitionMonolith(this)
             this.testObj = this.testObj.partitionMonolith;

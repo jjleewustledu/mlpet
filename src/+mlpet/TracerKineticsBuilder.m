@@ -1,4 +1,4 @@
-classdef TracerKineticsBuilder < mlpet.TracerBuilder % & mlpet.ITracerKineticsBuilder
+classdef TracerKineticsBuilder < mlpet.TracerBuilder
 	%% TRACERKINETICSBUILDER  
 
 	%  $Revision$

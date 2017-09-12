@@ -13,6 +13,7 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
         compositeResolveBuilder
         resolveBuilder
         roisBuilder
+        vendorSupport
     end
         
     methods 
@@ -34,6 +35,13 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
         function this = set.roisBuilder(this, s)
             assert(isa(s, 'mlrois.IRoisBuilder'));
             this.roisBuilder_ = s;
+        end
+        function g    = get.vendorSupport(this)
+            g = this.vendorSupport_;
+        end        
+        function this = set.vendorSupport(this, s)
+            assert(isa(s, 'mlpipeline.VendorBuilder'));
+            this.vendorSupport_ = s;
         end
 
         %%
@@ -73,58 +81,60 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
             this.prepareTracerLocation;         
             this.prepareListmodeMhdr;
             this.prepareMprToAtlasT4;
-            this = this.prepareTracerRevision;
+            this = this.prepareCroppedTracerRevision;
         end
         function this = prepareTracerLocation(this, varargin)
             %% PREPARETRACERLOCATION
-            %  @param this.sessionData has valid method tracerLocation.
-            %  @param doRecovery is logical (default false).  If true then backup exists at [tracerLocation '-Backup'].
-            %  @return this.product_ := tracerLocation on the filesystem, a filepath.  
+            %  @param this.sessionData.tracerLocation is valid.
+            %  @param doRecovery is logical.  
+            %         Default is false.  If true, backup ~tracerLocation to [tracerLocation '-Backup'].
+            %  @return ~tracerLocation, a filepath, is dir.
+            %  @return this.product_ := ~tracerLocation.
             
             ip = inputParser;
             addOptional(ip, 'doRecovery', false, @islogical);
             parse(ip, varargin{:});
             
-            tracerLoc = this.sessionData.tracerLocation;
+            trLoc = this.sessionData.tracerLocation;
             if (ip.Results.doRecovery)
-                movefile([tracerLoc '-Backup'], tracerLoc);
+                movefile([trLoc '-Backup'], trLoc);
                 return
             end            
-            if (~isdir(tracerLoc))
-                mkdir(tracerLoc);
-            end  
-            this.product_ = tracerLoc;
+            ensuredir(trLoc);
+            this.product_ = trLoc;
         end
         function this = prepareListmodeMhdr(this)
             %% PREPARELISTMODEMHDR
-            %  @param this.sessionData has valid methods tracerLocation, tracerListmodeMhdr, tracerListmodeSif, tracerMhdr, tracerSif.
-            %  @return tracerListmodeMhdr, tracerMhdr, tracerListmodeSif, tracerSif exist.
-            %  @return this.product_ := tracerSif as mlfourd.ImagingContext.
+            %  @param this.sessionData.{tracerListmodeMhdr,tracerListmodeSif,tracerSif} are valid, 
+            %         not necessarily yet existing on the filesystem.
+            %  @return ~tracerListmodeSif exists as file.
+            %  @return ~tracerSif exists as 4dfp files.
+            %  @return this.product_ := ~tracerSif as mlfourd.ImagingContext.
             
-            lmMhdr = this.sessionData.tracerListmodeMhdr('typ', 'fqfp');
-            lmSif  = this.sessionData.tracerListmodeSif( 'typ', 'fqfp');
-            sif    = this.sessionData.tracerSif(         'typ', 'fqfp');
+            sessd  = this.sessionData;
+            bv     = this.buildVisitor;
+            lmMhdr = sessd.tracerListmodeMhdr('typ', 'fqfp');
+            lmSif  = sessd.tracerListmodeSif( 'typ', 'fqfp');
+            trSif  = sessd.tracerSif(         'typ', 'fqfp');            
+            assert(lexist(sessd.tracerListmodeMhdr, 'file'));
             
-            assert(lexist(this.sessionData.tracerListmodeMhdr), ...
-                'mlpet:fileNotFound', ...
-                'TracerBuilder.prepareListmodeMhdr could not find %s; review e7tools/JSRecon12', ...
-                this.sessionData.tracerListmodeMhdr);
-            if (~this.buildVisitor.lexist_4dfp(lmSif))
+            if (~bv.lexist_4dfp(lmSif))
                 pwd0 = pushd(fileparts(lmSif));
-                this.buildVisitor.sif_4dfp(lmMhdr);
+                bv.sif_4dfp(lmMhdr, lmSif);
                 popd(pwd0);
             end   
-            if (~this.buildVisitor.lexist_4dfp(sif))
-                pwd0 = pushd(fileparts(sif));
-                this.buildVisitor.lns_4dfp(lmSif);
+            if (~bv.lexist_4dfp(trSif))
+                ensuredir(fileparts(trSif));
+                pwd0 = pushd(fileparts(trSif));
+                bv.lns_4dfp(lmSif);
                 popd(pwd0);
             end
-            this.product_ = mlfourd.ImagingContext([sif '.4dfp.ifh']);
+            this.product_ = mlfourd.ImagingContext([trSif '.4dfp.ifh']);
         end
         function this = prepareMprToAtlasT4(this)
             %% PREPAREMPRTOATLAST4
-            %  @param this.sessionData has valid methods mprage, atlas.
-            %  @return this.product_ := [mprage '_to_' atlas '_t4'] existing in the same folder as mprage.
+            %  @param this.sessionData.{mprage,atlas} are valid.
+            %  @return this.product_ := [mprage '_to_' atlas '_t4'], existing in the same folder as mprage.
             
             sessd      = this.sessionData;
             mpr        = sessd.mprage('typ', 'fp');
@@ -137,20 +147,27 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
             end
             this.product_ = mprToAtlT4;
         end
-        function this = prepareTracerRevision(this)
-            %% PREPARETRACERREVISION
-            %  @param valid param named vendorSupport in ctor.
-            %  @param valid this.sessionData.
-            %  @return this.product := vendorSupport->cropfrac(this.sessionData.tracerSif) as mlfourdfp.ImagingContext.
+        function this = prepareCroppedTracerRevision(this)
+            %% PREPARECROPPEDTRACERREVISION
+            %  @param this.vendorSupport is valid.
+            %  @param this.sessionData.{tracerRevision,filetypeExt} are valid.
+            %  @return this.product := vendorSupport.cropfrac(this.sessionData.sif) as mlfourdfp.ImagingContext.
             
-            this.vendorSupport_.ensureTracerSymlinks; 
+            this.vendorSupport_.sessionData = this.sessionData;
+            sessd = this.vendorSupport_.sessionData;
+            ext   =  sessd.filetypeExt;
+            fqfp0 =  sessd.tracerListmodeSif('typ', 'fqfp');
+            fqfp  = [sessd.tracerRevision(   'typ', 'fqfp', 'frame', sessd.frame) '__'];
+            fqfn  = [fqfp '.4dfp.ifh'];
+            
             import mlfourd.*;
-            if (this.buildVisitor.lexist_4dfp(this.sessionData.tracerRevision('typ','fqfp')))                
-                this.product_ = ImagingContext(this.sessionData.tracerRevision);
+            this.vendorSupport_.ensureTracerSymlinks; 
+            if (lexist(fqfn, 'file'))   
+                this.product_ = ImagingContext(fqfn);
                 return
             end
             this.product_ = ImagingContext( ...
-                [this.vendorSupport_.cropfrac(this.vendorSupport_.sif) this.sessionData.filetypeExt]);
+                [this.vendorSupport_.cropfrac(fqfp0, fqfp) ext]);
         end
         function this = locallyStageModalities(this, varargin)
             %% LOCALLYSTAGEMODALITIES
@@ -168,20 +185,24 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
             
             bv.lns_4dfp(this.T1('typ','fqfp'));            
             bv.lns_4dfp(this.t2('typ','fqfp'));            
-            bv.lns_4dfp(this.tof('typ','fqfp'));
+            %bv.lns_4dfp(this.tof('typ','fqfp'));
             bv.lns_4dfp(this.umapSynth('tracer', '', 'typ', 'fqfp'));
             if (~isempty(ip.Results.fourdfp))
-                cellfun(@(x) bv.lns_4dfp(x), ensureCell(ip.Results.fourdfp), 'UniformOutput', false);
+                ffp = ensureCell(ip.Results.fourdfp);
+                dprintf('mlpet.TracerBuilder.locallyStageModalities:  lns_4dfp %s', ...
+                    cell2str(ffp, 'AsRows', true));
+                cellfun(@(x) bv.lns_4dfp(x), ffp, 'UniformOutput', false);
             end
             if (~isempty(ip.Results.fqfn))
-                cellfun(@(x) bv.lns(x),      ensureCell(ip.Results.fqfn),    'UniformOutput', false);
+                fqfn = ensureCell(ip.Results.fqfn);
+                dprintf('mlpet.TracerBuilder.locallyStageModalities:  lns_4dfp %s', ...
+                    cell2str(fqfn, 'AsRows', true));
+                cellfun(@(x) bv.lns(x), fqfn, 'UniformOutput', false);
             end
         end
         function pth  = logPath(this)
             pth = fullfile(this.sessionData.tracerLocation, 'Log', '');
-            if (~isdir(pth))
-                mkdir(pth);
-            end
+            ensuredir(pth);
         end
         function this = updateFinished(this, varargin)
             ip = inputParser;
@@ -191,12 +212,16 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
             addParameter(ip, 'tag2', '', @ischar);
             parse(ip, varargin{:});
             
+            ensuredir(this.logPath);
             this.finished_ = mlpipeline.Finished(this, ...
                 'path', this.logPath, 'tag', sprintf('%s%s', ip.Results.tag, ip.Results.tag2));
         end
         
  		function this = TracerBuilder(varargin)
  			%% TRACERBUILDER
+            %  @param named 'logger' is an mlpipeline.AbstractLogger.
+            %  @param named 'product' is the initial state of the product to build; default := [].
+            %  @param named 'sessionData' is an mlpipeline.ISessionData; default := [].
  			%  @param named 'buildVisitor' is an mlfourdfp.FourdfpVisitor.
             %  @param named 'roisBuilder' is an mlrois.IRoisBuilder.
             %  @param named 'resolveBuilder' is an mlfourdfp.T4ResolveBuilder.

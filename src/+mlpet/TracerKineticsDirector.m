@@ -33,7 +33,7 @@ classdef TracerKineticsDirector
             g = this.builder_.sessionData;
         end
         
-        function this = set.sessionData(this, s)            
+        function this = set.sessionData(this, s)
             assert(isa(s, 'mlpipeline.SessionData'));
             this.builder_.sessionData = s;
         end
@@ -93,10 +93,10 @@ classdef TracerKineticsDirector
         
  		function this = TracerKineticsDirector(varargin)
  			%% TRACERKINETICSDIRECTOR
- 			%  @param required 'builder' is a 'mlpet.ITracerBuilder'
+ 			%  @param required 'builder' is an 'mlpet.TracerBuilder'
             
             ip = inputParser;
-            addRequired(ip, 'builder', @(x) isa(x, 'mlpet.ITracerKineticsBuilder'));
+            addRequired(ip, 'builder', @(x) isa(x, 'mlpet.TracerBuilder'));
             parse(ip, varargin{:});
             
             this.builder_ = ip.Results.builder;
