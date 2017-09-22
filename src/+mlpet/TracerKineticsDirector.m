@@ -11,8 +11,6 @@ classdef TracerKineticsDirector
 
 	properties (Dependent)
         builder
-        product
-        roisBuilder
         sessionData
     end
     
@@ -23,12 +21,6 @@ classdef TracerKineticsDirector
         function g = get.builder(this)
             g = this.builder_;
         end        
-        function g = get.product(this)
-            g = this.builder_.product;
-        end
-        function g = get.roisBuilder(this)
-            g = this.builder_.roisBuilder;
-        end
         function g = get.sessionData(this)
             g = this.builder_.sessionData;
         end
@@ -36,10 +28,6 @@ classdef TracerKineticsDirector
         function this = set.sessionData(this, s)
             assert(isa(s, 'mlpipeline.SessionData'));
             this.builder_.sessionData = s;
-        end
-        function this = set.roisBuilder(this, s)
-            assert(isa(s, 'mlrois.IRoisBuilder'));
-            this.builder_.roisBuilder = s;
         end
         
         %%        

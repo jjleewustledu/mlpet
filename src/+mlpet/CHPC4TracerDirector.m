@@ -32,11 +32,10 @@ classdef CHPC4TracerDirector < mlraichle.CHPC
             this.rsync(fullfile(sd.vLocation, 't2*'),        csd.vLocation, 'options', '-rav --no-l --copy-links -e ssh');
             this.rsync(fullfile(sd.vLocation, 'mpr*'),       csd.vLocation, 'options', '-rav --no-l --copy-links -e ssh');
             
-            this.sshMkdir(                       csd.tracerLocation);
-            this.rsync([sd.tracerLocation '/'], [csd.tracerLocation '/']);
-            
+            this.sshMkdir(                               csd.tracerLocation);
+            this.rsync([sd.tracerLocation '/'],         [csd.tracerLocation '/']);
             this.sshMkdir(                               csd.tracerListmodeLocation);
-            this.rsync([sd.tracerListmodeLocation '/'], [csd.tracerListmodeLocation '/']);  
+            this.rsync([sd.tracerListmodeLocation '/'], [csd.tracerListmodeLocation '/']);
         end
         function this = pullData(this)
             import mlraichle.*;

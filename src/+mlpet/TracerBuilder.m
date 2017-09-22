@@ -5,7 +5,7 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
  	%  was created 9-Mar-2017 15:39
  	%  by jjlee,
  	%  last modified $LastChangedDate$
- 	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlfourdfp/src/+mlfourdfp.
+ 	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee. 	
     
     properties (Dependent)
@@ -14,6 +14,27 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
         resolveBuilder
         roisBuilder
         vendorSupport
+    end
+    
+    methods (Static)
+        function fqfn = scrubTracer(fqfn, toScrub)
+            assert(lexist(fqfn, 'file'));
+            assert(isnumeric(toScrub));
+            ffp = mlfourdfp.Fourdfp.load(fqfn);
+            ffp.fileprefix = [ffp.fileprefix '_scrubbed'];
+            lenScrubbed = ffp.size(4) - length(toScrub);
+            img = zeros(ffp.size(1), ffp.size(2), ffp.size(3), lenScrubbed);
+            u = 0;
+            for t = 1:lenScrubbed
+                if (~any(t == toScrub))
+                    u = u + 1;
+                    img(:,:,:,u) = ffp.img(:,:,:,t);
+                end
+            end
+            ffp.img = img;
+            ffp.save;
+            fqfn = ffp.fqfilename;
+        end
     end
         
     methods 
@@ -70,6 +91,39 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
             end
         end
         
+        function this = locallyStageModalities(this, varargin)
+            %% LOCALLYSTAGEMODALITIES
+            %  @param existing T1, t2, tof (if existing), umapSynth on the filesystem as specified by this.sessionData.
+            %  @param named fourdfp are 4dfp fileprefixes.
+            %  @param named fqfn are filenames.
+            %  @return sym-links in the pwd to T1, t2, tof (if existing), umapSynth, fourdfp & fqfn.
+            
+            bv = this.buildVisitor;
+            
+            ip = inputParser;
+            addParameter(ip, 'fourdfp', '', @(x) bv.lexist_4dfp(x));
+            addParameter(ip, 'fqfn',    '', @(x) lexist(x, 'file'));
+            parse(ip, varargin{:});
+            
+            bv.lns_4dfp(this.T1('typ','fqfp'));            
+            bv.lns_4dfp(this.t2('typ','fqfp'));  
+            if (bv.lexist_4dfp(this.tof('typ','fqfp')))
+                bv.lns_4dfp(this.tof('typ','fqfp'));
+            end
+            bv.lns_4dfp(this.umapSynth('tracer', '', 'typ', 'fqfp'));
+            if (~isempty(ip.Results.fourdfp))
+                ffp = ensureCell(ip.Results.fourdfp);
+                dprintf('mlpet.TracerBuilder.locallyStageModalities:  lns_4dfp %s', ...
+                    cell2str(ffp, 'AsRows', true));
+                cellfun(@(x) bv.lns_4dfp(x), ffp, 'UniformOutput', false);
+            end
+            if (~isempty(ip.Results.fqfn))
+                fqfn = ensureCell(ip.Results.fqfn);
+                dprintf('mlpet.TracerBuilder.locallyStageModalities:  lns_4dfp %s', ...
+                    cell2str(fqfn, 'AsRows', true));
+                cellfun(@(x) bv.lns(x), fqfn, 'UniformOutput', false);
+            end
+        end
         function this = locallyStageTracer(this)
             %% LOCALLYSTAGETRACER 
             %  @param this.sessionData must be well-formed with valid methods:
@@ -157,7 +211,7 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
             sessd = this.vendorSupport_.sessionData;
             ext   =  sessd.filetypeExt;
             fqfp0 =  sessd.tracerListmodeSif('typ', 'fqfp');
-            fqfp  = [sessd.tracerRevision(   'typ', 'fqfp', 'frame', sessd.frame) '__'];
+            fqfp  =  sessd.tracerRevision(   'typ', 'fqfp', 'frame', sessd.frame);
             fqfn  = [fqfp '.4dfp.ifh'];
             
             import mlfourd.*;
@@ -168,37 +222,6 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
             end
             this.product_ = ImagingContext( ...
                 [this.vendorSupport_.cropfrac(fqfp0, fqfp) ext]);
-        end
-        function this = locallyStageModalities(this, varargin)
-            %% LOCALLYSTAGEMODALITIES
-            %  @param existing T1, t2, tof, umapSynth on the filesystem.
-            %  @param named fourdfp are 4dfp fileprefixes.
-            %  @param named fqfn are filenames.
-            %  @return sym-links to T1, t2, tof, umapSynth in the pwd.  
-            
-            bv = this.buildVisitor;
-            
-            ip = inputParser;
-            addParameter(ip, 'fourdfp', '', @(x) bv.lexist_4dfp(x));
-            addParameter(ip, 'fqfn',    '', @(x) lexist(x, 'file'));
-            parse(ip, varargin{:});
-            
-            bv.lns_4dfp(this.T1('typ','fqfp'));            
-            bv.lns_4dfp(this.t2('typ','fqfp'));            
-            %bv.lns_4dfp(this.tof('typ','fqfp'));
-            bv.lns_4dfp(this.umapSynth('tracer', '', 'typ', 'fqfp'));
-            if (~isempty(ip.Results.fourdfp))
-                ffp = ensureCell(ip.Results.fourdfp);
-                dprintf('mlpet.TracerBuilder.locallyStageModalities:  lns_4dfp %s', ...
-                    cell2str(ffp, 'AsRows', true));
-                cellfun(@(x) bv.lns_4dfp(x), ffp, 'UniformOutput', false);
-            end
-            if (~isempty(ip.Results.fqfn))
-                fqfn = ensureCell(ip.Results.fqfn);
-                dprintf('mlpet.TracerBuilder.locallyStageModalities:  lns_4dfp %s', ...
-                    cell2str(fqfn, 'AsRows', true));
-                cellfun(@(x) bv.lns(x), fqfn, 'UniformOutput', false);
-            end
         end
         function pth  = logPath(this)
             pth = fullfile(this.sessionData.tracerLocation, 'Log', '');
@@ -215,6 +238,53 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
             ensuredir(this.logPath);
             this.finished_ = mlpipeline.Finished(this, ...
                 'path', this.logPath, 'tag', sprintf('%s%s', ip.Results.tag, ip.Results.tag2));
+        end
+        
+        function this = prepareProduct(this, prod)
+            if (~isa(prod, 'mlfourd.ImagingContext'))
+                prod = mlfourd.ImagingContext(prod);
+            end
+            this.product_ = prod;
+        end
+        function this = resolveModalitiesToTracer(this, varargin)
+            %% RESOLVEMODALITIESTOTRACER resolves a set of images from heterogeneous modalities to the tracer encapsulated 
+            %  within this.product. 
+            %  @param  this.sessionData is well-formed for the problem. 
+            %  @param  this.product is a single-epoch motion-corrected tracer.
+            %  @param  modalities is a cell-array of fileprefixes without filepaths.
+            %  @param  modalities or their sym-links are in the pwd.
+            %  @param  varargin is a cell-array of heterogenous modalities instantiated as mlfourd.ImagingContext 
+            %  objects; default := {T1, t2, tof}.
+            %  @return these is a composite of mlpet.TracerResolveBuilder, each component.product containing
+            %  the resolved heterogenous modalities.            
+            
+            ip = inputParser;
+            addRequired(ip, 'modalities', @(x) iscell(x) && all(cellfun(@(y) lexist([y '.4dfp.ifh'], 'file'), x)));
+            parse(ip, varargin{:});
+            
+            pwd0 = pushd(this.product_.filepath);      
+            this.sessionData_.rnumber = 1;
+            theImages = [{this.product_.fileprefix} ip.Results.modalities];
+            cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
+                'sessionData', this.sessionData_, ...
+                'theImages', theImages, ...
+                'NRevisions', 2);    
+                        
+            % update this.{compositeResolveBuilder_,sessionData_,product_}
+            this.compositeResolveBuilder_ = cRB_.resolve;
+            this.sessionData_             = cRB_.sessionData;           
+            popd(pwd0);
+        end
+        function tof  = resolveTofToT1(this)
+            pwd0 = pushd(this.sessionData.tof('typ', 'filepath'));
+            [~,fqfp] = this.buildVisitor.align_multiSpectral( ...
+                'dest', this.sessionData.T1('typ', 'fqfp'), ...
+                'source', this.sessionData.tof('typ', 'fqfp'), ...
+                'destBlur', 1.5, ...
+                'sourceBlur', 1.5, ...
+                't40', this.buildVisitor.sagittal_inv_t4);
+            tof = mlfourd.ImagingContext([fqfp '.4dfp.ifh']);
+            popd(pwd0);
         end
         
  		function this = TracerBuilder(varargin)
@@ -236,20 +306,22 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
             addParameter(ip, 'buildVisitor', ...
                 FourdfpVisitor, @(x) isa(x, 'mlfourdfp.FourdfpVisitor'));
             addParameter(ip, 'roisBuilder', ...
-                mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
+                [], @(x) isempty(x) || isa(x, 'mlrois.IRoisBuilder')); % mlpet.BrainmaskBuilder('sessionData', this.sessionData)
             addParameter(ip, 'resolveBuilder', ...
                 [], @(x) isa(x, 'mlfourdfp.T4ResolveBuilder') || isempty(x));
             addParameter(ip, 'compositeResolveBuilder', ...
                 [], @(x) isa(x, 'mlfourdfp.CompositeT4ResolveBuilder') || isempty(x));
             addParameter(ip, 'vendorSupport', ...
                 mlsiemens.MMRBuilder('sessionData', this.sessionData));
+            addParameter(ip, 'ac', false, @islogical);
             parse(ip, varargin{:});
             
-            this.buildVisitor_            = ip.Results.buildVisitor;
-            this.roisBuilder_             = ip.Results.roisBuilder;
-            this.resolveBuilder_          = ip.Results.resolveBuilder;
-            this.compositeResolveBuilder_ = ip.Results.compositeResolveBuilder;
-            this.vendorSupport_           = ip.Results.vendorSupport;
+            this.buildVisitor_                    = ip.Results.buildVisitor;
+            this.roisBuilder_                     = ip.Results.roisBuilder;
+            this.resolveBuilder_                  = ip.Results.resolveBuilder;
+            this.compositeResolveBuilder_         = ip.Results.compositeResolveBuilder;
+            this.vendorSupport_                   = ip.Results.vendorSupport;
+            this.sessionData.attenuationCorrected = ip.Results.ac;
         end        
  	end 
     
