@@ -1,4 +1,4 @@
-classdef ArterialSamplingBuilder < mlpipeline.AbstractDataBuilder
+classdef ArterialSamplingBuilder < mlpet.AbstractTracerBuilder
 	%% ARTERIALSAMPLINGBUILDER  
 
 	%  $Revision$
@@ -15,13 +15,13 @@ classdef ArterialSamplingBuilder < mlpipeline.AbstractDataBuilder
  			%% ARTERIALSAMPLINGBUILDER
  			%  Usage:  this = ArterialSamplingBuilder()
  			
-            this = this@mlpipeline.AbstractDataBuilder(varargin{:});
+            this = this@mlpet.AbstractTracerBuilder(varargin{:});
         end
         
         function this = buildArterialSampling(this)
             
             if (isa(this.studyData, 'mlderdeyn.StudyDataSingleton'))
-                this.product_ = ;
+                this.product_ = [];
                 return
             end
             if (isa(this.studyData, 'mlraichle.StudyData'))

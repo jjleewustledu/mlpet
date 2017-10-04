@@ -1,4 +1,4 @@
-classdef CHPC4TracerDirector < mlraichle.CHPC
+classdef CHPC4TracerDirector < mldistcomp.CHPC
 	%% CHPC4FDGDIRECTOR  
 
 	%  $Revision$
@@ -32,10 +32,20 @@ classdef CHPC4TracerDirector < mlraichle.CHPC
             this.rsync(fullfile(sd.vLocation, 't2*'),        csd.vLocation, 'options', '-rav --no-l --copy-links -e ssh');
             this.rsync(fullfile(sd.vLocation, 'mpr*'),       csd.vLocation, 'options', '-rav --no-l --copy-links -e ssh');
             
-            this.sshMkdir(                               csd.tracerLocation);
-            this.rsync([sd.tracerLocation '/'],         [csd.tracerLocation '/']);
-            this.sshMkdir(                               csd.tracerListmodeLocation);
-            this.rsync([sd.tracerListmodeLocation '/'], [csd.tracerListmodeLocation '/']);
+            this.sshMkdir(                                   csd.tracerLocation);
+            this.rsync([sd.tracerLocation '/'],             [csd.tracerLocation '/']);
+            this.sshMkdir(                                   csd.tracerListmodeLocation);
+            if (isdir(sd.tracerListmodeLocation))
+                this.rsync([sd.tracerListmodeLocation '/'], [csd.tracerListmodeLocation '/']);
+            end
+            sd.frame  = 0;
+            csd.frame = 0;
+            while (isdir(sd.tracerListmodeLocation))
+                this.rsync([fileparts(sd.tracerListmodeLocation) '/'], [fileparts(csd.tracerListmodeLocation) '/']);
+                this.rsync([sd.tracerListmodeLocation '/'], [csd.tracerListmodeLocation '/']);
+                sd.frame  = sd.frame + 1;
+                csd.frame = csd.frame + 1;
+            end
         end
         function this = pullData(this)
             import mlraichle.*;
@@ -44,8 +54,13 @@ classdef CHPC4TracerDirector < mlraichle.CHPC
             
             this.rsync([csd.vLocation '/'], [sd.vLocation '/'], 'chpcIsSource', true);            
         end
+        function        cleanTracer(this)
+            csd = this.chpcSessionData;
+            this.sshRm(fullfile(csd.vLocation, [upper(csd.tracer) '_V*']));
+        end
+        
         function this = CHPC4TracerDirector(varargin)
-            this = this@mlraichle.CHPC(varargin{:});
+            this = this@mldistcomp.CHPC(varargin{:});
         end
     end
     

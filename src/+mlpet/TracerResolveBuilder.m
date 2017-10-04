@@ -13,7 +13,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         TAUS_OC = [30,30,30,30,30,30,30,30,30,30,30,30,30,30]
         TAUS_OO = [30,30,30,30,30,30,30,30,30,30]
         TAUS_HO = [30,30,30,30,30,30,30,30,30,30]
-        N_FRAMES = 85 % KLUDGE
     end
     
     properties
@@ -24,6 +23,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         ctSourceFp
         imgblurTag
         maxLengthEpoch
+        nFramesAC
+        tauFramesNAC
     end
 
 	methods 
@@ -38,6 +39,37 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         end
         function g = get.maxLengthEpoch(this)
             g = this.maxLengthEpoch_;
+        end
+        function g = get.nFramesAC(this)
+            switch (upper(this.sessionData.tracer))
+                case 'FDG'
+                    g = 85;
+                case 'OC'
+                    g = 70;                    
+                case 'OO'
+                    g = 58;
+                case 'HO'
+                    g = 58;
+                otherwise
+                    error('mlpet:unsupportedSwitchCase', ...
+                        'TracerResolveBuilder.get.nFramesAC does not support this.sessionData.tracer->%s', ...
+                        this.sessionData.tracer);
+            end
+        end
+        function g = get.tauFramesNAC(this)
+            switch (upper(this.sessionData.tracer))
+                case 'FDG'
+                    % \Sigma\tau^{\text{nac}}_i = 3600 s; N(tau^{\text{nac}}_i) = 65
+                    g = this.TAUS_FDG;
+                case {'CO' 'OC'}
+                    g = this.TAUS_OC;
+                case {'HO' 'OH' 'OO'}
+                    g = this.TAUS_OO;
+                otherwise
+                    error('mlpet:unsupportedSwitchCase', ...
+                        'TracerResolveBuilder.get.tauFramesNAC does not support this.sessionData.tracer->%s', ...
+                        this.sessionData.tracer);
+            end
         end
         
         function this = set.maxLengthEpoch(this, s)
@@ -487,10 +519,11 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     this.prepareTracerLocation;
                     this.prepareListmodeMhdr;
                     assert(lexist(this.sessionData_.tracerListmodeMhdr, 'file'));                
-                    pwd0 = pushd(this.sessionData_.tracerLocation); % paranoia
+                    pwd0 = pushd(this.sessionData_.tracerLocation); % paranoia                    
+                    fprintf('mlpet.TracerResolveBuilder.reconstituteFramesAC.pwd -> %s\n', pwd);
                     this = this.prepareCroppedTracerRevision;
                     ffp = this.product.fourdfp;
-                    sz = ffp.size;
+                    sz = ffp.size; 
                     ffp = this.t4imgFromNac(ffp, nFrames);
                     if (ffp.rank < 4)
                         innerf = innerf + 1;
@@ -517,7 +550,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         function this = reconstituteFramesAC2(this)
             
             import mlfourdfp.*;            
-            nFrames = this.N_FRAMES;
+            nFrames = this.nFramesAC;
             nEpochs = floor(nFrames/this.maxLengthEpoch);
             supEpochs = ceil(nFrames/this.maxLengthEpoch);
             sessd_ = this.sessionData;
@@ -571,54 +604,11 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             fv.imgblur_4dfp(ffp0.fqfileprefix, 4.3);
             popd(pwd0);
         end
-        function        reconstituteImgRec(this, varargin)  
-            %  @param filesystem has {this.sessionData.tracerConvertedLocation} for all available frames.
-            %  @param option toskip is numeric and determined by inspection of motion-correction results.
-            %  @return append timing information from sif_4dfp1 to end of 
-            %  [this.product.tracerResolvedFinal('typ','fp') '.4dfp.img.rec'].  
-            
-            ip = inputParser;
-            addOptional(ip, 'toskip', [], @isnumeric);
-            parse(ip, varargin{:});
-            
-            sessd = this.sessionData_;
-            assert(sessd.attenuationCorrected);  
-            assert(isdir(sessd.tracerLocation));
-            pwd0 = pushd(sessd.tracerLocation);
-            prev = mlio.TextParser.loadx(this.product.fqfileprefix, '.img.rec');
-            prev.saveas([this.product.fqfileprefix '_' datestr(now, 30) '.img.rec']);
-            imgrec = mlfourdfp.ImgRecLogger;
-            imgrec.add(prev.cellContents)
-
-            timingEntries = {};
-            timingEntry = {'Frame           Length(msec)    Midpoint(sec)   Start(msec)      Frame_Min       Frame_Max       Decay_Fac      Rescale'};
-            sessd.frame = 0;
-            innerf = 0;
-            while (isdir(sessd.tracerConvertedLocation))
-
-                if (lexist(sessd.tracerListmodeSif, 'file'))
-                    imgrec_ = mlfourdfp.ImgRecLogger(sessd.tracerListmodeSif('typ', 'fqfp')); % handle
-                    while (~isempty(timingEntry))
-                        timingEntries = [timingEntries timingEntry];
-                        timingEntry = imgrec_.extractLineByRegexp( ...
-                            '^Frame_\d+\s+ \d+\s+ \d+\.\d+\s+ \d+\s+ \d+\.\d+\s+ \d+\.\d+\s+ \d+\.\d+\s+ \d+\s*$');
-                        if (~isempty(timingEntry))
-                            innerf = innerf + 1;
-                            timingEntry = regexprep(timingEntry, '^Frame_\d+', sprintf('Frame_%i', innerf));
-                        end
-                    end 
-                end
-                sessd.frame = sessd.frame + 1;
-            end
-            imgrec.cons(timingEntries);
-            imgrec.save;
-            popd(pwd0);
-        end
         function this = reportResolved(this)
             %  @return this.product_ := {mlfourdfp.T4ResolveReport objects}
             
             report = [];
-            nEpochs = ceil(this.N_FRAMES/this.maxLengthEpoch);
+            nEpochs = ceil(this.nFramesAC/this.maxLengthEpoch);
             sessd = this.sessionData;
             
             for e = 1:nEpochs
@@ -626,7 +616,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 if (e < nEpochs)
                     flen = this.maxLengthEpoch;
                 else
-                    flen = this.N_FRAMES - (e-1)*this.maxLengthEpoch;
+                    flen = this.nFramesAC - (e-1)*this.maxLengthEpoch;
                 end
                 parser = mlfourdfp.T4ResolveParser( ...
                     'sessionData', sessd, ...
@@ -794,22 +784,9 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         end
         function this = partitionUmaps(this)
             
-            switch (upper(this.sessionData.tracer))
-                case 'FDG'
-                    % \Sigma\tau^{\text{nac}}_i = 3600 s; N(tau^{\text{nac}}_i) = 65
-                    tausNac = this.TAUS_FDG;
-                case {'CO' 'OC'}
-                    tausNac = this.TAUS_OC;
-                case {'HO' 'OH' 'OO'}
-                    tausNac = this.TAUS_OO;
-                otherwise
-                    error('mlpet:unsupportedSwitchCase', ...
-                        'TracerResolveBuilder.partitionUmaps.this.sessionData.tracer->%s', this.sessionData.tracer);
-            end
-            
-            tNac = zeros(1, length(tausNac));
-            for iNac = 1:length(tausNac)
-                tNac(iNac) = sum(tausNac(1:iNac)); % end of frame
+            tNac = zeros(1, length(this.tauFramesNAC));
+            for iNac = 1:length(this.tauFramesNAC)
+                tNac(iNac) = sum(this.tauFramesNAC(1:iNac)); % end of frame
             end
             
             import mlfourd.*;
@@ -905,6 +882,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             nEpochs = ceil(nFrames/this.maxLengthEpoch);            
             this.sessionData_.epoch = epoch;
             this.sessionData_.frame = epochSubframe;
+            fprintf('mlpet.TracerResolveBuilder.t4imgFromNac.pwd -> %s\n', pwd);
+            fprintf('mlpet.TracerResolveBuilder.t4imgFromNac.ffp.fqfileprefix -> %s\n', ffp.fqfileprefix);
             this.buildVisitor.move_4dfp(ffp.fileprefix, [ffp.fileprefix '__']);
             ffp.fileprefix = [ffp.fileprefix  '__'];
             t4rb = mlfourdfp.T4ResolveBuilder( ...

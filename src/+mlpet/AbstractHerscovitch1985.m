@@ -1,4 +1,4 @@
-classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
+classdef AbstractHerscovitch1985 < mlpet.AbstractTracerBuilder
 	%% ABSTRACTHERSCOVITCH1985  
     %  See also:
     %  1. Herscovitch P, Mintun MA, Raichle ME (1985) Brain oxygen utilization measured with oxygen-15 radiotracers and 
@@ -147,7 +147,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractDataBuilder
             %  @param named timeDuration
             %  @param named mask
 
- 			this = this@mlpipeline.AbstractDataBuilder(varargin{:});
+ 			this = this@mlpet.AbstractTracerBuilder(varargin{:});
             
             ip = inputParser;
             ip.KeepUnmatched = true;

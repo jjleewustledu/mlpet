@@ -1,4 +1,4 @@
-classdef RoisBuilder < mlpipeline.AbstractDataBuilder & mlrois.IRoisBuilder
+classdef RoisBuilder < mlpet.AbstractTracerBuilder & mlrois.IRoisBuilder
 	%% ROISBUILDER  
 
 	%  $Revision$
@@ -6,17 +6,8 @@ classdef RoisBuilder < mlpipeline.AbstractDataBuilder & mlrois.IRoisBuilder
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/Local/src/mlcvl/mlrois/src/+mlrois.
  	%% It was developed on Matlab 9.2.0.538062 (R2017a) for MACI64.  Copyright 2017 John Joowon Lee.
  	
-	properties (Dependent)
- 		buildVisitor
- 	end
-
+    
 	methods         
-        
-        %% GET
-        
-        function g = get.buildVisitor(this)
-            g = this.buildVisitor_;
-        end
         
         %%
         
@@ -118,16 +109,9 @@ classdef RoisBuilder < mlpipeline.AbstractDataBuilder & mlrois.IRoisBuilder
             %  @param named 'product' is the initial state of the product to build.
             %  @param named 'sessionData' is an mlpipeline.ISessionData.
 
- 			this = this@mlpipeline.AbstractDataBuilder(varargin{:});
-            this.buildVisitor_ = mlfourdfp.FourdfpVisitor;
+ 			this = this@mlpet.AbstractTracerBuilder(varargin{:});
         end
     end 
-    
-    %% PRIVATE
-    
-    properties (Access = private)
-        buildVisitor_
-    end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end

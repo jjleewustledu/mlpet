@@ -21,8 +21,8 @@ classdef TracerKineticsBuilder < mlpet.TracerBuilder
 		  
         %%
         
-        function this = constructKinetics(this, varargin)
-            this.kinetics_ = this.kinetics_.constructKinetics(varargin{:});
+        function this = instanceConstructKinetics(this, varargin)
+            this.kinetics_ = this.kinetics_.instanceConstructKinetics(varargin{:});
         end
         function tf   = constructKineticsPassed(this, varargin)
             tf = this.kinetics_.constructKineticsPassed(varargin{:});

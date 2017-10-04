@@ -41,8 +41,7 @@ classdef ScannerBuilder < mlpipeline.AbstractDataBuilder
     %% PRIVATE
     
     properties (Access = private)
-        scanner_
-        
+        scanner_        
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

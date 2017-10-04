@@ -32,8 +32,8 @@ classdef TracerKineticsDirector
         
         %%        
         
-        function this = constructKinetics(this, varargin)   
-            %% CONSTRUCTKINETICS requests that the builder prepare filesystems, coregistrations and 
+        function this = instanceConstructKinetics(this, varargin)   
+            %% INSTANCECONSTRUCTKINETICS requests that the builder prepare filesystems, coregistrations and 
             %  resolve-projections of ancillary data to tracer data.  
             %  Subsequently, it requests that the builder construct kinetics.
             %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'.
@@ -44,7 +44,7 @@ classdef TracerKineticsDirector
             
             this.builder_ = this.builder_.gatherConvertedAC;
             this.builder_ = this.builder_.resolveRoisOnAC(varargin{:});
-            this.builder_ = this.builder_.constructKinetics(varargin{:});            
+            this.builder_ = this.builder_.instanceConstructKinetics(varargin{:});            
         end
         function tf = constructKineticsPassed(this, varargin)
             %% CONSTRUCTKINETICSPASSED

@@ -1,4 +1,4 @@
-classdef TracerBuilder < mlpipeline.AbstractDataBuilder
+classdef TracerBuilder < mlpet.AbstractTracerBuilder
 	%% TRACERBUILDER
 
 	%  $Revision$
@@ -9,7 +9,6 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee. 	
     
     properties (Dependent)
-        buildVisitor
         compositeResolveBuilder
         resolveBuilder
         roisBuilder
@@ -41,9 +40,6 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
         
         %% GET/SET
         
-        function g    = get.buildVisitor(this)
-            g = this.buildVisitor_;
-        end
         function g    = get.compositeResolveBuilder(this)
             g = this.compositeResolveBuilder_;
         end
@@ -246,6 +242,52 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
             end
             this.product_ = prod;
         end
+        function        reconstituteImgRec(this, varargin)  
+            %% RECONSTITUTEIMGREC
+            %  @param filesystem has {this.sessionData.tracerConvertedLocation} for all available frames.
+            %  @param named fqfp, or fully-qualified fileprefix, of output; defaults to this.product.fqfileprefix. 
+            %  @return prepend timing information from sif_4dfp1 to start of [fqfp '.4dfp.img.rec'].
+            
+            %  TODO @param named toskip is numeric and should be determined by inspection of motion-correction results.
+
+            bv = this.buildVisitor;
+            ip = inputParser;
+            addParameter(ip, 'fqfp', this.product.fqfileprefix, @bv.lexist_4dfp);
+            addParameter(ip, 'toskip', [], @isnumeric);
+            parse(ip, varargin{:});
+            
+            sessd = this.sessionData_;
+            assert(sessd.attenuationCorrected);  
+            assert(isdir(sessd.tracerLocation));
+            pwd0 = pushd(sessd.tracerLocation);
+            prev = mlfourdfp.ImgRecParser.loadx(this.product.fqfileprefix, '.4dfp.img.rec');
+            prev.saveas([this.product.fqfileprefix '_' datestr(now, 30) '.4dfp.img.rec']);
+            imgrec = mlfourdfp.ImgRecLogger;
+            imgrec.consNoHeadFoot(prev.cellContents)
+
+            timingEntry0 = {'mlpet.TracerBuilder.reconstituteImgRec:' ...
+                'Frame           Length(msec)    Midpoint(sec)   Start(msec)      Frame_Min       Frame_Max       Decay_Fac      Rescale'};
+            timingEntries = {};
+            sessd.frame = 0;
+            innerf = 0;
+            while (isdir(sessd.tracerConvertedLocation))
+
+                assert(lexist(sessd.tracerListmodeSif, 'file'))
+                imgrec_ = mlfourdfp.ImgRecParser.loadx(sessd.tracerListmodeSif('typ', 'fqfp'), '.4dfp.img.rec'); % handle
+                timingEntries_ = imgrec_.extractLinesByRegexp( ...
+                    '^Frame_\d+\s+\d+\s+\d+\.\d+\s+\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\s*$');
+                assert(~isempty(timingEntries_))
+                for te = 1:length(timingEntries_)
+                    innerf = innerf + 1;
+                    timingEntries_{te} = regexprep(timingEntries_{te}, '^Frame_\d+', sprintf('Frame_%i', innerf));
+                end
+                timingEntries = [timingEntries timingEntries_]; %#ok<AGROW>
+                sessd.frame = sessd.frame + 1;
+            end
+            imgrec.cons([timingEntry0 timingEntries]);
+            imgrec.saveas([ip.Results.fqfp '.4dfp.img.rec']);
+            popd(pwd0);
+        end
         function this = resolveModalitiesToTracer(this, varargin)
             %% RESOLVEMODALITIESTOTRACER resolves a set of images from heterogeneous modalities to the tracer encapsulated 
             %  within this.product. 
@@ -276,35 +318,30 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
             popd(pwd0);
         end
         function tof  = resolveTofToT1(this)
-            pwd0 = pushd(this.sessionData.tof('typ', 'filepath'));
-            [~,fqfp] = this.buildVisitor.align_multiSpectral( ...
-                'dest', this.sessionData.T1('typ', 'fqfp'), ...
-                'source', this.sessionData.tof('typ', 'fqfp'), ...
-                'destBlur', 1.5, ...
-                'sourceBlur', 1.5, ...
-                't40', this.buildVisitor.sagittal_inv_t4);
+            %pwd0 = pushd(this.sessionData.tof('typ', 'filepath'));
+            [~,fqfp] = this.buildVisitor.align_TOF( ...
+                'dest', this.sessionData.T1('typ', 'fp'), ...
+                'source', this.sessionData.tof('typ', 'fp'), ...
+                'destBlur', 1.0, ...
+                'sourceBlur', 1.0, ...
+                't40', this.buildVisitor.sagittal_inv_t4, ...
+                'useMetricGradient', true);
             tof = mlfourd.ImagingContext([fqfp '.4dfp.ifh']);
-            popd(pwd0);
+            %popd(pwd0);
         end
         
  		function this = TracerBuilder(varargin)
  			%% TRACERBUILDER
-            %  @param named 'logger' is an mlpipeline.AbstractLogger.
-            %  @param named 'product' is the initial state of the product to build; default := [].
-            %  @param named 'sessionData' is an mlpipeline.ISessionData; default := [].
- 			%  @param named 'buildVisitor' is an mlfourdfp.FourdfpVisitor.
             %  @param named 'roisBuilder' is an mlrois.IRoisBuilder.
             %  @param named 'resolveBuilder' is an mlfourdfp.T4ResolveBuilder.
             %  @param named 'compositeResolveBuilder' is an mlfourdp.CompositeT4ResolveBuilder.
             %  @param named 'vendorSupport' is, e.g., mlsiemens.MMRBuilder.
  			
-            this = this@mlpipeline.AbstractDataBuilder(varargin{:});
+            this = this@mlpet.AbstractTracerBuilder(varargin{:});
             
             import mlfourdfp.*;
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'buildVisitor', ...
-                FourdfpVisitor, @(x) isa(x, 'mlfourdfp.FourdfpVisitor'));
             addParameter(ip, 'roisBuilder', ...
                 [], @(x) isempty(x) || isa(x, 'mlrois.IRoisBuilder')); % mlpet.BrainmaskBuilder('sessionData', this.sessionData)
             addParameter(ip, 'resolveBuilder', ...
@@ -313,10 +350,9 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
                 [], @(x) isa(x, 'mlfourdfp.CompositeT4ResolveBuilder') || isempty(x));
             addParameter(ip, 'vendorSupport', ...
                 mlsiemens.MMRBuilder('sessionData', this.sessionData));
-            addParameter(ip, 'ac', false, @islogical);
+            addParameter(ip, 'ac', this.sessionData.attenuationCorrected, @islogical);
             parse(ip, varargin{:});
             
-            this.buildVisitor_                    = ip.Results.buildVisitor;
             this.roisBuilder_                     = ip.Results.roisBuilder;
             this.resolveBuilder_                  = ip.Results.resolveBuilder;
             this.compositeResolveBuilder_         = ip.Results.compositeResolveBuilder;
@@ -328,7 +364,6 @@ classdef TracerBuilder < mlpipeline.AbstractDataBuilder
     %% PROTECTED
     
     properties (Access = protected)
-        buildVisitor_
         compositeResolveBuilder_
         resolveBuilder_
         roisBuilder_
