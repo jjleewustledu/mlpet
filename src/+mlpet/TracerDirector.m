@@ -28,6 +28,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             %  @param chpc is an mldistcomp.CHPC object.
             %  @param factoryMethod is from some TracerDirector.
             %  @param factorArgs is cell array for factoryMethod.
+            %  @return invokes chpc.pushData.
             %  @return this is the TracerDirector instance deployed which can continue management of its assigned
             %  builders.
             
@@ -44,6 +45,50 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             %chpc = chpc.pullData;
             this = chpc.theDeployedDirector; % TracerDirector instance deployed by factoryMethod
             assert(isa(this, 'mlpet.TracerDirector'));
+        end
+        function chpc  = constructRemotely2(varargin)
+            %  @param factoryMethod is a function_handle to some implemented factory method.  
+            %  @param named sessionData   is a function_handle to an mlpipeline.SessionData ctor.
+            %  @param named nArgout is numeric.
+            %  @param named distcompHost is the hostname or distcomp profile.
+            %  @param named pushData calls mlpet.CHPC4TracerDirector.pushData if its logical value is true.
+            %  @param named pullData calls mlpet.CHPC4TracerDirector.pullData if its logical value is true.
+            %  @return chpc, an instance of mlpet.CHPC4TracerDirector.
+            
+            ip = inputParser;
+            addRequired( ip, 'factoryMethod',  @(x) isa(x, 'function_handle'));
+            addParameter(ip, 'sessionData',  @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'nArgout', 1,   @isnumeric);
+            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
+            addParameter(ip, 'pushData', false, @islogical);
+            addParameter(ip, 'pullData', false, @islogical);
+            parse(ip, varargin{:});
+            sessd_ = ip.Results.sessionData;
+            
+            import mlpet.*;
+            try
+                sessd = ip.Results.sessionData( ...
+                    'studyData',   sessd_.studyData, ...
+                    'sessionPath', sessd_.sessionPath, ...
+                    'vnumber',     sessd_.vnumber, ...
+                    'tracer',      sessd_.tracer, ...
+                    'ac',          sessd_.attenuationCorrected, ...
+                    'frame',       sessd_.frame);
+                %this = this.locallyStageTracer;
+                csessd = ip.Results.sessionData( ...
+                    'studyData',   sessd.studyData, ...
+                    'sessionPath', mldistcomp.CHPC.repSubjectsDir(sessd.sessionPath), ...
+                    'vnumber',     sessd.vnumber, ...
+                    'tracer',      sessd.tracer, ...
+                    'ac',          sessd.attenuationCorrected, ...
+                    'frame',       sessd.frame);
+                chpc = CHPC4TracerDirector(this, 'distcompHost', ip.Results.distcompHost, 'sessionData', sessd);                
+                if(ip.Results.pushData); chpc = chpc.pushData; end
+                chpc = chpc.runSerialProgram(ip.Results.factoryMethod, {'sessionData', csessd}, ip.Results.nArgout);
+                if(ip.Results.pullData); chpc = chpc.pullData; end
+            catch ME
+                handwarning(ME);
+            end
         end
     end
     
@@ -124,6 +169,37 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
     end
     
     methods (Access = protected)
+        function         instanceCleanTracerRemotely(this, varargin)
+            %  @param named distcompHost is the hostname or distcomp profile.
+            
+            ip = inputParser;
+            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
+            parse(ip, varargin{:});
+            
+            try
+                chpc = mlpet.CHPC4TracerDirector( ...
+                    this, 'distcompHost', ip.Results.distcompHost, 'sessionData', this.sessionData);                
+                chpc.cleanTracer;
+            catch ME
+                handwarning(ME);
+            end
+        end
+        function         instanceCleanSinogramsRemotely(this, varargin)
+            %  @param named distcompHost is the hostname or distcomp profile.
+            
+            ip = inputParser;
+            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
+            parse(ip, varargin{:});
+            
+            try
+                chpc = mlpet.CHPC4TracerDirector( ...
+                    this, 'distcompHost', ip.Results.distcompHost, 'sessionData', this.sessionData);                
+                chpc.cleanSinograms;
+            catch ME
+                handwarning(ME);
+            end
+        end
+        
         function this  = instanceConstructResolved(this)
             if (~this.sessionData.attenuationCorrected)
                 this = this.instanceConstructResolvedNAC;
@@ -169,39 +245,6 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                     'factoryMethod', ip.Results.construct, ...
                     'factoryArgs', {'sessionData', csessd}, ...
                     'nArgout', ip.Results.nArgout);
-            catch ME
-                handwarning(ME);
-            end
-        end
-        function that  = instancePullFromRemote(this, varargin)
-            %  @param named distcompHost is the hostname or distcomp profile.
-            %  @return that, an instance of mlpet.TracerDirector.
-            
-            ip = inputParser;
-            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
-            parse(ip, varargin{:});
-            
-            try
-                chpc = mlpet.CHPC4TracerDirector( ...
-                    this, 'distcompHost', ip.Results.distcompHost, 'sessionData', this.sessionData);                
-                chpc = chpc.pullData;
-                that = chpc.theDeployedDirector; % TracerDirector instance deployed by factoryMethod
-                assert(strcmp(class(that), class(this)));
-            catch ME
-                handwarning(ME);
-            end
-        end
-        function         instanceCleanRemote(this, varargin)
-            %  @param named distcompHost is the hostname or distcomp profile.
-            
-            ip = inputParser;
-            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
-            parse(ip, varargin{:});
-            
-            try
-                chpc = mlpet.CHPC4TracerDirector( ...
-                    this, 'distcompHost', ip.Results.distcompHost, 'sessionData', this.sessionData);                
-                chpc.cleanTracer;
             catch ME
                 handwarning(ME);
             end
@@ -279,6 +322,43 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                 'tracer', this.sessionData.tracerRevisionSumt('typ', 'mlfourd.ImagingContext'));
             aab = bmb.aparcAsegBinarized(ct4rb);
             popd(pwd0);
+        end
+        
+        function list  = instanceListUmaps(this)
+            dt = mlsystem.DirTool([this.sessionData.umapSynth('tracer', '', 'typ', '.4dfp.ifh') '*']);
+            list = dt.fqfns;
+        end
+        function list  = instanceListTracersConverted(this)
+            if (this.sessionData.attenuationCorrected)
+                this.sessionData.frame = 0;
+            end
+            dt = mlsystem.DirTool([this.sessionData.tracerListmodeMhdr '*']);
+            list = dt.fqfns;            
+        end
+        function list  = instanceListTracersResolved(this)
+            dt = mlsystem.DirTool([this.sessionData.tracerResolvedFinal('tracer', this.sessionData.tracer, 'typ', '.4dfp.ifh') '*']);
+            list = dt.fqfns;              
+        end
+        function rpts  = instanceMakeReports(this)
+            
+        end
+        function that  = instancePullFromRemote(this, varargin)
+            %  @param named distcompHost is the hostname or distcomp profile.
+            %  @return that, an instance of mlpet.TracerDirector.
+            
+            ip = inputParser;
+            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
+            parse(ip, varargin{:});
+            
+            try
+                chpc = mlpet.CHPC4TracerDirector( ...
+                    this, 'distcompHost', ip.Results.distcompHost, 'sessionData', this.sessionData);                
+                chpc = chpc.pullData;
+                that = chpc.theDeployedDirector; % TracerDirector instance deployed by factoryMethod
+                assert(strcmp(class(that), class(this)));
+            catch ME
+                handwarning(ME);
+            end
         end
     end
     
