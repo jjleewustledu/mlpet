@@ -122,32 +122,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
         function this = locallyStageTracer(this)
             this.builder_.vendorSupport = mlsiemens.MMRBuilder('sessionData', this.sessionData);
             this.builder_ = this.builder_.locallyStageTracer;
-        end        
-        function this = instanceConstructKinetics(this, varargin)   
-            %% INSTANCECONSTRUCTKINETICS requests that the builder prepare filesystems, coregistrations and 
-            %  resolve-projections of ancillary data to tracer data.  
-            %  Subsequently, it requests that the builder construct kinetics.
-            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'.
-            
-            ip = inputParser;
-            addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
-            parse(ip, varargin{:});
-            
-            this.builder_ = this.builder_.gatherConvertedAC;
-            this.builder_ = this.builder_.resolveRoisOnAC(varargin{:});
-            this.builder_ = this.builder_.instanceConstructKinetics(varargin{:});            
-        end
-        function tf   = queryKineticsPassed(this, varargin)
-            %% QUERYKINETICSPASSED
-            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'.
-            %  @returns tf logical.
-            
-            ip = inputParser;
-            addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
-            parse(ip, varargin{:});
-            
-            tf = this.builder_.queryKineticsPassed(varargin{:});
-        end        
+        end          
         
  		function this = TracerDirector(varargin)
  			%% TRACERDIRECTOR
@@ -322,7 +297,45 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                 'tracer', this.sessionData.tracerRevisionSumt('typ', 'mlfourd.ImagingContext'));
             aab = bmb.aparcAsegBinarized(ct4rb);
             popd(pwd0);
+        end        
+        function this = instanceConstructKinetics(this, varargin)   
+            %% INSTANCECONSTRUCTKINETICS requests that the builder prepare filesystems, coregistrations and 
+            %  resolve-projections of ancillary data to tracer data.  
+            %  Subsequently, it requests that the builder construct kinetics.
+            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'.
+            
+            ip = inputParser;
+            ip.KeepUnmatched;
+            addParameter(ip, 'roisBuild', ...
+                mlpet.BrainmaskBuilder('sessionData', this.sessionData), ...
+                @(x) isa(x, 'mlrois.IRoisBuilder'));
+            parse(ip, varargin{:});
+            
+            this.builder_ = this.builder_.resolveRoisOnTracer(varargin{:});
+            this.builder_ = this.builder_.instanceConstructKinetics(varargin{:});
         end
+        function tf   = constructKineticsPassed(this, varargin)
+            %% CONSTRUCTKINETICSPASSED
+            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'.
+            %  @returns tf logical.
+            
+            ip = inputParser;
+            addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
+            parse(ip, varargin{:});
+            
+            tf = this.builder_.constructKineticsPassed(varargin{:});
+        end        
+        function tf   = queryKineticsPassed(this, varargin)
+            %% QUERYKINETICSPASSED
+            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'.
+            %  @returns tf logical.
+            
+            ip = inputParser;
+            addParameter(ip, 'roisBuild', mlpet.BrainmaskBuilder('sessionData', this.sessionData), @(x) isa(x, 'mlrois.IRoisBuilder'));
+            parse(ip, varargin{:});
+            
+            tf = this.builder_.queryKineticsPassed(varargin{:});
+        end      
         
         function list  = instanceListUmaps(this)
             dt = mlsystem.DirTool([this.sessionData.umapSynth('tracer', '', 'typ', '.4dfp.ifh') '*']);
@@ -376,8 +389,8 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
         end
         function this  = instanceConstructResolvedNAC(this)
             this.builder_       = this.builder_.locallyStageTracer;            
-            this.builder_       = this.builder_.partitionMonolith;
-            [this.builder_,multiEpochOfSummed,reconstitutedSummed] = this.builder_.motionCorrectFrames;  
+            this.builder_       = this.builder_.partitionMonolith; 
+            [this.builder_,multiEpochOfSummed,reconstitutedSummed] = this.builder_.motionCorrectFrames;
             reconstitutedSummed = reconstitutedSummed.motionCorrectCTAndUmap;             
             this.builder_       = reconstitutedSummed.motionUncorrectUmap(multiEpochOfSummed);
         end

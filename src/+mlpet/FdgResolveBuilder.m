@@ -1,5 +1,5 @@
-classdef TracerResolveBuilder < mlpet.TracerBuilder
-	%% TRACERRESOLVEBUILDER can create t4-resolved images hierarchically managed with cardinalities
+classdef FdgResolveBuilder < mlpet.TracerBuilder
+	%% FdgResolveBuilder can create t4-resolved images hierarchically managed with cardinalities
     %  |session| >= |visit| > |tracer-monolith| >= |epoch| >= |frame|.  Construction intermediates
     %  are stored in this.product as described by the GoF.  
 
@@ -52,7 +52,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     g = 58;
                 otherwise
                     error('mlpet:unsupportedSwitchCase', ...
-                        'TracerResolveBuilder.get.nFramesAC does not support this.sessionData.tracer->%s', ...
+                        'FdgResolveBuilder.get.nFramesAC does not support this.sessionData.tracer->%s', ...
                         this.sessionData.tracer);
             end
         end
@@ -67,7 +67,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     g = this.TAUS_OO;
                 otherwise
                     error('mlpet:unsupportedSwitchCase', ...
-                        'TracerResolveBuilder.get.tauFramesNAC does not support this.sessionData.tracer->%s', ...
+                        'FdgResolveBuilder.get.tauFramesNAC does not support this.sessionData.tracer->%s', ...
                         this.sessionData.tracer);
             end
         end
@@ -84,7 +84,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  @param  this.tracerRevision exists.
             %  @param  this.maxLengthEpoch is integer > 0.  
             %  @return with identity if rank(monolith) < 4.
-            %  @return this := composite {TracerResolveBuilder} with partitioning of monolith into epochs with each 
+            %  @return this := composite {FdgResolveBuilder} with partitioning of monolith into epochs with each 
             %          |epoch| <= this.maxLengthEpoch if rank(monolith) == 4.  
             %          Save epochs if not already on filesystem.  
             %          length(this) := ceil(this.sizeTracerRevision/this.maxLengthEpoch).
@@ -122,12 +122,12 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         function [this,multiEpochOfSummed,reconstitutedSummed] = motionCorrectFrames(this)
             %% MOTIONCORRECTFRAMES 
             %  @param  this.product        := composite multi-epoch of frames created by this.partitionMonolith.
-            %  @return this                := composite multi-epoch {TracerResolveBuilder} 
+            %  @return this                := composite multi-epoch {FdgResolveBuilder} 
             %                                 each containing motion-corrected frames.
             %                                 composite this contains all available frames.
-            %  @return multiEpochOfSummed  := composite multi-epoch {TracerResolveBuilder} 
+            %  @return multiEpochOfSummed  := composite multi-epoch {FdgResolveBuilder} 
             %                                 each containing summed motion-corrected frames.
-            %  @return reconstitutedSummed := singlet TracerResolveBuilder containing summed motion-corrected frames.
+            %  @return reconstitutedSummed := singlet FdgResolveBuilder containing summed motion-corrected frames.
                 
             if (length(this) > 1)    
                 
@@ -221,7 +221,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                         'NRevisions', 2);
                 otherwise
                     error('mlpet:unsupportedSwitchCase', ...
-                          'TracerResolveBuilder.motionCorrectCTAndUmap....tracer->%s', ...
+                          'FdgResolveBuilder.motionCorrectCTAndUmap....tracer->%s', ...
                           this.sessionData_.tracer);
             end
                         
@@ -262,8 +262,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             thisUncorrected = this.motionUncorrectToEpochs(source, multiEpochOfSummed);
                 % thisUncorrected(${u}).product->E1to9/umapSynth_op_fdgv1e1to9r1_frame${u}
             for u = 1:length(thisUncorrected)
-                multiEpochOfSummed(u).motionUncorrectToEpochs2( ...
-                    thisUncorrected(u).product, multiEpochOfSummed(u), u == length(thisUncorrected));
+                multiEpochOfSummed(u).motionUncorrectToEpochs2(thisUncorrected(u).product, multiEpochOfSummed(u));
             end
         end
         function thisUncorrected = motionUncorrectToEpochs(this, source, multiEpochOfSummed)
@@ -275,19 +274,20 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  length(thisUncorrected) = length(multiEpochOfSummed) - 1.
             
             assert(isa(source, 'mlfourd.ImagingContext'));
-            assert(isa(multiEpochOfSummed, 'mlpet.TracerResolveBuilder'));
+            assert(isa(multiEpochOfSummed, 'mlpet.FdgResolveBuilder'));
             import mlfourd.*;
             
             for idxRef = 1:length(multiEpochOfSummed)
+
+                if (idxRef == this.resolveBuilder_.indexOfReference)
+                    continue
+                end
                 
-                %% resolve source to thisUncorrected(idxRef)
+                %% resolve source to thisMotionUncorrected(idxRef)
                 loc = this.resolveBuilder_.sessionData.tracerLocation;
                 ensuredir(loc);
                 pwd0 = pushd(loc); % E1to9;    
-                thisUncorrected(idxRef) = this; %#ok<*AGROW>       
-                if (idxRef == this.resolveBuilder_.indexOfReference)
-                    continue
-                end         
+                thisUncorrected(idxRef) = this; %#ok<*AGROW>                
                 try
                     childRB                  = this.resolveBuilder_;
                     childRB.rnumber          = 1;
@@ -329,31 +329,25 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     % file: /home/usr/jjlee/Local/src/mlcvl/mlfourdfp/src/+mlfourdfp/ImageFrames.m; name: ImageFrames.readLength; line: 155; 
                     % file: /home/usr/jjlee/Local/src/mlcvl/mlfourdfp/src/+mlfourdfp/ImageFrames.m; name: ImageFrames.set.theImages; line: 54; 
                     % file: /home/usr/jjlee/Local/src/mlcvl/mlfourdfp/src/+mlfourdfp/AbstractT4ResolveBuilder.m; name: AbstractT4ResolveBuilder.set.theImages; line: 164; 
-                    % file: /home/usr/jjlee/Local/src/mlcvl/mlpet/src/+mlpet/TracerResolveBuilder.m; name: TracerResolveBuilder.motionUncorrectUmapToEpochs; line: 235; 
-                    % file: /home/usr/jjlee/Local/src/mlcvl/mlpet/src/+mlpet/TracerResolveBuilder.m; name: TracerResolveBuilder.motionUncorrectUmapToFrames; line: 184; 
+                    % file: /home/usr/jjlee/Local/src/mlcvl/mlpet/src/+mlpet/FdgResolveBuilder.m; name: FdgResolveBuilder.motionUncorrectUmapToEpochs; line: 235; 
+                    % file: /home/usr/jjlee/Local/src/mlcvl/mlpet/src/+mlpet/FdgResolveBuilder.m; name: FdgResolveBuilder.motionUncorrectUmapToFrames; line: 184; 
                 end
                 
                 popd(pwd0); 
             end
-        end     
-        function thisUncorrected = motionUncorrectToEpochs2(this, source, multiEpochOfSummed, lastEpoch)
+        end         
+        function thisUncorrected = motionUncorrectToEpochs2(this, source, multiEpochOfSummed)
             %% MOTIONUNCORRECTTOEPOCHS back-resolves a source in the space of some reference epoch to all available epochs.
             %  @param this.resolveBulder.product is the motion-corrected-summed singlet object to which source will align.
             %  @param source is an ImagingContext.
-            %  @param lastEpoch is logical.
             %  @return thisUncorrected, a collection of TracerResolveBuilders, each conveying back-resolving
             %  to one of the available epochs.
             
             assert(isa(source, 'mlfourd.ImagingContext'));
-            assert(isa(multiEpochOfSummed, 'mlpet.TracerResolveBuilder'));
+            assert(isa(multiEpochOfSummed, 'mlpet.FdgResolveBuilder'));
             import mlfourd.*;
             
-            if (lastEpoch)
-                NRef = this.nFramesModMaxLengthEpoch;
-            else 
-                NRef = this.maxLengthEpoch;
-            end
-            for idxRef = 1:NRef
+            for idxRef = 1:this.maxLengthEpoch
                 
                 %% resolve source to thisMotionUncorrected(idxRef)
                 
@@ -396,15 +390,14 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                         % E${idxRef}/umapSynth_op_fdgv1e1to9r1_frame${idxRef}; 
                 catch ME
                     handwarning(ME); 
-                    break
                     % E1to9 && idxRef->9 will fail with 
                     % Warning: The value of 'tracerSif' is invalid. It must satisfy the function: lexist_4dfp.
                     % Cf. mlfourdfp.ImageFrames lines 154, 173.  TODO.
                     % file: /home/usr/jjlee/Local/src/mlcvl/mlfourdfp/src/+mlfourdfp/ImageFrames.m; name: ImageFrames.readLength; line: 155; 
                     % file: /home/usr/jjlee/Local/src/mlcvl/mlfourdfp/src/+mlfourdfp/ImageFrames.m; name: ImageFrames.set.theImages; line: 54; 
                     % file: /home/usr/jjlee/Local/src/mlcvl/mlfourdfp/src/+mlfourdfp/AbstractT4ResolveBuilder.m; name: AbstractT4ResolveBuilder.set.theImages; line: 164; 
-                    % file: /home/usr/jjlee/Local/src/mlcvl/mlpet/src/+mlpet/TracerResolveBuilder.m; name: TracerResolveBuilder.motionUncorrectUmapToEpochs; line: 235; 
-                    % file: /home/usr/jjlee/Local/src/mlcvl/mlpet/src/+mlpet/TracerResolveBuilder.m; name: TracerResolveBuilder.motionUncorrectUmapToFrames; line: 184; 
+                    % file: /home/usr/jjlee/Local/src/mlcvl/mlpet/src/+mlpet/FdgResolveBuilder.m; name: FdgResolveBuilder.motionUncorrectUmapToEpochs; line: 235; 
+                    % file: /home/usr/jjlee/Local/src/mlcvl/mlpet/src/+mlpet/FdgResolveBuilder.m; name: FdgResolveBuilder.motionUncorrectUmapToFrames; line: 184; 
                 end
                 
                 popd(pwd0); 
@@ -515,8 +508,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     % file: /home/usr/jjlee/Local/src/mlcvl/mlfourdfp/src/+mlfourdfp/ImageFrames.m; name: ImageFrames.readLength; line: 155; 
                     % file: /home/usr/jjlee/Local/src/mlcvl/mlfourdfp/src/+mlfourdfp/ImageFrames.m; name: ImageFrames.set.theImages; line: 54; 
                     % file: /home/usr/jjlee/Local/src/mlcvl/mlfourdfp/src/+mlfourdfp/AbstractT4ResolveBuilder.m; name: AbstractT4ResolveBuilder.set.theImages; line: 164; 
-                    % file: /home/usr/jjlee/Local/src/mlcvl/mlpet/src/+mlpet/TracerResolveBuilder.m; name: TracerResolveBuilder.motionUncorrectUmapToEpochs; line: 235; 
-                    % file: /home/usr/jjlee/Local/src/mlcvl/mlpet/src/+mlpet/TracerResolveBuilder.m; name: TracerResolveBuilder.motionUncorrectUmapToFrames; line: 184; 
+                    % file: /home/usr/jjlee/Local/src/mlcvl/mlpet/src/+mlpet/FdgResolveBuilder.m; name: FdgResolveBuilder.motionUncorrectUmapToEpochs; line: 235; 
+                    % file: /home/usr/jjlee/Local/src/mlcvl/mlpet/src/+mlpet/FdgResolveBuilder.m; name: FdgResolveBuilder.motionUncorrectUmapToFrames; line: 184; 
                 end
                 
                 popd(pwd0); 
@@ -548,7 +541,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     this.prepareListmodeMhdr;
                     assert(lexist(this.sessionData_.tracerListmodeMhdr, 'file'));                
                     pwd0 = pushd(this.sessionData_.tracerLocation); % paranoia                    
-                    fprintf('mlpet.TracerResolveBuilder.reconstituteFramesAC.pwd -> %s\n', pwd);
+                    fprintf('mlpet.FdgResolveBuilder.reconstituteFramesAC.pwd -> %s\n', pwd);
                     this = this.prepareCroppedTracerRevision;
                     ffp = this.product.fourdfp;
                     sz = ffp.size; 
@@ -656,8 +649,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             this.product_ = report;
         end
 		  
- 		function this = TracerResolveBuilder(varargin)
-            %% TRACERRESOLVEBUILDER
+ 		function this = FdgResolveBuilder(varargin)
+            %% FdgResolveBuilder
             %  @param named 'logger' is an mlpipeline.AbstractLogger.
             %  @param named 'product' is the initial state of the product to build; default := [].
             %  @param named 'sessionData' is an mlpipeline.ISessionData; default := [].
@@ -698,31 +691,12 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             sz = this.size_4dfp(obj);
             assert(3 == length(sz) || 1 == sz(4));
         end
-        function nf   = nFramesModMaxLengthEpoch(this)
-            sz = this.sizeTracerRevision;
-            nf = mod(sz(4), this.maxLengthEpoch);
-        end 
-        function epochFrames = partitionEpochFrames(this, monoBldr)
-            %% PARTITIONFRAMES 
-            %  @param this corresponds to a partitioning of an epoch from all the frames of monolith.
-            %  @param monoBldr is the TracerResolveBuilder for the monolithic tracer imaging data;
-            %  monoBldr.sizeTracerRevision must have rank == 4.
-            %  @return epochFrames specifies the indices of frames of monolith that correspond to this.epoch.
-            
-            monoSz = monoBldr.sizeTracerRevision;
-            e = this.sessionData_.epoch;
-            if (e*this.maxLengthEpoch > monoSz(4))
-                epochFrames = (e-1)*this.maxLengthEpoch+1:monoSz(4); % remaining frames
-                return
-            end
-            epochFrames = (e-1)*this.maxLengthEpoch+1:e*this.maxLengthEpoch; % partition of frames
-        end
         function this = reconstituteComposites(this, those)
-            %% RECONSTITUTECOMPOSITES contracts composite TracerResolveBuilder to singlet.
-            %  @param this is singlet TracerResolveBuilder.
-            %  @param those is composite TracerResolveBuilder;
+            %% RECONSTITUTECOMPOSITES contracts composite FdgResolveBuilder to singlet.
+            %  @param this is singlet FdgResolveBuilder.
+            %  @param those is composite FdgResolveBuilder;
             %  e.g., those(1) := fdgv1e1r2_op_fdgv1e1r1_frame8_sumt.
-            %  @return this is singlet TracerResolveBuilder containing reconstitution of those onto this with updating of
+            %  @return this is singlet FdgResolveBuilder containing reconstitution of those onto this with updating of
             %  this.{sessionData.rnumber,resolveBuilder,epoch,product}.
             
             aufbauFfp = those(1).product.fourdfp;
@@ -739,7 +713,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     icE = ImagingContext(those(e).tracerRevision); % fdgv1e*r2
                 else
                     error('mlpet:filesystemErr', ...
-                        'TracerResolveBuilder.reconstituteComposites could not find %s', those(e).tracerRevision);
+                        'FdgResolveBuilder.reconstituteComposites could not find %s', those(e).tracerRevision);
                 end
                 aufbauFfp.img(:,:,:,e) = icE.fourdfp.img;
             end  
@@ -754,11 +728,26 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             if (~lexist(this.product_.fqfilename, 'file'))
                 this.product_.save;
             end
-        end	
+        end	 
+        function epochFrames = partitionEpochFrames(this, monoBldr)
+            %% PARTITIONFRAMES 
+            %  @param this corresponds to a partitioning of an epoch from all the frames of monolith.
+            %  @param monoBldr is the FdgResolveBuilder for the monolithic tracer imaging data;
+            %  monoBldr.sizeTracerRevision must have rank == 4.
+            %  @return epochFrames specifies the indices of frames of monolith that correspond to this.epoch.
+            
+            monoSz = monoBldr.sizeTracerRevision;
+            e = this.sessionData_.epoch;
+            if (e*this.maxLengthEpoch > monoSz(4))
+                epochFrames = (e-1)*this.maxLengthEpoch+1:monoSz(4); % remaining frames
+                return
+            end
+            epochFrames = (e-1)*this.maxLengthEpoch+1:e*this.maxLengthEpoch; % partition of frames
+        end
         function this = saveEpoch(this, monoBldr, monoFfp)
             %% SAVEEPOCH
             %  @param this corresponds to a partitioning of an epoch from all the frames of monolith.
-            %  @param monoBldir is the TracerResolveBuilder object for the monolith.
+            %  @param monoBldir is the FdgResolveBuilder object for the monolith.
             %  @param monoFfp is ImagingContext.fourdfp for the monolithic tracer imaging data;
             %  monolith.sizeTracerRevision must have rank == 4.
             %  @return this.product := saved partitioning of monolith at this.epoch cast as ImagingContext, 
@@ -787,10 +776,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %% SIZETRACERREVISION
             %  @return sz, the size of the image data specified by this.tracerRevision.
             
-            sessd_ = this.sessionData_;
-            sessd_.rnumber = 1;
-            assert(this.buildVisitor.lexist_4dfp(sessd_.tracerRevision('typ','fqfp')));
-            sz = this.buildVisitor.ifhMatrixSize(sessd_.tracerRevision('typ', '4dfp.ifh'));
+            assert(this.buildVisitor.lexist_4dfp(this.sessionData_.tracerRevision('typ','fqfp')));
+            sz = this.buildVisitor.ifhMatrixSize(this.sessionData_.tracerRevision('typ', '4dfp.ifh'));
         end
         function this = sumProduct(this)
             assert(isa(this.product_, 'mlfourd.ImagingContext'))
@@ -811,8 +798,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         end
         
         function this = convertUmapsToE7Format(this)
-            sz  = this.sizeTracerRevision;
-            fps = cellfun(@(x) sprintf('umapSynth_frame%i', x), num2cell(0:sz(4)-1), 'UniformOutput', false);
+            fps = cellfun(@(x) sprintf('umapSynth_frame%i', x), num2cell(0:64), 'UniformOutput', false);
             cub = mlfourdfp.CarneyUmapBuilder('sessionData', this.sessionData);
             cub = cub.convertUmapsToE7Format(fps);
             this.product_ = cub.product;
@@ -825,7 +811,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             end
             
             import mlfourd.*;
-            umaps = ImagingContext(this.sessionData.umap('','typ','.4dfp.ifh'));
+            umaps = ImagingContext('umapSynth.4dfp.ifh');
             umap0 = umaps.fourdfp;
             umap0.img = umap0.img(:,:,:,1);
             assert(length(tNac) == umaps.fourdfp.size(4));
@@ -845,7 +831,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  @return this:  this.product is the multi-frame umap as mlfourdfp.Fourdfp.
             
             import mlfourd.* mlfourdfp.*;
-            fprintf('TracerResolveBuilder.umapAufbau:  working in %s\n', pwd);            
+            fprintf('FdgResolveBuilder.umapAufbau:  working in %s\n', pwd);            
             sessd = this.sessionData;
             sessd.rnumber = 1;
             tracerSz = this.size_4dfp(ImagingContext(sessd.tracerRevision));            
@@ -869,12 +855,10 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             umapSz = umapFfp.size;
             umapFfp.img = zeros(umapSz(1),umapSz(2),umapSz(3),tracerSz(4));
             for ep = 1:nEpoch
-                if (ep == nEpoch)
-                    Nfr = this.nFramesModMaxLengthEpoch;
-                else
-                    Nfr = this.maxLengthEpoch;
-                end
-                for fr = 1:Nfr
+                for fr = 1:this.maxLengthEpoch
+                    if (this.maxLengthEpoch*nEpoch+fr > tracerSz(4))
+                        break
+                    end
                     sessd_ = sessd;
                     sessd_.epoch = ep;
                     sessd_.resolveTag = sessd_.resolveTagFrame(fr, 'reset', true);
@@ -915,8 +899,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             nEpochs = ceil(nFrames/this.maxLengthEpoch);            
             this.sessionData_.epoch = epoch;
             this.sessionData_.frame = epochSubframe;
-            fprintf('mlpet.TracerResolveBuilder.t4imgFromNac.pwd -> %s\n', pwd);
-            fprintf('mlpet.TracerResolveBuilder.t4imgFromNac.ffp.fqfileprefix -> %s\n', ffp.fqfileprefix);
+            fprintf('mlpet.FdgResolveBuilder.t4imgFromNac.pwd -> %s\n', pwd);
+            fprintf('mlpet.FdgResolveBuilder.t4imgFromNac.ffp.fqfileprefix -> %s\n', ffp.fqfileprefix);
             this.buildVisitor.move_4dfp(ffp.fileprefix, [ffp.fileprefix '__']);
             ffp.fileprefix = [ffp.fileprefix  '__'];
             t4rb = mlfourdfp.T4ResolveBuilder( ...
@@ -948,7 +932,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     sessDNac_.tracerEpoch('typ', 'fp'), epoch, sessDNac_.resolveTag, nEpochs));
             dest_ = strrep(ffp.fileprefix, '__', '');
             if (~lexist(strrep(t4_, 'r0', 'r1'), 'file'))
-                error('mlpet:unexpectedDataState', 'TracerResolveBuilder.t4imgFromNac');
+                error('mlpet:unexpectedDataState', 'FdgResolveBuilder.t4imgFromNac');
             end
             if (~bv.lexist_4dfp(dest_))
                 t4rb.t4img_4dfp(t4_, ffp.fileprefix, 'out', dest_);
