@@ -23,7 +23,7 @@ classdef TracerReportsBuilder < mlpet.AbstractTracerBuilder
             pwd0 = pushd(sd.tracerLocation);
             dtepochs = mlsystem.DirTool('E*');
             for e = 1:length(dtepochs.fqdns)
-                sd.epoch = this.epochDir2Numeric(dtepochs.fqdns{e});
+                sd.epoch = epochDir2Numeric(dtepochs.fqdns{e});
                 this.reporter_ = T4ResolveReporter( ...
                     'sessionData', sd, ...
                     'imagingPath', sd.TracerLocation, ...
@@ -56,18 +56,6 @@ classdef TracerReportsBuilder < mlpet.AbstractTracerBuilder
             end
             [~,idxs] = sort(datetimes);
             fp = dtlogs.fp{idxs(end)};
-        end
-        function n = epochDir2Numeric(~, d)
-            assert(strcmp(d(1), 'E'));
-            if (~lstrfind(d, 'to'))
-                n = str2double(d(2:end));
-                return
-            else
-                posTo  = strfind(d, 'to');
-                n = str2double(d(2:posTo-1)):str2double(d(posTo+2:end));
-                return
-            end
-            error('mlpet:unexpectedParamValue', 'TracerReportsBuilder.epochDir2Numeric.d -> %s', d);
         end
     end
 

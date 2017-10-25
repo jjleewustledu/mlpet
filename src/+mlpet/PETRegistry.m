@@ -64,22 +64,22 @@ classdef PETRegistry < mlpatterns.Singleton
             %  Radial position (cm)       1     10     ~5
             %
             %  Orientation FWHH
-            %  Radial resolution (mm)     4.82   5.65   5.24
-            %  Tangential resolution (mm) 4.39   4.64   4.52
-            %  In-plane resolution* (mm)  6.52   7.31   6.92
-            %  Axial resolution (mm)      5.10   5.33   5.22
+            %  Radial resolution (mm)     4.82   5.65   5.19
+            %  Tangential resolution (mm) 4.39   4.64   4.50
+            %  In-plane resolution* (mm)  6.52   7.31   6.87
+            %  Axial resolution (mm)      5.10   5.33   5.20
             %
             %  Orientation Sigma
-            %  Radial resolution (mm)     2.0469 2.3993 2.2252
-            %  Tangential resolution (mm) 1.8643 1.9704 1.9195
-            %  In-plane resolution* (mm)  2.7688 3.1043 2.9387
-            %  Axial resolution (mm)      2.1658 2.2634 2.2167
+            %  Radial resolution (mm)     2.0469 2.3993 2.2035
+            %  Tangential resolution (mm) 1.8643 1.9704 1.9114
+            %  In-plane resolution* (mm)  2.7688 3.1043 2.9180
+            %  Axial resolution (mm)      2.1658 2.2634 2.2092
             %
             %  *geom. mean
         
             p = inputParser;
             addOptional(p, 'scanner',        'ECAT EXACT HR+', @(s) lstrfind(lower(s), this.SCANNER_LIST));
-            addOptional(p, 'radialPosition',  7,               @isnumeric);
+            addOptional(p, 'radialPosition',  10,              @isnumeric);
             addOptional(p, 'dispersion',     'fwhh',           @(s) lstrfind(lower(s), this.DISPERSION_LIST));
             addOptional(p, 'orientation',    'in-plane',       @(s) lstrfind(lower(s), this.ORIENTATION_LIST));
             addOptional(p, 'geometricMean',   false,           @islogical);
@@ -94,7 +94,7 @@ classdef PETRegistry < mlpatterns.Singleton
                 case 'radial'
                     ps = radialFit(r);
                 case 'in-plane'
-                    r2  = norm(tanFit(r), radialFit(r));
+                    r2  = inPlaneFit(r);
                     ps = [r2 r2 axialFit(r)];
                 case '3D'
                     r2  = norm(tanFit(r), radialFit(r));
@@ -115,14 +115,25 @@ classdef PETRegistry < mlpatterns.Singleton
             
             %% inner methods
             
-            function y = axialFit(x)
-                y = -0.0008889*x^2 + 0.03533*x + 5.066;
-            end
             function y = radialFit(x)
-                y = -0.002556*x^2 + 0.1203*x + 4.702;
+                r1  = 4.82;
+                r10 = 5.65;
+                y   = (r10 - r1)*(x - 10)/9 + r10;
             end
             function y = tanFit(x)
-                y = -0.0009444*x^2 + 0.03817*x + 4.353;
+                r1  = 4.39;
+                r10 = 4.64;
+                y   = (r10 - r1)*(x - 10)/9 + r10;
+            end
+            function y = inPlaneFit(x)
+                r1  = norm([4.82 4.39]);
+                r10 = norm([5.65 4.64]);
+                y   = (r10 - r1)*(x - 10)/9 + r10;
+            end
+            function y = axialFit(x)
+                r1  = 5.10;
+                r10 = 5.33;
+                y   = (r10 - r1)*(x - 10)/9 + r10;
             end
         end     
     end

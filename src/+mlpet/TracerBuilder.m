@@ -87,6 +87,13 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
             end
         end
         
+        function this = locallyStageParcs(this)
+            
+            this.sessionData.mri_convert(  this.sessionData.aparcAseg.fqfilename, [this.sessionData.aparcAseg('typ', 'fp') '.nii']);
+            this.buildVisitor.nifti_4dfp_4(this.sessionData.aparcAseg('typ', 'fp'));
+            this.sessionData.mri_convert(  this.sessionData.wmparc.fqfilename,    [this.sessionData.wmparc('typ', 'fp') '.nii']);
+            this.buildVisitor.nifti_4dfp_4(this.sessionData.wmparc('typ', 'fp'));
+        end
         function this = locallyStageModalities(this, varargin)
             %% LOCALLYSTAGEMODALITIES
             %  @param existing T1, t2, tof (if existing), umapSynth on the filesystem as specified by this.sessionData.
@@ -312,9 +319,11 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
                 'theImages', theImages, ...
                 'NRevisions', 2);    
                         
-            % update this.{compositeResolveBuilder_,sessionData_,product_}
-            this.compositeResolveBuilder_ = cRB_.resolve;
-            this.sessionData_             = cRB_.sessionData;           
+            % update this.{compositeResolveBuilder_,sessionData_,product_}                      
+            cRB_ = cRB_.resolve;             
+            this.compositeResolveBuilder_ = cRB_;
+            this.sessionData_             = cRB_.sessionData;
+            this.product_                 = cRB_.product; 
             popd(pwd0);
         end
         function tof  = resolveTofToT1(this)
