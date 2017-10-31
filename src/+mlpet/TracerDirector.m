@@ -172,6 +172,12 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             this.builder_ = this.builder_.reportResolved;
         end
         function this  = instanceConstructAnatomy(this, varargin)
+            %% INSTANCECONSTRUCTANATOMY
+            %  @param valid alignment results this.tracerResolvedFinalSumt.
+            %  @param this.sessionData.{T1,aparcAseg,wmparc}.
+            %  @result ready-to-use t4 transformation files named T1001r1r2_to_op_fdgv1r1_t4 and 
+            %  anatomical files aligned to this.tracerResolvedFinalSumt for FDG.
+            
             [~,ic] = this.tracerResolvedFinalSumt(varargin{:});
             this.builder_ = this.builder_.prepareProduct(ic);
             pwd0 = pushd(ic.filepath);
@@ -198,6 +204,9 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             end
         end
         function this  = instanceConstructExports(this, varargin)
+            %% INSTANCECONSTRUCTEXPORTS creates symbolic links of useful results in directory named export.
+            %  @return fullfile(sessionData.vLocation, export) with aligned tracer results and aligned anatomical results.
+            
             sessd = this.sessionData;
             exportDir = fullfile(sessd.vLocation, 'export');
             if (isdir(exportDir))
@@ -348,6 +357,8 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             end
         end
         function this  = instancePullPattern(this, varargin)
+            %  @param named 'pattern' specified remoate location fullfile(tracerLocation, pattern).
+            %  @return rsync results on fullfile(tracerLocation, pattern).
             
             ip = inputParser;
             addParameter(ip, 'pattern', '', @ischar);

@@ -896,11 +896,13 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         end
         
         function ffp  = aufbauFourdfp(this)
-            sessDNac = this.sessionData_;
-            sessDNac.attenuationCorrected = false;
-            sessDNac.epoch = 1;
-            assert(lexist(sessDNac.tracerRevision('frame', 1)));
-            ffp = mlfourdfp.Fourdfp.load(sessDNac.tracerRevision('frame', 1));
+            sessd = this.sessionData_;
+            sessd.epoch = [];
+            sessd.frame = 0;
+            assert(lexist(sessd.tracerListmodeSif));
+            tmp = fullfile(sessd.tracerLocation, 'TracerResolveBuilder_aufbauFourdfp_tmp');
+            this.buildVisitor.cropfrac_4dfp(0.5, sessd.tracerListmodeSif('typ','fqfp'), tmp);
+            ffp = mlfourdfp.Fourdfp.load([tmp '.4dfp.ifh']);
             ffp.fqfileprefix = this.sessionData_.tracerRevision('typ', 'fqfp');
             ffp.img = zeros(size(ffp));
             assert(strcmp(ffp.filesuffix, '.4dfp.ifh'));
@@ -919,6 +921,9 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             N = sessd.frame;
         end
         function ffp  = t4imgFromNac(this, ffp, nFrames)
+            %% t4imgFromNac uses t4s from NAC resolving products to place the AC reconstructions from e7tools in
+            %  initial alignment.
+            
             bv = this.buildVisitor;
             [epoch,epochSubframe] = this.getEpochIndices(this.sessionData_.frame);
             nEpochs = ceil(nFrames/this.maxLengthEpoch);            
@@ -946,7 +951,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 return
             end
             if (~bv.lexist_4dfp(dest))
-                t4rb.t4img_4dfp(t4, ffp.fileprefix, 'out', dest);
+                t4rb.t4img_4dfp(t4, ffp.fileprefix, 'out', dest, 'options', ['-O' ffp.fqfileprefix]);
             end
             
             sessDNac_ = sessDNac;
@@ -960,7 +965,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 error('mlpet:unexpectedDataState', 'TracerResolveBuilder.t4imgFromNac');
             end
             if (~bv.lexist_4dfp(dest_))
-                t4rb.t4img_4dfp(t4_, ffp.fileprefix, 'out', dest_);
+                t4rb.t4img_4dfp(t4_, ffp.fileprefix, 'out', dest_, 'options', ['-O' ffp.fqfileprefix]);
             end
             ffp   = mlfourdfp.Fourdfp.load([dest_ '.4dfp.ifh']);
             
