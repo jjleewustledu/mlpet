@@ -15,6 +15,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
     end
     
 	properties (Dependent)
+        anatomy
         builder
         sessionData
         studyData
@@ -52,6 +53,9 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
         
         %% GET/SET
         
+        function g = get.anatomy(this)
+            g = this.anatomy_;
+        end
         function g = get.builder(this)
             g = this.builder_;
         end
@@ -86,9 +90,11 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             
             ip = inputParser;
             addRequired(ip, 'builder', @(x) isa(x, 'mlpet.TracerBuilder'));
+            addParamter(ip, 'anatomy', 'T1', @ischar);
             parse(ip, varargin{:});
             
             this.builder_ = ip.Results.builder;
+            this.anatomy_ = ip.Results.anatomy;
         end
  	end 
 
@@ -96,6 +102,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
     %% PROTECTED
     
     properties (Access = protected)
+        anatomy_
         builder_
     end
     
@@ -175,23 +182,24 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             %% INSTANCECONSTRUCTANATOMY
             %  @param valid alignment results this.tracerResolvedFinalSumt.
             %  @param this.sessionData.{T1,aparcAseg,wmparc}.
-            %  @result ready-to-use t4 transformation files named T1001r1r2_to_op_fdgv1r1_t4 and 
+            %  @param this.anatomy is char for image space equal-sized to T1.
+            %  @result ready-to-use t4 transformation files named {T1001,brainmask}r1r2_to_op_fdgv1r1_t4 and 
             %  anatomical files aligned to this.tracerResolvedFinalSumt for FDG.
             
             [~,ic] = this.tracerResolvedFinalSumt(varargin{:});
             this.builder_ = this.builder_.prepareProduct(ic);
             pwd0 = pushd(ic.filepath);
-            this.builder_.buildVisitor.lns_4dfp(this.sessionData.T1('typ','fqfp'));
+            this.builder_.buildVisitor.lns_4dfp(this.sessionData.(this.anatomy)('typ','fqfp'));
             this.builder_.locallyStageParcs;
-            this.builder_ = this.builder_.resolveModalitiesToTracer({this.sessionData.T1('typ','fp')});
+            this.builder_ = this.builder_.resolveModalitiesToTracer({this.sessionData.(this.anatomy)('typ','fp')});
             cRB = this.builder_.compositeResolveBuilder;
             cRB = cRB.t4img_4dfp( ...
-               sprintf('%sr0_to_%s_t4', this.sessionData.T1('typ','fp'), cRB.resolveTag), ...
+               sprintf('%sr0_to_%s_t4', this.sessionData.(this.anatomy)('typ','fp'), cRB.resolveTag), ...
                this.sessionData.aparcAseg('typ','fp'), ...
                'out', [this.sessionData.aparcAseg('typ','fp') '_' cRB.resolveTag], ...
                'options', sprintf('-n -O%s', ic.fileprefix));
             cRB.t4img_4dfp( ...
-               sprintf('%sr0_to_%s_t4', this.sessionData.T1('typ','fp'), cRB.resolveTag), ...
+               sprintf('%sr0_to_%s_t4', this.sessionData.(this.anatomy)('typ','fp'), cRB.resolveTag), ...
                this.sessionData.wmparc('typ','fp'), ...
                'out', [this.sessionData.wmparc('typ','fp') '_' cRB.resolveTag], ...
                'options', sprintf('-n -O%s', ic.fileprefix));
@@ -216,7 +224,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             pwd0 = pushd(exportDir);
             bv = this.builder_.buildVisitor;
             bv.lns_4dfp(sessd.tracerResolvedFinal('typ','fqfp'));
-            bv.lns_4dfp(fullfile(sessd.tracerLocation, [sessd.T1('typ','fp') 'r2_' sessd.resolveTag]));
+            bv.lns_4dfp(fullfile(sessd.tracerLocation, [sessd.(this.anatomy)('typ','fp') 'r2_' sessd.resolveTag]));
             bv.lns_4dfp(fullfile(sessd.tracerLocation, ['wmparc_' sessd.resolveTag]));
             bv.lns_4dfp(fullfile(sessd.tracerLocation, ['aparc+aseg_' sessd.resolveTag]));
             bv.lns(     fullfile(sessd.tracerLocation, sprintf('T1001r1r2_to_%s_t4', sessd.resolveTag)));
@@ -245,6 +253,9 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             obj = sessd.tracerResolvedFinal(varargin{:});
         end
         function [obj,ic] = tracerResolvedFinalSumt(this, varargin)  
+            %  @param named resolvedFrame is numeric, corresponding to frame of reconstituted epochs, e.g., e1to3;
+            %  consider alternative values when final registrations are poor.
+            
             sessd = this.sessionData;
             sessd.attenuationCorrected = true;
             sessd.rnumber = 2;

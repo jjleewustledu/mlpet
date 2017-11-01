@@ -43,6 +43,10 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         function g = get.nFramesAC(this)
             switch (upper(this.sessionData.tracer))
                 case 'FDG'
+                    if (strcmp(this.sessionData.sessionFolder, 'HYGLY25'))
+                        g = 77;
+                        return
+                    end
                     g = 85;
                 case 'OC'
                     g = 70;                    
@@ -59,7 +63,11 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         function g = get.tauFramesNAC(this)
             switch (upper(this.sessionData.tracer))
                 case 'FDG'
-                    % \Sigma\tau^{\text{nac}}_i = 3600 s; N(tau^{\text{nac}}_i) = 65
+                    % \Sigma\tau^{\text{nac}}_i = 3600 s; N(tau^{\text{nac}}_i) = 65                    
+                    if (strcmp(this.sessionData.sessionFolder, 'HYGLY25'))
+                        g = this.TAUS_FDG(1:57);
+                        return
+                    end
                     g = this.TAUS_FDG;
                 case {'CO' 'OC'}
                     g = this.TAUS_OC;
@@ -594,6 +602,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             sessd_.epoch = [];
             sessd_.frame = nan;
             sessd_.rnumber = 2;
+            sessd__ = sessd_;
+            sessd__.rnumber = 1;
             sessd1 = sessd_;
             sessd1.epoch = 1;
             sessd1to11 = sessd_;
@@ -601,7 +611,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             sessd1to11.frame = supEpochs;
             
             pwd0 = pushd(sessd_.tracerLocation);
-            ffp0 = Fourdfp.load(sessd1.tracerRevision('frame', 1));
+            ffp0 = Fourdfp.load(sessd__.tracerRevision('frame', 1));
             sz = size(ffp0.img);
             ffp0.img = zeros(sz(1), sz(2), sz(3), nFrames);
             ffp0.fqfileprefix = sessd_.tracerResolved('typ', 'fqfp');
