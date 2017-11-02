@@ -144,7 +144,10 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 
                 % recursion over epochs to generate composite
                 for e = 1:length(this)
-                    [this(e),~,multiEpochOfSummed(e)] = this(e).motionCorrectFrames;
+                    [this(e),~,multiEpochOfSummed(e)] = this(e).motionCorrectFrames; 
+                    % DEBUG:  execution of t4_resolve does not complete for e > 1.
+                    % This appears to be over/underflow of the t4_resolve executable as of 2017nov1.
+                    % Setting mlpet.TracerDirector.MAX_LENGTH_EPOCH_AC = 24.
                 end
                 singleEpoch = multiEpochOfSummed(1);
                 singleEpoch = singleEpoch.reconstituteComposites(multiEpochOfSummed);
@@ -155,7 +158,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             % base case, returns singlet
             this.product_ = mlfourd.ImagingContext(this.tracerRevision);
             multiEpochOfSummed = [];
-            [this,reconstitutedSummed] = this.motionCorrectEpochs;
+            [this,reconstitutedSummed] = this.motionCorrectEpochs; % DEBUG:  execution of t4_resolve does not complete.
         end
         function [this,summed] = motionCorrectEpochs(this)
             %% MOTIONCORRECTEPOCHS
@@ -183,7 +186,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             
             % update this.{resolveBuilder_,sessionData_,product_}
             pwd0 = pushd(rB_.sessionData.tracerLocation);
-            rB_                  = rB_.resolve;
+            rB_                  = rB_.resolve; % DEBUG:  execution of t4_resolve does not complete.
             this.resolveBuilder_ = rB_;
             this.sessionData_    = rB_.sessionData; 
             this.product_        = rB_.product;            
@@ -550,48 +553,81 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  @param this.sessionData.tracerListmodeMhdr has form ~FDG_V1-LM-00/FDG_V1-OM-00-OP.mhdr.
             %  @return in this.product all frames and sub-frames reconstituted into file this.sessionData.tracerRevision
             %          ~FDG_V1-AC/fdgv1r1.
+            %  @return this.sessionData.rnumber := 1.
                    
             assert(this.sessionData_.attenuationCorrected);  
             ensuredir(this.sessionData_.tracerLocation);
-            aufbau = this.aufbauFourdfp;
             nFrames = this.getNFrames;
-            if (~lexist(aufbau.fqfilename, 'file'))
+            
+            if (lexist(this.sessionData_.tracerRevision, 'file'))                
+                % update this.{sessionData_,product_}
+                this.sessionData_.rnumber = 1; 
+                this.product_ = mlfourd.ImagingContext(this.sessionData_.tracerRevision);
+                return
+            end  
+            
+            %% create this.sessionData_.tracerRevision
+            
+            aufbau = this.reconstituteFrame(this.sessionData_, 0);
+            aufbau.fqfilename = this.sessionData_.tracerRevision;
+            assert(4 == length(aufbau.size) && aufbau.size(4) > 0);
+            innerf = 0;
+            this.sessionData_.frame = 0;
+            while (isdir(this.sessionData_.tracerConvertedLocation))
 
-                this.sessionData_.frame = 0;
-                innerf = 0;
-                while (isdir(this.sessionData_.tracerConvertedLocation))
-
-                    this.prepareTracerLocation;
-                    this.prepareListmodeMhdr;
-                    assert(lexist(this.sessionData_.tracerListmodeMhdr, 'file'));                
-                    pwd0 = pushd(this.sessionData_.tracerLocation); % paranoia                    
-                    fprintf('mlpet.TracerResolveBuilder.reconstituteFramesAC.pwd -> %s\n', pwd);
-                    this = this.prepareCroppedTracerRevision;
-                    ffp = this.product.fourdfp;
-                    sz = ffp.size; 
-                    ffp = this.t4imgFromNac(ffp, nFrames);
-                    if (ffp.rank < 4)
+                fprintf('mlpet.TracerResolveBuilder.reconstituteFramesAC.pwd -> %s\n', pwd);
+                ffp = this.reconstituteFrame(this.sessionData_, this.sessionData_.frame);                
+                ffp = this.t4imgFromNac(ffp, nFrames);
+                if (ffp.rank < 4)
+                    innerf = innerf + 1;
+                    aufbau.img(:,:,:,innerf) = ffp.img;
+                else
+                    for t = 1:ffp.size(4)   
                         innerf = innerf + 1;
-                        aufbau.img(:,:,:,innerf) = ffp.img;
-                    else
-                        for t = 1:sz(4)   
-                            innerf = innerf + 1;
-                            aufbau.img(:,:,:,innerf) = ffp.img(:,:,:,t);
-                        end
-                    end                
-                    this.sessionData_.frame = this.sessionData_.frame + 1;  
-                    popd(pwd0); % paranoia    
-                end     
-            end
+                        aufbau.img(:,:,:,innerf) = ffp.img(:,:,:,t);
+                    end
+                end                
+                this.sessionData_.frame = this.sessionData_.frame + 1;  
+            end    
             
             % update this.{sessionData_,product_}
             this.sessionData_.rnumber = 1; 
-            this.product_             = mlfourd.ImagingContext(aufbau);
-            ensuredir(this.product_.filepath);
-            if (~lexist(this.product_.fqfilename, 'file'))
-                this.product_.save;
-            end
+            this.product_ = mlfourd.ImagingContext(aufbau);
+            this.product_.save;
         end	
+        function ffp  = reconstituteFrame(this, varargin)
+            %  @param named sessionData is an mlpipeline.SessionData.
+            %  @param this.sessionData.tracerListmodeMhdr exists.
+            %  @param named frame is numeric.
+            %  @param named fqfp is the f. q. fileprefix of a frame of the tracer study.
+            %  @return ffp is an mlfourdfp.Fourdfp containing the frame.
+            
+            fqfp_ = fullfile(this.sessionData.tracerLocation, 'TracerResolveBuilder_reconstituteFrame_fqfp_');
+            ip = inputParser;
+            addRequired(ip, 'sessionData', @(x) isa(a, 'mlpipeline.SessionData'));
+            addOptional(ip, 'frame', nan, @isnumeric);
+            addParameter(ip, 'fqfp', fqfp_, @ischar);
+            parse(ip, varargin{:});            
+            sd = ip.Results.sessionData;
+            sd.frame = ip.Results.frame;
+            sd.epoch = [];
+            fqfp_ = ip.Results.fqfp;
+            
+            bv = this.buildVisitor;
+            pwd0 = pushd(sd.tracerListmodeLocation);
+            sif_ = sd.tracerListmodeSif('frame', sd.frame, 'typ', 'fp');
+            if (~bv.lexist_4dfp(fqfp_))
+                if (~bv.lexist_4dfp(sif_))
+                    bv.sif_4dfp(sd.tracerListmodeMhdr, sif_);
+                end
+                bv.cropfrac_4dfp(0.5, sif_, fqfp_);
+                deleteExisting([sif_ '.4dfp.*']);
+            end
+            ffp = mlfourdfp.Fourdfp.load([fqfp_ '.4dfp.ifh']);
+            popd(pwd0);
+            %ffp.fqfileprefix = this.sessionData_.tracerRevision('typ', 'fqfp');
+            %ffp.img = zeros(size(ffp));
+        end
         function this = reconstituteFramesAC2(this)
             
             import mlfourdfp.*;            
@@ -905,18 +941,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             this.product_ = umapFfp;
         end
         
-        function ffp  = aufbauFourdfp(this)
-            sessd = this.sessionData_;
-            sessd.epoch = [];
-            sessd.frame = 0;
-            assert(lexist(sessd.tracerListmodeSif));
-            tmp = fullfile(sessd.tracerLocation, 'TracerResolveBuilder_aufbauFourdfp_tmp');
-            this.buildVisitor.cropfrac_4dfp(0.5, sessd.tracerListmodeSif('typ','fqfp'), tmp);
-            ffp = mlfourdfp.Fourdfp.load([tmp '.4dfp.ifh']);
-            ffp.fqfileprefix = this.sessionData_.tracerRevision('typ', 'fqfp');
-            ffp.img = zeros(size(ffp));
-            assert(strcmp(ffp.filesuffix, '.4dfp.ifh'));
-        end
         function [epoch,epochSubframe] = getEpochIndices(this, nacFrame)
             epoch = floor(nacFrame/this.maxLengthEpoch) + 1;
             epochSubframe = mod(nacFrame, this.maxLengthEpoch) + 1;  

@@ -10,7 +10,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
  	
 
 	properties (Constant)
-        MAX_LENGTH_EPOCH_AC = 32
+        MAX_LENGTH_EPOCH_AC = 24
         NUM_VISITS = 3
     end
     
@@ -89,8 +89,8 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
  			%  @param builder must be an mlpet.TracerBuilder
             
             ip = inputParser;
-            addRequired(ip, 'builder', @(x) isa(x, 'mlpet.TracerBuilder'));
-            addParamter(ip, 'anatomy', 'T1', @ischar);
+            addRequired( ip, 'builder', @(x) isa(x, 'mlpet.TracerBuilder'));
+            addParameter(ip, 'anatomy', 'T1001', @ischar);
             parse(ip, varargin{:});
             
             this.builder_ = ip.Results.builder;
@@ -182,16 +182,18 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             %% INSTANCECONSTRUCTANATOMY
             %  @param valid alignment results this.tracerResolvedFinalSumt.
             %  @param this.sessionData.{T1,aparcAseg,wmparc}.
-            %  @param this.anatomy is char for image space equal-sized to T1.
+            %  @param this.anatomy is char, the sessionData function-name for anatomy in the space of
+            %  this.sessionData.T1; e.g., 'T1', 'brainmask'.
             %  @result ready-to-use t4 transformation files named {T1001,brainmask}r1r2_to_op_fdgv1r1_t4 and 
             %  anatomical files aligned to this.tracerResolvedFinalSumt for FDG.
             
             [~,ic] = this.tracerResolvedFinalSumt(varargin{:});
             this.builder_ = this.builder_.prepareProduct(ic);
             pwd0 = pushd(ic.filepath);
-            this.builder_.buildVisitor.lns_4dfp(this.sessionData.(this.anatomy)('typ','fqfp'));
             this.builder_.locallyStageParcs;
-            this.builder_ = this.builder_.resolveModalitiesToTracer({this.sessionData.(this.anatomy)('typ','fp')});
+            this.builder_.buildVisitor.lns_4dfp(this.sessionData.(this.anatomy)('typ','fp'));
+            this.builder_ = this.builder_.resolveModalitiesToTracer( ...
+                {this.sessionData.(this.anatomy)('typ','fp')}, 'tag2', this.anatomy);
             cRB = this.builder_.compositeResolveBuilder;
             cRB = cRB.t4img_4dfp( ...
                sprintf('%sr0_to_%s_t4', this.sessionData.(this.anatomy)('typ','fp'), cRB.resolveTag), ...
@@ -253,22 +255,35 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             obj = sessd.tracerResolvedFinal(varargin{:});
         end
         function [obj,ic] = tracerResolvedFinalSumt(this, varargin)  
-            %  @param named resolvedFrame is numeric, corresponding to frame of reconstituted epochs, e.g., e1to3;
-            %  consider alternative values when final registrations are poor.
+            
+            ip = inputParser;
+            ip.KeepUnmatched;
+            addParameter(ip, 'target', '', @ischar);
+            parse(ip, varargin{:});
+            import mlfourd.*;
+            
+            if (~isempty(ip.Results.target))
+                obj = ip.Results.target;
+                ic  = ImagingContext(obj);
+                return
+            end
             
             sessd = this.sessionData;
             sessd.attenuationCorrected = true;
             sessd.rnumber = 2;
-            obj = sessd.tracerResolvedFinalSumt(varargin{:});            
-            if (lexist(sessd.tracerResolvedFinalSumt, 'file'))
-                ic  = sessd.tracerResolvedFinalSumt(varargin{:}, 'typ', 'mlfourd.ImagingContext');
-            else
-                ic  = this.tracerResolvedFinal('epoch', this.sessionData.epoch, varargin{:}, 'typ', 'mlfourd.ImagingContext');
-                ic.numericalNiftid;
-                ic  = ic.timeSummed;
-                ic.fourdfp;
-                ic.save;
+            obj = sessd.tracerResolvedFinalSumt;   
+            if (lexist(obj, 'file'))
+                ic  = ImagingContext(obj);
+                return
             end
+
+            obj_ = this.tracerResolvedFinal('epoch', this.sessionData.epoch);
+            assert(lexist(obj_, 'file'))
+            ic = ImagingContext(obj);
+            ic.numericalNiftid;
+            ic = ic.timeSummed;
+            ic.fourdfp;
+            ic.save;
         end
         function [this,aab] = instanceConstructResolvedRois(this, varargin)
             %% INSTANCERESOLVEROISTOTRACER

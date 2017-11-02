@@ -8,6 +8,12 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee. 	
     
+    
+    properties 
+        sourceBlur = 1.5
+        destBlur   = 1.5
+    end
+    
     properties (Dependent)
         compositeResolveBuilder
         resolveBuilder
@@ -89,10 +95,19 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
         
         function this = locallyStageParcs(this)
             
-            this.sessionData.mri_convert(  this.sessionData.aparcAseg.fqfilename, [this.sessionData.aparcAseg('typ', 'fp') '.nii']);
-            this.buildVisitor.nifti_4dfp_4(this.sessionData.aparcAseg('typ', 'fp'));
-            this.sessionData.mri_convert(  this.sessionData.wmparc.fqfilename,    [this.sessionData.wmparc('typ', 'fp') '.nii']);
-            this.buildVisitor.nifti_4dfp_4(this.sessionData.wmparc('typ', 'fp'));
+            sd = this.sessionData;
+            if (~lexist_4dfp(sd.brainmask('typ', 'fp')))
+                this.sessionData.mri_convert(  sd.brainmask.fqfilename, [sd.brainmask('typ', 'fp') '.nii']);
+                this.buildVisitor.nifti_4dfp_4(sd.brainmask('typ', 'fp'));
+            end
+            if (~lexist_4dfp(sd.aparcAseg('typ', 'fp')))
+                sd.mri_convert(                sd.aparcAseg.fqfilename, [sd.aparcAseg('typ', 'fp') '.nii']);
+                this.buildVisitor.nifti_4dfp_4(sd.aparcAseg('typ', 'fp'));
+            end
+            if (~lexist_4dfp(sd.wmparc('typ', 'fp')))
+                sd.mri_convert(                sd.wmparc.fqfilename,    [sd.wmparc('typ', 'fp') '.nii']);
+                this.buildVisitor.nifti_4dfp_4(sd.wmparc('typ', 'fp'));
+            end
         end
         function this = locallyStageModalities(this, varargin)
             %% LOCALLYSTAGEMODALITIES
@@ -213,7 +228,7 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
             this.vendorSupport_.sessionData = this.sessionData;
             sessd = this.vendorSupport_.sessionData;
             ext   =  sessd.filetypeExt;
-            fqfp0 =  sessd.tracerListmodeSif('typ', 'fqfp');
+            fqfp0 =  sessd.tracerListmodeSif('typ', 'fqfp', 'frame', sessd.frame);
             fqfp  =  sessd.tracerRevision(   'typ', 'fqfp', 'frame', sessd.frame);
             fqfn  = [fqfp '.4dfp.ifh'];
             
@@ -279,8 +294,8 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
             innerf = 0;
             while (isdir(sessd.tracerConvertedLocation))
 
-                assert(lexist(sessd.tracerListmodeSif, 'file'))
-                imgrec_ = mlfourdfp.ImgRecParser.loadx(sessd.tracerListmodeSif('typ', 'fqfp'), '.4dfp.img.rec'); % handle
+                assert(lexist(sessd.tracerListmodeSif('frame', sessd.frame), 'file'))
+                imgrec_ = mlfourdfp.ImgRecParser.loadx(sessd.tracerListmodeSif('frame', sessd.frame, 'typ', 'fqfp'), '.4dfp.img.rec'); % handle
                 timingEntries_ = imgrec_.extractLinesByRegexp( ...
                     '^Frame_\d+\s+\d+\s+\d+\.\d+\s+\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\s*$');
                 assert(~isempty(timingEntries_))
@@ -308,7 +323,8 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
             %  the resolved heterogenous modalities.            
             
             ip = inputParser;
-            addRequired(ip, 'modalities', @(x) iscell(x) && all(cellfun(@(y) lexist([y '.4dfp.ifh'], 'file'), x)));
+            addRequired( ip, 'modalities', @(x) iscell(x) && all(cellfun(@(y) lexist([y '.4dfp.ifh'], 'file'), x)));
+            addParameter(ip, 'tag2', '', @ischar);
             parse(ip, varargin{:});
             
             pwd0 = pushd(this.product_.filepath);      
@@ -317,10 +333,11 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
             cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
                 'sessionData', this.sessionData_, ...
                 'theImages', theImages, ...
-                'NRevisions', 2);    
+                'NRevisions', 2);                                        
+            cRB_ = cRB_.updateFinished('tag2', ip.Results.tag2);
                         
             % update this.{compositeResolveBuilder_,sessionData_,product_}                      
-            cRB_ = cRB_.resolve;             
+            cRB_ = cRB_.resolve('destBlur', this.destBlur, 'sourceBlur', this.sourceBlur);             
             this.compositeResolveBuilder_ = cRB_;
             this.sessionData_             = cRB_.sessionData;
             this.product_                 = cRB_.product; 
