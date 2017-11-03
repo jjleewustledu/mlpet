@@ -10,8 +10,8 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
     
     
     properties 
-        sourceBlur = 1.5
-        destBlur   = 1.5
+        blur = 1.5
+        mask = 'none'
     end
     
     properties (Dependent)
@@ -93,18 +93,18 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
             end
         end
         
-        function this = locallyStageParcs(this)
+        function this = locallyStageBrainmasks(this)
             
             sd = this.sessionData;
-            if (~lexist_4dfp(sd.brainmask('typ', 'fp')))
+            if (~lexist_4dfp(                  sd.brainmask('typ', 'fp')))
                 this.sessionData.mri_convert(  sd.brainmask.fqfilename, [sd.brainmask('typ', 'fp') '.nii']);
                 this.buildVisitor.nifti_4dfp_4(sd.brainmask('typ', 'fp'));
             end
-            if (~lexist_4dfp(sd.aparcAseg('typ', 'fp')))
+            if (~lexist_4dfp(                  sd.aparcAseg('typ', 'fp')))
                 sd.mri_convert(                sd.aparcAseg.fqfilename, [sd.aparcAseg('typ', 'fp') '.nii']);
                 this.buildVisitor.nifti_4dfp_4(sd.aparcAseg('typ', 'fp'));
             end
-            if (~lexist_4dfp(sd.wmparc('typ', 'fp')))
+            if (~lexist_4dfp(                  sd.wmparc('typ', 'fp')))
                 sd.mri_convert(                sd.wmparc.fqfilename,    [sd.wmparc('typ', 'fp') '.nii']);
                 this.buildVisitor.nifti_4dfp_4(sd.wmparc('typ', 'fp'));
             end
@@ -317,30 +317,41 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
             %  @param  this.product is a single-epoch motion-corrected tracer.
             %  @param  modalities is a cell-array of fileprefixes without filepaths.
             %  @param  modalities or their sym-links are in the pwd.
-            %  @param  varargin is a cell-array of heterogenous modalities instantiated as mlfourd.ImagingContext 
-            %  objects; default := {T1, t2, tof}.
+            %  @param  named tag2 is char used when touching logging file by mlpipeline.Finished.
+            %  @param  named mask is char := {'none' 'brainmask' 'headmask' ''}; 
+            %  default := 'none'; '' =: use this.mask.
+            %  @param  named blur is numeric fwhh in mm; default := 1.5.
             %  @return these is a composite of mlpet.TracerResolveBuilder, each component.product containing
             %  the resolved heterogenous modalities.            
             
             ip = inputParser;
+            ip.KeepUnmatched = true;
             addRequired( ip, 'modalities', @(x) iscell(x) && all(cellfun(@(y) lexist([y '.4dfp.ifh'], 'file'), x)));
             addParameter(ip, 'tag2', '', @ischar);
+            addParameter(ip, 'mask', this.mask, @ischar);
+            addParameter(ip, 'blur', this.blur, @isnumeric);
             parse(ip, varargin{:});
+            this.mask = ip.Results.mask;
+            this.blur = ip.Results.blur;
             
-            pwd0 = pushd(this.product_.filepath);      
+            pwd0 = pushd(this.product_.filepath);   
+            
             this.sessionData_.rnumber = 1;
             theImages = [{this.product_.fileprefix} ip.Results.modalities];
             cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
+                'blurArg', this.blur, ...
                 'sessionData', this.sessionData_, ...
                 'theImages', theImages, ...
+                'maskForImages', this.mask, ...
                 'NRevisions', 2);                                        
             cRB_ = cRB_.updateFinished('tag2', ip.Results.tag2);
                         
-            % update this.{compositeResolveBuilder_,sessionData_,product_}                      
-            cRB_ = cRB_.resolve('destBlur', this.destBlur, 'sourceBlur', this.sourceBlur);             
+            % update this.{compositeResolveBuilder_,sessionData_,product_}   
+            cRB_ = cRB_.resolve;  
             this.compositeResolveBuilder_ = cRB_;
             this.sessionData_             = cRB_.sessionData;
             this.product_                 = cRB_.product; 
+            
             popd(pwd0);
         end
         function tof  = resolveTofToT1(this)

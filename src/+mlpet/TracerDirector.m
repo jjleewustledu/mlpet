@@ -180,38 +180,40 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
         end
         function this  = instanceConstructAnatomy(this, varargin)
             %% INSTANCECONSTRUCTANATOMY
-            %  @param valid alignment results this.tracerResolvedFinalSumt.
-            %  @param this.sessionData.{T1,aparcAseg,wmparc}.
+            %  @param named target is the filename of a target, recognizable by mlfourd.ImagingContext.ctor;
+            %  the default target is this.tracerResolvedFinal('epoch', this.sessionData.epoch);
+            %  see also TracerDirector.tracerResolvedTarget.
+            %  @param this.sessionData.{T1,aparcAseg,wmparc} exist on the filesystem.
             %  @param this.anatomy is char, the sessionData function-name for anatomy in the space of
-            %  this.sessionData.T1; e.g., 'T1', 'brainmask'.
-            %  @result ready-to-use t4 transformation files named {T1001,brainmask}r1r2_to_op_fdgv1r1_t4 and 
-            %  anatomical files aligned to this.tracerResolvedFinalSumt for FDG.
+            %  this.sessionData.T1; e.g., 'T1', 'T1001', 'brainmask'.
+            %  @result ready-to-use t4 transformation files named {T1001,brainmask,wmparc}r1r2_to_op_fdgv1r1_t4 
+            %  aligned to this.tracerResolvedTarget.
             
-            [~,ic] = this.tracerResolvedFinalSumt(varargin{:});
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'target', '', @ischar);
+            parse(ip, varargin{:});
+            [~,ic] = this.tracerResolvedTarget('target', ip.Results.target); 
+            
             this.builder_ = this.builder_.prepareProduct(ic);
             pwd0 = pushd(ic.filepath);
-            this.builder_.locallyStageParcs;
+            this.builder_.locallyStageBrainmasks;
             this.builder_.buildVisitor.lns_4dfp(this.sessionData.(this.anatomy)('typ','fp'));
             this.builder_ = this.builder_.resolveModalitiesToTracer( ...
-                {this.sessionData.(this.anatomy)('typ','fp')}, 'tag2', this.anatomy);
+                {this.sessionData.(this.anatomy)('typ','fp')}, 'tag2', this.anatomy, varargin{:});
+            
             cRB = this.builder_.compositeResolveBuilder;
-            cRB = cRB.t4img_4dfp( ...
-               sprintf('%sr0_to_%s_t4', this.sessionData.(this.anatomy)('typ','fp'), cRB.resolveTag), ...
-               this.sessionData.aparcAseg('typ','fp'), ...
-               'out', [this.sessionData.aparcAseg('typ','fp') '_' cRB.resolveTag], ...
-               'options', sprintf('-n -O%s', ic.fileprefix));
-            cRB.t4img_4dfp( ...
-               sprintf('%sr0_to_%s_t4', this.sessionData.(this.anatomy)('typ','fp'), cRB.resolveTag), ...
-               this.sessionData.wmparc('typ','fp'), ...
-               'out', [this.sessionData.wmparc('typ','fp') '_' cRB.resolveTag], ...
-               'options', sprintf('-n -O%s', ic.fileprefix));
-            %this.builder_.compositeResolveBuilder = cRB;
-            popd(pwd0);
-            try 
-                deleteExisting('*_b15.4dfp.*');
-            catch ME
-                handwarning(ME);
+            ancillary = {'T1001' 'aparcAseg' 'wmparc'};
+            for a = 1:length(ancillary)
+                cRB.t4img_4dfp( ...
+                   sprintf('%sr0_to_%s_t4', this.sessionData.(this.anatomy)('typ','fp'), cRB.resolveTag), ...
+                   this.sessionData.(ancillary{a})('typ','fp'), ...
+                   'out', [this.sessionData.(ancillary{a})('typ','fp') '_' cRB.resolveTag], ...
+                   'options', sprintf('-n -O%s', ic.fileprefix));
             end
+            %this.builder_.compositeResolveBuilder = cRB;
+            deleteExisting('*_b15.4dfp.*');
+            popd(pwd0);
         end
         function this  = instanceConstructExports(this, varargin)
             %% INSTANCECONSTRUCTEXPORTS creates symbolic links of useful results in directory named export.
@@ -233,7 +235,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             popd(pwd0);
         end
         function this  = instanceConstructResolvedTof(this, varargin)
-            [~,ic] = this.tracerResolvedFinalSumt(varargin{:});
+            [~,ic] = this.tracerResolvedTarget(varargin{:});
             this.builder_ = this.builder_.prepareProduct(ic);
             pwd0 = pushd(ic.filepath);
             this.builder_.buildVisitor.lns_4dfp(this.sessionData.tof('typ','fqfp'));
@@ -254,7 +256,9 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             sessd.rnumber = 2;
             obj = sessd.tracerResolvedFinal(varargin{:});
         end
-        function [obj,ic] = tracerResolvedFinalSumt(this, varargin)  
+        function [obj,ic] = tracerResolvedTarget(this, varargin)  
+            %  @param named target is the filename of a target, recognizable by mlfourd.ImagingContext.ctor;
+            %  the default target is this.tracerResolvedFinal('epoch', this.sessionData.epoch).
             
             ip = inputParser;
             ip.KeepUnmatched;
