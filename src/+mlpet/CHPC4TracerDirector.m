@@ -64,6 +64,10 @@ classdef CHPC4TracerDirector < mldistcomp.CHPC
                 handerror(ME);
             end
         end
+        function        cleanEpochs(this)
+            csd = this.chpcSessionData;
+            this.sshRm(fullfile(csd.tracerLocation, 'E*'));
+        end
         function        cleanTracer(this)
             csd = this.chpcSessionData;
             this.sshRm(fullfile(csd.vLocation, [upper(csd.tracer) '_V*']));

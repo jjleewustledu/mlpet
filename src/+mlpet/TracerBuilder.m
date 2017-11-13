@@ -241,29 +241,7 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
             this.product_ = ImagingContext( ...
                 [this.vendorSupport_.cropfrac(fqfp0, fqfp) ext]);
         end
-        function pth  = logPath(this)
-            pth = fullfile(this.sessionData.tracerLocation, 'Log', '');
-            ensuredir(pth);
-        end
-        function this = updateFinished(this, varargin)
-            ip = inputParser;
-            addParameter(ip, 'tag', ...
-                sprintf('%s_%s', lower(this.sessionData.tracerRevision('typ','fp')), class(this)), ...
-                @ischar);
-            addParameter(ip, 'tag2', '', @ischar);
-            parse(ip, varargin{:});
-            
-            ensuredir(this.logPath);
-            this.finished_ = mlpipeline.Finished(this, ...
-                'path', this.logPath, 'tag', sprintf('%s%s', ip.Results.tag, ip.Results.tag2));
-        end
         
-        function this = prepareProduct(this, prod)
-            if (~isa(prod, 'mlfourd.ImagingContext'))
-                prod = mlfourd.ImagingContext(prod);
-            end
-            this.product_ = prod;
-        end
         function        reconstituteImgRec(this, varargin)  
             %% RECONSTITUTEIMGREC
             %  @param filesystem has {this.sessionData.tracerConvertedLocation} for all available frames.

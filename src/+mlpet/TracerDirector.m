@@ -130,48 +130,6 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             end
             this = this.instanceConstructResolvedAC;
         end
-        function that  = instanceConstructResolvedRemotely(this, varargin)
-            %  @param sessionData   is a function_handle to an mlpipeline.SessionData ctor.
-            %  @param construct     is a function_handle to some implemented factory method.  
-            %  @param named dirTool is an mlsystem.DirTool.
-            %  @param named distcompHost is the hostname or distcomp profile.
-            %  @return this, a cell-array of TracerDirector instances of size N{sessions} x NUM_VISITS.
-            
-            ip = inputParser;
-            addRequired( ip, 'sessionData',  @(x) isa(x, 'function_handle'));
-            addRequired( ip, 'construct',    @(x) isa(x, 'function_handle'));
-            addParameter(ip, 'nArgout', 1,   @isnumeric);
-            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
-            parse(ip, varargin{:});
-            
-            import mlpet.*;
-            try
-                sessd = ip.Results.sessionData( ...
-                    'studyData',   this.studyData, ...
-                    'sessionPath', this.sessionData.sessionPath, ...
-                    'vnumber',     this.sessionData.vnumber, ...
-                    'tracer',      this.sessionData.tracer, ...
-                    'ac',          this.sessionData.attenuationCorrected, ...
-                    'frame',       this.sessionData.frame);
-                this.sessionData = sessd;
-                %this = this.locallyStageTracer;
-                csessd = ip.Results.sessionData( ...
-                    'studyData',   this.studyData, ...
-                    'sessionPath', mldistcomp.CHPC.repSubjectsDir(this.sessionData.sessionPath), ...
-                    'vnumber',     this.sessionData.vnumber, ...
-                    'tracer',      this.sessionData.tracer, ...
-                    'ac',          this.sessionData.attenuationCorrected, ...
-                    'frame',       this.sessionData.frame);
-                chpc = CHPC4TracerDirector(this, 'distcompHost', ip.Results.distcompHost, 'sessionData', sessd);
-                that = TracerDirector.constructRemotely( ...
-                    chpc, ...
-                    'factoryMethod', ip.Results.construct, ...
-                    'factoryArgs', {'sessionData', csessd}, ...
-                    'nArgout', ip.Results.nArgout);
-            catch ME
-                handwarning(ME);
-            end
-        end
         function this  = instanceConstructResolveReports(this)   
             this.builder_.maxLengthEpoch = this.MAX_LENGTH_EPOCH_AC;
             this.builder_.sessionData.attenuationCorrected = true; % KLUDGE
@@ -195,9 +153,10 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             parse(ip, varargin{:});
             [~,ic] = this.tracerResolvedTarget('target', ip.Results.target); 
             
-            this.builder_ = this.builder_.prepareProduct(ic);
+            this.builder_ = this.builder_.packageProduct(ic);
             pwd0 = pushd(ic.filepath);
             this.builder_.locallyStageBrainmasks;
+            this.builder_.buildVisitor.lns_4dfp(this.sessionData.T1001('typ','fqfp'));
             this.builder_.buildVisitor.lns_4dfp(this.sessionData.(this.anatomy)('typ','fp'));
             this.builder_ = this.builder_.resolveModalitiesToTracer( ...
                 {this.sessionData.(this.anatomy)('typ','fp')}, 'tag2', this.anatomy, varargin{:});
@@ -222,21 +181,23 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             sessd = this.sessionData;
             exportDir = fullfile(sessd.vLocation, 'export');
             if (isdir(exportDir))
-                return
+                rmdir(exportDir, 's');
             end
             mkdir(exportDir);
             pwd0 = pushd(exportDir);
             bv = this.builder_.buildVisitor;
             bv.lns_4dfp(sessd.tracerResolvedFinal('typ','fqfp'));
-            bv.lns_4dfp(fullfile(sessd.tracerLocation, [sessd.(this.anatomy)('typ','fp') 'r2_' sessd.resolveTag]));
+            %bv.lns_4dfp(fullfile(sessd.tracerLocation, [sessd.brainmask('typ','fp') 'r2_' sessd.resolveTag]));
+            deleteExisting(fullfile(sessd.tracerLocation, [sessd.T1001('typ','fp') 'r2_' sessd.resolveTag '.4dfp.*']));
+            bv.lns_4dfp(fullfile(sessd.tracerLocation, ['T1001_' sessd.resolveTag]));
             bv.lns_4dfp(fullfile(sessd.tracerLocation, ['wmparc_' sessd.resolveTag]));
             bv.lns_4dfp(fullfile(sessd.tracerLocation, ['aparc+aseg_' sessd.resolveTag]));
-            bv.lns(     fullfile(sessd.tracerLocation, sprintf('T1001r1r2_to_%s_t4', sessd.resolveTag)));
+            bv.lns(     fullfile(sessd.tracerLocation, sprintf('brainmaskr1r2_to_%s_t4', sessd.resolveTag)));
             popd(pwd0);
         end
         function this  = instanceConstructResolvedTof(this, varargin)
             [~,ic] = this.tracerResolvedTarget(varargin{:});
-            this.builder_ = this.builder_.prepareProduct(ic);
+            this.builder_ = this.builder_.packageProduct(ic);
             pwd0 = pushd(ic.filepath);
             this.builder_.buildVisitor.lns_4dfp(this.sessionData.tof('typ','fqfp'));
             this.builder_.buildVisitor.lns_4dfp(fullfile(this.sessionData.vLocation, 'ctMaskedOnT1001r2_op_T1001'));
@@ -283,7 +244,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
 
             obj_ = this.tracerResolvedFinal('epoch', this.sessionData.epoch);
             assert(lexist(obj_, 'file'))
-            ic = ImagingContext(obj);
+            ic = ImagingContext(obj_);
             ic.numericalNiftid;
             ic = ic.timeSummed;
             ic.fourdfp;
@@ -310,7 +271,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             aab = bmb.aparcAsegBinarized(ct4rb);
             popd(pwd0);
         end        
-        function this = instanceConstructKinetics(this, varargin)   
+        function this  = instanceConstructKinetics(this, varargin)   
             %% INSTANCECONSTRUCTKINETICS requests that the builder prepare filesystems, coregistrations and 
             %  resolve-projections of ancillary data to tracer data.  
             %  Subsequently, it requests that the builder construct kinetics.
@@ -326,7 +287,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             this.builder_ = this.builder_.resolveRoisOnTracer(varargin{:});
             this.builder_ = this.builder_.instanceConstructKinetics(varargin{:});
         end
-        function tf   = constructKineticsPassed(this, varargin)
+        function tf    = constructKineticsPassed(this, varargin)
             %% CONSTRUCTKINETICSPASSED
             %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'.
             %  @returns tf logical.
@@ -337,7 +298,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             
             tf = this.builder_.constructKineticsPassed(varargin{:});
         end        
-        function tf   = queryKineticsPassed(this, varargin)
+        function tf    = queryKineticsPassed(this, varargin)
             %% QUERYKINETICSPASSED
             %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'.
             %  @returns tf logical.
@@ -349,10 +310,6 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             tf = this.builder_.queryKineticsPassed(varargin{:});
         end      
         
-        function list  = instanceListUmaps(this)
-            dt = mlsystem.DirTool([this.sessionData.umapSynth('tracer', '', 'typ', '.4dfp.ifh') '*']);
-            list = dt.fqfns;
-        end
         function list  = instanceListTracersConverted(this)
             if (this.sessionData.attenuationCorrected)
                 this.sessionData.frame = 0;
@@ -429,6 +386,53 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             [this.builder_,multiEpochOfSummed,reconstitutedSummed] = this.builder_.motionCorrectFrames;
             reconstitutedSummed = reconstitutedSummed.motionCorrectCTAndUmap;             
             this.builder_       = reconstitutedSummed.motionUncorrectUmap(multiEpochOfSummed);
+        end
+    end
+    
+    %% DEPRECATED
+    
+    methods (Hidden)        
+        function that  = instanceConstructResolvedRemotely(this, varargin)
+            %  @param sessionData   is a function_handle to an mlpipeline.SessionData ctor.
+            %  @param construct     is a function_handle to some implemented factory method.  
+            %  @param named dirTool is an mlsystem.DirTool.
+            %  @param named distcompHost is the hostname or distcomp profile.
+            %  @return this, a cell-array of TracerDirector instances of size N{sessions} x NUM_VISITS.
+            
+            ip = inputParser;
+            addRequired( ip, 'sessionData',  @(x) isa(x, 'function_handle'));
+            addRequired( ip, 'construct',    @(x) isa(x, 'function_handle'));
+            addParameter(ip, 'nArgout', 1,   @isnumeric);
+            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
+            parse(ip, varargin{:});
+            
+            import mlpet.*;
+            try
+                sessd = ip.Results.sessionData( ...
+                    'studyData',   this.studyData, ...
+                    'sessionPath', this.sessionData.sessionPath, ...
+                    'vnumber',     this.sessionData.vnumber, ...
+                    'tracer',      this.sessionData.tracer, ...
+                    'ac',          this.sessionData.attenuationCorrected, ...
+                    'frame',       this.sessionData.frame);
+                this.sessionData = sessd;
+                %this = this.locallyStageTracer;
+                csessd = ip.Results.sessionData( ...
+                    'studyData',   this.studyData, ...
+                    'sessionPath', mldistcomp.CHPC.repSubjectsDir(this.sessionData.sessionPath), ...
+                    'vnumber',     this.sessionData.vnumber, ...
+                    'tracer',      this.sessionData.tracer, ...
+                    'ac',          this.sessionData.attenuationCorrected, ...
+                    'frame',       this.sessionData.frame);
+                chpc = CHPC4TracerDirector(this, 'distcompHost', ip.Results.distcompHost, 'sessionData', sessd);
+                that = TracerDirector.constructRemotely( ...
+                    chpc, ...
+                    'factoryMethod', ip.Results.construct, ...
+                    'factoryArgs', {'sessionData', csessd}, ...
+                    'nArgout', ip.Results.nArgout);
+            catch ME
+                handwarning(ME);
+            end
         end
     end
     
