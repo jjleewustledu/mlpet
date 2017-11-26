@@ -17,6 +17,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
     
     properties
         ctSourceFqfn % fqfilename
+        f2rep
+        fsrc
     end    
     
     properties (Dependent)
@@ -90,6 +92,27 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         
         %%
         
+        function this = replaceMonolithFrames(this)
+            %% REPLACEMONOLITHFRAMES manages pathological frames by replacing them with a reasonable substitute.
+            %  @param this.f2rep, the frames to replace, is not empty and numeric.
+            %  @param this.fsrc, the frame providing replacement, is not empty and is a numeric scalar.
+            %  @return on the filesystem [this.sessionData.tracerRevision('typ','fqfp') '_beforeReplaceMonolithFrames.4dfp.*'].
+            %  @return on the filesystem  this.sessionData.tracerRevision with new frames.
+            
+            if (isempty(this.f2rep) || isempty(this.fsrc))
+                return
+            end
+            
+            bv = this.buildVisitor;
+            backup_4dfp = [this.sessionData.tracerRevision('typ','fqfp') '_beforeReplaceMonolithFrames'];
+            bv.copy_4dfp(this.sessionData.tracerRevision('typ','fqfp'), backup_4dfp);
+            tr = mlfourdfp.Fourdfp.load(this.sessionData.tracerRevision);
+            imgsrc = tr.img(:,:,:,this.fsrc);
+            for f = 1:length(this.f2rep)
+                tr.img(:,:,:,f) = imgsrc;
+            end
+            tr.save;
+        end
         function [this,monolith] = partitionMonolith(this)
             %% PARTITIONMONOLITH into composite {TracerResolveBuilders}; monolithic tracerRevision is partitioned.
             %  @param  this.tracerRevision exists.
@@ -216,10 +239,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     sessFdg.tracer = 'FDG';
                     bv.lns_4dfp(sessFdg.tracerResolvedFinalSumt('typ','fqfp'));
                     theImages = {this.product_.fileprefix ... 
-                                 sessFdg.tracerResolvedFinalSumt('typ','fp') ...
                                  this.ctSourceFp ...
-                                 this.T1('typ','fp') ...
-                                 this.t2('typ','fp')};    
+                                 this.T1('typ','fp')}; % this.t2('typ','fp') sessFdg.tracerResolvedFinalSumt('typ','fp') 
                     cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
                         'sessionData', this.sessionData_, ...
                         'theImages', theImages, ...
@@ -413,7 +434,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     fprintf('motionUncorrectToEpochs2:\n');
                     fprintf('source.fqfileprefix->\n    %s\n', source.fqfileprefix); 
                         % E1to9/umapSynth_op_fdgv1e1to9r1_frame${e}; 
-                    fprintf('this(%i).product->\n    %s\n\n', idxRef, thisUncorrected(idxRef).product); 
+                    fprintf('this(%i).product->\n    %s\n\n', idxRef, thisUncorrected(idxRef).product.fqfilename); 
                         % E${idxRef}/umapSynth_op_fdgv1e1to9r1_frame${idxRef};                 
                     popd(pwd0);
                     
@@ -543,6 +564,16 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 popd(pwd0); 
             end
         end 
+        function this = createUmapSynthFull(this)
+            this.product_ = this.product_.zoomed([2 2 1 1]);
+            nn = this.product_.numericalNiftid;
+            for f = 1:size(nn, 4)
+                nnFrame = nn;
+                nnFrame.img = nn.img(:,:,:,f);
+                nnFrame.fileprefix = this.sessionData.umap(sprintf('full_frame%i', f));
+                nnFrame.save;
+            end
+        end
         function this = reconstituteFramesAC(this)
             %% RECONSTITUTEACFRAMES uses e7 results referenced by this.sessionData.tracerListmodeMhdr.
             %  It crops frames and concatenates frames.  Since some of the tracerListmodeMhdr may be multiframed,
@@ -729,14 +760,18 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            ip.addParameter('ctSourceFqfn', ...
+            addParameter(ip, 'ctSourceFqfn', ...
                 fullfile(this.vLocation, 'ctMaskedOnT1001r2_op_T1001.4dfp.ifh'), ...
                 @(x) lexist(x, 'file'));
-            ip.addParameter('maxLengthEpoch', 8, @isnumeric)
+            addParameter(ip, 'maxLengthEpoch', 8, @isnumeric)
+            addParameter(ip, 'f2rep', [], @isnumeric);
+            addParameter(ip, 'fsrc',  [], @isnumeric);
             parse(ip, varargin{:});
-            this.ctSourceFqfn = ip.Results.ctSourceFqfn;
+            this.ctSourceFqfn    = ip.Results.ctSourceFqfn;
             this.maxLengthEpoch_ = ip.Results.maxLengthEpoch;
-            this = this.updateFinished;
+            this.f2rep           = ip.Results.f2rep;
+            this.fsrc            = ip.Results.fsrc;
+            this = this.updateFinished;            
  		end
     end 
     
