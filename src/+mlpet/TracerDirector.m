@@ -123,6 +123,17 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             end
         end        
         
+        function this  = instanceConstructNiftyPETy(this)
+            this = this.stageRawdata4NiftyPETy;
+            dtumaps = this.stageUmaps4NiftyPETy;
+            this.sessionData.frame = 0;
+            for u = 1:length(dtumaps.fqfns)
+                
+                [t0, t1] = this.times4UmapIdx(this.str2umapIdx(dtumaps.fn{u}));
+                this.builder.godo(t0, t1, this.sessionData.frame, umapIdx);
+                this.sessionData.frame = this.sessionData.frame + 1;
+            end
+        end
         function this  = instanceConstructResolved(this)
             if (~this.sessionData.attenuationCorrected)
                 this = this.instanceConstructResolvedNAC;
@@ -130,7 +141,11 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             end
             this = this.instanceConstructResolvedAC;
         end
-        function this  = instanceConstructResolveReports(this)   
+        function this  = instanceConstructUmapSynthFull(this)
+            this.builder_ = this.builder_.packageProduct(this.sessionData.umap);
+            this.builder_ = this.builder_.createUmapSynthFull;
+        end
+        function this  = instanceConstructResolveReports(this)
             this.builder_.maxLengthEpoch = this.MAX_LENGTH_EPOCH_AC;
             this.builder_.sessionData.attenuationCorrected = true; % KLUDGE
             this.builder_.sessionData.rnumber = 2;
@@ -370,7 +385,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
     
     %% PRIVATE
     
-    methods (Access = private)        
+    methods (Access = private)
         function this  = instanceConstructResolvedAC(this)
             this.builder_ = this.builder_.reconstituteFramesAC;
             this.sessionData.frame = nan;
@@ -381,11 +396,13 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             this.builder_ = this.builder_.reconstituteFramesAC2;
         end
         function this  = instanceConstructResolvedNAC(this)
-            this.builder_       = this.builder_.locallyStageTracer;            
+            this.builder_       = this.builder_.locallyStageTracer;
+            this.builder_       = this.builder_.replaceMonolithFrames; % as requested of this.builder_ in its ctor.
             this.builder_       = this.builder_.partitionMonolith; 
             [this.builder_,multiEpochOfSummed,reconstitutedSummed] = this.builder_.motionCorrectFrames;
             reconstitutedSummed = reconstitutedSummed.motionCorrectCTAndUmap;             
             this.builder_       = reconstitutedSummed.motionUncorrectUmap(multiEpochOfSummed);
+            this.builder_       = this.builder_.createUmapSynthFull;
         end
     end
     

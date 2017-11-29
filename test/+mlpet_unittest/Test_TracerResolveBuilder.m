@@ -57,7 +57,7 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             this.verifyTrue(isdir(sessd.tracerLocation)); % prepareTracerLocation
             this.verifyTrue(lexist(sessd.tracerListmodeMhdr)); % prepareListmodeMhdr
             this.verifyTrue(bv.lexist_4dfp(sessd.tracerListmodeSif('typ','fqfp'))); 
-            this.verifyTrue(bv.lexist_4dfp(sessd.tracerMhdr('typ','fqfp')));
+            this.verifyTrue(bv.lexist_4dfp(sessd.tracerListmodeMhdr('typ','fqfp')));
             this.verifyTrue(bv.lexist_4dfp(sessd.tracerSif('typ','fqfp')));
             this.verifyTrue(bv.lexist_4dfp(sessd.tracerRevision('typ','fqfp')));
             this.verifyTrue(lexist( ...

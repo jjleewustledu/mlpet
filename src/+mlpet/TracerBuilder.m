@@ -145,7 +145,7 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
         function this = locallyStageTracer(this)
             %% LOCALLYSTAGETRACER 
             %  @param this.sessionData must be well-formed with valid methods:
-            %  tracerLocation, tracerLocation, tracerListmodeMhdr, tracerListmodeSif, tracerMhdr, tracerSif, mprage, atlas.
+            %  tracerLocation, tracerLocation, tracerListmodeMhdr, tracerListmodeSif, tracerSif, mprage, atlas.
             %  @param valid named param vendorSupport in ctor.
             %  @param recoverBackup logical:  if recoverBackup then [this.sessionData.tracerLocation '-Backup'] must be a well-formed dir.
             %  @return this.product := vendorSupport->cropfrac(this.sessionData.tracerSif) as mlfourdfp.ImagingContext.
@@ -366,6 +366,7 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
             addParameter(ip, 'vendorSupport', ...
                 mlsiemens.MMRBuilder('sessionData', this.sessionData));
             addParameter(ip, 'ac', this.sessionData.attenuationCorrected, @islogical);
+            addParameter(ip, 'blur', this.blur, @isnumeric);
             parse(ip, varargin{:});
             
             this.roisBuilder_                     = ip.Results.roisBuilder;
@@ -373,6 +374,7 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
             this.compositeResolveBuilder_         = ip.Results.compositeResolveBuilder;
             this.vendorSupport_                   = ip.Results.vendorSupport;
             this.sessionData.attenuationCorrected = ip.Results.ac;
+            this.blur                             = ip.Results.blur;
         end        
  	end 
     
