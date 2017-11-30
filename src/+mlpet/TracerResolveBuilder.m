@@ -603,14 +603,18 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             aufbau = this.reconstituteFrame(this.sessionData_, 0);
             aufbau.fqfilename = this.sessionData_.tracerRevision;
             assert(4 == length(aufbau.size) && aufbau.size(4) > 0);
-            innerf = 0;
+            innerf = size(aufbau, 4);
             this.sessionData_.frame = 1;
             while (isdir(this.sessionData_.tracerConvertedLocation))
 
                 pwd0 = pushd(this.sessionData_.tracerLocation);
                 fprintf('mlpet.TracerResolveBuilder.reconstituteFramesAC.this.sessionData_.tracerConvertedLocation -> \n%s\n', ...
                     this.sessionData_.tracerConvertedLocation);
-                ffp = this.reconstituteFrame(this.sessionData_, this.sessionData_.frame);
+                ffp = this.reconstituteFrame( ...
+                    this.sessionData_, ...
+                    this.sessionData_.frame, ...
+                    'fqfp', fullfile(this.sessionData_.tracerLocation, ...
+                        sprintf('TracerResolveBuilder_reconstituteFramesAC_frame%i', this.sessionData_.frame)));
                 ffp = this.t4imgFromNac(ffp, nFrames);
                 if (ffp.rank < 4)
                     innerf = innerf + 1;
@@ -626,9 +630,10 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             end    
             
             % update this.{sessionData_,product_}
-            this.sessionData_.rnumber = 1; 
-            this.product_ = mlfourd.ImagingContext(aufbau);
-            this.product_.save;
+            this.sessionData_.rnumber = 1;
+            aufbau.img = double(aufbau.img);
+            aufbau.save;
+            this = this.packageProduct(aufbau);
         end	
         function ffp  = reconstituteFrame(this, varargin)
             %  @param named sessionData is an mlpipeline.SessionData.
@@ -642,7 +647,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
             addOptional(ip, 'frame', nan, @isnumeric);
             addParameter(ip, 'fqfp', fqfp0, @ischar);
-            parse(ip, varargin{:});            
+            parse(ip, varargin{:});       
+            
             sd = ip.Results.sessionData;
             sd.frame = ip.Results.frame;
             sd.epoch = [];
