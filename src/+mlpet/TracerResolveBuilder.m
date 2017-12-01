@@ -613,8 +613,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 ffp = this.reconstituteFrame( ...
                     this.sessionData_, ...
                     this.sessionData_.frame, ...
-                    'fqfp', fullfile(this.sessionData_.tracerLocation, ...
-                        sprintf('TracerResolveBuilder_reconstituteFramesAC_frame%i', this.sessionData_.frame)));
+                    'fqfp', this.sessionData_.tracerRevision('frame', this.sessionData_.frame, 'typ', 'fqfp'));
                 ffp = this.t4imgFromNac(ffp, nFrames);
                 if (ffp.rank < 4)
                     innerf = innerf + 1;
@@ -642,7 +641,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  @param named fqfp is the f. q. fileprefix of a frame of the tracer study.
             %  @return ffp is an mlfourdfp.Fourdfp containing the frame.
             
-            fqfp0 = fullfile(this.sessionData.tracerLocation, 'TracerResolveBuilder_reconstituteFrame_fqfp0');
+            fqfp0 = this.sessionData_.tracerRevision('frame', this.sessionData_.frame, 'typ', 'fqfp');
             ip = inputParser;
             addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
             addOptional(ip, 'frame', nan, @isnumeric);
