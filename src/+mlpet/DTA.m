@@ -3,6 +3,12 @@ classdef DTA < mlpet.AbstractWellData
     %  Dta files record well-counter events, corrected for positron half-life.  
     %  Cf. man dta, makedta, blood, metproc
     %
+    %  DESCRIPTION
+    %
+    %    dta files are used by metproc and petproc to create hdr files.  The hdr files are necessary to process or display PET
+    %    images as metabolic images.  Dta files are created by blood, betadta, or fastdta.  Each dta file may contain informa-
+    %    tion about 1 or more scans.
+    %
     %  DTA FILE STRUCTURE
     %
     %    First  line  is  a  4-character  code string followed by text.  The second and third lines are column
@@ -75,12 +81,12 @@ classdef DTA < mlpet.AbstractWellData
     end
     
     properties (Dependent)
-        becquerels
+        activity
         specificActivity
     end
     
     methods % GET
-        function b = get.becquerels(this)
+        function b = get.activity(this)
             b = this.counts; % DTA file column counts is divided by taus; cf. mlpet.Blood
         end
         function g = get.specificActivity(this)
@@ -167,7 +173,7 @@ classdef DTA < mlpet.AbstractWellData
                 this.petio_.filesuffix = '.dta'; 
             end
         end
-        function b    = becquerelInterpolants(this, varargin)
+        function b    = activityInterpolants(this, varargin)
             b = this.countInterpolants(varargin{:});
         end
         function        save(this)
@@ -332,6 +338,6 @@ classdef DTA < mlpet.AbstractWellData
     end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
-end
+en
 
 

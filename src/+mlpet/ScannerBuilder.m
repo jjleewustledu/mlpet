@@ -19,7 +19,7 @@ classdef ScannerBuilder < mlpipeline.AbstractDataBuilder
             
             sessd = this.sessionData;
             if (isa(sessd.studyData, 'mlderdeyn.StudyDataSingleton'))
-                this.scanner_ = mlpet.EcatExactHRPlus.loadSession(sessd, sessd.ho('typ', 'nii.gz'));
+                this.scanner_ = mlsiemens.EcatExactHRPlus.loadSession(sessd, sessd.ho('typ', 'nii.gz'));
                 return
             end
             if (isa(sessd.studyData, 'mlraichle.StudyData'))

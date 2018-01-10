@@ -1,4 +1,4 @@
-classdef TSC < mlpet.AbstractWellData
+classdef TSC_2017dec26_broken < mlpet.AbstractWellData
 	%% TSC objectifies Mintun-Markham *.tsc files for use with glucose metabolism calculations.   
     %  Tsc files record scanner-array events, correct for positron half-life and adjust scanner-array events to yield well-counter units.
 	%  $Revision$ 
@@ -10,12 +10,10 @@ classdef TSC < mlpet.AbstractWellData
  	%  $Id$ 
  	 
     properties (Constant)
-        EXTENSION = '.tsc'
-        TIMES_UNITS = 'sec'
-        COUNTS_UNITS = 'scanner events'
+        ROW_COL_HEADER = '%f %f'
     end
     
-    properties 
+    properties
         regionIndex = 1
     end
     
@@ -29,6 +27,7 @@ classdef TSC < mlpet.AbstractWellData
         
         activity
         activityInterpolants
+        specificActivity
     end
     
     methods %% GET 
@@ -60,11 +59,14 @@ classdef TSC < mlpet.AbstractWellData
         function bi  = get.activityInterpolants(this)
             bi = pchip(this.times, this.counts ./ this.taus, this.timeInterpolants);
         end
+        function b   = get.specificActivity(this)
+            b = this.counts ./ this.taus;
+        end
     end
     
     methods (Static)
         function this = import(varargin)
-            %% IMPORT
+            %% IMPORT reads existing *.tsc files
  			%  Usage:  this = TSC.import(tsc_file_location) 
             %          this = TSC.import('/path/to/p1234data/jjl_proc/p1234wb1.tsc')
             %          this = TSC.import('/path/to/p1234data/jjl_proc/p1234wb1')
@@ -79,41 +81,55 @@ classdef TSC < mlpet.AbstractWellData
             this = mlpet.TSC(ip.Results.tscLoc);
             this.regionIndex = ip.Results.regionIndex;
             this = this.readtsc;
+            this = this.excludeZeroCounts;
         end
-        function this = loadTscFiles(tscFiles)
-            assert(isa(tscFiles, 'mlpet.TSCFiles'));
-            this = mlpet.TSC.load( ...
-                tscFiles.tscFqfilename, tscFiles.ecatFqfilename, tscFiles.dtaFqfilename, tscFiles.maskFqfilename);
-        end
-        function this = load(tscLoc, ecatLoc, dtaLoc, maskLoc)
-            %% LOAD
+        function this = load(tscLoc, ecatLoc, dtaLoc, maskLoc, varargin)
+            %% LOAD loads ecat, dta and mask datafiles, then generates and saves a new tsc datafile
  			%  Usage:  this = TSC.load(tsc_file_location, ecat_file_location,  dta_file_location, mask_file_location) 
             %          this = TSC.load('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta')
             %          this = TSC.load('/p1234data/jjl_proc/p1234wb1', '/p1234data/PET/scan1/p1234gluc1', '/p1234data/jjl_proc/p1234g1')
             %          this = TSC.load('p1234wb1', '../PET/scan1/p1234gluc1', 'p1234g1') 
             
             ip = inputParser;
-            addRequired(ip,  'tscLoc', @(x) lexist(x, 'file'));
+            addRequired(ip,  'tscLoc', @ischar);
             addRequired(ip, 'ecatLoc', @(x) lexist(x, 'file'));
             addRequired(ip,  'dtaLoc', @(x) lexist(x, 'file'));
             addRequired(ip, 'maskLoc', @(x) lexist(x, 'file'));
-            parse(ip, tscLoc, ecatLoc, dtaLoc, maskLoc);
+            addOptional(ip, 'short', false, @islogical);
+            parse(ip, tscLoc, ecatLoc, dtaLoc, maskLoc, varargin{:});
             
-            import mlpet.* mlfourd.*;
-            
-            this = TSC(ip.Results.tscLoc);
-            this.mask_ = this.makeMask(ip.Results.maskLoc);
-            this.dta_ = DTA(ip.Results.dtaLoc);
-            this.decayCorrectedEcat_ = this.maskEcat( ...
-                                       mlsiemens.DecayCorrectedEcat.load(ip.Results.ecatLoc), this.mask_);            
-            this.times_ = this.decayCorrectedEcat_.times;  
-            this.taus_ = this.decayCorrectedEcat_.taus; 
+            import mlpet.* mlfourd.*;            
+            this         = TSC(ip.Results.tscLoc);
+            this.mask_   = this.makeMask(ip.Results.maskLoc);
+            this.dta_    = DTA.load(ip.Results.dtaLoc, ip.Results.short);
+            this.decayCorrectedEcat_ ...
+                         = this.maskEcat(mlsiemens.DecayCorrectedEcat.load(ip.Results.ecatLoc), this.mask_);            
+            this.times_  = this.decayCorrectedEcat_.times;
+            this.taus_   = this.decayCorrectedEcat_.taus; 
             this.counts_ = this.squeezeVoxels(this.decayCorrectedEcat_, this.mask_);  
             this.header_ = this.decayCorrectedEcat_.header;                 
             
             if (~lexist(this.fqfilename) || ~this.noclobber)
                 this.save;
             end
+        end
+        function this = loadGluTFiles(files)
+            %% LOADGLUTFILES is a convenience method for processing GluT studies
+            
+            assert(lstrfind(class(files), 'mlarbelaez.GluTFiles'));
+            this = mlpet.TSC.load( ...
+                files.tscFqfilename, files.ecatFqfilename, files.dtaFqfilename, files.maskFqfilename);
+        end
+        function this = loadNp755Files(files)
+            %% LOADNP755FILES is a convenience method for processing np755 studies
+            
+            assert(isa(files, 'mlderdeyn.Np755Files'));
+            this = mlpet.TSC.load( ...
+                files.tscFqfilename, files.ecatFqfilename, files.dtaFqfilename, files.maskFqfilename);
+        end
+        function this = loadSessionData(sessDat)
+            assert(isa(sessDat, 'mlpipeline.SessionData'));
+            this = mlpet.TSC(sessDat.tsc_fqfn, sessDat.pet_fqfn, sessDat.dta_fqfn, sessDat.mask_fqfn);
         end
         function msk  = makeMask(maskFqfn)
             %% MAKEMASK accepts a f. q. filename for creating a MaskingNIfTId object.
@@ -125,15 +141,15 @@ classdef TSC < mlpet.AbstractWellData
             %  Usage:  pet_masked_nifti = maskPet(pet_nifti, mask_nifti) 
 
             assert(isa(dcecat, 'mlsiemens.EcatExactHRPlus'));
-            assert(isa(msk, 'mlfourd.INIfTId'));
+            assert(isa(msk, 'mlfourd.INIfTI'));
             assert(3 == length(msk.size), 'mlpet:unsupportedDataSize', 'TSC.makeMask.mask.size -> % i', msk.size); %#ok<*MCNPN>
 
             dcecat = dcecat.masked(msk);
         end  
     end
 
-	methods 	
- 		function this = TSC(tscLoc)
+	methods
+ 		function this = TSC_2017dec26_broken(tscLoc)
             %% TSC
  			%  Usage:  this = TSC(tsc_file_location, ecat_file_location,  dta_file_location) 
             %          this = TSC('/p1234data/jjl_proc/p1234wb1.tsc', '/p1234data/PET/scan1/p1234gluc1.nii.gz', '/p1234data/jjl_proc/p1234g1.dta', 4.88)
@@ -148,20 +164,7 @@ classdef TSC < mlpet.AbstractWellData
             %        wellcnts/cc = \pi \frac{PETcnts}{pixel} \frac{sec}{min}
 
             this = this@mlpet.AbstractWellData(tscLoc);            
-        end      
-        function cnts = squeezeVoxels(this, ecat, msk)
-            %% SQUEEZEVOXELS integrates over space with masking, then divides amplitudes by the number of pixels;
-            %  cf. man pie
-            
-            assert(isa(ecat, 'mlsiemens.EcatExactHRPlus'));
-            Nt = ecat.size(4);
-            cnts = zeros(1, Nt);
-            dcecat = this.decayCorrectedEcat_;
-            for t = 1:Nt
-                cnts(t) = sum(sum(sum(dcecat.wellCounts(:,:,:,t), 1), 2), 3) * (60/dcecat.taus(t)); 
-            end
-            cnts = cnts/mlfourd.MaskingNIfTId.sumall(msk);
-        end
+        end     
         function        plot(this)
             figure;
             plot(this.times, this.counts);
@@ -193,8 +196,28 @@ classdef TSC < mlpet.AbstractWellData
         decayCorrectedEcat_
     end
     
-    methods (Access = 'protected')
-        function nf = getNf(this)
+    methods (Access = 'protected') 
+        function this = excludeZeroCounts(this)
+            nonzero      = this.counts_ ~= 0;
+            this.counts_ = this.counts_(nonzero);
+            this.taus_   = this.taus_(  nonzero);
+            this.times_  = this.times_( nonzero);
+        end
+        function cnts = squeezeVoxels(this, ecat, msk)
+            %% SQUEEZEVOXELS integrates over space with masking, multiplies by 60/tau, tau in sec, 
+            %  then divides amplitudes by the number of pixels;
+            %  cf. man pie
+            
+            assert(isa(ecat, 'mlsiemens.EcatExactHRPlus'));
+            Nt = ecat.size(4);
+            cnts = zeros(1, Nt);
+            dcecat = this.decayCorrectedEcat_;
+            for t = 1:Nt
+                cnts(t) = sum(sum(sum(dcecat.wellCounts(:,:,:,t), 1), 2), 3) * (60/dcecat.taus(t)); 
+            end
+            cnts = cnts/dipsum(msk);
+        end
+        function nf   = getNf(this)
             nf = length(this.times);
             dd = this.dta_.times(this.dta_.length);
             for f = 1:nf
@@ -225,7 +248,7 @@ classdef TSC < mlpet.AbstractWellData
             ts = textscan(fid, '%s', 1, 'Delimiter', '\n');
             ts = ts{1}; 
             this.header_.string = ts{1};
-            ts = textscan(fid, '%f, %f', 1, 'Delimiter', '\n');
+            ts = textscan(fid, this.ROW_COL_HEADER, 1, 'Delimiter', '\n');
             this.header_.rows = ts{1};
             this.header_.cols = ts{2};
         end

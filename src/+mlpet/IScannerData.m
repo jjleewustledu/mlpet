@@ -1,4 +1,4 @@
-classdef IScannerData < mldata.ITimingData
+classdef (Abstract) IScannerData < mldata.ITimingData
 	%% ISCANNERDATA   
 
 	%  $Revision$ 
@@ -10,19 +10,24 @@ classdef IScannerData < mldata.ITimingData
  	%  $Id$  
     
 	properties (Abstract)
-        sessionData
+        activity % decays/taus
+        counts % := decays/efficiencyFactor
+        decays % := efficiencyFactor*counts
         doseAdminDatetime 
-        counts
-        becquerels
         efficiencyFactor
+        isDecayCorrected
         isotope
+        sessionData
+        specificActivity
  	end
 
 	methods (Abstract)
+               activityInterpolants(this)
                countInterpolants(this)
-               becquerelInterpolants(this)
+               decayInterpolants(this)
         this = shiftTimes(this, dt)
         this = shiftWorldlines(this, dt)  
+               specificActivityInterpolants(this)
     end 
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 

@@ -78,12 +78,12 @@ classdef (Abstract) AutoradiographyBuilder2 < mlbayesian.AbstractMcmcProblem
         function ecat = loadEcat(varargin)
             p = inputParser;
             addOptional( p, 'fqfn', [], @(x) lexist(x, 'file'));
-            addOptional( p, 'ecat', [], @(x) isa(x, 'mlpet.EcatExactHRPlus'));
+            addOptional( p, 'ecat', [], @(x) isa(x, 'mlsiemens.EcatExactHRPlus'));
             addParameter(p, 'pie',  [], @isnumeric);
             parse(p, varargin{:});
             
             if (~isempty(p.Results.fqfn))
-                ecat = mlpet.EcatExactHRPlus(mlfourd.NIfTId.load(p.Results.fqfn));
+                ecat = mlsiemens.EcatExactHRPlus(mlfourd.NIfTId.load(p.Results.fqfn));
                 ecat.manuallyRecordedPie = p.Results.pie;
                 return
             end
@@ -96,11 +96,11 @@ classdef (Abstract) AutoradiographyBuilder2 < mlbayesian.AbstractMcmcProblem
         function ecat = loadDecayCorrectedEcat(varargin)
             p = inputParser;
             addOptional(p, 'fqfn', [],  @(x) lexist(x, 'file'));
-            addOptional(p, 'ecat', [],  @(x) isa(x, 'mlpet.DecayCorrectedEcat'));
+            addOptional(p, 'ecat', [],  @(x) isa(x, 'mlsiemens.DecayCorrectedEcat'));
             parse(p, varargin{:});
             
             if (~isempty(p.Results.fqfn))
-                ecat = mlpet.DecayCorrectedEcat.load(p.Results.fqfn);
+                ecat = mlsiemens.DecayCorrectedEcat.load(p.Results.fqfn);
                 return
             end
             if (~isempty(p.Results.ecat))

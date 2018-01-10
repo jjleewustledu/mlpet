@@ -43,8 +43,6 @@ classdef Test_Twilite < matlab.unittest.TestCase
         end
         function test_timeMidpointInterpolants(this)
         end
-        function test_tauInterpolants(this)
-        end
         function test_shiftTimes(this)
         end
         function test_shiftWorldlines(this)

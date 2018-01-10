@@ -15,7 +15,6 @@ classdef IWellData
     
     properties (Abstract)
         header
-        noclobber
         scanDuration % sec  
         scanIndex % integer, e.g., last char in 'p1234ho1'
         tracer % char, e.g., 'ho'

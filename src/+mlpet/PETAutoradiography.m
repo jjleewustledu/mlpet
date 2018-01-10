@@ -106,7 +106,7 @@ classdef PETAutoradiography < mlpet.AutoradiographyBuilder
             
             import mlpet.*;
             [t_a,c_a] = PETAutoradiography.shiftData(        aif.times,        aif.wellCounts, aifShift);
-            [t_i,c_i] = PETAutoradiography.shiftData(ecatSkinny.times, ecatSkinny.becquerels, ecatShift);        
+            [t_i,c_i] = PETAutoradiography.shiftData(ecatSkinny.times, ecatSkinny.activity, ecatShift);        
             dt  = min(min(aif.taus), min(ecatSkinny.taus));
             t   = min(t_a(1), t_i(1)):dt:min([t_a(end) t_i(end) PETAutoradiography.TIME_SUP]);
             c_a = PETAutoradiography.myPchip(t_a, c_a, t);

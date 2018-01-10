@@ -19,11 +19,6 @@ classdef Twilite < mlpet.AbstractTwilite
         
         %%
         
-        function this = crossCalibrate(this, varargin)
-            cc = mlpet.CrossCalibrator(this, varargin{:});
-            this.efficiencyFactor_ = cc.efficiencyFactor;
-        end
-        
  		function this = Twilite(varargin)
  			%% TWILITE
  			%  Usage:  this = Twilite()
@@ -41,7 +36,7 @@ classdef Twilite < mlpet.AbstractTwilite
             assert(length(this.counts) == length(this.taus), 'mlpet:arraySizeMismatch', 'Twilite.ctor');            
             
             this.efficiencyFactor_ = ip.Results.efficiencyFactor;          
-            this.becquerelsPerCC = this.efficiencyFactor*(this.counts - this.countsBaseline)./this.taus./this.visibleVolume;
+            this.specificActivity = this.efficiencyFactor*(this.counts - this.countsBaseline)./this.taus./this.visibleVolume;
         end        
     end
     

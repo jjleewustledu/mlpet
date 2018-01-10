@@ -37,6 +37,11 @@ classdef DecayCorrection
     
         %%
         
+        function c = adjustActivities(this, varargin)
+            %% ADJUSTACTIVITIES (un)corrects positron decay from zero-time or this.client_.time0. 
+            
+            c = this.adjustCounts(varargin{:});
+        end
         function c = adjustCounts(this, varargin)
             %% ADJUSTCOUNTS (un)corrects positron decay from zero-time or this.client_.time0. 
             %  @param c is counts, activity, specific activity
@@ -96,11 +101,6 @@ classdef DecayCorrection
             %  @param zeroTime is numeric, optional
             
             c = this.adjustCounts(c, -1, varargin{:});
-        end
-        function c = adjustActivities(this, varargin)
-            %% ADJUSTACTIVITIES (un)corrects positron decay from zero-time or this.client_.time0. 
-            
-            c = this.adjustCounts(varargin{:});
         end
         
         function this = DecayCorrection(varargin)

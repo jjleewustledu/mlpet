@@ -162,7 +162,7 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
                 kAif = aif.itsKAif_1;
             end
             [t_a,c_a] = DSCHerscAutoradiography.shiftData(       aif.times,            kAif,      -aif.t0);
-            [t_i,c_i] = DSCHerscAutoradiography.shiftData(ecatSkinny.times, ecatSkinny.becquerels, ecatShift); 
+            [t_i,c_i] = DSCHerscAutoradiography.shiftData(ecatSkinny.times, ecatSkinny.activity, ecatShift); 
             t   = t_i(1):dt:min([t_i(end) DSCAutoradiography.TIME_SUP]);
             c_a = DSCHerscAutoradiography.myPchip(t_a, c_a, t);
             c_i = DSCHerscAutoradiography.myPchip(t_i, c_i, t);            

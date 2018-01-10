@@ -36,6 +36,8 @@ classdef AbstractTwilite < mlpet.AbstractAifData
                 
         %%        
         
+        function this = crossCalibrate(this, varargin)
+        end
         function dt = datetime(this, varargin)
             tt = this.tableTwilite_;
             dt = datetime(tt.year, tt.month, tt.day, tt.hour, tt.min, tt.sec, 'TimeZone', this.timingData_.PREFERRED_TIMEZONE);

@@ -1,6 +1,6 @@
 classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
 	%% ABSTRACTAIFDATA
-    %  Yet abstract:  properties counts, becquerels; static method load; method save
+    %  Yet abstract:  properties counts, activity; static method load; method save
 
 	%  $Revision$
  	%  was created 29-Jan-2017 18:46:45
@@ -8,11 +8,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.
- 	
     
-    properties (Constant)
-        SPECIFIC_ACTIVITY_INTEGRAL_KIND = 'becquerelsPerCCIntegral' % 'decaysPerCCIntegral'
-    end
     
     properties
         isPlasma = []
@@ -21,8 +17,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
     
 	properties (Dependent)
         
-        %% IAifData
-        
+        % IAifData        
         datetime0 % determines datetime of this.times(1)
         doseAdminDatetime
  		dt
@@ -37,15 +32,13 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         efficiencyFactor
         isotope        
         counts
-        becquerels
+        activity
         
-        %% new
-        
-        becquerelsPerCC % Bq/cc
-        decaysPerCC % Bq*s/cc
-        specificActivity
-        W
+        % new        
         sessionData
+        specificDecays % Bq*s/mL
+        specificActivity % Bq/mL
+        W
     end
     
     methods (Abstract)
@@ -134,37 +127,30 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             s(s < 0) = 0;
             this.counts_ = s;            
         end
-        function g    = get.becquerels(this)
-            g = this.becquerelsPerCC_.*this.visibleVolume;
+        function g    = get.activity(this)
+            g = this.specificActivity_.*this.visibleVolume;
         end
-        function this = set.becquerels(this, s)
+        function this = set.activity(this, s)
             assert(isnumeric(s));
             s(s < 0) = 0;
-            this.becquerelsPerCC = s./this.visibleVolume;
+            this.specificActivity = s./this.visibleVolume;
         end
         
-        function g    = get.becquerelsPerCC(this)
-            g = this.becquerelsPerCC_;
-        end
-        function this = set.becquerelsPerCC(this, s)
-            assert(isnumeric(s));
-            s(s < 0) = 0;
-            this.becquerelsPerCC_ = s;
-        end
-        function g    = get.decaysPerCC(this)
-            g = this.becquerelsPerCC.*this.taus;
-        end
-        function this = set.decaysPerCC(this, s)
-            assert(isnumeric(s));
-            s(s < 0) = 0;
-            this.becquerelsPerCC_ = s./this.taus;
-        end
         function g    = get.specificActivity(this)
-            g = this.(this.scannerData_.SPECIFIC_ACTIVITY_KIND);
+            g = this.specificActivity_;
         end
         function this = set.specificActivity(this, s)
             assert(isnumeric(s));
-            this.(this.scannerData_.SPECIFIC_ACTIVITY_KIND) = s;
+            s(s < 0) = 0;
+            this.specificActivity_ = s;
+        end
+        function g    = get.specificDecays(this)
+            g = this.specificActivity.*this.taus;
+        end
+        function this = set.specificDecays(this, s)
+            assert(isnumeric(s));
+            s(s < 0) = 0;
+            this.specificActivity_ = s./this.taus;
         end
         function g    = get.W(this)
             assert(this.dt == this.scannerData_.dt);
@@ -174,7 +160,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             g = this.xlsxObj_.sessionData;
         end
         
-        %% IAifData
+        % IAifData
         
         function len      = length(this)
             len = this.timingData_.length;
@@ -184,17 +170,14 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         end
         function [t,this] = timeMidpointInterpolants(this, varargin)
             [t,this] = this.timingData_.timeMidpointInterpolants(varargin{:});
-        end
-        function [t,this] = tauInterpolants(this, varargin)
-            [t,this] = this.timingData_.tauInterpolants(varargin{:});
-        end    
+        end  
         function c        = countInterpolants(this, varargin)
             c = pchip(this.times, this.counts, this.timeInterpolants);            
             if (~isempty(varargin))
                 c = c(varargin{:}); end
         end
-        function b        = becquerelInterpolants(this, varargin)
-            b = pchip(this.times, this.becquerels, this.timeInterpolants);            
+        function b        = activityInterpolants(this, varargin)
+            b = pchip(this.times, this.activity, this.timeInterpolants);            
             if (~isempty(varargin))
                 b = b(varargin{:}); end
         end
@@ -203,40 +186,39 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             idxF = this.indexF;
             ci = trapz(this.times(idx0:idxF), this.counts(idx0:idxF));
         end
-        function bi       = becquerelsIntegral(this)
+        function bi       = activityIntegral(this)
             idx0 = this.index0;
             idxF = this.indexF;
-            bi = trapz(this.times(idx0:idxF), this.becquerels(idx0:idxF));
+            bi = trapz(this.times(idx0:idxF), this.activity(idx0:idxF));
         end
         
         %% 
         
-        function bi       = becquerelsPerCCIntegral(this)
+        function this = crossCalibrate(this, varargin)
+        end
+        function bi   = specificActivityIntegral(this)
             idx0 = this.index0;
             idxF = this.indexF;
-            bi = trapz(this.times(idx0:idxF), this.becquerelsPerCC(idx0:idxF));
+            bi = trapz(this.times(idx0:idxF), this.specificActivity(idx0:idxF));
         end
-        function di       = decaysPerCCIntegral(this)
+        function di   = specificDecaysIntegral(this)
             idx0 = this.index0;
             idxF = this.indexF;
-            di = trapz(this.times(idx0:idxF), this.decaysPerCC(idx0:idxF));
-        end
-        function sa       = specificActivityIntegral(this)
-            sa = this.(this.SPECIFIC_ACTIVITY_INTEGRAL_KIND);
-        end      
-        function s        = datetime2sec(this, dt)
+            di = trapz(this.times(idx0:idxF), this.specificDecays(idx0:idxF));
+        end   
+        function s    = datetime2sec(this, dt)
             s = this.timingData_.datetime2sec(dt);
         end
-        function dt       = sec2datetime(this, s)
+        function dt   = sec2datetime(this, s)
             dt = this.timingData_.sec2datetime(s);
         end
-        function this     = shiftTimes(this, Dt)
+        function this = shiftTimes(this, Dt)
             if (Dt == 0)
                 return
             end
             this.timingData_ = this.timingData_.shiftTimes(Dt);
         end
-        function this     = shiftWorldlines(this, Dt)
+        function this = shiftWorldlines(this, Dt)
             if (Dt == 0)
                 return
             end          
@@ -244,8 +226,8 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             if (~isempty(this.counts_))
                 this.counts_ = this.decayCorrection_.adjustCounts(this.counts_, -sign(Dt), Dt);
             end
-            if (~isempty(this.becquerelsPerCC_))
-                this.counts_ = this.decayCorrection_.adjustCounts(this.becquerelsPerCC_, -sign(Dt), Dt);
+            if (~isempty(this.specificActivity_))
+                this.counts_ = this.decayCorrection_.adjustCounts(this.specificActivity_, -sign(Dt), Dt);
             end
             error('mlpet:incompletelyImplemented', 'AbstractAifData:shiftTimeInterpolants');
         end
@@ -273,7 +255,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
     %% PROTECTED
     
     properties (Access = protected)
-        becquerelsPerCC_
+        specificActivity_
         counts_
         decayCorrection_
         efficiencyFactor_ = nan

@@ -178,7 +178,7 @@ classdef Test_PETAutoradiography < matlab.unittest.TestCase
             import mlpet.* mlfourd.*;
             this.dcv = UncorrectedDCV(this.dcvFilename);
             this.mask = NIfTId.load(this.maskFilename);
-            this.ecat = EcatExactHRPlus.load(this.ecatFilename);         
+            this.ecat = mlsiemens.EcatExactHRPlus.load(this.ecatFilename);         
             this = this.interpolateData;
             
             semilogy(this.times, this.concentration_a, ...

@@ -213,7 +213,7 @@ classdef CRVAutoradiography < mlpet.AutoradiographyBuilder2
             ecatSkinny.img = ecatSkinny.img/maskObj.count;
             
             import mlpet.*;
-            [t_e,c_e] = CRVAutoradiography.shiftData(ecatSkinny.times, ecatSkinny.becquerels, ecatShift);
+            [t_e,c_e] = CRVAutoradiography.shiftData(ecatSkinny.times, ecatSkinny.activity, ecatShift);
             [t_c,c_c] = CRVAutoradiography.shiftData(    crvObj.times,     crvObj.wellCounts, crvShift);   
             
             if (isempty(dcvObj))

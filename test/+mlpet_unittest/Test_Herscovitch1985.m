@@ -45,7 +45,7 @@ classdef Test_Herscovitch1985 < matlab.unittest.TestCase
         function test_ctor(this)
             this = this.configTracer('HO');
             this.verifyClass(this.aif, 'mlpet.BloodSucker');
-            this.verifyClass(this.scanner, 'mlpet.EcatExactHRPlus');
+            this.verifyClass(this.scanner, 'mlsiemens..EcatExactHRPlus');
             this.verifyClass(this.testObj, 'mlpet.Herscovitch1985');
         end
         function test_plotAif(this)
@@ -170,21 +170,21 @@ classdef Test_Herscovitch1985 < matlab.unittest.TestCase
                 case 'HO'
                     pic = this.sessionData.ho('typ', 'mlpet.PETImagingContext');
                     this.sessionData.tracer = 'HO';
-                    this.scanner = EcatExactHRPlus(pic.niftid, ...
+                    this.scanner = mlsiemens.EcatExactHRPlus(pic.niftid, ...
                         'sessionData', this.sessionData, ...
                         'scannerTimeShift', this.scannerShiftHO);                    
                     this.aif = BloodSucker('scannerData', this.scanner, 'aifTimeShift', this.aifShiftHO);
                 case 'OO'
                     pic = this.sessionData.oo('typ', 'mlpet.PETImagingContext');
                     this.sessionData.tracer = 'OO';
-                    this.scanner = EcatExactHRPlus(pic.niftid, ...
+                    this.scanner = mlsiemens.EcatExactHRPlus(pic.niftid, ...
                         'sessionData', this.sessionData, ...
                         'scannerTimeShift', this.scannerShiftOO);                    
                     this.aif = BloodSucker('scannerData', this.scanner, 'aifTimeShift', this.aifShiftOO);
                 case 'OC'
                     pic = this.sessionData.oc('typ', 'mlpet.PETImagingContext');
                     this.sessionData.tracer = 'OC';
-                    this.scanner = EcatExactHRPlus(pic.niftid, ...
+                    this.scanner = mlsiemens.EcatExactHRPlus(pic.niftid, ...
                         'sessionData', this.sessionData);                    
                     this.aif = BloodSucker('scannerData', this.scanner, 'aifTimeShift', -15);
                 otherwise

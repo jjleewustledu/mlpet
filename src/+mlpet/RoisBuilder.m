@@ -1,4 +1,4 @@
-classdef RoisBuilder < mlpet.AbstractTracerBuilder & mlrois.IRoisBuilder
+classdef RoisBuilder < mlpet.AbstractTracerBuilder
 	%% ROISBUILDER  
 
 	%  $Revision$

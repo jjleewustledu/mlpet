@@ -1,4 +1,4 @@
-classdef IAifData < mlpet.IScannerData
+classdef (Abstract) IAifData < mlpet.IScannerData
 	%% IAIFDATA  
 
 	%  $Revision$

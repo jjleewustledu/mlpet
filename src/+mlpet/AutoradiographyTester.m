@@ -247,7 +247,7 @@ classdef AutoradiographyTester < mlpet.AbstractAutoradiographyClient
                             fqfn = this.maskFnROI(regions{ri}, pid, si);
                             maskObj = mlfourd.MaskingNIfTId.load(fqfn);
                             
-                            ecatObj        = EcatExactHRPlus.load(this.ocFn(si));                            
+                            ecatObj        = mlsiemens.EcatExactHRPlus.load(this.ocFn(si));                            
                             ecatObj        = ecatObj.masked(maskObj);
                             ecatSkinny     = ecatObj.volumeSummed;
                             ecatSkinny.img = ecatSkinny.img/maskObj.count;
