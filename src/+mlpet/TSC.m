@@ -103,7 +103,7 @@ classdef TSC < mlpet.AbstractWellData
             
             this = TSC(ip.Results.tscLoc);
             this.mask_ = this.makeMask(ip.Results.maskLoc);
-            this.dta_ = DTA(ip.Results.dtaLoc);
+            this.dta_ = DTA.load(ip.Results.dtaLoc);
             this.decayCorrectedEcat_ = this.maskEcat( ...
                                        mlsiemens.DecayCorrectedEcat.load(ip.Results.ecatLoc), this.mask_);            
             this.times_ = this.decayCorrectedEcat_.times;  
@@ -160,7 +160,7 @@ classdef TSC < mlpet.AbstractWellData
             for t = 1:Nt
                 cnts(t) = sum(sum(sum(dcecat.wellCounts(:,:,:,t), 1), 2), 3) * (60/dcecat.taus(t)); 
             end
-            cnts = cnts/mlfourd.MaskingNIfTId.sumall(msk);
+            cnts = cnts/msk.count;
         end
         function        plot(this)
             figure;
@@ -196,6 +196,8 @@ classdef TSC < mlpet.AbstractWellData
     methods (Access = 'protected')
         function nf = getNf(this)
             nf = length(this.times);
+            
+            %% DEPRECATED; ERROR?
             dd = this.dta_.times(this.dta_.length);
             for f = 1:nf
                 if (this.times(f) + this.taus(f) > dd)

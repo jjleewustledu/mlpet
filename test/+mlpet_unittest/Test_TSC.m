@@ -15,11 +15,9 @@ classdef Test_TSC < matlab.unittest.TestCase
  	 
 
 	properties  
-        session_home  = fullfile(getenv('UNITTESTS'), 'Arbelaez/GluT/p8047_JJL', '')
-        unittest_home = fullfile(getenv('UNITTESTS'), 'Arbelaez/GluT/p8047_JJL/jjl_proc', '') 
-        pnumPath 
+        sessionPath  = '/data/nil-bluearc/arbelaez/GluT/p8047_JJL'
+        procPath     = '/data/nil-bluearc/arbelaez/GluT/p8047_JJL/jjl_proc' 
         scanPath
-        procPath
         tscFqfilename 
         dtaFqfilename
         ecatFqfilename
@@ -32,7 +30,7 @@ classdef Test_TSC < matlab.unittest.TestCase
     
     methods %% GET
         function fqfn = get.maskFqfilename(this)
-            fqfn = fullfile(this.unittest_home, 'aparc_a2009s+aseg_mask_on_p8047gluc1_mcf.nii.gz');
+            fqfn = fullfile(this.scanPath, 'aparc_a2009s+aseg_mask_on_p8047gluc1_mcf.nii.gz');
         end
     end
 
@@ -40,20 +38,20 @@ classdef Test_TSC < matlab.unittest.TestCase
         function test_import(this)
         end
         function test_load(this)
-            this.verifyEqual(this.testObj.pnumberPath, this.session_home);
+            this.verifyEqual(this.testObj.pnumberPath, this.sessionPath);
             this.verifyEqual(this.testObj.pnumber,     'p8047');
-            this.verifyEqual(this.testObj.fslPath,     fullfile( this.session_home, 'fsl', ''));
-            this.verifyEqual(this.testObj.petPath,     fullfile( this.session_home, 'PET', ''));
-            this.verifyEqual(this.testObj.scanPath,    fullfile( this.session_home, 'PET/scan1', ''));
-            this.verifyEqual(this.testObj.procPath,    fullfile( this.session_home, 'jjl_proc', ''));
+            this.verifyEqual(this.testObj.fslPath,     fullfile( this.sessionPath, 'fsl', ''));
+            this.verifyEqual(this.testObj.petPath,     fullfile( this.sessionPath, 'PET', ''));
+            this.verifyEqual(this.testObj.scanPath,    fullfile( this.sessionPath, 'PET/scan1', ''));
+            this.verifyEqual(this.testObj.procPath,    fullfile( this.sessionPath, 'jjl_proc', ''));
         end
         function test_save(this)            
             ca = mlio.TextIO.textfileToCell(this.tscFqfilename);
             this.verifyTrue(strcmp( ...
-                'p8047g1.dta,  aparc_a2009s+aseg_mask_on_p8047gluc1_mcf.nii.gz, p8047gluc1_decayCorrect_masked.nii.gz, pie = 4.880000', ...
+                'p8047gluc1.dta,  aparc_a2009s+aseg_mask_on_p8047gluc1_mcf.nii.gz, p8047gluc1_decayCorrect_masked.nii.gz, pie = 4.880000', ...
                 strtrim(ca{1})));
             this.verifyTrue(strcmp('42,    3', strtrim(ca{2})));
-            this.verifyTrue(strcmp('3258.9        180.0      972907.18', strtrim(ca{44})));
+            this.verifyTrue(strcmp('3258.9        180.0      946211.97', strtrim(ca{44})));
         end
         function test_makeMask(this)
             msk = this.testObj.makeMask(this.maskFqfilename);
@@ -71,8 +69,8 @@ classdef Test_TSC < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.scanDuration, 3618.933);
         end
         function test_counts(this)
-            this.verifyEqual(this.testObj.counts(4),   67523.585139833, 'RelTol', 1e-6);
-            this.verifyEqual(this.testObj.counts(43), 955681.423487817, 'RelTol', 1e-6);
+            this.verifyEqual(this.testObj.counts(4),   65672.2066747476, 'RelTol', 1e-6);
+            this.verifyEqual(this.testObj.counts(43), 929457.745194091, 'RelTol', 1e-6);
         end
         function test_header(this)
             this.verifyEqual(this.testObj.header.doseAdminDatetime, 18.9330);
@@ -91,15 +89,14 @@ classdef Test_TSC < matlab.unittest.TestCase
  		function this = Test_TSC(varargin) 
  			this = this@matlab.unittest.TestCase(varargin{:}); 
             
-            this.pnumPath = fullfile(getenv('UNITTESTS'), 'Arbelaez/GluT/p8047_JJL', '');
-            this.scanPath = fullfile(this.pnumPath, 'PET', 'scan1', '');
-            this.procPath = fullfile(this.pnumPath, 'jjl_proc', '');
-            this.tscFqfilename = fullfile(this.procPath, 'p8047wb1.tsc');
-            this.dtaFqfilename = fullfile(this.procPath, 'p8047g1.dta');
+            this.scanPath       = fullfile(this.sessionPath, 'PET', 'scan1', '');
+            this.procPath       = fullfile(this.sessionPath, 'jjl_proc', '');
+            this.tscFqfilename  = fullfile(this.procPath, 'p8047wb1.tsc');
+            this.dtaFqfilename  = fullfile(this.procPath, 'p8047gluc1.dta');
             this.ecatFqfilename = fullfile(this.scanPath, 'p8047gluc1.nii.gz');
-            cd(this.unittest_home);
+            cd(this.procPath);
  			this.testObj = mlpet.TSC.load( ...
-                this.tscFqfilename, this.ecatFqfilename, this.dtaFqfilename, this.maskFqfilename, true); 
+                this.tscFqfilename, this.ecatFqfilename, this.dtaFqfilename, this.maskFqfilename);
  		end 
     end
 

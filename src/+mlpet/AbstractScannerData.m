@@ -1,26 +1,27 @@
 classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
-	%% ABSTRACTSCANNERDATA  
+	%% ABSTRACTSCANNERDATA 
+    %  TODO:  add methods numel, numelMasked
 
 	%  $Revision$
  	%  was created 03-Jan-2018 00:55:01 by jjlee,
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.3.0.713579 (R2017b) for MACI64.  Copyright 2018 John Joowon Lee.
  	
-	properties
- 	end
-
     properties (Dependent)
         
-        % mlpet.IScannerData, mldata.ITimingData
+        % mlpet.IScannerData
         sessionData
         
-        % new        
+        % new      
         mask
-        nPixels
     end    
     
     methods (Static)
         function dt = dicominfo2datetime(info)
+            %% DICOMINFO2DATETIME
+            %  @param info is struct from dicominfo.
+            %  @return dt is datetime.
+            
             assert(isstruct(info));
             assert(ischar(info.SeriesDate));
             assert(8 == length(info.SeriesDate));
@@ -36,6 +37,8 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             dt = datetime(Y, M, D, H, MI, S, MS);
         end
         function yi = pchip(x, y, xi)
+            %% PCHIP accomodates y with rank <= 4.
+            
             lenxi = length(xi);
             if (xi(end) < x(end) && all(x(1:lenxi) == xi))
                 switch (length(size(y)))
@@ -58,7 +61,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         
         %% GET, SET
         
-        % mlpet.IScannerData, mldata.ITimingData    
+        % mlpet.IScannerData
         function g    = get.sessionData(this)
             g = this.sessionData_;
         end
@@ -71,72 +74,32 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         function g    = get.mask(this)
             g = this.mask_;
         end
-        function g    = get.nPixels(this)
-            if (isempty(this.mask_))
-                g = prod(this.component.size(1:3));
-            else
-                assert(1 == max(max(max(this.mask_.img))));
-                assert(0 == min(min(min(this.mask_.img))));
-                g = sum(sum(sum(this.mask_.img)));
-            end
-        end  
         
         %%
 		  
-        function di   = decayInterpolants(this, varargin)
-            di = this.decays;
-            di = this.pchip(this.times, di, this.timeInterpolants);            
-            if (~isempty(varargin))
-                di = di(varargin{:}); end
-        end
-        function sai  = specificActivityInterpolants(this, varargin)
-            sai = this.specificActivity;
-            sai = this.pchip(this.times, sai, this.timeInterpolants);            
-            if (~isempty(varargin))
-                sai = sai(varargin{:}); end
-        end
-        
+        % mlpet.IScannerData, mldata.ITimingData
         function ai   = activityInterpolants(this, varargin)
-            ai = this.activity;
-            ai = this.pchip(this.times, ai, this.timeInterpolants);            
-            if (~isempty(varargin))
-                ai = ai(varargin{:}); end
+            ai = this.interpolateMetric(this.activity, varargin{:});
+        end        
+        function ci   = countInterpolants(this, varargin)
+            ci = this.interpolateMetric(this.counts, varargin{:});
         end
-        function this = blurred(this, blur)
-            bl = mlfourd.BlurringNIfTId(this.component);
-            bl = bl.blurred(blur);
-            this.component = bl.component;
+        function di   = decayInterpolants(this, varargin)
+            di = this.interpolateMetric(this.decays, varargin{:});
         end
-        function c    = countInterpolants(this, varargin)
-            c = this.counts;
-            c = this.pchip(this.times, c, this.timeInterpolants);            
-            if (~isempty(varargin))
-                c = c(varargin{:}); end
+        function n    = numel(this)
+            n = numel(this.img);
         end
-        function this = crossCalibrate(this, varargin)
-        end
-        function len  = length(this)
-            len = length(this.times);
-        end
-        function this = masked(this, msk)
-            assert(isa(msk, 'mlfourd.INIfTI'));
-            this.mask_ = msk;
-            dyn = mlfourd.DynamicNIfTId(this.component); %% KLUDGE to work-around faults with decorators in matlab
-            dyn = dyn.masked(msk);
-            this.component = dyn.component;
-        end   
-        function this = maskedVolumeAveraged(this, msk)
-            this = this.volumeSummed(this.masked(msk));
-            this.img = ensureRowVector(this.img / msk.count);
-            this.fileprefix = [this.fileprefix '_mvaWith_' msk.fileprefix];
-        end
-        function this = save(this)
-            this.component.fqfileprefix = sprintf('%s_%s', this.component.fqfileprefix, datestr(now, 30));
-            this.component.save;
-        end
-        function this = saveas(this, fqfn)
-            this.component.fqfilename = fqfn;
-            this.save;
+        function n    = numelMasked(this)
+            if (isempty(this.mask_))
+                n = this.numel;
+                return
+            end
+            if (isa(this.mask_, 'mlfourd.ImagingContext'))
+                this.mask_ = this.mask_.niftid;
+            end
+            assert(isa(this.mask_, 'mlfourd.INIfTI'));
+            n = double(sum(sum(sum(this.mask_.img)))); % sum_{x,y,z}, returning nonsingleton t in mask               
         end
         function this = shiftTimes(this, Dt)
             %% SHIFTTIMES provides time-coordinate transformation
@@ -149,6 +112,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             [this.times_,this.component.img] = shiftTensor(this.times_, this.component.img, Dt);
         end
         function this = shiftWorldlines(this, Dt)
+            %% SHIFTWORLDLINES
             
             if (0 == Dt); return; end        
             this = this.shiftTimes(Dt);
@@ -157,51 +121,97 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             end
             error('mlsiemens:incompletelyImplemented', 'AbstractScannerData:shiftWorldlines');
         end
-        function this = thresh(this, t)
-            nn = mlfourd.NumericalNIfTId(this.component);
-            nn = nn.thresh(t);
-            this.component = nn.component;
-        end
-        function this = threshp(this, p)
-            nn = mlfourd.NumericalNIfTId(this.component);
-            nn = nn.threshp(p);
-            this.component = nn.component;
-        end
-        function this = timeSummed(this)
-            dyn = mlfourd.DynamicNIfTId(this.component); %% KLUDGE to work-around faults with decorators in matlab
-            dyn = dyn.timeSummed;
-            this.component = dyn.component;
-        end
-        function this = uthresh(this, u)
-            nn = mlfourd.NumericalNIfTId(this.component);
-            nn = nn.uthresh(u);
-            this.component = nn.component;
-        end
-        function this = uthreshp(this, p)
-            nn = mlfourd.NumericalNIfTId(this.component);
-            nn = nn.uthreshp(p);
-            this.component = nn.component;
-        end
-        function this = volumeSummed(this)
-            dyn = mlfourd.DynamicNIfTId(this.component); %% KLUDGE to work-around faults with decorators in matlab
-            dyn = dyn.volumeSummed;
-            this.component = dyn.component;
+        function sai  = specificActivityInterpolants(this, varargin)
+            sai = this.interpolateMetric(this.specificActivity);
         end
         
- 		function this = AbstractScannerData(varargin)
+        % borrowed from mffourd.NumericalNIfTId
+        function this = blurred(this, varargin)
+            bn = mlfourd.BlurringNIfTId(this.component);
+            bn = bn.blurred(varargin{:});
+            this.component = bn.component;
+        end     
+        function this = masked(this, msk)
+            nn = mlfourd.NumericalNIfTId(this.component);
+            nn = nn.masked(msk);
+            this.component = nn.component;
+            this.mask_ = msk;
+        end     
+        function this = thresh(this, varargin)
+            nn = mlfourd.NumericalNIfTId(this.component);
+            nn = nn.thresh(varargin{:});
+            this.component = nn.component;
+        end
+        function this = threshp(this, varargin)
+            nn = mlfourd.NumericalNIfTId(this.component);
+            nn = nn.threshp(varargin{:});
+            this.component = nn.component;
+        end
+        function this = timeContracted(this, varargin)
+            nn = mlfourd.NumericalNIfTId(this.component); 
+            nn = nn.timeContracted(varargin{:});
+            this.component = nn.component;
+        end
+        function this = timeSummed(this, varargin)
+            nn = mlfourd.NumericalNIfTId(this.component); 
+            nn = nn.timeSummed(varargin{:});
+            this.component = nn.component;
+        end
+        function this = uthresh(this, varargin)
+            nn = mlfourd.NumericalNIfTId(this.component);
+            nn = nn.uthresh(varargin{:});
+            this.component = nn.component;
+        end
+        function this = uthreshp(this, varargin)
+            nn = mlfourd.NumericalNIfTId(this.component);
+            nn = nn.uthreshp(varargin{:});
+            this.component = nn.component;
+        end
+        function this = volumeContracted(this, varargin)
+            nn = mlfourd.NumericalNIfTId(this.component); 
+            nn = nn.volumeContracted(varargin{:});
+            this.component = nn.component;
+        end
+        function this = volumeSummed(this, varargin)
+            nn = mlfourd.NumericalNIfTId(this.component); 
+            nn = nn.volumeSummed(varargin{:});
+            this.component = nn.component;
+        end
+        
+        % others        
+        function this = crossCalibrate(this, varargin)
+        end
+        function len  = length(this)
+            len = length(this.times);
+        end
+        
+ 		function this = AbstractScannerData(cmp, varargin)
  			%% ABSTRACTSCANNERDATA
- 			%  Usage:  this = AbstractScannerData()
 
- 			this = this@mlfourd.NIfTIdecoratorProperties(varargin{:});
+ 			this = this@mlfourd.NIfTIdecoratorProperties(cmp);
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'mask', [], @(x) isa(x, 'mlfourd.INIfTI'));
+            parse(ip, varargin{:});
+            this.mask_ = ip.Results.mask;
  		end
  	end 
     
     %% PROTECTED
     
-    properties (Access = 'protected')
+    properties (Access = protected)
         mask_
         sessionData_
         timingData_
+    end
+    
+    methods (Access = protected)        
+        function mi = interpolateMetric(this, m, varargin)
+            mi = this.pchip(this.times, m, this.timeInterpolants);            
+            if (~isempty(varargin))
+                mi = mi(varargin{:}); end            
+        end
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

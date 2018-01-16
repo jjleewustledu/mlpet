@@ -83,8 +83,7 @@ classdef (Abstract) AutoradiographyBuilder2 < mlbayesian.AbstractMcmcProblem
             parse(p, varargin{:});
             
             if (~isempty(p.Results.fqfn))
-                ecat = mlsiemens.EcatExactHRPlus(mlfourd.NIfTId.load(p.Results.fqfn));
-                ecat.manuallyRecordedPie = p.Results.pie;
+                ecat = mlsiemens.EcatExactHRPlus(mlfourd.NIfTId.load(p.Results.fqfn), 'pie', p.Results.pie);
                 return
             end
             if (~isempty(p.Results.ecat))

@@ -15,9 +15,9 @@ classdef Test_DCV < matlab.unittest.TestCase
 
 	properties 
         sessd
-        sessp = fullfile(getenv('UNITTESTS'), 'cvl/np755/mm01-007_p7267_2008jun16', '')
+        sessp = '/data/cvl/np755/mm01-007_p7267_2008jun16'
  		testObj
-        unittest_home = fullfile(getenv('UNITTESTS'), 'cvl/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet')
+        unittest_home = '/data/cvl/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet'
  	end 
 
 	methods (Test) 

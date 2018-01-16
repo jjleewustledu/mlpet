@@ -14,7 +14,7 @@ classdef Test_DTA < matlab.unittest.TestCase
  	%  $Id$ 
 
 	properties 
-        unittest_home = fullfile(getenv('UNITTESTS'), 'Arbelaez/GluT/p8047_JJL/wjp_proc', '')
+        unittest_home = '/data/nil-bluearc/arbelaez/jjlee/GluT/p8047_JJL/wjp_proc'
  		testObj 
  	end 
 

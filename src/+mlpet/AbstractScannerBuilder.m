@@ -32,7 +32,7 @@ classdef AbstractScannerBuilder
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'roisBuilder', @(x) isa(x, 'mlrois.IRoisBuilder'));
-            addParameter(ip, 'calibrationBuilder', NullCalibrationBuilder, @(x) isa(x, 'mlpet.ICalibrationBuilder'));
+            addParameter(ip, 'calibrationBuilder', CalibrationBuilder, @(x) isa(x, 'mlpet.ICalibrationBuilder'));
             addParameter(ip, 'blindedData', @(x) isa(x, 'mlpipeline.IBlindedData'));
             parse(ip, varargin{:});
  			

@@ -14,6 +14,7 @@ classdef DecayCorrection
     properties (Dependent)
         decayConstant % \alpha = log(2)/\tau_{1/2}
         halflife
+        halfLife
         isotope
         nuclide % legacy synonym
     end
@@ -27,6 +28,9 @@ classdef DecayCorrection
         end
         function g = get.halflife(this)
             g = this.radionuclide_.halflife;
+        end
+        function g = get.halfLife(this)
+            g = this.halflife;
         end
         function g = get.isotope(this)
             g = this.radionuclide_.isotope;

@@ -338,6 +338,6 @@ classdef DTA < mlpet.AbstractWellData
     end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
-en
+end
 
 

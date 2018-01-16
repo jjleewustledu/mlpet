@@ -209,8 +209,8 @@ classdef Test_PETAutoradiography < matlab.unittest.TestCase
             this.ecat = this.ecat.masked(this.mask);
             this.ecat = this.ecat.volumeSummed;              
             import mlpet.*;
-            [t_a,c_a] = AutoradiographyBuilder.shiftDataLeft(this.dcv.times,  this.dcv.wellCounts,                    this.DCV_SHIFT);
-            [t_i,c_i] = AutoradiographyBuilder.shiftDataLeft(this.ecat.times, this.ecat.wellCounts/this.ecat.nPixels, this.DCECAT_SHIFT);            
+            [t_a,c_a] = AutoradiographyBuilder.shiftDataLeft(this.dcv.times,  this.dcv.wellCounts, this.DCV_SHIFT);
+            [t_i,c_i] = AutoradiographyBuilder.shiftDataLeft(this.ecat.times, this.ecat.wellCounts/this.ecat.numelMasked, this.DCECAT_SHIFT);            
             c_a = c_a - min(c_a);
             c_i = c_i - min(c_i);
             
