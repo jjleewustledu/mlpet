@@ -1,4 +1,4 @@
-classdef TracerSurferBuilder < mlpet.AbstractTracerBuilder
+classdef TracerSurferBuilder < mlpipeline.AbstractSessionBuilder
 	%% TRACERSURFERBUILDER  
     %  @param this.sessionData makes sense.
     %  @param Freesurfer properly installed in getenv('FREESURFER_HOME').
@@ -113,7 +113,7 @@ classdef TracerSurferBuilder < mlpet.AbstractTracerBuilder
  			%% TRACERSURFERBUILDER
  			%  Usage:  this = TracerSurferBuilder()
 
- 			this = this@mlpet.AbstractTracerBuilder(varargin{:});
+ 			this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
  		end
  	end 
 

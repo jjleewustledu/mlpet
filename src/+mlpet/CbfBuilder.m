@@ -1,4 +1,4 @@
-classdef CbfBuilder < mlpet.AbstractTracerBuilder
+classdef CbfBuilder < mlpipeline.AbstractSessionBuilder
 	%% CBFBUILDER  
 
 	%  $Revision$
@@ -15,7 +15,7 @@ classdef CbfBuilder < mlpet.AbstractTracerBuilder
  			%% CBFBUILDER
  			%  Usage:  this = CbfBuilder()
  			
-            this = this@mlpet.AbstractTracerBuilder(varargin{:});
+            this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
         end
         
         function this = buildHerscCbfMap(this, varargin)

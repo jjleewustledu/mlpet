@@ -1,4 +1,4 @@
-classdef TracerBuilder < mlpet.AbstractTracerBuilder
+classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
 	%% TRACERBUILDER
 
 	%  $Revision$
@@ -352,7 +352,7 @@ classdef TracerBuilder < mlpet.AbstractTracerBuilder
             %  @param named 'compositeResolveBuilder' is an mlfourdp.CompositeT4ResolveBuilder.
             %  @param named 'vendorSupport' is, e.g., mlsiemens.MMRBuilder.
  			
-            this = this@mlpet.AbstractTracerBuilder(varargin{:});
+            this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
             
             import mlfourdfp.*;
             ip = inputParser;

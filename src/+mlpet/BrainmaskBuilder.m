@@ -34,7 +34,7 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
             addParameter(ip, 'reuse', true, @islogical);
             parse(ip, varargin{:});
             
-            pwd0    = pushd(ensureFolderExists(this.sessionData.tracerLocation));
+            pwd0    = pushd(ensuredir(this.sessionData.tracerLocation));
             sessd   = this.sessionData;
             tr      = ip.Results.tracer;
             if (~lexist([tr.fileprefix '_brain.4dfp.ifh'], 'file'))

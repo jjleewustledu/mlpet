@@ -238,7 +238,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             
             % actions
             
-            pwd0 = sessd.petLocation;
+            pwd0 = sessd.tracerLocation;
             ensuredir(pwd0);
             pushd(pwd0);
             bmb = mlpet.BrainmaskBuilder('sessionData', sessd);

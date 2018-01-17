@@ -1,4 +1,4 @@
-classdef ArterialSamplingBuilder < mlpet.AbstractTracerBuilder
+classdef ArterialSamplingBuilder < mlpipeline.AbstractSessionBuilder
 	%% ARTERIALSAMPLINGBUILDER  
 
 	%  $Revision$
@@ -15,7 +15,7 @@ classdef ArterialSamplingBuilder < mlpet.AbstractTracerBuilder
  			%% ARTERIALSAMPLINGBUILDER
  			%  Usage:  this = ArterialSamplingBuilder()
  			
-            this = this@mlpet.AbstractTracerBuilder(varargin{:});
+            this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
         end
         
         function this = buildArterialSampling(this)

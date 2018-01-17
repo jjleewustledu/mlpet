@@ -1,4 +1,4 @@
-classdef RoisBuilder < mlpet.AbstractTracerBuilder
+classdef RoisBuilder < mlpipeline.AbstractSessionBuilder
 	%% ROISBUILDER  
 
 	%  $Revision$
@@ -109,7 +109,7 @@ classdef RoisBuilder < mlpet.AbstractTracerBuilder
             %  @param named 'product' is the initial state of the product to build.
             %  @param named 'sessionData' is an mlpipeline.ISessionData.
 
- 			this = this@mlpet.AbstractTracerBuilder(varargin{:});
+ 			this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
         end
     end 
 

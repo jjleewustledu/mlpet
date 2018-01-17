@@ -1,4 +1,4 @@
-classdef TracerReportsBuilder < mlpet.AbstractTracerBuilder
+classdef TracerReportsBuilder < mlpipeline.AbstractSessionBuilder
 	%% TRACERREPORTSBUILDER  
 
 	%  $Revision$
@@ -16,7 +16,7 @@ classdef TracerReportsBuilder < mlpet.AbstractTracerBuilder
  			%% TRACERREPORTSBUILDER
  			%  Usage:  this = TracerReportsBuilder()
 
-            this = this@mlpet.AbstractTracerBuilder(varargin{:});
+            this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
             
             sd = this.sessionData;
             sd.epoch = [];
