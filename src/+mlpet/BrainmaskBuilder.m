@@ -8,19 +8,8 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/Local/src/mlcvl/mlraichle/src/+mlraichle.
  	%% It was developed on Matlab 9.2.0.538062 (R2017a) for MACI64.  Copyright 2017 John Joowon Lee.
  	
-	properties (Dependent)
- 		brainmask % mlfourd.ImagingContext
- 	end
-
-	methods 	
-        
-        %% GET
-        
-        function g = get.brainmask(this)
-            g = this.brainmask_;
-        end
-        
-        %%
+    
+	methods	
         
         function [bmbb,ct4rb] = brainmaskBinarized(this, varargin)
             %% BRAINMASKBINARIZED resolves brainmaskBinarizeBlended to tracer
@@ -106,15 +95,8 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
                 sessd.nifti_4dfp_4(bmfp);
             end
             this.product_ = mlfourd.ImagingContext(bmifh);
-            this.brainmask_ = this.product_;
  		end
     end 
-    
-    %% PRIVATE
-    
-    properties (Access = private)
-        brainmask_
-    end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end
