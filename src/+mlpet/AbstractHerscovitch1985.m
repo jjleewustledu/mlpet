@@ -69,8 +69,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         aifTimeShift
         mask
         resolveTag
-        scannerTimeShift        
-        tracer
+        scannerTimeShift
         videenBlur
         voxelVolume
     end
@@ -102,14 +101,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         end
         function g = get.scannerTimeShift(this)
             g = this.scanner_.scannerTimeShift;
-        end        
-        function g = get.tracer(this)
-            g = this.sessionData.tracer;
-        end
-        function this = set.tracer(this, s)
-            assert(ischar(s));
-            this.sessionData_.tracer = s;
-        end        
+        end   
         function g = get.videenBlur(this) %#ok<MANU>
             fhalf = 0.3; % half-wave number in cm^{-1}; cf. gauss_4dfp
             fwhh  = 10*2*log(2)/(pi*fhalf);
@@ -155,7 +147,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             addParameter(ip, 'aif', [], @(x) isa(x, 'mlpet.IAifData'));
             addParameter(ip, 'timeDuration', [], @isnumeric);
             addParameter(ip, 'mask', this.sessionData.aparcAsegBinarized('typ', 'mlfourd.ImagingContext'), ...
-                @(x) isa(x, 'mlfourd.ImagingData'));
+                @(x) isa(x, 'mlfourd.ImagingContext'));
             parse(ip, varargin{:});
                    
             this.aif_ = ip.Results.aif;

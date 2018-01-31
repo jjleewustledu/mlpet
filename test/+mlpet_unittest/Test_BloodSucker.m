@@ -17,7 +17,7 @@ classdef Test_BloodSucker < matlab.unittest.TestCase
         deltaTimeDcv = -16
  		registry
         sessd
-        sessp = fullfile(getenv('UNITTESTS'), 'cvl/np755/mm01-007_p7267_2008jun16', '')
+        sessp = '/data/cvl/np755/mm01-007_p7267_2008jun16'
  		testObj
  	end
 
@@ -72,6 +72,7 @@ classdef Test_BloodSucker < matlab.unittest.TestCase
  			this.testObj_ = BloodSucker( ...
                 'scannerData', mlsiemens.EcatExactHRPlus.loadSession(this.sessd, this.sessd.ho('typ', 'nii.gz')), ...
                 'aifTimeShift', 0);
+            this.testObj_.dt = 0.5;
  		end
 	end
 

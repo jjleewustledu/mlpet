@@ -13,7 +13,7 @@ classdef PETControlsDirector < mlfsl.AlignmentDirectorDecorator
         MNIREF_FILEPREFIX = 'MNI152_T1_1mm_brain'
         OEFNQ_FILEPREFIX  = 'oefnq_default_101010fwhh'
         CEREB_FILEPREFIX  = 'Cerebellum-MNIfnirt-1mm-no-sinus-mask'
-        MCA_HOME          = '/Users/jjlee/Local/src/mlcvl/mlfsl/data/atlases/MNI'
+        MCA_HOME          = '/Users/jjlee/MATLAB-Drive/mlfsl/data/atlases/MNI'
         HEMISPHERES = { 'left' 'right' 'bilateral' }
         TERRITORIES = { 'ACA' 'ACA+MCA' 'MCA' 'Cerebellum' }
     end

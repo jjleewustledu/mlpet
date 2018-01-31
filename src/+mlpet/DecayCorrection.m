@@ -1,5 +1,5 @@
-classdef DecayCorrection
-	%% DECAYCORRECTION.
+classdef DecayCorrection < handle
+	%% DECAYCORRECTION is a modestly implemented Visitor design pattern for operations on mlpet.{IAifData,IScannerData}
     %  Method functions corrected* uncorrected* adjust* are synonyms.
 
 	%  $Revision$ 
@@ -17,6 +17,23 @@ classdef DecayCorrection
         halfLife
         isotope
         nuclide % legacy synonym
+    end
+    
+    methods (Static)
+        function this = factoryFor(client)
+            if (isa(client, 'mlpet.IScannerData'))
+                this = mlpet.DecayCorrectionForScanner(client);
+                return
+            end            
+            if (     isa(client, 'mlpet.IAifData')  || ...
+                     isa(client, 'mlpet.IWellData') || ...
+                isstruct(client))            
+                this = mlpet.DecayCorrectionForAif(client);
+                return
+            end
+            error('mlpet:unsupportedTypeClass', ...
+                'DecayCorrection.factoryFor does not support type %s', class(client));
+        end
     end
     
     methods 
@@ -39,14 +56,9 @@ classdef DecayCorrection
             g = this.radionuclide_.nuclide;
         end
     
-        %%
-        
+        %%        
+
         function c = adjustActivities(this, varargin)
-            %% ADJUSTACTIVITIES (un)corrects positron decay from zero-time or this.client_.time0. 
-            
-            c = this.adjustCounts(varargin{:});
-        end
-        function c = adjustCounts(this, varargin)
             %% ADJUSTCOUNTS (un)corrects positron decay from zero-time or this.client_.time0. 
             %  @param c is counts, activity, specific activity
             %  @param sgn is the sign of the adjustment 2^{sgn*t/t_halflife}
@@ -63,50 +75,36 @@ classdef DecayCorrection
             end
             
             if (abs(tzero) < eps)
-                error('mlpet:unexpectedInputValue', 'DecayCorrection.adjustCounts.tzero->%g', tzero);
-                %c = ip.Results.c;
-                %return
-            end
-            if (isa(this.client_, 'mlpet.IScannerData'))
-                c = adjustScannerCounts(this, ip.Results.c, ip.Results.sgn, tzero);
+                %error('mlpet:unexpectedInputValue', 'DecayCorrection.adjustActivities.tzero->%g', tzero);
+                c = ip.Results.c;
                 return
             end
-            if (isa(this.client_, 'mlpet.IAifData') || isa(this.client_, 'mlpet.IWellData') || isstruct(this.client_))
-                c = adjustAifCounts(    this, ip.Results.c, ip.Results.sgn, tzero);
-                return
-            end
-            error('mlpet:unsupportedTypeClass', ...
-                'DecayCorrection.correctedCounts does not support clients of type %s', class(this.client_));
+            c = adjustClient(this, ip.Results.c, ip.Results.sgn, tzero);
         end
         function c = correctedActivities(this, c, varargin)
-            %% CORRECTEDACTIVITIES removes effects of positron decay from zero-time or this.client_.time0. 
-            %  @param c is counts, activity, specific activity
-            %  @param zeroTime is numeric, optional
-            
-            c = this.correctedCounts(c, varargin{:});
-        end
-        function c = correctedCounts(this, c, varargin)
             %% CORRECTEDCOUNTS removes effects of positron decay from zero-time or this.client_.time0. 
             %  @param c is counts, activity, specific activity
             %  @param zeroTime is numeric, optional
             
-            c = this.adjustCounts(c, 1, varargin{:});
+            c = this.adjustActivities(c, 1, varargin{:});
         end
         function c = uncorrectedActivities(this, c, varargin)
-            %% UNCORRECTEDACTIVITIES removes effects of positron decay from zero-time or this.client_.time0. 
-            %  @param c is counts, activity, specific activity
-            %  @param zeroTime is numeric, optional
-            
-            c = this.uncorrectedCounts(c, varargin{:});
-        end
-        function c = uncorrectedCounts(this, c, varargin)
             %% UNCORRECTEDCOUNTS reintroduces effects of positron decay from zero-time or this.client_.time0.
             %  @param c is counts, activity, specific activity
             %  @param zeroTime is numeric, optional
             
-            c = this.adjustCounts(c, -1, varargin{:});
+            c = this.adjustActivities(c, -1, varargin{:});
         end
-        
+    end
+    
+    %% PROTECTED
+    
+    properties (Access = protected)
+        client_
+        radionuclide_
+    end
+    
+    methods (Access = protected)
         function this = DecayCorrection(varargin)
             %% DECAYCORRECTION
  			%  @param client is IAifData_obj | IWellData_obj | struct.
@@ -122,41 +120,10 @@ classdef DecayCorrection
             this.client_ = ip.Results.client;
             this.radionuclide_ = mlpet.Radionuclides(this.client_.isotope);
         end
-    end
-    
-    %% PRIVATE
-    
-    properties (Access = 'private')
-        client_
-        radionuclide_
-    end
-    
-    methods (Access = 'private')        
-        function c = adjustAifCounts(this, c, sgn, tzero)
-            sgn   = sign(sgn);
-            times = this.client_.times - tzero;
-            c     = c.*exp(sgn*this.decayConstant*times);
-        end
-        function c = adjustScannerCounts(this, c, sgn, tzero)
-            sgn   = sign(sgn);
-            times = this.client_.times - tzero;
-            switch (length(size(c)))
-                case 2
-                    c = c.*exp(sgn*this.decayConstant*times);
-                case 3
-                    for t = 1:size(c,3)
-                        c(:,:,t) = c(:,:,t).*exp(sgn*this.decayConstant*times(t));
-                    end
-                case 4
-                    for t = 1:size(c,4)
-                        c(:,:,:,t) = c(:,:,:,t).*exp(sgn*this.decayConstant*times(t));
-                    end
-                otherwise
-                    error('mlpet:unsupportedArraySize', ...
-                          'size(DecayCorrection.adjustScannerCounts.cnts) -> %s', mat2str(size(c)));
-            end 
+        function c = adjustClient(~, varargin) %#ok<STOUT>
         end
     end
+    
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy 
 end
 

@@ -270,6 +270,8 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             popd(pwd0);
         end
         function this  = instanceConstructUmapSynthFull(this)
+            %  @deprecated
+            
             this.builder_ = this.builder_.packageProduct(this.sessionData.umap);
             this.builder_ = this.builder_.createUmapSynthFull;
         end  

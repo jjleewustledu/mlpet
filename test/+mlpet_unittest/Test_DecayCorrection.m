@@ -7,7 +7,7 @@ classdef Test_DecayCorrection < matlab.unittest.TestCase
 
 	%  $Revision$
  	%  was created 20-Jul-2017 15:54:00 by jjlee,
- 	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/Local/src/mlcvl/mlpet/test/+mlpet_unittest.
+ 	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/test/+mlpet_unittest.
  	%% It was developed on Matlab 9.2.0.538062 (R2017a) for MACI64.  Copyright 2017 John Joowon Lee.
  	
 	properties
@@ -31,15 +31,15 @@ classdef Test_DecayCorrection < matlab.unittest.TestCase
             
             %% expect Heaviside from tzero, max from client at tzero
             
-            cc = this.testObj.correctedCounts(this.client.counts, 22);
+            cc = this.testObj.correctedActivities(this.client.counts, 22);
             %figure; plot(cc);
-            %title('this.testObj.correctedCounts(this.client.counts, 22)');
+            %title('this.testObj.correctedActivities(this.client.counts, 22)');
             this.verifyEqual(cc(1:22),  zeros(1,22), 'RelTol', 1e-6);
             this.verifyEqual(cc(23:end), 1*ones(1,100), 'RelTol', 1e-6);
             
-            cc = this.testObj.correctedCounts(this.client.counts, 100);
+            cc = this.testObj.correctedActivities(this.client.counts, 100);
             %figure; plot(cc);
-            %title('this.testObj.correctedCounts(this.client.counts, 100)');
+            %title('this.testObj.correctedActivities(this.client.counts, 100)');
             this.verifyEqual(cc(1:22),  zeros(1,22), 'RelTol', 1e-6);
             this.verifyEqual(cc(23:end), 2^(-78/122.2416)*ones(1,100), 'RelTol', 1e-6);
         end
@@ -52,15 +52,15 @@ classdef Test_DecayCorrection < matlab.unittest.TestCase
             
             %% expect power decay from tzero, counts(tzero) \approx 1, counts(t < tzero) > 1
             
-            decay = this.testObj.uncorrectedCounts(nodecay, 22);
+            decay = this.testObj.uncorrectedActivities(nodecay, 22);
             %figure; plot(decay);
-            %title('this.testObj.uncorrectedCounts(nodecay, 22)');
+            %title('this.testObj.uncorrectedActivities(nodecay, 22)');
             this.verifyEqual(decay(1:22),  zeros(1,22), 'RelTol', 1e-6);
             this.verifyEqual(decay(23:end), 2.^(-(0:99)/122.2416), 'RelTol', 1e-6);
             
-            decay = this.testObj.uncorrectedCounts(nodecay, 100);
+            decay = this.testObj.uncorrectedActivities(nodecay, 100);
             %figure; plot(decay);
-            %title('this.testObj.uncorrectedCounts(nodecay, 100)');
+            %title('this.testObj.uncorrectedActivities(nodecay, 100)');
             this.verifyEqual(decay(1:22),  zeros(1,22), 'RelTol', 1e-6);
             this.verifyEqual(decay(23:100), 2.^((78:-1:1)/122.2416), 'RelTol', 1e-6);
             this.verifyEqual(decay(101:end), 2.^(-(0:21)/122.2416), 'RelTol', 1e-6);
@@ -78,8 +78,8 @@ classdef Test_DecayCorrection < matlab.unittest.TestCase
                 'doseAdminDatetime', datetime('1-Jul-2017 09:00:00'), ...
                 'times', 0:121, 'time0', 0, 'timeF', 121, ...
                 'counts', cnts);
- 			this.testObj_ = DecayCorrection(this.client_);
-            pth = fullfile(getenv('HOME'), 'Local/src/mlcvl/mlpet/data');
+ 			this.testObj_ = DecayCorrection.factoryFor(this.client_);
+            pth = fullfile(getenv('HOME'), 'MATLAB-Drive/mlpet/data');
             this.crv_ = mlpet.CRV.load(fullfile(pth, 'AMAtest5.crv'));
             this.dcv_ = mlpet.DCV.load(fullfile(pth, 'AMAtest5.dcv'));
  		end

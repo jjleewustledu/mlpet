@@ -52,6 +52,9 @@ classdef Herscovitch1985 < mlpet.AbstractHerscovitch1985
             rho = mlpet.Herscovitch1985.estimatePetdyn(aif, cbf);
             petobs = aif.dt*trapz(rho, 2);
         end
+        function fwhh   = petPointSpread
+            fwhh = mlpet.PETRegistry.instance.petPointSpread;
+        end
     end
     
 	methods
@@ -112,7 +115,7 @@ classdef Herscovitch1985 < mlpet.AbstractHerscovitch1985
             this  = this.ensureMask;
             mskvs = this.mask.volumeSummed;
             
-            wc = this.scanner.wellCountInterpolants.*this.mask.niftid.img/this.MAGIC/mskvs.double/this.voxelVolume;
+            wc = this.scanner.wellCountInterpolants.*double(this.mask.niftid.img)/this.MAGIC/mskvs.double/this.voxelVolume;
             wc = squeeze(sum(sum(sum(wc))));
             plot(this.scanner.timeInterpolants, wc);
             hold on            

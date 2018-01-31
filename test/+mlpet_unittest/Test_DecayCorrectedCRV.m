@@ -15,7 +15,8 @@ classdef Test_DecayCorrectedCRV < matlab.unittest.TestCase
 
 	properties 
  		testObj 
-        unittest_home = fullfile(getenv('UNITTESTS'), 'cvl/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet', '')
+        unittest_home = '/data/cvl/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet'
+        fact = 1
  	end 
 
 	methods (Test) 
@@ -38,18 +39,18 @@ classdef Test_DecayCorrectedCRV < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.timeInterpolants(120), 120);
         end
         function test_counts(this)
-            this.verifyEqual(this.testObj.counts(4),   41.941659412967688, 'RelTol', 1e-10);
-            this.verifyEqual(this.testObj.counts(120), 3978.28919721223, 'RelTol', 1e-10);
+            this.verifyEqual(this.testObj.counts(4),   this.fact*41.703413431063609, 'RelTol', 1e-4);
+            this.verifyEqual(this.testObj.counts(120), this.fact*3.952674608581923e+03, 'RelTol', 1e-4);
         end
         function test_countInterpolants(this)
-            this.verifyEqual(this.testObj.countInterpolants(120), 3978.28919721223, 'RelTol', 1e-10);
+            this.verifyEqual(this.testObj.countInterpolants(120), this.fact*3.952674608581923e+03, 'RelTol', 1e-4);
         end
         function test_wellCounts(this)
-            this.verifyEqual(this.testObj.wellCounts(4),   4.745363229301990e+02, 'RelTol', 1e-10);
-            this.verifyEqual(this.testObj.wellCounts(120), 4.501115963509861e+04, 'RelTol', 1e-10);
+            this.verifyEqual(this.testObj.wellCounts(4),   this.fact*4.718407602417399e+02, 'RelTol', 1e-4);
+            this.verifyEqual(this.testObj.wellCounts(120), this.fact*4.472135105641759e+04, 'RelTol', 1e-4);
         end
         function test_wellCountInterpolants(this)
-            this.verifyEqual(this.testObj.wellCountInterpolants(120), 4.501115963509861e+04, 'RelTol', 1e-10);
+            this.verifyEqual(this.testObj.wellCountInterpolants(120), this.fact*4.472135105641759e+04, 'RelTol', 1e-4);
         end
         function test_header(this)
             this.verifyEqual(this.testObj.header.fqfilename, 'C:\data\p7267ho1.crv');

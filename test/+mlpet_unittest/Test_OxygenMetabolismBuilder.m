@@ -7,7 +7,7 @@ classdef Test_OxygenMetabolismBuilder < TestCase
  	%  N.B. classdef (Sealed, Hidden, InferiorClasses = {?class1,?class2}, ConstructOnLoad) 
 
 	properties
-        srcroot        = '/Users/jjlee/Local/src';
+        srcroot        = '/Users/jjlee/MATLAB-Drive';
         aPETImagingBuilder  = 0;
         butCorr        = true;
         cbfnii         = 0;
@@ -32,7 +32,7 @@ classdef Test_OxygenMetabolismBuilder < TestCase
         
         function setUp(this)
             this.imaging = mlfsl.ImagingComponent.createStudyFromPnum(this.pnum);
-            cd(fullfile(this.srcroot, 'mlcvl/mlfourd/test/data'));            
+            cd(fullfile(this.srcroot, 'mlfourd/test/data'));            
         end
         
         %% TEST_NULL assures that xunit assert functions are working correctly

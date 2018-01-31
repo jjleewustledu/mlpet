@@ -15,8 +15,8 @@ classdef Test_TSC < matlab.unittest.TestCase
  	 
 
 	properties  
-        sessionPath  = '/data/nil-bluearc/arbelaez/GluT/p8047_JJL'
-        procPath     = '/data/nil-bluearc/arbelaez/GluT/p8047_JJL/jjl_proc' 
+        sessionPath  = '/data/nil-bluearc/arbelaez/jjlee/GluT/p8047_JJL'
+        procPath     = '/data/nil-bluearc/arbelaez/jjlee/GluT/p8047_JJL/jjl_proc' 
         scanPath
         tscFqfilename 
         dtaFqfilename
@@ -48,7 +48,7 @@ classdef Test_TSC < matlab.unittest.TestCase
         function test_save(this)            
             ca = mlio.TextIO.textfileToCell(this.tscFqfilename);
             this.verifyTrue(strcmp( ...
-                'p8047gluc1.dta,  aparc_a2009s+aseg_mask_on_p8047gluc1_mcf.nii.gz, p8047gluc1_decayCorrect_masked.nii.gz, pie = 4.880000', ...
+                'p8047gluc1.dta,  aparc_a2009s+aseg_mask_on_p8047gluc1_mcf.nii.gz, p8047gluc1_decayCorrect_maskedby_aparc_a2009s+aseg_mask_on_p8047gluc1_mcf.nii.gz, pie = 4.880000', ...
                 strtrim(ca{1})));
             this.verifyTrue(strcmp('42,    3', strtrim(ca{2})));
             this.verifyTrue(strcmp('3258.9        180.0      946211.97', strtrim(ca{44})));

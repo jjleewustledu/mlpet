@@ -1,4 +1,4 @@
-classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData
+classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData & mlfourd.INumerical
 	%% ABSTRACTSCANNERDATA 
     %  TODO:  add methods numel, numelMasked
 
@@ -102,24 +102,32 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             n = double(sum(sum(sum(this.mask_.img)))); % sum_{x,y,z}, returning nonsingleton t in mask               
         end
         function this = shiftTimes(this, Dt)
-            %% SHIFTTIMES provides time-coordinate transformation
-            
-            if (0 == Dt); return; end
+            if (0 == Dt)
+                return; 
+            end
             if (2 == length(this.component.size))                
                 [this.times_,this.component.img] = shiftVector(this.times_, this.component.img, Dt);
                 return
             end
             [this.times_,this.component.img] = shiftTensor(this.times_, this.component.img, Dt);
         end
-        function this = shiftWorldlines(this, Dt)
+        function this = shiftWorldlines(this, Dt, varargin)
             %% SHIFTWORLDLINES
+            %  @param required Dt, or \Delta t of worldline. 
+            %  Dt > 0 => event occurs at later time and further away in space; boluses are smaller and arrive later.
+            %  Dt < 0 => event occurs at earlier time and closer in space; boluses are larger and arrive earlier.
+            %  @param optional tzero sets the Lorentz coord for decay-correction and uncorrection.
             
-            if (0 == Dt); return; end        
-            this = this.shiftTimes(Dt);
-            if (~isempty(this.component.img))
-                this.component.img = this.decayCorrection_.adjustCounts(this.component.img, -sign(Dt), Dt);
+            ip = inputParser;
+            addParameter(ip, 'tzero', this.time0, @isnumeric);
+            parse(ip, varargin{:});
+            
+            if (0 == Dt)
+                return; 
             end
-            error('mlsiemens:incompletelyImplemented', 'AbstractScannerData:shiftWorldlines');
+            this.component.img = this.decayCorrection_.correctedActivities(this.component.img, ip.Results.tzero);
+            this = this.shiftTimes(Dt);            
+            this.component.img = this.decayCorrection_.uncorrectedActivities(this.component.img, ip.Results.tzero);
         end
         function sai  = specificActivityInterpolants(this, varargin)
             sai = this.interpolateMetric(this.specificActivity);
@@ -195,15 +203,26 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             addParameter(ip, 'mask', [], @(x) isa(x, 'mlfourd.INIfTI'));
             parse(ip, varargin{:});
             this.mask_ = ip.Results.mask;
+            this.decayCorrection_ = mlpet.DecayCorrection.factoryFor(this);
  		end
  	end 
     
     %% PROTECTED
     
     properties (Access = protected)
+        decayCorrection_
         mask_
         sessionData_
         timingData_
+        
+        dt_
+        time0_
+        timeF_
+        times_
+        timeMidpoints_
+        taus_
+        timeInterpolants_
+        timeMidpointInterpolants_
     end
     
     methods (Access = protected)        

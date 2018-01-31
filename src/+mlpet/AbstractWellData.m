@@ -32,6 +32,7 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         tracer
         scanDuration % sec  
         
+        time0
         times
         counts
         
@@ -83,6 +84,9 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         function sd   = get.scanDuration(this)
             assert(~isempty(this.times_));
             sd = this.times_(end);
+        end
+        function t    = get.time0(this)
+            t = this.times(1);
         end
         function t    = get.times(this)
             assert(~isempty(this.times_));

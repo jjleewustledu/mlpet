@@ -12,7 +12,6 @@ classdef BloodSucker < mlpet.AbstractAifData
     properties (Dependent)
         bloodSuckerCrv
         bloodSuckerDcv
-        sessionData
         wellCounts
         aifTimeShift
     end
@@ -23,9 +22,6 @@ classdef BloodSucker < mlpet.AbstractAifData
         end
         function g = get.bloodSuckerDcv(this)
             g = this.bloodSuckerDcv_;
-        end
-        function g = get.sessionData(this)
-            g = this.sessionData_;
         end
         function g = get.wellCounts(this)
             g = this.counts;
@@ -59,10 +55,10 @@ classdef BloodSucker < mlpet.AbstractAifData
             this.times           = this.bloodSuckerDcv_.times;
             this.fqfilename      = this.bloodSuckerDcv_.fqfilename;
             
-            dc = DecayCorrection(this);
             this = this.shiftTimes(this.aifTimeShift);
-            this = this.estimateEfficiencyFactor;            
-            this.counts_ = dc.uncorrectedCounts(this.counts_, -this.aifTimeShift);
+            this = this.estimateEfficiencyFactor;   
+            dc = DecayCorrection.factoryFor(this);         
+            this.counts_ = dc.uncorrectedActivities(this.counts_, -this.aifTimeShift);
             assert(length(this.counts) == length(this.taus), 'mlpet:arraySizeMismatch', 'Twilite.ctor');
             this.specificActivity_ = this.efficiencyFactor*this.counts./this.taus./this.visibleVolume;
         end
@@ -74,6 +70,7 @@ classdef BloodSucker < mlpet.AbstractAifData
             %% SHIFTTIMES provides time-coordinate transformation
             
             assert(isnumeric(Dt));
+            if (Dt == 0); return; end
             [this.times,this.counts_] = shiftVector(this.times, this.counts_, Dt);
             %this.scannerData_ = this.scannerData_.shiftTimes(Dt);
         end

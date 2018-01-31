@@ -45,7 +45,7 @@ classdef Test_Herscovitch1985 < matlab.unittest.TestCase
         function test_ctor(this)
             this = this.configTracer('HO');
             this.verifyClass(this.aif, 'mlpet.BloodSucker');
-            this.verifyClass(this.scanner, 'mlsiemens..EcatExactHRPlus');
+            this.verifyClass(this.scanner, 'mlsiemens.EcatExactHRPlus');
             this.verifyClass(this.testObj, 'mlpet.Herscovitch1985');
         end
         function test_plotAif(this)
@@ -144,8 +144,7 @@ classdef Test_Herscovitch1985 < matlab.unittest.TestCase
  	methods (TestClassSetup)
 		function setupHerscovitch1985(this)
             studyd = mlderdeyn.StudyDataSingleton.instance;
-            sessp = fullfile(studyd.subjectsDir, 'mm01-007_p7267_2008jun16', '');
-            sessp = sessp{1};
+            sessp = '/data/cvl/np755/mm01-007_p7267_2008jun16';
             this.sessionData = mlderdeyn.SessionData('studyData', studyd, 'sessionPath', sessp, 'tracer', '');
             setenv(upper('Test_Herscovitch1985'), '1');
             this.addTeardown(@this.teardownHerscovitch1985);
@@ -172,20 +171,23 @@ classdef Test_Herscovitch1985 < matlab.unittest.TestCase
                     this.sessionData.tracer = 'HO';
                     this.scanner = mlsiemens.EcatExactHRPlus(pic.niftid, ...
                         'sessionData', this.sessionData, ...
-                        'scannerTimeShift', this.scannerShiftHO);                    
+                        'scannerTimeShift', this.scannerShiftHO, ...
+                        'dt', 1);                    
                     this.aif = BloodSucker('scannerData', this.scanner, 'aifTimeShift', this.aifShiftHO);
                 case 'OO'
                     pic = this.sessionData.oo('typ', 'mlpet.PETImagingContext');
                     this.sessionData.tracer = 'OO';
                     this.scanner = mlsiemens.EcatExactHRPlus(pic.niftid, ...
                         'sessionData', this.sessionData, ...
-                        'scannerTimeShift', this.scannerShiftOO);                    
+                        'scannerTimeShift', this.scannerShiftOO, ...
+                        'dt', 1);                    
                     this.aif = BloodSucker('scannerData', this.scanner, 'aifTimeShift', this.aifShiftOO);
                 case 'OC'
                     pic = this.sessionData.oc('typ', 'mlpet.PETImagingContext');
                     this.sessionData.tracer = 'OC';
                     this.scanner = mlsiemens.EcatExactHRPlus(pic.niftid, ...
-                        'sessionData', this.sessionData);                    
+                        'sessionData', this.sessionData, ...
+                        'dt', 1);                    
                     this.aif = BloodSucker('scannerData', this.scanner, 'aifTimeShift', -15);
                 otherwise
                     error('mlpet:unsupportedSwitchCase', 'Test_Herscovitch1985.configTracer');
@@ -198,6 +200,7 @@ classdef Test_Herscovitch1985 < matlab.unittest.TestCase
  			this.testObj = Herscovitch1985( ...
                 'sessionData', this.sessionData, ...
                 'scanner', this.scanner, ...
+                'mask', mlfourd.ImagingContext('/data/cvl/np755/mm01-007_p7267_2008jun16/fsl/bt1_default_mask.nii.gz'), ...
                 'aif', this.aif, ...
                 'timeDuration', timeDur);
             this.testObj.ooPeakTime  = this.ooPeakTime;
