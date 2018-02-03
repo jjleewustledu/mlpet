@@ -11,7 +11,12 @@ classdef TimeSeries
  		dt
         times
         datetime0
- 	end
+        datetimeF
+    end
+    
+    properties
+        expectedBaseline = 100
+    end
 
 	methods 
         
@@ -33,27 +38,47 @@ classdef TimeSeries
             assert(isdatetime(s));
             this.datetime0_ = s;
         end
+        function g = get.datetimeF(this)
+            g = this.datetimeF_; % this.datetime0_ + seconds(this.times(end) - this.times(1));
+        end
+        function this = set.datetimeF(this, s)
+            assert(isdatetime(s));
+            this.datetimeF_ = s;
+        end
         
         %%
 		  
-        function [m,s] = baseline(this)
-            [~,idxBolusInflow] = max(this.activity > this.activity(1) + std(this.activity));
-            early = this.activity(1:idxBolusInflow-2);
+        function [m,s] = baseline(this, varargin)
+            ip = inputParser;
+            addOptional(ip, 'activity', this.activity, @isnumeric);
+            parse(ip, varargin{:});            
+            a = ip.Results.activity;
+            
+            [~,idxBolusInflow] = max(a > a(1) + std(a));
+            early = a(1:idxBolusInflow-2);
             m = mean(early);
             s = std( early);
         end
+        function [m,s] = baselineTimeReversed(this)
+            [m,s] = this.baseline(flip(this.activity));
+        end
         function bols = boluses(this)
+            %% BOLUSES have baselines removed.
             
             NSTD  = 10;
-            [m,s] = this.baseline;            
-            a     = this.activity;
-            t     = this.times;
+            [m,s] = this.baseline;
+            if (m > 2*this.expectedBaseline)
+                [m,s] = this.baselineTimeReversed;
+                assert(m < 2*this.expectedBaseline);
+            end
+            a     = this.activity - m;
+            t     = this.datetime0 + seconds(this.times);
             b     = 1;
             
-            while (max(a) > m + NSTD*s)
-                [~,bstart] = max(a > m + NSTD*s);
-                [~,deltab] = max(a(bstart:end) < m);
-                bstart  = bstart - 5;
+            while (max(a) > NSTD*s)
+                [~,bstart] = max(a > NSTD*s);
+                [~,deltab] = max(a(bstart:end) < -s);
+                %bstart  = bstart - 5;
                 bols(b) = mlpet.TimeSeries(a(bstart:bstart+deltab), t(bstart:bstart+deltab), 'dt', this.dt); %#ok<AGROW>
                 a = a(bstart+deltab+6:end);
                 t = t(bstart+deltab+6:end);
@@ -67,8 +92,26 @@ classdef TimeSeries
             end
             dt_ = this.datetime0_ + seconds(this.times);
         end
+        function bol  = findBolus(this, doseAdminDatetime)
+            %% FINDBOLUS boluses have baselines removed.
+            
+            bols = this.boluses;
+            b = 1;
+            while (b <= length(bols))
+                if (doseAdminDatetime <= bols(b).datetime0)
+                    bol = bols(b);
+                    return
+                end
+                b = b + 1;
+            end
+            error('mlpet:searchFailed', 'TimeSeries.findBolus');
+        end
         function        plot(this, varargin)
+            figure;
             plot(this.times, this.activities, varargin{:});
+            xlabel('this.times');
+            ylabel('this.activities');
+            title(['TimeSeries:  datetime0->%s, datetimeF->%s' this.datetime0 this.datetimeF], 'Interpreter', 'none');
         end
         
  		function this = TimeSeries(varargin)
@@ -92,7 +135,8 @@ classdef TimeSeries
             end
             if (isdatetime(this.times_))
                 this.datetime0_ = this.times_(1);
-                this.times_ = seconds(this.times_ - this.times_(1));
+                this.times_     = seconds(this.times_ - this.times_(1));
+                this.datetimeF_ = this.datetime0_ + seconds(this.times(end) - this.times(1));
             end
  		end
     end 
@@ -104,6 +148,7 @@ classdef TimeSeries
         dt_
         times_
         datetime0_
+        datetimeF_
     end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

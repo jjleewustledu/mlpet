@@ -31,24 +31,21 @@ classdef AbstractAifBuilder
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
-            addParameter(ip, 'scannerData', @(x) isa(x, 'mlpet.IScannerData'));
+            addParameter(ip, 'scannerData', [], @(x) isa(x, 'mlpet.IScannerData') || isempty(x));
             addParameter(ip, 'manualData',  @(x) isa(x, 'mldata.IManualMeasurements'));
             addParameter(ip, 'dtNyquist', 1, @isnumeric);
-            addParameter(ip, 'calibrationBuilder', @(x) isa(x, 'mlpet.ICalibrationBuilder'));
             parse(ip, varargin{:});
             
             this.sessionData_        = ip.Results.sessionData;
             this.scannerData_        = ip.Results.scannerData;
             this.manualData_         = ip.Results.manualData;
             this.dtNyquist_          = ip.Results.dtNyquist;
-            this.calibrationBuilder_ = ip.Results.calibrationBuilder;
  		end
     end 
     
     %% PROTECTED
     
     properties (Access = protected)
-        calibrationBuilder_
         dtNyquist_
         manualData_
         product_

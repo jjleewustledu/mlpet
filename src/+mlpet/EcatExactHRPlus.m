@@ -44,7 +44,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
         counts 
         becquerels
         isotope
-        efficiencyFactor
+        invEfficiency
         
         %% new 
        
@@ -195,7 +195,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
             error('mlpet:indeterminatePropertyValue', ...
                 'EcatExactHRPlus.guessIsotope could not recognize the isotope of %s', this.tracer);
         end  
-        function e    = get.efficiencyFactor(this)
+        function e    = get.invEfficiency(this)
             e = this.W;
         end
         

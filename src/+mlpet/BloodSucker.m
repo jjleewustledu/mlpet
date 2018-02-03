@@ -60,7 +60,7 @@ classdef BloodSucker < mlpet.AbstractAifData
             dc = DecayCorrection.factoryFor(this);         
             this.counts_ = dc.uncorrectedActivities(this.counts_, -this.aifTimeShift);
             assert(length(this.counts) == length(this.taus), 'mlpet:arraySizeMismatch', 'Twilite.ctor');
-            this.specificActivity_ = this.efficiencyFactor*this.counts./this.taus./this.visibleVolume;
+            this.specificActivity_ = this.invEfficiency*this.counts./this.taus./this.visibleVolume;
         end
         
         function save(~)
@@ -98,19 +98,19 @@ classdef BloodSucker < mlpet.AbstractAifData
             try
                 if (isempty(this.bloodSuckerDcv_.wellFactor))
                     this.bloodSuckerDcv_ = this.bloodSuckerDcv_.readdcv; end
-                this.efficiencyFactor_ = this.bloodSuckerDcv_.wellFactor;
+                this.invEfficiency_ = this.bloodSuckerDcv_.wellFactor;
             catch ME
                 handwarning(ME);
                 try
                     if (isempty(this.bloodSuckerDcv_.wellFactor))
                         this.bloodSuckerDcv_ = this.bloodSuckerDcv_.readWellFactor; end
-                    this.efficiencyFactor_ = this.bloodSuckerDcv_.wellFactor;
+                    this.invEfficiency_ = this.bloodSuckerDcv_.wellFactor;
                 catch ME1
                     handwarning(ME1);
                     try                        
                         if (isempty(this.bloodSuckerDcv_.wellFactor))
                             this.bloodSuckerDcv_ = this.bloodSuckerDcv_.readWellMatrix; end
-                        this.efficiencyFactor_ = this.bloodSuckerDcv_.wellFactor;
+                        this.invEfficiency_ = this.bloodSuckerDcv_.wellFactor;
                     catch ME2
                         handexcept(ME2);
                     end

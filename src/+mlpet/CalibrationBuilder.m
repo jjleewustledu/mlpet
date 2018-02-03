@@ -9,14 +9,16 @@ classdef CalibrationBuilder < mlpet.ICalibrationBuilder
 	properties 		
         consoleClockOffset
         doseAdminDatetime
-        efficiencyFactor
+        invEfficiency
  	end
 
 	methods 
-		  
+        function this = buildCounts(this)
+        end
+        function this = buildSpecificActivity(this)
+        end
  		function this = CalibrationBuilder(varargin)
- 			%% CALIBRATIONBUILDER
-            
+ 			%% CALIBRATIONBUILDER            
             
  		end
  	end 

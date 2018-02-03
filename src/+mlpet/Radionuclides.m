@@ -6,6 +6,10 @@ classdef Radionuclides
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.
  	
+    properties (Constant)
+        SUPPORTED_ISOTOPES = {'15O' '13N' '11C' '68Ga' '18F'}
+    end
+    
 	properties (Dependent)
         decayConstant % \alpha = log(2)/\tau_{1/2}
         halflife

@@ -8,10 +8,10 @@ classdef (Abstract) IRadiationData
  	
 	properties (Abstract)
         activity % decays/taus
-        counts % := decays/efficiencyFactor
-        decays % := efficiencyFactor*counts
+        counts % := decays/invEfficiency
+        decays % := invEfficiency*counts
         doseAdminDatetime 
-        efficiencyFactor
+        invEfficiency
         isDecayCorrected
         isotope
         sessionData
@@ -19,12 +19,12 @@ classdef (Abstract) IRadiationData
  	end
 
 	methods (Abstract)
-               activityInterpolants(this)
-               countInterpolants(this)
-               decayInterpolants(this)
-               numel(this)
-               numelMasked(this)
-               specificActivityInterpolants(this)
+        activityInterpolants(this)
+        countInterpolants(this)
+        decayInterpolants(this)
+        numel(this)
+        numelMasked(this)
+        specificActivityInterpolants(this)
     end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

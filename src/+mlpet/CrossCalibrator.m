@@ -14,7 +14,7 @@ classdef CrossCalibrator
  	end
 
 	methods 
-        function ef   = efficiencyFactor(this)
+        function ef   = invEfficiency(this)
             ef = this.reference_.calibrationMeasurement / this.toCalibrate_.calibrationMeasurement;
         end
 		  
