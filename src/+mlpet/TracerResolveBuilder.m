@@ -45,17 +45,17 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         function g = get.nFramesAC(this)
             switch (upper(this.sessionData.tracer))
                 case 'FDG'
+                    g = length(this.TAUS_FDG);
                     if (strcmp(this.sessionData.sessionFolder, 'HYGLY25'))
-                        g = 77;
+                        g = g - 8;
                         return
                     end
-                    g = 85;
                 case 'OC'
-                    g = 70;                    
+                    g = length(this.TAUS_OC);
                 case 'OO'
-                    g = 58;
+                    g = length(this.TAUS_OO);
                 case 'HO'
-                    g = 58;
+                    g = length(this.TAUS_HO);
                 otherwise
                     error('mlpet:unsupportedSwitchCase', ...
                         'TracerResolveBuilder.get.nFramesAC does not support this.sessionData.tracer->%s', ...
@@ -600,6 +600,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             
             %% create this.sessionData_.tracerRevision
             
+            this.sessionData_.frame = 0;
             aufbau = this.reconstituteFrame(this.sessionData_, 0);
             aufbau.fqfilename = this.sessionData_.tracerRevision;
             assert(4 == length(aufbau.size) && aufbau.size(4) > 0);
@@ -660,7 +661,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 bv.sif_4dfp(sd.tracerListmodeMhdr, sif_);
             end
             bv.cropfrac_4dfp(0.5, sif_, fqfp0);
-            deleteExisting([sif_ '.4dfp.*']);
+            %deleteExisting([sif_ '.4dfp.*']);
             ffp = mlfourdfp.Fourdfp.load([fqfp0 '.4dfp.ifh']);
             popd(pwd0);
             %ffp.fqfileprefix = this.sessionData_.tracerRevision('typ', 'fqfp');
