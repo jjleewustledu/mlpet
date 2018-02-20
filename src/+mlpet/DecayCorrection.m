@@ -74,11 +74,12 @@ classdef DecayCorrection < handle
                 tzero = seconds(tzero - this.client_.datetime0);                
             end
             
-            if (abs(tzero) < eps)
-                %error('mlpet:unexpectedInputValue', 'DecayCorrection.adjustActivities.tzero->%g', tzero);
-                c = ip.Results.c;
-                return
-            end
+            %% BUG DISCOVERY?
+            %if (abs(tzero) < eps)
+            %    %error('mlpet:unexpectedInputValue', 'DecayCorrection.adjustActivities.tzero->%g', tzero);
+            %    c = ip.Results.c;
+            %    return
+            %end
             c = adjustClient(this, ip.Results.c, ip.Results.sgn, tzero);
         end
         function c = correctedActivities(this, c, varargin)
