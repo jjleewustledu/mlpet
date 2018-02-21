@@ -10,7 +10,6 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
  	
 
 	properties (Constant)
-        MAX_LENGTH_EPOCH_AC = 24
         NUM_VISITS = 3
     end
     
@@ -138,7 +137,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             %  @param named distcompHost is the hostname or distcomp profile.
             
             ip = inputParser;
-            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
+            addParameter(ip, 'distcompHost', 'chpc_remote_r2016b', @ischar);
             parse(ip, varargin{:});
             
             try
@@ -248,7 +247,6 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             popd(pwd0);
         end      
         function this  = instanceConstructResolveReports(this)
-            this.builder_.maxLengthEpoch = this.MAX_LENGTH_EPOCH_AC;
             this.builder_.sessionData.attenuationCorrected = true; % KLUDGE
             this.builder_.sessionData.rnumber = 2;
             this.builder_ = this.builder_.reportResolved;
@@ -295,7 +293,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             %  @return that, an instance of mlpet.TracerDirector.
             
             ip = inputParser;
-            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
+            addParameter(ip, 'distcompHost', 'chpc_remote_r2016b', @ischar);
             parse(ip, varargin{:});
             
             try
@@ -331,6 +329,23 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                 handwarning(ME);
             end
         end        
+        function that  = instancePushToRemote(this, varargin)
+            %  INSTANCEPUSHTOREMOTE pushes everything to the remote sessionData.vLocation.
+            %  @param named distcompHost is the hostname or distcomp profile.
+            
+            ip = inputParser;
+            addParameter(ip, 'distcompHost', 'chpc_remote_r2016b', @ischar);
+            parse(ip, varargin{:});
+            
+            try
+                chpc = mlpet.CHPC4TracerDirector( ...
+                    this, 'distcompHost', ip.Results.distcompHost, 'sessionData', this.sessionData);                
+                chpc.pushData;
+                that = [];
+            catch ME
+                handwarning(ME);
+            end
+        end
         function obj   = tracerResolvedFinal(this, varargin)
             sessd = this.sessionData;
             sessd.attenuationCorrected = true;
@@ -380,7 +395,6 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             this.builder_ = this.builder_.reconstituteFramesAC;
             this.sessionData.frame = nan;
             this.builder_.sessionData.frame = nan;
-            this.builder_.maxLengthEpoch = this.MAX_LENGTH_EPOCH_AC; % must run after this.builder_.reconstituteFramesAC
             this.builder_ = this.builder_.partitionMonolith;
             this.builder_ = this.builder_.motionCorrectFrames;            
             this.builder_ = this.builder_.reconstituteFramesAC2;
@@ -410,7 +424,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             addRequired( ip, 'sessionData',  @(x) isa(x, 'function_handle'));
             addRequired( ip, 'construct',    @(x) isa(x, 'function_handle'));
             addParameter(ip, 'nArgout', 1,   @isnumeric);
-            addParameter(ip, 'distcompHost', 'chpc_remote_r2016a', @ischar);
+            addParameter(ip, 'distcompHost', 'chpc_remote_r2016b', @ischar);
             parse(ip, varargin{:});
             
             import mlpet.*;

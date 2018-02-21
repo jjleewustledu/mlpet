@@ -16,6 +16,7 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
     
     properties (Dependent)
         compositeResolveBuilder
+        maxLengthEpoch
         resolveBuilder
         roisBuilder
         vendorSupport
@@ -48,6 +49,13 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
         
         function g    = get.compositeResolveBuilder(this)
             g = this.compositeResolveBuilder_;
+        end
+        function g    = get.maxLengthEpoch(this)
+            g = this.sessionData_.maxLengthEpoch;
+        end
+        function this = set.maxLengthEpoch(this, s)
+            assert(isnumeric(s));
+            this.sessionData_.maxLengthEpoch = s;
         end
         function g    = get.resolveBuilder(this)
             g = this.resolveBuilder_;
@@ -124,10 +132,10 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             parse(ip, varargin{:});
             
             bv.lns_4dfp(this.T1('typ','fqfp'));            
-            bv.lns_4dfp(this.t2('typ','fqfp'));  
-            if (bv.lexist_4dfp(this.tof('typ','fqfp')))
-                bv.lns_4dfp(this.tof('typ','fqfp'));
-            end
+%             bv.lns_4dfp(this.t2('typ','fqfp'));  
+%             if (bv.lexist_4dfp(this.tof('typ','fqfp')))
+%                 bv.lns_4dfp(this.tof('typ','fqfp'));
+%             end
             bv.lns_4dfp(this.umapSynth('tracer', '', 'typ', 'fqfp'));
             if (~isempty(ip.Results.fourdfp))
                 ffp = ensureCell(ip.Results.fourdfp);
@@ -137,7 +145,7 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             end
             if (~isempty(ip.Results.fqfn))
                 fqfn = ensureCell(ip.Results.fqfn);
-                dprintf('mlpet.TracerBuilder.locallyStageModalities:  lns_4dfp %s', ...
+                dprintf('mlpet.TracerBuilder.locallyStageModalities:  lns %s', ...
                     cell2str(fqfn, 'AsRows', true));
                 cellfun(@(x) bv.lns(x), fqfn, 'UniformOutput', false);
             end
@@ -209,12 +217,12 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             %  @return this.product_ := [mprage '_to_' atlas '_t4'], existing in the same folder as mprage.
             
             sessd      = this.sessionData;
-            mpr        = sessd.mprage('typ', 'fp');
-            atl        = sessd.atlas('typ', 'fp');
+            mpr        = sessd.mprage('typ', 'fqfp');
+            atl        = sessd.atlas('typ', 'fqfp');
             mprToAtlT4 = [mpr '_to_' atl '_t4'];            
             if (~lexist(fullfile(sessd.mprage('typ', 'path'), mprToAtlT4)))
                 pwd0 = pushd(sessd.mprage('typ', 'path'));
-                this.compositeResolveBuilder.msktgenMprage(mpr, atl);
+                this.buildVisitor.msktgenMprage(mpr, atl);
                 popd(pwd0);
             end
             this.product_ = mprToAtlT4;

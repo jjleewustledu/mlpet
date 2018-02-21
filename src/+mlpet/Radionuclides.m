@@ -65,7 +65,8 @@ classdef Radionuclides
 
             name = lower(name);
             assert(ischar(name));
-            if (lstrfind(name,  '15o'))
+            if (lstrfind(name,  '15o') || ...
+                lstrfind(name,   'oo') || lstrfind(name, 'ho') || lstrfind(name, 'oc') || lstrfind(name, 'co'))
                 this.isotope_ = '15O';
                 return
             end

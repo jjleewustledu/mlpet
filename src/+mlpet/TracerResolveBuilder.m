@@ -8,13 +8,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.2.0.538062 (R2017a) for MACI64.  Copyright 2017 John Joowon Lee.
      
-    properties (Constant)
-        TAUS_FDG = [30,30,30,30,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60]
-        TAUS_OC = [30,30,30,30,30,30,30,30,30,30,30,30,30,30]
-        TAUS_OO = [30,30,30,30,30,30,30,30,30,30]
-        TAUS_HO = [30,30,30,30,30,30,30,30,30,30]
-    end
-    
     properties
         ctSourceFqfn % fqfilename
         f2rep
@@ -24,7 +17,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
     properties (Dependent)
         ctSourceFp
         imgblurTag
-        maxLengthEpoch
         nFramesAC
         tauFramesNAC
     end
@@ -39,55 +31,14 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         function g = get.imgblurTag(this)
             g = this.sessionData_.petPointSpread('tag_imgblur_4dfp', true);
         end
-        function g = get.maxLengthEpoch(this)
-            g = this.maxLengthEpoch_;
-        end
         function g = get.nFramesAC(this)
-            switch (upper(this.sessionData.tracer))
-                case 'FDG'
-                    g = length(this.TAUS_FDG);
-                    if (strcmp(this.sessionData.sessionFolder, 'HYGLY25'))
-                        g = g - 8;
-                        return
-                    end
-                case 'OC'
-                    g = length(this.TAUS_OC);
-                case 'OO'
-                    g = length(this.TAUS_OO);
-                case 'HO'
-                    g = length(this.TAUS_HO);
-                otherwise
-                    error('mlpet:unsupportedSwitchCase', ...
-                        'TracerResolveBuilder.get.nFramesAC does not support this.sessionData.tracer->%s', ...
-                        this.sessionData.tracer);
-            end
+            g = length(this.sessionData.taus);
         end
         function g = get.tauFramesNAC(this)
-            switch (upper(this.sessionData.tracer))
-                case 'FDG'
-                    % \Sigma\tau^{\text{nac}}_i = 3600 s; N(tau^{\text{nac}}_i) = 65                    
-                    if (strcmp(this.sessionData.sessionFolder, 'HYGLY25'))
-                        g = this.TAUS_FDG(1:57);
-                        return
-                    end
-                    g = this.TAUS_FDG;
-                case {'CO' 'OC'}
-                    g = this.TAUS_OC;
-                case {'HO' 'OH' 'OO'}
-                    g = this.TAUS_OO;
-                otherwise
-                    error('mlpet:unsupportedSwitchCase', ...
-                        'TracerResolveBuilder.get.tauFramesNAC does not support this.sessionData.tracer->%s', ...
-                        this.sessionData.tracer);
-            end
+            g = this.sessionData.taus;
             assert(~isempty(this.product));
             sizeProd = size(this.product);
             g = g(1:sizeProd(4));
-        end
-        
-        function this = set.maxLengthEpoch(this, s)
-            assert(isnumeric(s));
-            this.maxLengthEpoch_ = s;
         end
         
         %%
@@ -170,7 +121,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     [this(e),~,multiEpochOfSummed(e)] = this(e).motionCorrectFrames; 
                     % DEBUG:  execution of t4_resolve does not complete for e > 1.
                     % This appears to be over/underflow of the t4_resolve executable as of 2017nov1.
-                    % Setting mlpet.TracerDirector.MAX_LENGTH_EPOCH_AC = 24.
                 end
                 singleEpoch = multiEpochOfSummed(1);
                 singleEpoch = singleEpoch.reconstituteComposites(multiEpochOfSummed);
@@ -229,7 +179,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %          e.g., this.product := umapSynth_to_op_fdgv1e1to9r1_frame9.
             
             pwd0 = pushd(this.product_.filepath);      
-            this.locallyStageModalities('fourdfp', this.ctSourceFqfn);             
+            this.locallyStageModalities('fourdfp', myfileprefix(this.ctSourceFqfn));             
             this.sessionData_.rnumber = 1;
             bv = this.buildVisitor;
             
@@ -715,15 +665,29 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             e = supEpochs;
             sessde = sessd_;
             sessde.epoch = e;
-            pwd1 = pushd(sessde.tracerLocation);        
-            fp = sprintf('%s_op_%sr1_frame%i', sessde.tracerRevision('typ','fp'), sessde.tracerEpoch('typ','fp'), nFrames - nEpochs*this.maxLengthEpoch);
+            pwd1 = pushd(sessde.tracerLocation);      
+            remainingFrames = (e-1)*this.maxLengthEpoch+1:nFrames; % vector
+            if (1 == length(remainingFrames)) 
+                
+                % single frame remaining
+                fp = sprintf('%sr1', sessde.tracerEpoch('typ','fp'));
+                % fdgv2e11r2_op_fdgv2e11r1_frame5
+                ffp = Fourdfp.load([fp '.4dfp.ifh']);
+                ffp0.img(:,:,:,remainingFrames) = ffp.img;
+                popd(pwd1);                
+                ffp0.save;
+                popd(pwd0);
+                return
+            end
+            
+            % multi-frames remaining
+            fp = sprintf('%s_op_%sr1_frame%i', ...
+                sessde.tracerRevision('typ','fp'), sessde.tracerEpoch('typ','fp'), nFrames - nEpochs*this.maxLengthEpoch);
             % fdgv2e11r2_op_fdgv2e11r1_frame5
             ffp = Fourdfp.load([fp '.4dfp.ifh']);
-            ffp0.img(:,:,:,(e-1)*this.maxLengthEpoch+1:nFrames) = ffp.img;
-            popd(pwd1);
-            
+            ffp0.img(:,:,:,remainingFrames) = ffp.img;
+            popd(pwd1);            
             ffp0.save;
-            %fv.imgblur_4dfp(ffp0.fqfileprefix, 4.3);
             popd(pwd0);
         end
         function this = reportResolved(this)
@@ -770,23 +734,37 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             addParameter(ip, 'ctSourceFqfn', ...
                 fullfile(this.vLocation, 'ctMaskedOnT1001r2_op_T1001.4dfp.ifh'), ...
                 @(x) lexist(x, 'file'));
-            addParameter(ip, 'maxLengthEpoch', 8, @isnumeric)
             addParameter(ip, 'f2rep', [], @isnumeric);
             addParameter(ip, 'fsrc',  [], @isnumeric);
             parse(ip, varargin{:});
-            this.ctSourceFqfn    = ip.Results.ctSourceFqfn;
-            this.maxLengthEpoch_ = ip.Results.maxLengthEpoch;
+            this.ctSourceFqfn    = this.ensureExistsCtSourceFqfn(ip.Results.ctSourceFqfn);
             this.f2rep           = ip.Results.f2rep;
             this.fsrc            = ip.Results.fsrc;
             this = this.updateFinished;            
- 		end
+        end
+        function fqfn = ensureExistsCtSourceFqfn(this, fqfn)
+            %% KLUDGE
+            
+            if (~lexist(fqfn, 'file')) % missing at least one needed ctMasked*
+                
+                % copy what's available from V1
+                pwd0 = pushd(fileparts(fqfn));
+                sessd = this.sessionData;
+                sessd.vnumber = 1;
+                dt = mlsystem.DirTools(fullfile(sessd.vLocation, 'ctMasked*.4dfp.*'), ...
+                                       fullfile(sessd.vLocation, 'umapSynth_op_*.4dfp.*'));
+                for c = 1:length(dt.fqfns)
+                    copyfile(dt.fqfns{c}, 'f');
+                end
+                popd(pwd0);
+            end
+        end
     end 
     
     %% PROTECTED    
     
     properties (Access = protected)
         aComposite_ % cell array for simplicity
-        maxLengthEpoch_
         nEpochs_
     end
     

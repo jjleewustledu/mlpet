@@ -7,13 +7,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.3.0.713579 (R2017b) for MACI64.  Copyright 2018 John Joowon Lee.
  	
-    properties (Dependent)
-        
-        % mlpet.IScannerData
-        sessionData
-        
-        % new      
-        mask
+    properties (Dependent)        
     end    
     
     methods (Static)
@@ -36,104 +30,15 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             MS = 1000*str2double(decimals);
             dt = datetime(Y, M, D, H, MI, S, MS);
         end
-        function yi = pchip(x, y, xi)
-            %% PCHIP accomodates y with rank <= 4.
-            
-            lenxi = length(xi);
-            if (xi(end) < x(end) && all(x(1:lenxi) == xi))
-                switch (length(size(y)))
-                    case 2
-                        yi = y(:,1:lenxi);
-                    case 3
-                        yi = y(:,:,1:lenxi);
-                    case 4
-                        yi = y(:,:,:,1:lenxi);
-                    otherwise
-                        error('mlsiemens:unsupportedArrayShape', 'BiographMMR.pchip');
-                end
-                return
-            end
-            yi = pchip(x, y, xi);
-        end
     end
     
 	methods 
         
         %% GET, SET
         
-        % mlpet.IScannerData
-        function g    = get.sessionData(this)
-            g = this.sessionData_;
-        end
-        function this = set.sessionData(this, s)
-            assert(isa(s, 'mlpipeline.SessionData'));
-            this.sessionData_ = s;
-        end
+        %%		  
         
-        % new
-        function g    = get.mask(this)
-            g = this.mask_;
-        end
-        
-        %%
-		  
-        % mlpet.IScannerData, mldata.ITimingData
-        function ai   = activityInterpolants(this, varargin)
-            ai = this.interpolateMetric(this.activity, varargin{:});
-        end        
-        function ci   = countInterpolants(this, varargin)
-            ci = this.interpolateMetric(this.counts, varargin{:});
-        end
-        function di   = decayInterpolants(this, varargin)
-            di = this.interpolateMetric(this.decays, varargin{:});
-        end
-        function n    = numel(this)
-            n = numel(this.img);
-        end
-        function n    = numelMasked(this)
-            if (isempty(this.mask_))
-                n = this.numel;
-                return
-            end
-            if (isa(this.mask_, 'mlfourd.ImagingContext'))
-                this.mask_ = this.mask_.niftid;
-            end
-            assert(isa(this.mask_, 'mlfourd.INIfTI'));
-            n = double(sum(sum(sum(this.mask_.img)))); % sum_{x,y,z}, returning nonsingleton t in mask               
-        end
-        function this = shiftTimes(this, Dt)
-            if (0 == Dt)
-                return; 
-            end
-            if (2 == length(this.component.size))                
-                [this.times_,this.component.img] = shiftVector(this.times_, this.component.img, Dt);
-                return
-            end
-            [this.times_,this.component.img] = shiftTensor(this.times_, this.component.img, Dt);
-        end
-        function this = shiftWorldlines(this, Dt, varargin)
-            %% SHIFTWORLDLINES
-            %  @param required Dt, or \Delta t of worldline. 
-            %  Dt > 0 => event occurs at later time and further away in space; boluses are smaller and arrive later.
-            %  Dt < 0 => event occurs at earlier time and closer in space; boluses are larger and arrive earlier.
-            %  @param optional tzero sets the Lorentz coord for decay-correction and uncorrection.
-            
-            ip = inputParser;
-            addParameter(ip, 'tzero', this.time0, @isnumeric);
-            parse(ip, varargin{:});
-            
-            if (0 == Dt)
-                return; 
-            end
-            this.component.img = this.decayCorrection_.correctedActivities(this.component.img, ip.Results.tzero);
-            this = this.shiftTimes(Dt);            
-            this.component.img = this.decayCorrection_.uncorrectedActivities(this.component.img, ip.Results.tzero);
-        end
-        function sai  = specificActivityInterpolants(this, varargin)
-            sai = this.interpolateMetric(this.specificActivity);
-        end
-        
-        % borrowed from mffourd.NumericalNIfTId
+        % mlfourd.INumerical
         function this = blurred(this, varargin)
             bn = mlfourd.BlurringNIfTId(this.component);
             bn = bn.blurred(varargin{:});
@@ -186,13 +91,6 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             this.component = nn.component;
         end
         
-        % others        
-        function this = crossCalibrate(this, varargin)
-        end
-        function len  = length(this)
-            len = length(this.times);
-        end
-        
  		function this = AbstractScannerData(cmp, varargin)
  			%% ABSTRACTSCANNERDATA
 
@@ -200,7 +98,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'mask', [], @(x) isa(x, 'mlfourd.INIfTI'));
+            addParameter(ip, 'mask', [], @(x) isa(x, 'mlfourd.INIfTI') || isempty(x));
             parse(ip, varargin{:});
             this.mask_ = ip.Results.mask;
             this.decayCorrection_ = mlpet.DecayCorrection.factoryFor(this);
@@ -211,26 +109,89 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
     
     properties (Access = protected)
         decayCorrection_
-        mask_
-        sessionData_
-        timingData_
-        
         dt_
+        manualData_
+        mask_
+        sessionData_        
+        taus_
         time0_
         timeF_
-        times_
         timeMidpoints_
-        taus_
         timeInterpolants_
         timeMidpointInterpolants_
+        times_
+        timingData_
     end
     
-    methods (Access = protected)        
-        function mi = interpolateMetric(this, m, varargin)
+    methods (Access = protected)   
+        function img  = activity2counts(this, img)
+            %% BECQUERELS2PETCOUNTS; does not divide out number of pixels.
+            
+            img = double(img);
+            switch (length(size(img))) 
+                case 2
+                    img = ensureRowVector(img) .* ensureRowVector(this.taus);
+                case 3
+                    for t = 1:size(img, 3)
+                        img(:,:,t) = img(:,:,t) * this.taus(t);
+                    end
+                case 4
+                    for t = 1:size(img, 4)
+                        img(:,:,:,t) = img(:,:,:,t) * this.taus(t);
+                    end
+                otherwise
+                    error('mlsiemens:unsupportedArraySize', ...
+                          'size(AbstractScannerData.activity2counts.img) -> %s', mat2str(size(img)));
+            end
+        end
+        function img  = counts2activity(this, img)
+            %% BECQUERELS2PETCOUNTS; does not divide out number of pixels.
+            
+            img = double(img);
+            switch (length(size(img))) 
+                case 2
+                    img = ensureRowVector(img) ./ ensureRowVector(this.taus);
+                case 3
+                    for t = 1:size(img, 3)
+                        img(:,:,t) = img(:,:,t) / this.taus(t);
+                    end
+                case 4
+                    for t = 1:size(img, 4)
+                        img(:,:,:,t) = img(:,:,:,t) / this.taus(t);
+                    end
+                otherwise
+                    error('mlsiemens:unsupportedArraySize', ...
+                          'size(AbstractScannerData.counts2activity.img) -> %s', mat2str(size(img)));
+            end
+        end    
+        function mi   = interpolateMetric(this, m, varargin)
             mi = this.pchip(this.times, m, this.timeInterpolants);            
             if (~isempty(varargin))
                 mi = mi(varargin{:}); end            
-        end
+        end       
+        function sec  = manualDataClocksTimeOffsetMMRConsole(this)
+            sec = seconds(this.manualData_.clocks.TimeOffsetWrtNTS____s('mMR console'));
+        end 
+        function yi   = pchip(~, x, y, xi)
+            %% PCHIP accomodates y with rank <= 4.
+            
+            lenxi = length(xi);
+            if (xi(end) < x(end) && all(x(1:lenxi) == xi)) % xi \subset x
+                switch (length(size(y)))
+                    case 2
+                        yi = y(:,1:lenxi);
+                    case 3
+                        yi = y(:,:,1:lenxi);
+                    case 4
+                        yi = y(:,:,:,1:lenxi);
+                    otherwise
+                        error('mlsiemens:unsupportedArrayShape', 'AbstractScannerData.pchip');
+                end
+                return
+            end
+            
+            yi = pchip(x, y, xi);
+        end 
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

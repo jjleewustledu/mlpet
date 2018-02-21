@@ -374,18 +374,23 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             f = this.b3*img.^2 + this.b4*img;
         end        
         
-%         function t = ooPeakTime(~)
+%%         function t = ooPeakTime(~)
 %             % time of peak of O[15O] AIF
 %             error('mlsiemens:notImplemented', 'Herscovitch1985.ooPeakTime');
 %         end
-%         function t = ooFracTime(~)
+%%         function t = ooFracTime(~)
 %             % time of measuring H2[15O] of metabolism in plasma 
 %             error('mlsiemens:notImplemented', 'Herscovitch1985.ooFracTime');
 %         end
-%         function f = fracHOMetab(~)
+%%         function f = fracHOMetab(~)
 %             % fraction of H2[15O] in whole blood
 %             error('mlsiemens:notImplemented', 'Herscovitch1985.fracHOMetab');
 %         end
+
+         %% others
+         
+        function this = buildCalibrated(this)
+        end
  	end 
     
     methods (Abstract)

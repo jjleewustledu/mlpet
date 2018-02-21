@@ -8,13 +8,6 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.2.0.538062 (R2017a) for MACI64.  Copyright 2017 John Joowon Lee.
      
-    properties (Constant)
-        TAUS_FDG = [30,30,30,30,30,30,30,30,30,30,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60]
-        TAUS_OC = [30,30,30,30,30,30,30,30,30,30,30,30,30,30]
-        TAUS_OO = [30,30,30,30,30,30,30,30,30,30]
-        TAUS_HO = [30,30,30,30,30,30,30,30,30,30]
-    end
-    
     properties
         ctSourceFqfn % fqfilename
     end    
@@ -22,7 +15,6 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
     properties (Dependent)
         ctSourceFp
         imgblurTag
-        maxLengthEpoch
         nFramesAC
         tauFramesNAC
     end
@@ -36,9 +28,6 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
         end
         function g = get.imgblurTag(this)
             g = this.sessionData_.petPointSpread('tag_imgblur_4dfp', true);
-        end
-        function g = get.maxLengthEpoch(this)
-            g = this.maxLengthEpoch_;
         end
         function g = get.nFramesAC(this)
             switch (upper(this.sessionData.tracer))
@@ -57,25 +46,8 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
             end
         end
         function g = get.tauFramesNAC(this)
-            switch (upper(this.sessionData.tracer))
-                case 'FDG'
-                    % \Sigma\tau^{\text{nac}}_i = 3600 s; N(tau^{\text{nac}}_i) = 65
-                    g = this.TAUS_FDG;
-                case {'CO' 'OC'}
-                    g = this.TAUS_OC;
-                case {'HO' 'OH' 'OO'}
-                    g = this.TAUS_OO;
-                otherwise
-                    error('mlpet:unsupportedSwitchCase', ...
-                        'FdgResolveBuilder.get.tauFramesNAC does not support this.sessionData.tracer->%s', ...
-                        this.sessionData.tracer);
-            end
-        end
-        
-        function this = set.maxLengthEpoch(this, s)
-            assert(isnumeric(s));
-            this.maxLengthEpoch_ = s;
-        end
+            g = this.sessionData.taus;
+        end        
         
         %%
         
@@ -669,10 +641,8 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
             ip.addParameter('ctSourceFqfn', ...
                 fullfile(this.vLocation, 'ctMaskedOnT1001r2_op_T1001.4dfp.ifh'), ...
                 @(x) lexist(x, 'file'));
-            ip.addParameter('maxLengthEpoch', 8, @isnumeric)
             parse(ip, varargin{:});
             this.ctSourceFqfn = ip.Results.ctSourceFqfn;
-            this.maxLengthEpoch_ = ip.Results.maxLengthEpoch;
             this = this.updateFinished;
  		end
     end 
@@ -681,7 +651,6 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
     
     properties (Access = protected)
         aComposite_ % cell array for simplicity
-        maxLengthEpoch_
         nEpochs_
     end
     

@@ -22,31 +22,26 @@ classdef AbstractAifBuilder
 		  
  		function this = AbstractAifBuilder(varargin)
  			%% ABSTRACTAIFBUILDER
- 			%  @param sessionData
-            %  @param scannerData
-            %  @param manualData
-            %  @param dtNyquist
-            %  @param calibrationBuilder
+ 			%  @param named sessionData
+            %  @param named scannerData is an mlpet.IScannerData or empty.
+            %  @param named manualData  is an mldata.IManualMeasurements.
 
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
             addParameter(ip, 'scannerData', [], @(x) isa(x, 'mlpet.IScannerData') || isempty(x));
-            addParameter(ip, 'manualData',  @(x) isa(x, 'mldata.IManualMeasurements'));
-            addParameter(ip, 'dtNyquist', 1, @isnumeric);
-            parse(ip, varargin{:});
-            
-            this.sessionData_        = ip.Results.sessionData;
-            this.scannerData_        = ip.Results.scannerData;
-            this.manualData_         = ip.Results.manualData;
-            this.dtNyquist_          = ip.Results.dtNyquist;
+            addParameter(ip, 'manualData', [], @(x) isa(x, 'mldata.IManualMeasurements'));
+            parse(ip, varargin{:});            
+            this.sessionData_ = ip.Results.sessionData;
+            this.scannerData_ = ip.Results.scannerData;
+            this.manualData_  = ip.Results.manualData;
  		end
     end 
     
     %% PROTECTED
     
     properties (Access = protected)
-        dtNyquist_
+        calibrator_
         manualData_
         product_
         scannerData_

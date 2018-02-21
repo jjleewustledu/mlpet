@@ -7,7 +7,6 @@ classdef CalibrationBuilder < mlpet.ICalibrationBuilder
  	%% It was developed on Matlab 9.3.0.713579 (R2017b) for MACI64.  Copyright 2018 John Joowon Lee.
  	
 	properties 		
-        consoleClockOffset
         doseAdminDatetime
         invEfficiency
  	end

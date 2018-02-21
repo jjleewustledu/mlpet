@@ -62,11 +62,11 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             this.specificActivity_ = s./this.taus/this.visibleVolume;
         end
         function g    = get.doseAdminDatetime(this)
-            g = this.doseAdminDatetime_;
+            g = this.datetime0;
         end
         function this = set.doseAdminDatetime(this, s)
             assert(isa(s, 'datetime'));
-            this.doseAdminDatetime_ = s;
+            this.datetime0 = s;
             %this = this.updateActivities;
         end
         function g    = get.dt(this)
@@ -297,7 +297,6 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         calibrated_ = false;
         counts_
         decayCorrection_
-        doseAdminDatetime_
         isotope_
         manualData_
         scannerData_
@@ -316,20 +315,17 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'fqfilename', '',  @(x) lexist(x, 'file'));
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData',     @(x) isa(x, 'mlpipeline.SessionData'));
             addParameter(ip, 'scannerData', [], @(x) isa(x, 'mlpet.IScannerData') || isempty(x));
             addParameter(ip, 'manualData', [],  @(x) isa(x, 'mldata.IManualMeasurements'));
-            addParameter(ip, 'isotope', [],     @(x) ischar(x) && lstrfind(x, mlpet.Radionuclides.SUPPORTED_ISOTOPES));
-            addParameter(ip, 'doseAdminDatetime', NaT, @isdatetime);
+            addParameter(ip, 'isotope', '',     @(x) ischar(x) && lstrfind(x, mlpet.Radionuclides.SUPPORTED_ISOTOPES));
             parse(ip, varargin{:});            
-            this.fqfilename         = ip.Results.fqfilename;
-            this.sessionData_       = ip.Results.sessionData;
-            this.scannerData_       = ip.Results.scannerData;
-            this.manualData_        = ip.Results.manualData;
-            this.isotope_           = ip.Results.isotope;
-            this.doseAdminDatetime_ = ip.Results.doseAdminDatetime;
-            
-            this.decayCorrection_   = mlpet.DecayCorrection.factoryFor(this);
+            this.fqfilename       = ip.Results.fqfilename;
+            this.sessionData_     = ip.Results.sessionData;
+            this.scannerData_     = ip.Results.scannerData;
+            this.manualData_      = ip.Results.manualData;
+            this.isotope_         = ip.Results.isotope;
+            this.decayCorrection_ = mlpet.DecayCorrection.factoryFor(this);
         end
     end
 
