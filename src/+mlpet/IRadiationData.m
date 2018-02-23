@@ -20,11 +20,8 @@ classdef (Abstract) IRadiationData
 
 	methods (Abstract)
         activityInterpolants(this)
-        % buildDecayCorrected(this)
         countInterpolants(this)
         decayInterpolants(this)
-        % numel(this)
-        % numelMasked(this)
         specificActivityInterpolants(this)
     end 
 

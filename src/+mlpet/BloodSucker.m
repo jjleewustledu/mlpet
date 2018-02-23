@@ -9,7 +9,8 @@ classdef BloodSucker < mlpet.AbstractAifData
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.
 
     properties        
-        pumpRate = 5 % mL/min    
+        invEfficiency
+        pumpRate = 5 % mL/min            
     end
     
     properties (Dependent)
@@ -94,6 +95,7 @@ classdef BloodSucker < mlpet.AbstractAifData
         bloodSuckerCrv_
         bloodSuckerDcv_
         aifTimeShift_
+        timingData_
     end
     
     methods (Access = protected)

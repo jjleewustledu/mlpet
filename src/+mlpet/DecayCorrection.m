@@ -69,6 +69,10 @@ classdef DecayCorrection < handle
             addRequired(ip, 'sgn', @(x) abs(x) == 1);
             addOptional(ip, 'tzero', this.client_.time0, @(x) isnumeric(x) || isdatetime(x));
             parse(ip, varargin{:});
+            if (isempty(ip.Results.c))
+                c = ip.Results.c;
+                return
+            end
             tzero = ip.Results.tzero;
             if (isdatetime(tzero))
                 tzero = seconds(tzero - this.client_.datetime0);                

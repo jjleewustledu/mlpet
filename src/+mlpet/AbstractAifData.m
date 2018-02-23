@@ -10,48 +10,56 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.    
     
     properties
-        isDecayCorrected
         isPlasma 
     end
     
 	properties (Dependent)
+        activity % in Bq := specificActivity*voxelVolume
+        counts   % in Bq/mL := specificActivity without efficiency adjustments; native to scanner
+        decays   % in Bq*s := specificActivity*voxelVolume*tau
+        doseAdminDatetime        
+        isDecayCorrected
+        isotope    
+        specificActivity % activity/volume in Bq/mL
+        specificDecays   % decays/volume in Bq*s/mL := specificActivity*tau
         
         % IAifData        
-        datetime0 % determines datetime of this.times(1)
-        decays
-        doseAdminDatetime
- 		dt
-        index0
-        indexF
+        times
+        taus
+        timeMidpoints
         time0
         timeF
         timeDuration
-        times
-        timeMidpoints
-        taus
-        isotope        
-        counts
-        activity
+        datetime0 
+        index0
+        indexF
+ 		dt            
         
-        % new  
-        decayCorrection
-        scannerData
         sessionData
-        specificDecays % Bq*s/mL
-        specificActivity % Bq/mL
-        W
+        decayCorrection
+        W % legacy notation from Videen
     end
     
     methods
         
         %% GET, SET
         
-        function g    = get.datetime0(this)
-            g = this.timingData_.datetime0;
+        function g    = get.activity(this)
+            g = this.specificActivity_.*this.visibleVolume;
         end
-        function this = set.datetime0(this, s)
-            this.timingData_.datetime0 = s;
-            %this = this.updateActivities;
+        function this = set.activity(this, s)
+            assert(isnumeric(s));
+            s(s < 0) = 0;
+            this.specificActivity = s./this.visibleVolume;
+        end
+        function g    = get.counts(this)
+            g = this.counts_;
+        end
+        function this = set.counts(this, s)
+            assert(isnumeric(s));
+            assert(length(s) == length(this.times));
+            s(s < 0) = 0;
+            this.counts_ = s;            
         end
         function g    = get.decays(this)
             g = this.specificActivity.*this.taus*this.visibleVolume;
@@ -68,25 +76,63 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             assert(isa(s, 'datetime'));
             this.doseAdminDatetime_ = s;
             %this = this.updateActivities;
+        end        
+        function g    = get.isDecayCorrected(this)
+            g = this.isDecayCorrected_;
         end
-        function g    = get.dt(this)
-            g = this.timingData_.dt;
+        function this = set.isDecayCorrected(this, s)
+            assert(islogical(s));
+            if (this.isDecayCorrected_ == s)
+                return
+            end
+            if (this.isDecayCorrected_)  
+                this.counts_ = ...
+                    this.decayCorrection_.uncorrectedActivities(this.counts_, this.time0);
+                this.specificActivity_ = ...
+                    this.decayCorrection_.uncorrectedActivities(this.specificActivity_, this.time0);
+            else
+                this.counts_ = ...
+                    this.decayCorrection_.correctedActivities(this.counts_, this.time0);
+                this.specificActivity_ = ...
+                    this.decayCorrection_.correctedActivities(this.specificActivity_, this.time0);
+            end     
+            this.isDecayCorrected_ = s;
         end
-        function this = set.dt(this, s)
-            assert(s > 0);
-            this.timingData_.dt = s;
+        function g    = get.isotope(this)
+            if (~isempty(this.isotope_))
+                g = this.isotope_;
+                return
+            end
+            g = '';
         end
-        function g    = get.index0(this)
-            g = this.timingData_.index0;
+        function g    = get.specificActivity(this)
+            g = this.specificActivity_;
         end
-        function this = set.index0(this, s)
-            this.timingData_.index0 = s;
+        function this = set.specificActivity(this, s)
+            assert(isnumeric(s));
+            s(s < 0) = 0;
+            this.specificActivity_ = s;
         end
-        function g    = get.indexF(this)
-            g = this.timingData_.indexF;
+        function g    = get.specificDecays(this)
+            g = this.specificActivity.*this.taus;
         end
-        function this = set.indexF(this, s)
-            this.timingData_.indexF = s;
+        function this = set.specificDecays(this, s)
+            assert(isnumeric(s));
+            s(s < 0) = 0;
+            this.specificActivity_ = s./this.taus;
+        end     
+        
+        function g    = get.times(this)
+            g = this.timingData_.times;
+        end
+        function this = set.times(this, s)
+            this.timingData_.times = s;
+        end
+        function g    = get.taus(this)
+            g = this.timingData_.taus;
+        end
+        function g    = get.timeMidpoints(this)
+            g = this.timingData_.timeMidpoints;
         end
         function g    = get.time0(this)
             g = this.timingData_.time0;
@@ -106,64 +152,38 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         function this = set.timeDuration(this, s)
             this.timingData_.timeDuration = s;
         end
-        function g    = get.times(this)
-            g = this.timingData_.times;
+        function g    = get.datetime0(this)
+            g = this.timingData_.datetime0;
         end
-        function this = set.times(this, s)
-            this.timingData_.times = s;
+        function this = set.datetime0(this, s)
+            this.timingData_.datetime0 = s;
+            %this = this.updateActivities;
         end
-        function g    = get.timeMidpoints(this)
-            g = this.timingData_.timeMidpoints;
+        function g    = get.index0(this)
+            g = this.timingData_.index0;
         end
-        function g    = get.taus(this)
-            g = this.timingData_.taus;
+        function this = set.index0(this, s)
+            this.timingData_.index0 = s;
         end
-        function g    = get.isotope(this)
-            if (~isempty(this.isotope_))
-                g = this.isotope_;
-                return
-            end
-            g = '';
+        function g    = get.indexF(this)
+            g = this.timingData_.indexF;
         end
-        function g    = get.counts(this)
-            g = this.counts_;
+        function this = set.indexF(this, s)
+            this.timingData_.indexF = s;
         end
-        function this = set.counts(this, s)
-            assert(isnumeric(s));
-            assert(length(s) == length(this.times));
-            s(s < 0) = 0;
-            this.counts_ = s;            
+        function g    = get.dt(this)
+            g = this.timingData_.dt;
         end
-        function g    = get.activity(this)
-            g = this.specificActivity_.*this.visibleVolume;
-        end
-        function this = set.activity(this, s)
-            assert(isnumeric(s));
-            s(s < 0) = 0;
-            this.specificActivity = s./this.visibleVolume;
+        function this = set.dt(this, s)
+            assert(s > 0);
+            this.timingData_.dt = s;
         end
         
+        function g    = get.sessionData(this)
+            g = this.sessionData_;
+        end
         function g    = get.decayCorrection(this)
             g = this.decayCorrection_;
-        end
-        function g    = get.scannerData(this)
-            g = this.scannerData_;
-        end
-        function g    = get.specificActivity(this)
-            g = this.specificActivity_;
-        end
-        function this = set.specificActivity(this, s)
-            assert(isnumeric(s));
-            s(s < 0) = 0;
-            this.specificActivity_ = s;
-        end
-        function g    = get.specificDecays(this)
-            g = this.specificActivity.*this.taus;
-        end
-        function this = set.specificDecays(this, s)
-            assert(isnumeric(s));
-            s(s < 0) = 0;
-            this.specificActivity_ = s./this.taus;
         end
         function g    = get.W(this)
             if (isempty(this.W_))
@@ -175,10 +195,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         function this = set.W(this, s)
             assert(isnumeric(s));
             this.W_ = s;
-        end        
-        function g    = get.sessionData(this)
-            g = this.sessionData_;
-        end
+        end   
         
         %% 
                 
@@ -219,15 +236,9 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         function dt_      = datetime(this)
             dt_ = this.timingData_.datetime;
         end
-        function s        = datetime2sec(this, dt_)
-            s = this.timingData_.datetime2sec(dt_);
-        end
         function di       = decayInterpolants(this)
             di = [];
         end      
-        function dt       = sec2datetime(this, s)
-            dt = this.timingData_.sec2datetime(s);
-        end
         function this     = shiftTimes(this, Dt)
             if (Dt == 0)
                 return
@@ -298,12 +309,14 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         counts_
         decayCorrection_
         doseAdminDatetime_
+        isDecayCorrected_
         isotope_
-        manualData_
-        scannerData_
         sessionData_
         specificActivity_
-        W_
+        W_        
+        
+        manualData_
+        scannerData_
     end  
     
     methods (Access = protected)            

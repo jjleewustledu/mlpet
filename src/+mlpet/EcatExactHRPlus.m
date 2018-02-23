@@ -50,7 +50,6 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
        
         hdrinfoFqfilename
         mask
-        nPixels
         pie
         recFqfilename
         scannerTimeShift
@@ -214,15 +213,6 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
         function m   = get.mask(this)
             m = this.mask_;
         end
-        function n   = get.nPixels(this)
-            if (isempty(this.mask_))
-                n = prod(this.component.size(1:3));
-            else
-                assert(1 == max(max(max(this.mask_.img))));
-                assert(0 == min(min(min(this.mask_.img))));
-                n = sum(sum(sum(this.mask_.img)));
-            end
-        end  
         function p   = get.pie(this)
             assert(isnumeric(this.pie_) && ~isempty(this.pie_));
             p = this.pie_;

@@ -7,7 +7,22 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.3.0.713579 (R2017b) for MACI64.  Copyright 2018 John Joowon Lee.
  	
-    properties (Dependent)        
+    properties (Dependent)
+        times
+        taus  
+        timeMidpoints
+        time0
+        timeF
+        timeDuration
+        datetime0
+        index0
+        indexF 
+        dt
+        
+        sessionData     
+        decayCorrection
+        doseAdminDatetime
+        W % legacy notation from Videen
     end    
     
     methods (Static)
@@ -36,11 +51,107 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         
         %% GET, SET
         
-        %%		  
+        % IAifData
+        function g    = get.times(this)
+            g = this.timingData_.times;
+        end 
+        function g    = get.taus(this)
+            g = this.timingData_.taus;
+        end 
+        function g    = get.timeMidpoints(this)
+            g = this.timingData_.timeMidpoints;
+        end
+        function g    = get.time0(this)
+            g = this.timingData_.time0;
+        end
+        function this = set.time0(this, s)
+            this.timingData_.time0 = s;
+        end
+        function g    = get.timeF(this)
+            g = this.timingData_.timeF;
+        end
+        function this = set.timeF(this, s)
+            this.timingData_.timeF = s;
+        end
+        function g    = get.timeDuration(this)
+            g = this.timingData_.timeDuration;
+        end
+        function this = set.timeDuration(this, s)
+            this.timingData_.timeDuration = s;
+        end
+        function g    = get.datetime0(this)
+            g = this.timingData_.datetime0;
+        end
+        function this = set.datetime0(this, s)
+            assert(isdatetime(s));
+            this.timingData_.datetime0 = s;
+        end
+        function g    = get.index0(this)
+            g = this.timingData_.index0;
+        end
+        function this = set.index0(this, s)
+            this.timingData_.index0 = s;
+        end
+        function g    = get.indexF(this)
+            g = this.timingData_.indexF;
+        end
+        function this = set.indexF(this, s)
+            this.timingData_.indexF = s;
+       end
+        function g    = get.dt(this)
+            g = this.timingData_.dt;
+        end
+        function this = set.dt(this, s)
+            this.timingData_.dt = s;
+        end
+        
+        function g    = get.sessionData(this)
+            g = this.sessionData_;
+        end
+        function this = set.sessionData(this, s)
+            assert(isa(s, 'mlpipeline.SessionData'));
+            this.sessionData_ = s;
+        end
+        function g    = get.decayCorrection(this)
+            g = this.decayCorrection_;
+        end
+        function g    = get.doseAdminDatetime(this)
+            g = this.doseAdminDatetime_;
+        end
+        function this = set.doseAdminDatetime(this, s)
+            assert(isa(s, 'datetime'));
+            if (isempty(s.TimeZone))
+                s.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
+            end
+            this.doseAdminDatetime_ = s;
+        end
+        function g    = get.W(this)
+            if (isempty(this.W_))
+                g = this.invEfficiency;
+                return
+            end
+            g = this.W_;
+        end  
+        function this = set.W(this, s)
+            assert(isnumeric(s));
+            this.W_ = s;
+        end  
+
+        %%        
+        
+        function dt_  = datetime(this)
+            dt_ = this.timingData_.datetime;
+        end
+        function [t,this] = timeInterpolants(this, varargin)
+            [t,this] = this.timingData_.timeInterpolants(varargin{:});
+        end
+        function [t,this] = timeMidpointInterpolants(this, varargin)
+            [t,this] = this.timingData_.timeMidpointInterpolants(varargin{:});
+        end    
         
         % mlfourd.INumerical
         function this = blurred(this, varargin)
-            bn = mlfourd.BlurringNIfTId(this.component);
+            bn = mlfourd.NumericalNIfTId(this.component);
             bn = bn.blurred(varargin{:});
             this.component = bn.component;
         end     
@@ -64,7 +175,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             nn = mlfourd.NumericalNIfTId(this.component); 
             nn = nn.timeContracted(varargin{:});
             this.component = nn.component;
-        end
+        end        
         function this = timeSummed(this, varargin)
             nn = mlfourd.NumericalNIfTId(this.component); 
             nn = nn.timeSummed(varargin{:});
@@ -80,6 +191,11 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             nn = nn.uthreshp(varargin{:});
             this.component = nn.component;
         end
+        function this = volumeAveraged(this, varargin)
+            nn = mlfourd.NumericalNIfTId(this.component); 
+            nn = nn.volumeAveraged(varargin{:});
+            this.component = nn.component;
+        end
         function this = volumeContracted(this, varargin)
             nn = mlfourd.NumericalNIfTId(this.component); 
             nn = nn.volumeContracted(varargin{:});
@@ -93,14 +209,29 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         
  		function this = AbstractScannerData(cmp, varargin)
  			%% ABSTRACTSCANNERDATA
+            %  @param named manualData is required
+            %  @param named sessionData is required
 
  			this = this@mlfourd.NIfTIdecoratorProperties(cmp);
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'mask', [], @(x) isa(x, 'mlfourd.INIfTI') || isempty(x));
+            addParameter(ip, 'manualData',  [], @(x) isa(x, 'mldata.IManualMeasurements'));
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
+            addParameter(ip, 'doseAdminDatetime', NaT, @(x) isa(x, 'datetime'));
+            addParameter(ip, 'invEfficiency', 1.155, @isnumeric); % from HYGLY28/V2
+            addParameter(ip, 'mask', this.ones, @(x) isa(x, 'mlfourd.INIfTI'));
             parse(ip, varargin{:});
+            this.manualData_ = ip.Results.manualData;
+            this.sessionData_ = ip.Results.sessionData;
+            this.doseAdminDatetime_ = ip.Results.doseAdminDatetime;
+            if (isempty(this.doseAdminDatetime_.TimeZone))
+                this.doseAdminDatetime_.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
+            end
+            this.invEfficiency_ = ip.Results.invEfficiency;
             this.mask_ = ip.Results.mask;
+            
+            this = this.createTimingData;
             this.decayCorrection_ = mlpet.DecayCorrection.factoryFor(this);
  		end
  	end 
@@ -109,7 +240,10 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
     
     properties (Access = protected)
         decayCorrection_
+        doseAdminDatetime_
+        isDecayCorrected_
         dt_
+        invEfficiency_
         manualData_
         mask_
         sessionData_        
@@ -121,9 +255,30 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         timeMidpointInterpolants_
         times_
         timingData_
+        W_
     end
     
-    methods (Access = protected)   
+    methods (Access = protected)
+        function this = createTimingData(this)
+            this.timingData_ = mldata.TimingData( ...
+                'times',     this.sessionData.times, ...
+                'datetime0', this.sessionData.readDatetime0 - this.manualDataClocksTimeOffsetMMRConsole);
+            if (length(size(this)) < 4)
+                return
+            end
+            if (size(this, 4) == length(this.times))
+                return
+            end
+            if (size(this, 4) < length(this.times)) % trim this.times
+                this.times = this.times(1:size(this, 4));
+            end
+            if (length(this.times) < size(this, 4)) % trim this.img
+                this.img = this.img(:,:,:,1:length(this.times));
+            end
+            warning('mlpet:unexpectedNumel', ...
+                'AbstractScannerData.createTiminData:  this.times->%i but size(this,4)->%i', ...
+                length(this.times), size(this, 4));
+        end
         function img  = activity2counts(this, img)
             %% BECQUERELS2PETCOUNTS; does not divide out number of pixels.
             
