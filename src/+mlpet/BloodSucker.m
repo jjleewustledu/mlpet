@@ -48,8 +48,8 @@ classdef BloodSucker < mlpet.AbstractAifData
             import mlpet.*;
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'bloodSuckerCrv', CRV(this.scannerData_.sessionData.crv('typ','fqfn')), @(x) lexist(x, 'file'));
-            addParameter(ip, 'bloodSuckerDcv', DCV(this.scannerData_.sessionData.dcv('typ','fqfn')), @(x) lexist(x, 'file'));
+            addParameter(ip, 'bloodSuckerCrv', CRV(this.scannerData.sessionData.crv('typ','fqfn')), @(x) lexist(x, 'file'));
+            addParameter(ip, 'bloodSuckerDcv', DCV(this.scannerData.sessionData.dcv('typ','fqfn')), @(x) lexist(x, 'file'));
             addParameter(ip, 'aifTimeShift',   0, @isnumeric);
             parse(ip, varargin{:});            
             this.bloodSuckerCrv_ = ip.Results.bloodSuckerCrv;
@@ -57,7 +57,11 @@ classdef BloodSucker < mlpet.AbstractAifData
             this.aifTimeShift_   = ip.Results.aifTimeShift;
             this.counts_         = this.bloodSuckerDcv_.counts;
             this.times           = this.bloodSuckerDcv_.times;
-            this.fqfilename      = this.bloodSuckerDcv_.fqfilename;
+            this.fqfilename      = this.bloodSuckerDcv_.fqfilename;            
+            
+            this.timingData_ = mldata.TimingData( ...
+                'times', this.bloodSuckerDcv_.times, ...
+                'dt', 1); 
             
             this = this.shiftTimes(this.aifTimeShift);
             this = this.estimateEfficiencyFactor;   
@@ -76,7 +80,7 @@ classdef BloodSucker < mlpet.AbstractAifData
             assert(isnumeric(Dt));
             if (Dt == 0); return; end
             [this.times,this.counts_] = shiftVector(this.times, this.counts_, Dt);
-            %this.scannerData_ = this.scannerData_.shiftTimes(Dt);
+            %this.scannerData_ = this.scannerData.shiftTimes(Dt);
         end
         function wc   = wellCountInterpolants(this, varargin)
             wc = this.countInterpolants(varargin{:});
@@ -103,19 +107,19 @@ classdef BloodSucker < mlpet.AbstractAifData
             try
                 if (isempty(this.bloodSuckerDcv_.wellFactor))
                     this.bloodSuckerDcv_ = this.bloodSuckerDcv_.readdcv; end
-                this.invEfficiency_ = this.bloodSuckerDcv_.wellFactor;
+                this.invEfficiency = this.bloodSuckerDcv_.wellFactor;
             catch ME
                 handwarning(ME);
                 try
                     if (isempty(this.bloodSuckerDcv_.wellFactor))
                         this.bloodSuckerDcv_ = this.bloodSuckerDcv_.readWellFactor; end
-                    this.invEfficiency_ = this.bloodSuckerDcv_.wellFactor;
+                    this.invEfficiency = this.bloodSuckerDcv_.wellFactor;
                 catch ME1
                     handwarning(ME1);
                     try                        
                         if (isempty(this.bloodSuckerDcv_.wellFactor))
                             this.bloodSuckerDcv_ = this.bloodSuckerDcv_.readWellMatrix; end
-                        this.invEfficiency_ = this.bloodSuckerDcv_.wellFactor;
+                        this.invEfficiency = this.bloodSuckerDcv_.wellFactor;
                     catch ME2
                         handexcept(ME2);
                     end

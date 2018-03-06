@@ -159,6 +159,8 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             %  @result ready-to-use t4 transformation files named {T1001,brainmask,wmparc}r1r2_to_op_fdgv1r1_t4 
             %  aligned to this.tracerResolvedTarget.
             
+            bv = this.builder_.buildVisitor;
+            
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'target', '', @ischar);
@@ -167,24 +169,62 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             
             this.builder_ = this.builder_.packageProduct(ic);
             pwd0 = pushd(ic.filepath);
-            this.builder_.locallyStageBrainmasks;
-            this.builder_.buildVisitor.lns_4dfp(this.sessionData.T1001('typ','fqfp'));
-            this.builder_.buildVisitor.lns_4dfp(this.sessionData.(this.anatomy)('typ','fp'));
+            anatomies = {'brainmask' 'aparcA2009sAseg' 'aparcAseg' 'wmparc' 'T1001'};
+            for a = 1:length(anatomies)
+                bv.ensureLocalFourdfp(this.sessionData.(anatomies{a}));
+            end
+            bv.ensureLocalFourdfp(this.sessionData.(this.anatomy));            
             this.builder_ = this.builder_.resolveModalitiesToTracer( ...
                 {this.sessionData.(this.anatomy)('typ','fp')}, 'tag2', this.anatomy, varargin{:});
             
+            %  TODO:  refactor with localTracerResolvedFinal[Sumt]
+            esf = @mlfourdfp.FourdfpVisitor.ensureSafeFileprefix;
             cRB = this.builder_.compositeResolveBuilder;
-            ancillary = {'T1001' 'aparcAseg' 'wmparc'};
-            for a = 1:length(ancillary)
-                cRB.t4img_4dfp( ...
-                   sprintf('%sr0_to_%s_t4', this.sessionData.(this.anatomy)('typ','fp'), cRB.resolveTag), ...
-                   this.sessionData.(ancillary{a})('typ','fp'), ...
-                   'out', [this.sessionData.(ancillary{a})('typ','fp') '_' cRB.resolveTag], ...
-                   'options', sprintf('-n -O%s', ic.fileprefix));
+            t4  = sprintf('%sr0_to_%s_t4', this.sessionData.(this.anatomy)('typ','fp'), cRB.resolveTag);
+            for a = 1:length(anatomies)
+                outfile = esf([this.sessionData.(anatomies{a})('typ','fp') '_' cRB.resolveTag]);
+                if (~lexist_4dfp(outfile))
+                    cRB.t4img_4dfp( ...
+                       t4, ...
+                       esf(this.sessionData.(anatomies{a})('typ','fp')), ...
+                       'out', outfile, ...
+                       'options', sprintf('-n -O%s', ic.fileprefix));
+                end
             end
             %this.builder_.compositeResolveBuilder = cRB;
             deleteExisting('*_b15.4dfp.*');
             popd(pwd0);
+        end
+        function this  = instanceConstructCompositeResolved(this, varargin)
+            %% INSTANCECONSTRUCTCOMPOSITERESOLVED
+            %  @param named target is the filename of a target, recognizable by mlfourd.ImagingContext.ctor;
+            %  the default target is this.tracerResolvedFinal('epoch', this.sessionData.epoch) for FDG;
+            %  see also TracerDirector.tracerResolvedTarget.
+            %  @param this.anatomy is char; it is the sessionData function-name for anatomy in the space of
+            %  this.sessionData.T1; e.g., 'T1', 'T1001', 'brainmask'.
+            %  @result ready-to-use t4 transformation files aligned to this.tracerResolvedTarget.
+            
+            bv = this.builder_.buildVisitor;
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'target', '', @ischar);
+            parse(ip, varargin{:});
+            [~,icTarg] = this.tracerResolvedTarget('target', ip.Results.target, 'tracer', 'FDG');   
+            
+            pwd0 = pushd(this.sessionData.vLocation);         
+            bv.lns_4dfp(icTarg.fqfileprefix);
+            icTarg.filepath = pwd;
+            this.builder_ = this.builder_.packageProduct(icTarg); % build everything resolved to FDG
+            bv.ensureLocalFourdfp(this.sessionData.T1001);
+            bv.ensureLocalFourdfp(this.sessionData.(this.anatomy));  
+            this.builder_ = this.builder_.resolveModalitiesToTracer( ...
+                this.localTracerResolvedFinalSumt, varargin{:});            
+            
+            cRB = this.builder_.compositeResolveBuilder;
+            this.localTracerResolvedFinal(cRB, icTarg);            
+            deleteExisting('*_b15.4dfp.*');
+            popd(pwd0);            
         end
         function this  = instanceConstructExports(this, varargin)
             %% INSTANCECONSTRUCTEXPORTS creates symbolic links of useful results in directory named export.
@@ -225,6 +265,11 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             end
             this = this.instanceConstructResolvedAC;
         end
+        function this  = instanceConstructResolveReports(this)
+            this.builder_.sessionData.attenuationCorrected = true; % KLUDGE
+            this.builder_.sessionData.rnumber = 2;
+            this.builder_ = this.builder_.reportResolved;
+        end
         function [this,aab] = instanceConstructResolvedRois(this, varargin)
             %% INSTANCERESOLVEROISTOTRACER
             %  @param named 'roisBuilder' is an 'mlrois.IRoisBuilder'
@@ -246,11 +291,6 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             aab = bmb.aparcAsegBinarized(ct4rb);
             popd(pwd0);
         end      
-        function this  = instanceConstructResolveReports(this)
-            this.builder_.sessionData.attenuationCorrected = true; % KLUDGE
-            this.builder_.sessionData.rnumber = 2;
-            this.builder_ = this.builder_.reportResolved;
-        end
         function this  = instanceConstructResolvedTof(this, varargin)
             [~,ic] = this.tracerResolvedTarget(varargin{:});
             this.builder_ = this.builder_.packageProduct(ic);
@@ -321,6 +361,10 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             try
                 s = []; r = '';
                 [s,r] = CHPC.rsync( ...
+                    fullfile(csessd.vLocation, ip.Results.pattern), ...
+                    sessd.vLocation, ...
+                    'chpcIsSource', true);
+                [s,r] = CHPC.rsync( ...
                     fullfile(csessd.tracerLocation, ip.Results.pattern), ...
                     sessd.tracerLocation, ...
                     'chpcIsSource', true); %#ok<ASGLU>
@@ -346,6 +390,10 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                 handwarning(ME);
             end
         end
+        function this  = instanceTestLaunching(this, varargin)
+            ls(this.sessionData.tracerLocation)
+            this.result_ = ls(this.sessionData.tracerLocation);
+        end
         function obj   = tracerResolvedFinal(this, varargin)
             sessd = this.sessionData;
             sessd.attenuationCorrected = true;
@@ -355,10 +403,12 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
         function [obj,ic] = tracerResolvedTarget(this, varargin)
             %  @param named target is the filename of a target, recognizable by mlfourd.ImagingContext.ctor;
             %  the default target is this.tracerResolvedFinal('epoch', this.sessionData.epoch).
+            %  @param named tracer is an alternative tracer for the target
             
             ip = inputParser;
             ip.KeepUnmatched;
             addParameter(ip, 'target', '', @ischar);
+            addParameter(ip, 'tracer', this.sessionData.tracer, @ischar);
             parse(ip, varargin{:});
             import mlfourd.*;
             
@@ -369,6 +419,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             end
             
             sessd = this.sessionData;
+            sessd.tracer = ip.Results.tracer;
             sessd.attenuationCorrected = true;
             sessd.rnumber = 2;
             obj = sessd.tracerResolvedFinalSumt;   
@@ -384,8 +435,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             ic = ic.timeSummed;
             ic.fourdfp;
             ic.save;
-        end  
-        
+        end          
     end
     
     %% PRIVATE
@@ -407,6 +457,62 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             reconstitutedSummed = reconstitutedSummed.motionCorrectCTAndUmap;             
             this.builder_       = reconstitutedSummed.motionUncorrectUmap(multiEpochOfSummed);
             this.builder_       = this.builder_.createUmapSynthFull;
+        end
+        function c     = localTracerResolvedFinalSumt(this)  
+            %  TODO:  refactor with localTracerResolvedFinal
+            
+            fv = mlfourdfp.FourdfpVisitor;
+            sd = this.sessionData;
+            tr = {'OC' 'OO' 'HO'};
+            sc = 1:3;
+            
+            c = {};
+            for it = 1:length(tr)
+                for is = sc
+                    sd.tracer = tr{it};
+                    sd.snumber = is;
+                    if (lexist(sd.tracerResolvedFinal, 'file'))
+                        if (lexist(sd.tracerResolvedFinalSumt, 'file'))
+                            fv.copyfile_4dfp(sd.tracerResolvedFinalSumt('typ','fqfp'));
+                        else
+                            nn = mlfourd.NumericalNIfTId.load(sd.tracerResolvedFinal);
+                            nn = nn.timeSummed;
+                            nn.filesuffix = '.4dfp.ifh';
+                            nn.filepath = pwd;
+                            nn.save;
+                        end
+                        c = [c      {sd.tracerResolvedFinalSumt('typ','fp')}]; %#ok<AGROW>
+                    end
+                end
+            end
+            assert(~isempty(c));
+        end
+        function c     = localTracerResolvedFinal(this, cRB, icTarg)
+            %  TODO:  refactor with localTracerResolvedFinalSumt
+            
+            assert(isa(cRB, 'mlfourdfp.CompositeT4ResolveBuilder'));
+            assert(lexist_4dfp(icTarg.fileprefix));
+            sd = this.sessionData;
+            tr = {'OC' 'OO' 'HO'};
+            sc = 1:3;     
+            
+            c = {};
+            for it = 1:length(tr)
+                for is = sc
+                    sd.tracer = tr{it};
+                    sd.snumber = is;
+                    t4 = sprintf('%sr0_to_%s_t4', sd.tracerResolvedFinalSumt('typ','fp'), cRB.resolveTag);
+                    outfile = sd.tracerResolvedFinalOpFdg('typ','fp');
+                    if (lexist(strrep(t4,'r0','r2'), 'file') && ~lexist_4dfp(outfile))
+                        cRB.t4img_4dfp( ...
+                           t4, ...
+                           sd.tracerResolvedFinal('typ','fp'), ...
+                           'out', outfile, ...
+                           'options', sprintf('-n -O%s', icTarg.fileprefix));
+                       c = [c outfile]; %#ok<AGROW>
+                    end
+                end
+            end
         end
     end
     

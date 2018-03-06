@@ -22,15 +22,13 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
     
     properties (Dependent)
         
-        %% IWellData
-        
+        % mlpet.IWellData        
         scanIndex % integer, e.g., last char in 'p1234ho1'
         tracer % char, e.g., 'ho'
         scanDuration % sec   
         header
         
-        %% IScannerData
-        
+        % mlpet.IScannerData        
         sessionData
         datetime0
         doseAdminDatetime  
@@ -60,11 +58,23 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
         wellCounts      
         W
     end 
+    
+    methods (Static)
+        function this = load(varargin)
+            this = mlpet.EcatExactHRPlus(mlfourd.NIfTId.load(varargin{:}));
+        end
+        function this = loadSession(sessd, varargin)
+            this = mlpet.EcatExactHRPlus.load(varargin{:});
+            assert(isa(sessd, 'mlpipeline.ISessionData'))
+            this.sessionData_ = sessd;
+        end
+    end
 
-    methods %% GET
+    methods     
         
-        %% IWellData
+        %% GET, SET
         
+        % mlpet.IWellData        
         function idx  = get.scanIndex(this)
             names = regexp(this.component.fileprefix, mlpet.PETIO.SCAN_INDEX_EXPR, 'names');
             idx = str2double(names.idx);
@@ -86,8 +96,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
                 this.header_ = h; end            
         end        
         
-        %% IScannerData
-        
+        % mlpet.IScannerData        
         function g    = get.sessionData(this)
             g = this.sessionData_;
         end
@@ -195,10 +204,8 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
                 'EcatExactHRPlus.guessIsotope could not recognize the isotope of %s', this.tracer);
         end  
         function e    = get.invEfficiency(this)
-            e = this.W;
+            e = 60*this.dt*this.pie;
         end
-        
-        %% new
         
         function fn  = get.hdrinfoFqfilename(this)
             pnum = str2pnum(this.component.fileprefix);
@@ -256,44 +263,10 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
             end
         end      
         function w   = get.W(this)
-            w = 60*this.dt*this.pie;
+            w = this.invEfficiency;
         end
-    end
     
-    methods (Static)
-        function this = load(varargin)
-            this = mlpet.EcatExactHRPlus(mlfourd.NIfTId.load(varargin{:}));
-        end
-        function this = loadSession(sessd, varargin)
-            this = mlpet.EcatExactHRPlus.load(varargin{:});
-            assert(isa(sessd, 'mlpipeline.ISessionData'))
-            this.sessionData_ = sessd;
-        end
-    end
-    
-	methods
- 		function this = EcatExactHRPlus(cmp, varargin)
-            assert(isa(cmp, 'mlfourd.INIfTI'));
-            this = this@mlfourd.NIfTIdecoratorProperties(cmp);
-            if (nargin == 1 && isa(cmp, 'mlpet.EcatExactHRPlus'))
-                this = this.component;
-                return
-            end
-            
-            ip = inputParser;
-            addParameter(ip, 'sessionData', []);
-            addParameter(ip, 'scannerTimeShift', 0, @isnumeric);
-            parse(ip, varargin{:});
-            this.sessionData_ = ip.Results.sessionData;
-            this.scannerTimeShift_ = ip.Results.scannerTimeShift;
-            
-            this = this.append_descrip('decorated by EcatExactHRPlus');   
-            this = this.readRec;
-            this = this.readWellMatrix; 
-            this = this.setTimeMidpoints;
-            this = this.readPie;
-            this = this.shiftTimes(this.scannerTimeShift);
-        end 
+        %%
         
         function len  = length(this)
             len = length(this.times);
@@ -362,6 +335,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
                 c = c(varargin{:}); end
         end        
             
+        % borrowed from mlfourd.NumericalNIfTId
         function this = blurred(this, blur)
             bl = mlfourd.BlurringNIfTId(this.component);
             bl = bl.blurred(blur);
@@ -407,8 +381,34 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
             
             if (~isempty(varargin))
                 wc = wc(varargin{:}); end
-        end  
-
+        end          
+        
+ 		function this = EcatExactHRPlus(cmp, varargin)
+            assert(isa(cmp, 'mlfourd.INIfTI'));
+            this = this@mlfourd.NIfTIdecoratorProperties(cmp);
+            if (nargin == 1 && isa(cmp, 'mlpet.EcatExactHRPlus'))
+                this = this.component;
+                return
+            end
+            
+            ip = inputParser;
+            addParameter(ip, 'sessionData', []);
+            addParameter(ip, 'scannerTimeShift', 0, @isnumeric);
+            addParameter(ip, 'mask', this.ones, @(x) isa(x, 'mlfourd.INIfTI'));
+            addParameter(ip, 'dt', 1, @isnumeric);
+            parse(ip, varargin{:});
+            this.sessionData_ = ip.Results.sessionData;
+            this.scannerTimeShift_ = ip.Results.scannerTimeShift;
+            this.mask_ = ip.Results.mask;
+            this.dt_ = ip.Results.dt;
+            
+            this = this.append_descrip('decorated by EcatExactHRPlus');   
+            this = this.readRec;
+            this = this.readWellMatrix; 
+            this = this.setTimeMidpoints;
+            this = this.readPie;
+            this = this.shiftTimes(this.scannerTimeShift);
+        end
  	end     
     
     %% PROTECTED

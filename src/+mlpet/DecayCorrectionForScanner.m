@@ -23,11 +23,11 @@ classdef DecayCorrectionForScanner < mlpet.DecayCorrection
             times = this.client_.times - tzero;
             switch (length(size(c)))
                 case 2
-                    c = c.*exp(sgn*this.decayConstant*times);
-                case 3
-                    for t = 1:size(c,3)
-                        c(:,:,t) = c(:,:,t).*exp(sgn*this.decayConstant*times(t));
+                    if (isvector(c))
+                        c = c.*exp(sgn*this.decayConstant*times);
                     end
+                case 3
+                        c = c*exp(sgn*this.decayConstant*times(1));
                 case 4
                     for t = 1:size(c,4)
                         c(:,:,:,t) = c(:,:,:,t).*exp(sgn*this.decayConstant*times(t));

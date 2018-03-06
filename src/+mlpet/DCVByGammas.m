@@ -253,7 +253,8 @@ classdef DCVByGammas < mlbayesian.AbstractMcmcProblem
         dcv_
         kernel_
         kernelRange_ = 1:120 %12:40
-        kernelBestFilename_ = '/Users/jjlee/MATLAB-Drive/mlpet/data/bsrf120_id1.mat'
+        kernelBestFilename_ = fullfile(getenv('HOME'), 'MATLAB-Drive/mlarbelaez/src/+mlarbelaez/kernelBest.mat')
+                             %'/Users/jjlee/MATLAB-Drive/mlpet/data/bsrf120_id1.mat'
                              %'/Volumes/SeagateBP3/cvl/np755/Training/bsrf120_id1.mat'
                              %'/Volumes/InnominateHD2/Arbelaez/GluT/p8425/scan1/bsrf120.mat'
                              %'/Users/jjlee/MATLAB-Drive/mlarbelaez/src/+mlarbelaez/kernelBest.mat'

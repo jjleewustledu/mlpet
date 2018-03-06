@@ -34,9 +34,12 @@ classdef MultiBolusData < mldata.TimingData
             parse(ip, varargin{:});
             
             [m,s] = this.baselineTimeForward(varargin{:});
-            if (m > 2*ip.Results.expectedBaseline)
-                [m,s] = this.baselineTimeReversed;
-                assert(m < 2*ip.Results.expectedBaseline);
+            if (m > 2*ip.Results.expectedBaseline + 5*s)
+                [m_,s_] = this.baselineTimeReversed;
+                if (m_ < 2*ip.Results.expectedBaseline + 5*s_)
+                    m = m_;
+                    s = s_;
+                end
             end
         end
         function [m,s] = baselineTimeForward(this, varargin)

@@ -33,10 +33,11 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         datetime0 
         index0
         indexF
- 		dt            
+ 		dt
         
-        sessionData
         decayCorrection
+        sessionData
+        tracer
         W % legacy notation from Videen
     end
     
@@ -101,6 +102,10 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         function g    = get.isotope(this)
             if (~isempty(this.isotope_))
                 g = this.isotope_;
+                return
+            end
+            if (~isempty(this.sessionData))
+                g = this.sessionData.isotope;
                 return
             end
             g = '';
@@ -179,22 +184,20 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             this.timingData_.dt = s;
         end
         
-        function g    = get.sessionData(this)
-            g = this.sessionData_;
-        end
         function g    = get.decayCorrection(this)
             g = this.decayCorrection_;
         end
+        function g    = get.sessionData(this)
+            g = this.sessionData_;
+        end
+        function g    = get.tracer(this)
+            g = this.sessionData.tracer;
+        end
         function g    = get.W(this)
-            if (isempty(this.W_))
-                g = this.invEfficiency;
-                return
-            end
-            g = this.W_;
+            g = this.invEfficiency;
         end  
         function this = set.W(this, s)
-            assert(isnumeric(s));
-            this.W_ = s;
+            this.invEfficiency = s;
         end   
         
         %% 
@@ -238,7 +241,19 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         end
         function di       = decayInterpolants(this)
             di = [];
-        end      
+        end    
+        function this     = setTime0ToInflow(this)
+            aif = this;
+            [~,idx0] = max(aif.specificActivity > std(aif.specificActivity));
+            if (idx0 > 1)
+                idx0 = idx0 - 1;
+            end
+            this.index0 = idx0;
+            if (strcmp(this.sessionData.tracer, 'OC') || strcmp(this.sessionData.tracer, 'CO'))
+                this.time0 = this.time0 + 120;
+                return
+            end
+        end  
         function this     = shiftTimes(this, Dt)
             if (Dt == 0)
                 return
@@ -313,7 +328,6 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         isotope_
         sessionData_
         specificActivity_
-        W_        
         
         manualData_
         scannerData_
@@ -330,20 +344,26 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             ip.KeepUnmatched = true;
             addParameter(ip, 'fqfilename', '',  @(x) lexist(x, 'file'));
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
-            addParameter(ip, 'scannerData', [], @(x) isa(x, 'mlpet.IScannerData') || isempty(x));
             addParameter(ip, 'manualData', [],  @(x) isa(x, 'mldata.IManualMeasurements'));
             addParameter(ip, 'isotope', [],     @(x) ischar(x) && lstrfind(x, mlpet.Radionuclides.SUPPORTED_ISOTOPES));
             addParameter(ip, 'doseAdminDatetime', NaT, @isdatetime);
+            addParameter(ip, 'scannerData', [], @(x) isa(x, 'mlpet.IScannerData') || isa(x, 'mlfourd.INIfTIdecorator') || isempty(x));
             parse(ip, varargin{:});            
             this.fqfilename         = ip.Results.fqfilename;
             this.sessionData_       = ip.Results.sessionData;
-            this.scannerData_       = ip.Results.scannerData;
             this.manualData_        = ip.Results.manualData;
             this.isotope_           = ip.Results.isotope;
             this.doseAdminDatetime_ = ip.Results.doseAdminDatetime;
+            this.scannerData        = ip.Results.scannerData;
             
             this.decayCorrection_   = mlpet.DecayCorrection.factoryFor(this);
         end
+    end
+    
+    %% HIDDEN, @deprecated
+    
+    properties (Hidden)
+        scannerData
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

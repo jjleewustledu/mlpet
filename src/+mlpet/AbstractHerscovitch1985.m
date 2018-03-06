@@ -26,12 +26,22 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
     % 
     %  You should have received a copy of the GNU General Public License
     %  along with this program.  If not, see 
-    %% <https://www.gnu.org/licenses/gpl-3.0.en.html>.
- 	
+    %% <https://www.gnu.org/licenses/gpl-3.0.en.html>. 	
 
     properties (Abstract)
-        MAGIC
         canonFlows
+        MAGIC
+        W
+    end
+    
+    methods (Abstract, Static)
+        fwhh   = petPointSpread
+    end
+    
+    methods (Abstract)
+        this   = buildCbfMap(this)
+        petobs = estimatePetdyn(this)
+        petobs = estimatePetobs(this)
     end
     
     properties (Constant)
@@ -40,14 +50,14 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         RBC_FACTOR = 0.766      % per Tom Videen, metproc.inc, line 193  
         SMALL_LARGE_HCT_RATIO = 0.85 % Grubb, et al., 1978               
         
-        CBF_UTHRESH = 200
+        CBF_UTHRESH = 500
         CBV_UTHRESH = 10
     end
     
     properties
-        ooPeakTime
-        ooFracTime
-        fracHOMetab
+        ooPeakTime  = 0
+        ooFracTime  = 120
+        fracHOMetab = 153/263
         
         a1 % CBF per Videen 1987
         a2
@@ -55,9 +65,6 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         b2
         b3
         b4
-        cbf
-        cbv
-        oef
     end
 
 	properties (Dependent)
@@ -65,6 +72,9 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         aifHOMetab
         aifOO
         aifOOIntegral
+        cbf
+        cbv
+        oef
         scanner
         aifTimeShift
         mask
@@ -74,7 +84,22 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         voxelVolume
     end
     
-    methods %% GET, SET
+    methods (Static)
+        function cbf = estimateModelCbf(As, petobs)
+            cbf = petobs.^2*As(1) + petobs*As(2);
+        end    
+        function cbf = invsToCbf(f)
+            cbf = 6000*f/mlpet.Herscovitch1985.BRAIN_DENSITY;
+        end
+        function f   = cbfToInvs(cbf)
+            f = cbf*mlpet.Herscovitch1985.BRAIN_DENSITY/6000;
+        end
+    end
+    
+	methods
+        
+        %% GET, SET
+        
         function g = get.aif(this)
             g = this.aif_;
         end
@@ -87,8 +112,42 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         function g = get.aifOOIntegral(this)
             g = this.aifOOIntegral_;
         end
+        function g = get.cbf(this)
+            if (~isempty(this.cbf_))
+                g = this.cbf_;
+                return
+            end
+            g = this.sessionData.cbfOpFdg('typ', 'mlfourd.ImagingContext');
+        end
+        function this = set.cbf(this, s)
+            this.cbf_ = s;
+        end
+        function g = get.cbv(this)
+            if (~isempty(this.cbv_))
+                g = this.cbv_;
+                return
+            end
+            g = this.sessionData.cbvOpFdg('typ', 'mlfourd.ImagingContext');
+        end
+        function this = set.cbv(this, s)
+            this.cbv_ = s;
+        end
+        function g = get.oef(this)
+            if (~isempty(this.oef_))
+                g = this.oef_;
+                return
+            end
+            g = this.sessionData.oefOpFdg('typ', 'mlfourd.ImagingContext');
+        end
+        function this = set.oef(this, s)
+            this.oef_ = s;
+        end
         function g = get.scanner(this)
             g = this.scanner_;
+        end
+        function this = set.scanner(this, s)
+            assert(isa(s, 'mlfourd.INIfTI') || isa(s, 'mlfourd.ImagingContext'))
+            this.scanner_ = s;
         end
         function g = get.aifTimeShift(this)
             g = this.aif_.aifTimeShift;
@@ -110,27 +169,9 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         function g = get.voxelVolume(this)
             g = prod(this.scanner_.mmppix(1:3)/10); % cm^3
         end
-    end
-    
-    methods (Abstract, Static)
-        petobs = estimatePetdyn
-        petobs = estimatePetobs
-        fwhh   = petPointSpread
-    end
-    
-    methods (Static)
-        function cbf = estimateModelCbf(As, petobs)
-            cbf = petobs.^2*As(1) + petobs*As(2);
-        end    
-        function cbf = invsToCbf(f)
-            cbf = 6000*f/mlpet.Herscovitch1985.BRAIN_DENSITY;
-        end
-        function f   = cbfToInvs(cbf)
-            f = cbf*mlpet.Herscovitch1985.BRAIN_DENSITY/6000;
-        end
-    end
-    
-	methods
+        
+        %%
+        
  		function this = AbstractHerscovitch1985(varargin)
  			%% ABSTRACTHERSCOVITCH1985
  			%  Usage:  this = AbstractHerscovitch1985()
@@ -141,12 +182,14 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
 
  			this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
             
+            sdFdg = this.sessionData;
+            sdFdg.tracer = 'FDG';
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScannerData'));
+            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScannerData') || isa(x, 'mlfourd.NIfTIdecorator'));
             addParameter(ip, 'aif', [], @(x) isa(x, 'mlpet.IAifData'));
             addParameter(ip, 'timeDuration', [], @isnumeric);
-            addParameter(ip, 'mask', this.sessionData.aparcAsegBinarized('typ', 'mlfourd.ImagingContext'), ...
+            addParameter(ip, 'mask', sdFdg.aparcAsegBinarized('typ', 'mlfourd.ImagingContext'), ...
                 @(x) isa(x, 'mlfourd.ImagingContext'));
             parse(ip, varargin{:});
                    
@@ -157,6 +200,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
                 this.scanner_.timeDuration = ip.Results.timeDuration;
             end          
             this.mask_ = ip.Results.mask;
+            this.mask_.filesuffix = '.4dfp.ifh';
         end
         
         %% a1, a2 for CBF
@@ -168,6 +212,8 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             this.product_ = [ ...
                 model.Coefficients{1, 'Estimate'} ...
                 model.Coefficients{2, 'Estimate'}];
+            this.a1 = this.product_(1);
+            this.a2 = this.product_(2);
         end
         function this = buildModelCbf(this, petobs, cbf)
             %% BUILDMODELCBF 
@@ -188,36 +234,23 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             end
             this.product_ = mdl;
         end
-        function this = buildCbfMap(this)
-            assert(~isempty(this.a1));
-            assert(~isempty(this.a2));
-            
-            sc = this.scanner;
-            sc = sc.petobs;
-            sc.img = sc.img*this.MAGIC;            
-            sc.img = this.a1*sc.img.*sc.img + this.a2*sc.img;
-            sc = sc.blurred(this.petPointSpread);
-            sc = sc.uthresh(this.CBF_UTHRESH);
-            sc.fileprefix = this.sessionData.cbf('typ','fp','suffix',this.resolveTag);
-            this.product_ = mlpet.PETImagingContext(sc.component);
-        end
         function this = buildCbfWholebrain(this, varargin)
-            if (lexist(this.sessionData.cbf('typ','fqfn','suffix',this.resolveTag)))
-                cbf_ = this.sessionData.cbf('typ','mlpet.PETImagingContext','suffix',this.resolveTag);
+            if (lexist(this.sessionData.cbfOpFdg('typ','fqfn')))
+                cbf__ = this.sessionData.cbfOpFdg('typ','mlfourd.ImagingContext');
             else
                 this = this.buildCbfMap;
-                cbf_ = this.product;
+                cbf__ = this.product;
             end 
             this  = this.ensureMask;
-            cbf_.numericalNiftid;
+            cbf__.numericalNiftid;
             if (~isempty(getenv('TEST_HERSCOVITCH1985')))
-                cbf_.view(this.mask.fqfn);
+                cbf__.view(this.mask.fqfn);
             end
-            cbf_ = cbf_.masked(this.mask.niftid);  
-            cbfvs = cbf_.volumeSummed;
+            cbf__ = cbf__.masked(this.mask.niftid);  
+            cbfvs = cbf__.volumeSummed;
             
             msk   = this.mask_.numericalNiftid;
-            msk   = msk .* cbf_.numericalNiftid.binarized;
+            msk   = msk .* cbf__.numericalNiftid.binarized;
             mskvs = msk.volumeSummed;
             this.product_ = cbfvs.double/mskvs.double;
         end
@@ -226,21 +259,25 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         
         function this = buildB1B2(this)
             this = this.ensureAifHOMetab;
-            flowHOMetab = this.aif.W*this.estimatePetobs(this.aifHOMetab, this.canonFlows);
+            flowHOMetab = this.W*this.estimatePetobs(this.aifHOMetab, this.canonFlows);
             this = this.buildModelOOFlow(flowHOMetab, this.canonFlows);
             model = this.product;
             this.product_ = [ ...
                 model.Coefficients{1, 'Estimate'} ...
                 model.Coefficients{2, 'Estimate'}];
+            this.b1 = this.product_(1);
+            this.b2 = this.product_(2);
         end
         function this = buildB3B4(this)
             this = this.ensureAifOO;
-            flowOO = this.aif.W*this.estimatePetobs(this.aifOO, this.canonFlows);
+            flowOO = this.W*this.estimatePetobs(this.aifOO, this.canonFlows);
             this = this.buildModelOOFlow(flowOO, this.canonFlows);
             model = this.product;
             this.product_ = [ ...
                 model.Coefficients{1, 'Estimate'} ...
                 model.Coefficients{2, 'Estimate'}];
+            this.b3 = this.product_(1);
+            this.b4 = this.product_(2);
         end
         function this = buildModelOOFlow(this, flows, cbf)
             %% BUILDMODELOOFLOW 
@@ -262,64 +299,43 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             this.product_ = mdl;
         end
         function this = buildCbvWholebrain(this, varargin)
-            if (lexist(this.sessionData.cbv('typ','fqfn','suffix',this.resolveTag)))
-                cbv_ = this.sessionData.cbv('typ','mlpet.PETImagingContext','suffix',this.resolveTag);
+            if (lexist(this.sessionData.cbvOpFdg('typ','fqfn')))
+                cbv__ = this.sessionData.cbvOpFdg('typ','mlfourd.ImagingContext');
             else
                 this = this.buildCbvMap;
-                cbv_ = this.product;
+                cbv__ = this.product;
             end
-            cbv_.numericalNiftid;
+            cbv__.numericalNiftid;
             this  = this.ensureMask;
             if (~isempty(getenv('TEST_HERSCOVITCH1985')))
-                cbv_.view(this.mask.fqfn);
+                cbv__.view(this.mask.fqfn);
             end
-            cbv_ = cbv_.masked(this.mask.niftid);
-            cbvvs = cbv_.volumeSummed;            
+            cbv__ = cbv__.masked(this.mask.niftid);
+            cbvvs = cbv__.volumeSummed;            
             
             msk   = this.mask_.numericalNiftid;
-            msk   = msk .* cbv_.numericalNiftid.binarized;
+            msk   = msk .* cbv__.numericalNiftid.binarized;
             mskvs = msk.volumeSummed;
             this.product_ = cbvvs.double/mskvs.double;
         end        
-        function this = buildOefMap(this)
-            assert(~isempty(this.b1));
-            assert(~isempty(this.b2));
-            assert(~isempty(this.b3));
-            assert(~isempty(this.b4));
-            assert(~isempty(this.cbf));
-            assert(~isempty(this.cbv));            
-            this = this.ensureAifHOMetab;
-            this = this.ensureAifOO;
-            this = this.ensureAifOOIntegral;
-            
-            sc = this.scanner;
-            sc = sc.petobs;
-            sc.img = sc.img*this.MAGIC;
-            nimg = this.oefNumer(sc.img);
-            dimg = this.oefDenom;
-            sc.img = this.is0to1(nimg./dimg);
-            sc = sc.blurred(this.petPointSpread);
-            sc.fileprefix = this.sessionData.oef('typ','fp','suffix',this.resolveTag);
-            this.product_ = mlpet.PETImagingContext(sc.component);
-        end
         function this = buildOefWholebrain(this, varargin)
             
-            if (lexist(this.sessionData.oef('typ','fqfn','suffix',this.resolveTag)))
-                oef_ = this.sessionData.oef('typ','mlpet.PETImagingContext','suffix',this.resolveTag);
+            if (lexist(this.sessionData.oefOpFdg('typ','fqfn')))
+                oef__ = this.sessionData.oefOpFdg('typ','mlfourd.ImagingContext');
             else
                 this = this.buildOefMap;
-                oef_ = this.product;
+                oef__ = this.product;
             end
-            oef_.numericalNiftid;
+            oef__.numericalNiftid;
             this  = this.ensureMask;
             if (~isempty(getenv('TEST_HERSCOVITCH1985')))
-                oef_.view(this.mask.fqfn);
+                oef__.view(this.mask.fqfn);
             end
-            oef_  = oef_.masked(this.mask.niftid);
-            oefvs = oef_.volumeSummed;            
+            oef__  = oef__.masked(this.mask.niftid);
+            oefvs = oef__.volumeSummed;            
             
             msk   = this.mask_.numericalNiftid;
-            msk   = msk .* oef_.numericalNiftid.binarized;
+            msk   = msk .* oef__.numericalNiftid.binarized;
             mskvs = msk.volumeSummed;
             this.product_ = oefvs.double/mskvs.double;
         end
@@ -327,8 +343,8 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             this  = this.ensureMask;
             mskvs = this.mask.volumeSummed;
             
-            if (lexist(this.sessionData.cmro2('typ','fqfn','suffix',this.resolveTag)))
-                cmro2_ = this.sessionData.cmro2('typ','mlpet.PETImagingContext','suffix',this.resolveTag);
+            if (lexist(this.sessionData.cmro2OpFdg('typ','fqfn')))
+                cmro2_ = this.sessionData.cmro2OpFdg('typ','mlfourd.ImagingContext');
             else
                 this = this.buildCmro2Map;
                 cmro2_ = this.product;
@@ -342,7 +358,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         
         function nimg = oefNumer(this, petobs)
             vimg = this.cbv.niftid.img;
-            nimg = petobs*this.aif.W - this.flowHOMetab - this.aifOOIntegral*vimg;
+            nimg = petobs*this.W - this.flowHOMetab - this.aifOOIntegral*vimg;
             
             %this = this.ensureMask;
             %nimg = nimg.*this.mask.niftid.img;
@@ -357,7 +373,9 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         end
         function img  = is0to1(this, img)
             
-            msk = this.sessionData.aparcAsegBinarized('typ','mlfourd.ImagingContext');
+            sdFdg = this.sessionData;
+            sdFdg.tracer = 'FDG';
+            msk = sdFdg.aparcAsegBinarized('typ','mlfourd.ImagingContext');
             img = img.*msk.niftid.img;            
             img(~isfinite(img)) = 0;
             img(isnan(img)) = 0;
@@ -406,11 +424,14 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         aifHOMetab_
         aifOO_
         aifOOIntegral_
+        cbf_
+        cbv_
         mask_
+        oef_
         scanner_
     end
     
-    methods (Access = protected)        
+    methods (Access = protected)
         function this = ensureAifHOMetab(this)
             if (isempty(this.aifHOMetab_))
                 this.aifHOMetab_ = this.estimateAifHOMetab;

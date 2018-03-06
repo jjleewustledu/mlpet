@@ -18,10 +18,14 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         index0
         indexF 
         dt
-        
-        sessionData     
+             
         decayCorrection
         doseAdminDatetime
+        isDecayCorrected 
+        isotope       
+        mask 
+        sessionData  
+        tracer
         W % legacy notation from Videen
     end    
     
@@ -105,13 +109,6 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             this.timingData_.dt = s;
         end
         
-        function g    = get.sessionData(this)
-            g = this.sessionData_;
-        end
-        function this = set.sessionData(this, s)
-            assert(isa(s, 'mlpipeline.SessionData'));
-            this.sessionData_ = s;
-        end
         function g    = get.decayCorrection(this)
             g = this.decayCorrection_;
         end
@@ -125,22 +122,120 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             end
             this.doseAdminDatetime_ = s;
         end
-        function g    = get.W(this)
-            if (isempty(this.W_))
-                g = this.invEfficiency;
+        function g    = get.isDecayCorrected(this)
+            g = this.isDecayCorrected_;
+        end
+        function this = set.isDecayCorrected(this, s)
+            assert(islogical(s));
+            if (this.isDecayCorrected_ == s)
                 return
             end
-            g = this.W_;
+            if (this.isDecayCorrected_)  
+                this.img = this.decayCorrection_.uncorrectedActivities(this.img, this.time0);
+            else
+                this.img = this.decayCorrection_.correctedActivities(this.img, this.time0);
+            end     
+            this.isDecayCorrected_ = s;
+        end
+        function g    = get.isotope(this)
+            g = this.sessionData.isotope;
+        end   
+        function g    = get.mask(this)
+            g = this.mask_;
+        end  
+        function this = set.mask(this, s)
+            assert(isa(s, 'mlfourd.INIfTI') || isa(s, 'mlfourd.ImagingContext'))
+            this.mask_ = s;
+        end
+        function g    = get.sessionData(this)
+            g = this.sessionData_;
+        end
+        function this = set.sessionData(this, s)
+            assert(isa(s, 'mlpipeline.SessionData'));
+            this.sessionData_ = s;
+        end      
+        function g    = get.tracer(this)
+            g = this.sessionData.tracer;
+        end
+        function g    = get.W(this)
+            g = this.invEfficiency;
         end  
         function this = set.W(this, s)
-            assert(isnumeric(s));
-            this.W_ = s;
-        end  
+            this.invEfficiency = s;
+        end           
 
-        %%        
+        %%
         
         function dt_  = datetime(this)
             dt_ = this.timingData_.datetime;
+        end
+        function n    = numel(this)
+            n = numel(this.img);
+        end
+        function n    = numelMasked(this)
+            if (isempty(this.mask_))
+                n = this.numel;
+                return
+            end
+            if (isa(this.mask_, 'mlfourd.ImagingContext'))
+                this.mask_ = this.mask_.niftid;
+            end
+            assert(isa(this.mask_, 'mlfourd.INIfTI'));
+            n = double(sum(sum(sum(this.mask_.img))));            
+        end
+        function        plot(this)
+            if (isscalar(this.img))
+                fprintf(this.img);
+                return
+            end
+            if (isvector(this.img))
+                plot(this.times, this.img);
+                xlabel(sprintf('%s.times', class(this)));
+                ylabel(sprintf('%s.img',   class(this)));
+                return
+            end
+            this.view;
+        end
+        function this = setTime0ToInflow(this)
+            sc = this;
+            sc = sc.volumeAveraged;
+            [~,idx0] = max(sc.img > std(sc.img));
+            if (idx0 > 1)
+                idx0 = idx0 - 1;
+            end
+            this.index0 = idx0;
+            if (strcmp(this.sessionData.tracer, 'OC') || strcmp(this.sessionData.tracer, 'CO'))
+                this.time0 = this.time0 + 120;
+                return
+            end
+        end
+        function this = shiftTimes(this, Dt)
+            if (0 == Dt)
+                return; 
+            end
+            if (2 == length(this.size))                
+                [this.timingData_.times,this.img] = shiftVector(this.timingData_.times, this.img, Dt);
+                return
+            end
+            [this.timingData_.times,this.img] = shiftTensor(this.timingData_.times, this.img, Dt);
+        end
+        function this = shiftWorldlines(this, Dt, varargin)
+            %% SHIFTWORLDLINES
+            %  @param required Dt, or \Delta t of worldline. 
+            %  Dt > 0 => event occurs at later time and further away in space; boluses are smaller and arrive later.
+            %  Dt < 0 => event occurs at earlier time and closer in space; boluses are larger and arrive earlier.
+            %  @param optional tzero sets the Lorentz coord for decay-correction and uncorrection.
+            
+            ip = inputParser;
+            addParameter(ip, 'tzero', this.time0, @isnumeric);
+            parse(ip, varargin{:});
+            
+            if (0 == Dt)
+                return; 
+            end
+            this.img = this.decayCorrection_.correctedActivities(this.img, ip.Results.tzero);
+            this = this.shiftTimes(Dt);            
+            this.img = this.decayCorrection_.uncorrectedActivities(this.img, ip.Results.tzero);
         end
         function [t,this] = timeInterpolants(this, varargin)
             [t,this] = this.timingData_.timeInterpolants(varargin{:});
@@ -219,8 +314,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             addParameter(ip, 'manualData',  [], @(x) isa(x, 'mldata.IManualMeasurements'));
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'doseAdminDatetime', NaT, @(x) isa(x, 'datetime'));
-            addParameter(ip, 'invEfficiency', 1.155, @isnumeric); % from HYGLY28/V2
-            addParameter(ip, 'mask', this.ones, @(x) isa(x, 'mlfourd.INIfTI'));
+            addParameter(ip, 'mask', this.ones, @(x) isa(x, 'mlfourd.INIfTI') || isa(x, 'mlfourd.ImagingContext'));
             parse(ip, varargin{:});
             this.manualData_ = ip.Results.manualData;
             this.sessionData_ = ip.Results.sessionData;
@@ -228,8 +322,10 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             if (isempty(this.doseAdminDatetime_.TimeZone))
                 this.doseAdminDatetime_.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
             end
-            this.invEfficiency_ = ip.Results.invEfficiency;
-            this.mask_ = ip.Results.mask;
+            this.mask_ = ip.Results.mask;   
+            if (isa(ip.Results.mask, 'mlfourd.ImagingContext'))
+                this.mask_ = this.mask_.niftid;
+            end
             
             this = this.createTimingData;
             this.decayCorrection_ = mlpet.DecayCorrection.factoryFor(this);
@@ -243,7 +339,6 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         doseAdminDatetime_
         isDecayCorrected_
         dt_
-        invEfficiency_
         manualData_
         mask_
         sessionData_        

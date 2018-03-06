@@ -28,8 +28,31 @@ classdef Herscovitch1985 < mlpet.AbstractHerscovitch1985
         canonFlows = 10:10:100 % mL/100 g/min
     end
     
+    properties (Dependent)
+        W
+    end
+    
     methods (Static)
-        function petobs = estimatePetdyn(aif, cbf)
+        function fwhh   = petPointSpread
+            fwhh = mlpet.PETRegistry.instance.petPointSpread;
+        end
+    end
+    
+	methods
+        
+        %% GET
+        
+        function g = get.W(this)
+            g = this.aif.W;
+        end
+        
+        %%
+        
+ 		function this = Herscovitch1985(varargin)
+            this = this@mlpet.AbstractHerscovitch1985(varargin{:});
+        end
+        
+        function petobs = estimatePetdyn(this, aif, cbf)
             assert(isa(aif, 'mlpet.IAifData'));
             assert(isnumeric(cbf));  
             
@@ -41,37 +64,61 @@ classdef Herscovitch1985 < mlpet.AbstractHerscovitch1985
             aifwi = ensureRowVector(aif.wellCountInterpolants);
             petobs = zeros(length(f), length(aifti));
             for r = 1:size(petobs,1)
-                petobs_ = (1/aif.W)*f(r)*conv(aifwi, exp(-(f(r)/lam + lamd)*aifti));
+                petobs_ = (1/this.W)*f(r)*conv(aifwi, exp(-(f(r)/lam + lamd)*aifti));
                 petobs(r,:) = petobs_(1:length(aifti));
             end
         end        
-        function petobs = estimatePetobs(aif, cbf)
+        function petobs = estimatePetobs(this, aif, cbf)
             assert(isa(aif, 'mlpet.IAifData'));
             assert(isnumeric(cbf));
             
-            rho = mlpet.Herscovitch1985.estimatePetdyn(aif, cbf);
+            rho = this.estimatePetdyn(aif, cbf);
             petobs = aif.dt*trapz(rho, 2);
         end
-        function fwhh   = petPointSpread
-            fwhh = mlpet.PETRegistry.instance.petPointSpread;
-        end
-    end
-    
-	methods
- 		function this = Herscovitch1985(varargin)
-            this = this@mlpet.AbstractHerscovitch1985(varargin{:});
-        end
         
+        function this = buildCbfMap(this)
+            assert(~isempty(this.a1));
+            assert(~isempty(this.a2));
+            
+            sc = this.scanner;
+            sc = sc.petobs;
+            sc.img = sc.img;     
+            sc.img = this.a1*sc.img.*sc.img + this.a2*sc.img;
+            sc = sc.blurred(this.petPointSpread);
+            sc.fileprefix = this.sessionData.cbfOpFdg('typ','fp');
+            this.product_ = mlfourd.ImagingContext(sc.component);
+        end
         function this = buildCbvMap(this)
             sc = this.scanner;
             sc = sc.petobs;
             sc.img = sc.img*this.MAGIC;            
             sc = sc.blurred(this.videenBlur);
-            sc.img = 100*sc.img*this.aif.W/(this.RBC_FACTOR*this.BRAIN_DENSITY*this.aif.wellCountsIntegral);
-            sc.fileprefix = this.sessionData.cbv('typ', 'fp');
-            %sc = sc.blurred(this.videenBlur);
+            sc.img = 100*sc.img*this.W/(this.RBC_FACTOR*this.BRAIN_DENSITY*this.aif.wellCountsIntegral);
+            sc.fileprefix = this.sessionData.cbvOpFdg('typ', 'fp');
+            sc = sc.blurred(this.videenBlur);
             this.product_ = mlpet.PETImagingContext(sc.component);
-        end       
+        end     
+        function this = buildOefMap(this)
+            assert(~isempty(this.b1));
+            assert(~isempty(this.b2));
+            assert(~isempty(this.b3));
+            assert(~isempty(this.b4));
+            assert(~isempty(this.cbf));
+            assert(~isempty(this.cbv));            
+            this = this.ensureAifHOMetab;
+            this = this.ensureAifOO;
+            this = this.ensureAifOOIntegral;
+            
+            sc = this.scanner;
+            sc = sc.petobs;
+            sc.img = sc.img*this.MAGIC;
+            nimg = this.oefNumer(sc.img);
+            dimg = this.oefDenom;
+            sc.img = this.is0to1(nimg./dimg);
+            sc = sc.blurred(this.petPointSpread);
+            sc.fileprefix = this.sessionData.oefOpFdg('typ','fp');
+            this.product_ = mlfourd.ImagingContext(sc.component);
+        end  
         function aif  = estimateAifOO(this)
             this = this.ensureAifHOMetab;
             aif = this.aif;
