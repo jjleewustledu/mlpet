@@ -41,6 +41,14 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         W % legacy notation from Videen
     end
     
+    methods (Static)        
+        function fluc = flucSpecificActivity(this)
+            assert(isa(this, 'mlpet.AbstractAifData'));
+            smpl = this.specificActivity(this.index0:this.index0+10);
+            fluc = max(smpl) - min(smpl);
+        end
+    end
+    
     methods
         
         %% GET, SET
@@ -244,13 +252,13 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         end    
         function this     = setTime0ToInflow(this)
             aif = this;
-            [~,idx0] = max(aif.specificActivity > std(aif.specificActivity));
+            [~,idx0] = max(aif.specificActivity > std(aif.specificActivity(this.index0:this.indexF)));
             if (idx0 > 1)
                 idx0 = idx0 - 1;
             end
             this.index0 = idx0;
             if (strcmp(this.sessionData.tracer, 'OC') || strcmp(this.sessionData.tracer, 'CO'))
-                this.time0 = this.time0 + 120;
+                this.time0 = min(this.time0 + 120, this.timeF);
                 return
             end
         end  
@@ -349,7 +357,10 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             addParameter(ip, 'doseAdminDatetime', NaT, @isdatetime);
             addParameter(ip, 'scannerData', [], @(x) isa(x, 'mlpet.IScannerData') || isa(x, 'mlfourd.INIfTIdecorator') || isempty(x));
             parse(ip, varargin{:});            
-            this.fqfilename         = ip.Results.fqfilename;
+            this.fqfilename         = ip.Results.fqfilename;            
+            if (~lexist(this.fqfilename, 'file'))
+                error('mlpet:fileNotFound', 'AbstractAifData.ctor');
+            end
             this.sessionData_       = ip.Results.sessionData;
             this.manualData_        = ip.Results.manualData;
             this.isotope_           = ip.Results.isotope;

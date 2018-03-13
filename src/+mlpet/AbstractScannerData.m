@@ -420,7 +420,11 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
                 mi = mi(varargin{:}); end            
         end       
         function sec  = manualDataClocksTimeOffsetMMRConsole(this)
-            sec = seconds(this.manualData_.clocks.TimeOffsetWrtNTS____s('mMR console'));
+            try
+                sec = seconds(this.manualData_.clocks.TimeOffsetWrtNTS____s('mMR console'));
+            catch 
+                sec = seconds(this.manualData_.clocks.TIMEOFFSETWRTNTS____S('mMR console'));
+            end
         end 
         function yi   = pchip(~, x, y, xi)
             %% PCHIP accomodates y with rank <= 4.

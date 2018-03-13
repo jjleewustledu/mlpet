@@ -127,27 +127,34 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             bv = this.buildVisitor;
             
             ip = inputParser;
-            addParameter(ip, 'fourdfp', '', @(x) bv.lexist_4dfp(x));
-            addParameter(ip, 'fqfn',    '', @(x) lexist(x, 'file'));
+            addParameter(ip, 'fourdfp', ''); %, @(x) bv.lexist_4dfp(x));
+            addParameter(ip, 'fqfn',    ''); %, @(x) lexist(x, 'file'));
             parse(ip, varargin{:});
             
-            bv.lns_4dfp(this.T1('typ','fqfp'));            
-%             bv.lns_4dfp(this.t2('typ','fqfp'));  
-%             if (bv.lexist_4dfp(this.tof('typ','fqfp')))
-%                 bv.lns_4dfp(this.tof('typ','fqfp'));
-%             end
-            bv.lns_4dfp(this.umapSynth('tracer', '', 'typ', 'fqfp'));
+            deleteExisting_4dfp(this.T1('typ',  'fp'));
+            bv.copyfile_4dfp(   this.T1('typ','fqfp'));  
+            deleteExisting_4dfp(this.umapSynth('tracer', '', 'typ',   'fp'));
+            bv.copyfile_4dfp(   this.umapSynth('tracer', '', 'typ', 'fqfp'));
+            
             if (~isempty(ip.Results.fourdfp))
-                ffp = ensureCell(ip.Results.fourdfp);
-                dprintf('mlpet.TracerBuilder.locallyStageModalities:  lns_4dfp %s', ...
-                    cell2str(ffp, 'AsRows', true));
-                cellfun(@(x) bv.lns_4dfp(x), ffp, 'UniformOutput', false);
+                try
+                    ffp = ensureCell(ip.Results.fourdfp);
+                    dprintf('mlpet.TracerBuilder.locallyStageModalities:  copyfile_4dfp %s', ...
+                        cell2str(ffp, 'AsRows', true));
+                    cellfun(@(x) bv.copyfile_4dfp(x), ffp, 'UniformOutput', false);
+                catch ME
+                    dispwarning(ME);
+                end
             end
             if (~isempty(ip.Results.fqfn))
-                fqfn = ensureCell(ip.Results.fqfn);
-                dprintf('mlpet.TracerBuilder.locallyStageModalities:  lns %s', ...
-                    cell2str(fqfn, 'AsRows', true));
-                cellfun(@(x) bv.lns(x), fqfn, 'UniformOutput', false);
+                try
+                    fqfn = ensureCell(ip.Results.fqfn);
+                    dprintf('mlpet.TracerBuilder.locallyStageModalities:  copyfile %s', ...
+                        cell2str(fqfn, 'AsRows', true));
+                    cellfun(@(x) copyfile(x), fqfn, 'UniformOutput', false);
+                catch ME
+                    dispwarning(ME);
+                end
             end
         end
         function this = locallyStageTracer(this)
@@ -217,8 +224,8 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             %  @return this.product_ := [mprage '_to_' atlas '_t4'], existing in the same folder as mprage.
             
             sessd      = this.sessionData;
-            mpr        = sessd.mprage('typ', 'fqfp');
-            atl        = sessd.atlas('typ', 'fqfp');
+            mpr        = sessd.mprage('typ', 'fp');
+            atl        = sessd.atlas('typ', 'fp');
             mprToAtlT4 = [mpr '_to_' atl '_t4'];            
             if (~lexist(fullfile(sessd.mprage('typ', 'path'), mprToAtlT4)))
                 pwd0 = pushd(sessd.mprage('typ', 'path'));

@@ -45,22 +45,22 @@ classdef Test_DecayCorrection < matlab.unittest.TestCase
         end
         function test_uncorrectedCounts(this)
             nodecay = this.client.counts.*2.^((this.client.times - 22)/122.2416);
-            %figure; plot(this.client.times, this.client.counts, ...
-            %             this.client.times, nodecay);
-            %title('this.client.times, this.client.counts, this.client.times, no-decay counts');
-            %legend('this.client', 'no-decay counts');
+            figure; plot(this.client.times, this.client.counts, ...
+                         this.client.times, nodecay);
+            title('this.client.times, this.client.counts, this.client.times, no-decay counts');
+            legend('this.client', 'no-decay counts');
             
             %% expect power decay from tzero, counts(tzero) \approx 1, counts(t < tzero) > 1
             
             decay = this.testObj.uncorrectedActivities(nodecay, 22);
-            %figure; plot(decay);
-            %title('this.testObj.uncorrectedActivities(nodecay, 22)');
+            figure; plot(decay);
+            title('this.testObj.uncorrectedActivities(nodecay, 22)');
             this.verifyEqual(decay(1:22),  zeros(1,22), 'RelTol', 1e-6);
             this.verifyEqual(decay(23:end), 2.^(-(0:99)/122.2416), 'RelTol', 1e-6);
             
             decay = this.testObj.uncorrectedActivities(nodecay, 100);
-            %figure; plot(decay);
-            %title('this.testObj.uncorrectedActivities(nodecay, 100)');
+            figure; plot(decay);
+            title('this.testObj.uncorrectedActivities(nodecay, 100)');
             this.verifyEqual(decay(1:22),  zeros(1,22), 'RelTol', 1e-6);
             this.verifyEqual(decay(23:100), 2.^((78:-1:1)/122.2416), 'RelTol', 1e-6);
             this.verifyEqual(decay(101:end), 2.^(-(0:21)/122.2416), 'RelTol', 1e-6);
@@ -77,7 +77,8 @@ classdef Test_DecayCorrection < matlab.unittest.TestCase
                 'datetime0', datetime('1-Jul-2017 09:00:00'), ...
                 'doseAdminDatetime', datetime('1-Jul-2017 09:00:00'), ...
                 'times', 0:121, 'time0', 0, 'timeF', 121, ...
-                'counts', cnts);
+                'counts', cnts, ...
+                'isDecayCorrected', false);
  			this.testObj_ = DecayCorrection.factoryFor(this.client_);
             pth = fullfile(getenv('HOME'), 'MATLAB-Drive/mlpet/data');
             this.crv_ = mlpet.CRV.load(fullfile(pth, 'AMAtest5.crv'));

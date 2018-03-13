@@ -22,30 +22,16 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
     end
     
     methods (Static)
-        %% factory methods 
         
-        function this  = constructRemotely(varargin)
-            %% CONSTRUCTREMOTELY is a creator/producer:  TracerDirector factoryMethod -> TracerDirector.
-            %  @param chpc is an mldistcomp.CHPC object.
-            %  @param factoryMethod is from some TracerDirector.
-            %  @param factorArgs is cell array for factoryMethod.
-            %  @return invokes chpc.pushData.
-            %  @return this is the TracerDirector instance deployed which can continue management of its assigned
-            %  builders.
+        function assertenv
+            envs = {'RELEASE' 'REFDIR'};
             
-            ip = inputParser;
-            addRequired( ip, 'chpc',            @(x) isa(x, 'mldistcomp.CHPC'));
-            addParameter(ip, 'factoryMethod',   @(x) isa(x, 'function_handle'));
-            addParameter(ip, 'factoryArgs', {}, @iscell);
-            addParameter(ip, 'nArgout', 0,      @isnumeric);
-            parse(ip, varargin{:});
-            chpc = ip.Results.chpc;
-            
-            chpc = chpc.pushData;
-            chpc = chpc.runSerialProgram(ip.Results.factoryMethod, ip.Results.factoryArgs, ip.Results.nArgout);
-            %chpc = chpc.pullData;
-            this = chpc.theDeployedDirector; % TracerDirector instance deployed by factoryMethod
-            assert(isa(this, 'mlpet.TracerDirector'));
+            for ie = 1:length(envs)
+                val = getenv(envs{ie});
+                dt  = mlsystem.DirTool([val '/*']);
+                assert(~isempty(dt.fqfns), ...
+                    sprintf('mlpet.TracerDirector:  environment variable %s points to a empty directory', val));
+            end
         end
     end
     
@@ -133,6 +119,23 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
     end
     
     methods (Access = protected)
+        function         instanceCleanSymlinks(this)            
+            
+            suffs = {'.4dfp.hdr' '.4dfp.ifh' '.4dfp.img' '.4dfp.img.rec'};
+            try
+                sd = this.sessionData;
+                pwd0 = pushd(sd.tracerLocation);
+                for s = 1:length(suffs)
+                    deleteExisting(                 [sd.T1001('typ','fp') suffs{s}]);
+                    copyfile(fullfile(sd.vLocation, [sd.T1001('typ','fp') suffs{s}]));
+                    deleteExisting(                              [sd.tracerListmodeSif('typ','fp') suffs{s}]);
+                    copyfile(fullfile(sd.tracerListmodeLocation, [sd.tracerListmodeSif('typ','fp') suffs{s}]));
+                end
+                popd(pwd0);
+            catch ME
+                handwarning(ME);
+            end
+        end        
         function         instanceCleanTracerRemotely(this, varargin)
             %  @param named distcompHost is the hostname or distcomp profile.
             
@@ -169,7 +172,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             
             this.builder_ = this.builder_.packageProduct(ic);
             pwd0 = pushd(ic.filepath);
-            anatomies = {'brainmask' 'aparcA2009sAseg' 'aparcAseg' 'wmparc' 'T1001'};
+            anatomies = {'brainmask'}; % 'aparcA2009sAseg' 'aparcAseg' 'wmparc' 'T1001'
             for a = 1:length(anatomies)
                 bv.ensureLocalFourdfp(this.sessionData.(anatomies{a}));
             end
@@ -183,12 +186,16 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             t4  = sprintf('%sr0_to_%s_t4', this.sessionData.(this.anatomy)('typ','fp'), cRB.resolveTag);
             for a = 1:length(anatomies)
                 outfile = esf([this.sessionData.(anatomies{a})('typ','fp') '_' cRB.resolveTag]);
-                if (~lexist_4dfp(outfile))
-                    cRB.t4img_4dfp( ...
-                       t4, ...
-                       esf(this.sessionData.(anatomies{a})('typ','fp')), ...
-                       'out', outfile, ...
-                       'options', sprintf('-n -O%s', ic.fileprefix));
+                cRB.t4img_4dfp( ...
+                    t4, ...
+                    esf(this.sessionData.(anatomies{a})('typ','fp')), ...
+                    'out', outfile, ...
+                    'options', sprintf('-n -O%s', ic.fileprefix));                
+                if (lstrfind('brainmask', anatomies{a}))
+                    ic = mlfourd.ImagingContext([outfile '.4dfp.ifh']);
+                    ic.numericalNiftid;
+                    ic = ic.binarizeBlended;
+                    ic.saveas(this.sessionData.brainmaskBinarizeBlended);
                 end
             end
             %this.builder_.compositeResolveBuilder = cRB;
@@ -307,11 +314,10 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                  this.sessionData.t2('typ','fp')});
             popd(pwd0);
         end
-        function this  = instanceConstructUmapSynthFull(this)
-            %  @deprecated
+        function this  = instanceConstructUmapSynthForDynamicFrames(this)
             
             this.builder_ = this.builder_.packageProduct(this.sessionData.umap);
-            this.builder_ = this.builder_.createUmapSynthFull;
+            this.builder_ = this.builder_.createUmapSynthForDynamicFrames;
         end  
         function list  = instanceListTracersConverted(this)
             if (this.sessionData.attenuationCorrected)
@@ -364,6 +370,11 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                     fullfile(csessd.vLocation, ip.Results.pattern), ...
                     sessd.vLocation, ...
                     'chpcIsSource', true);
+            catch ME
+                fprintf('s->%i, r->%s\n', s, r);
+                handwarning(ME);
+            end
+            try
                 [s,r] = CHPC.rsync( ...
                     fullfile(csessd.tracerLocation, ip.Results.pattern), ...
                     sessd.tracerLocation, ...
@@ -450,13 +461,16 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             this.builder_ = this.builder_.reconstituteFramesAC2;
         end
         function this  = instanceConstructResolvedNAC(this)
+            
+            mlraichle.UmapDirector.constructUmaps('sessionData', this.sessionData);
+            
             this.builder_       = this.builder_.locallyStageTracer;
             this.builder_       = this.builder_.replaceMonolithFrames; % as requested of this.builder_ in its ctor.
             this.builder_       = this.builder_.partitionMonolith; 
             [this.builder_,multiEpochOfSummed,reconstitutedSummed] = this.builder_.motionCorrectFrames;
             reconstitutedSummed = reconstitutedSummed.motionCorrectCTAndUmap;             
             this.builder_       = reconstitutedSummed.motionUncorrectUmap(multiEpochOfSummed);
-            this.builder_       = this.builder_.createUmapSynthFull;
+            this.builder_       = this.builder_.createUmapSynthForDynamicFrames;
         end
         function c     = localTracerResolvedFinalSumt(this)  
             %  TODO:  refactor with localTracerResolvedFinal
@@ -473,7 +487,11 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                     sd.snumber = is;
                     if (lexist(sd.tracerResolvedFinal, 'file'))
                         if (lexist(sd.tracerResolvedFinalSumt, 'file'))
-                            fv.copyfile_4dfp(sd.tracerResolvedFinalSumt('typ','fqfp'));
+                            try
+                                fv.copyfile_4dfp(sd.tracerResolvedFinalSumt('typ','fqfp'));
+                            catch ME
+                                dispwarning(ME);
+                            end
                         else
                             nn = mlfourd.NumericalNIfTId.load(sd.tracerResolvedFinal);
                             nn = nn.timeSummed;
@@ -504,12 +522,16 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                     t4 = sprintf('%sr0_to_%s_t4', sd.tracerResolvedFinalSumt('typ','fp'), cRB.resolveTag);
                     outfile = sd.tracerResolvedFinalOpFdg('typ','fp');
                     if (lexist(strrep(t4,'r0','r2'), 'file') && ~lexist_4dfp(outfile))
-                        cRB.t4img_4dfp( ...
-                           t4, ...
-                           sd.tracerResolvedFinal('typ','fp'), ...
-                           'out', outfile, ...
-                           'options', sprintf('-n -O%s', icTarg.fileprefix));
-                       c = [c outfile]; %#ok<AGROW>
+                        try
+                            cRB.t4img_4dfp( ...
+                                t4, ...
+                                sd.tracerResolvedFinal('typ','fqfp'), ...
+                                'out', outfile, ...
+                                'options', sprintf('-n -O%s', icTarg.fileprefix));
+                            c = [c outfile]; %#ok<AGROW>
+                        catch ME
+                            dispwarning(ME);
+                        end
                     end
                 end
             end
@@ -519,48 +541,6 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
     %% DEPRECATED
     
     methods (Hidden)        
-        function that  = instanceConstructResolvedRemotely(this, varargin)
-            %  @param sessionData   is a function_handle to an mlpipeline.SessionData ctor.
-            %  @param construct     is a function_handle to some implemented factory method.  
-            %  @param named dirTool is an mlsystem.DirTool.
-            %  @param named distcompHost is the hostname or distcomp profile.
-            %  @return this, a cell-array of TracerDirector instances of size N{sessions} x NUM_VISITS.
-            
-            ip = inputParser;
-            addRequired( ip, 'sessionData',  @(x) isa(x, 'function_handle'));
-            addRequired( ip, 'construct',    @(x) isa(x, 'function_handle'));
-            addParameter(ip, 'nArgout', 1,   @isnumeric);
-            addParameter(ip, 'distcompHost', 'chpc_remote_r2016b', @ischar);
-            parse(ip, varargin{:});
-            
-            import mlpet.*;
-            try
-                sessd = ip.Results.sessionData( ...
-                    'studyData',   this.studyData, ...
-                    'sessionPath', this.sessionData.sessionPath, ...
-                    'vnumber',     this.sessionData.vnumber, ...
-                    'tracer',      this.sessionData.tracer, ...
-                    'ac',          this.sessionData.attenuationCorrected, ...
-                    'frame',       this.sessionData.frame);
-                this.sessionData = sessd;
-                %this = this.locallyStageTracer;
-                csessd = ip.Results.sessionData( ...
-                    'studyData',   this.studyData, ...
-                    'sessionPath', mldistcomp.CHPC.repSubjectsDir(this.sessionData.sessionPath), ...
-                    'vnumber',     this.sessionData.vnumber, ...
-                    'tracer',      this.sessionData.tracer, ...
-                    'ac',          this.sessionData.attenuationCorrected, ...
-                    'frame',       this.sessionData.frame);
-                chpc = CHPC4TracerDirector(this, 'distcompHost', ip.Results.distcompHost, 'sessionData', sessd);
-                that = TracerDirector.constructRemotely( ...
-                    chpc, ...
-                    'factoryMethod', ip.Results.construct, ...
-                    'factoryArgs', {'sessionData', csessd}, ...
-                    'nArgout', ip.Results.nArgout);
-            catch ME
-                handwarning(ME);
-            end
-        end
         function this  = instanceConstructKinetics(this, varargin)
             %% INSTANCECONSTRUCTKINETICS requests that the builder prepare filesystems, coregistrations and 
             %  resolve-projections of ancillary data to tracer data.  

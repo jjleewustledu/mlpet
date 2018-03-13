@@ -186,18 +186,19 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             sdFdg.tracer = 'FDG';
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScannerData') || isa(x, 'mlfourd.NIfTIdecorator'));
+            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScannerData') || isa(x, 'mlfourd.NIfTIdecorator') || isempty(x));
             addParameter(ip, 'aif', [], @(x) isa(x, 'mlpet.IAifData'));
             addParameter(ip, 'timeDuration', [], @isnumeric);
-            addParameter(ip, 'mask', sdFdg.aparcAsegBinarized('typ', 'mlfourd.ImagingContext'), ...
+            addParameter(ip, 'mask', sdFdg.brainmaskBinarizeBlended('typ', 'mlfourd.ImagingContext'), ...
                 @(x) isa(x, 'mlfourd.ImagingContext'));
-            parse(ip, varargin{:});
-                   
+            parse(ip, varargin{:});                   
             this.aif_ = ip.Results.aif;
             this.scanner_ = ip.Results.scanner;  
             if (~isempty(ip.Results.timeDuration))
                 this.aif_.timeDuration = ip.Results.timeDuration;
-                this.scanner_.timeDuration = ip.Results.timeDuration;
+                if (~isempty(this.scanner_))
+                    this.scanner_.timeDuration = ip.Results.timeDuration;
+                end
             end          
             this.mask_ = ip.Results.mask;
             this.mask_.filesuffix = '.4dfp.ifh';
@@ -227,11 +228,11 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
                 ensureColVector(petobs), ensureColVector(cbf), @mlpet.AbstractHerscovitch1985.estimateModelCbf, [1 1]);            
             disp(mdl)
             fprintf('mdl.RMSE -> %g, min(rho) -> %g, max(rho) -> %g\n', mdl.RMSE, min(petobs), max(petobs));
-            if (isempty(getenv(upper('TEST_HERSCOVITCH1985'))))
-                plotResiduals(mdl);
-                plotDiagnostics(mdl, 'cookd');
-                plotSlice(mdl);
-            end
+%             if (isempty(getenv(upper('TEST_HERSCOVITCH1985'))))
+%                 plotResiduals(mdl);
+%                 plotDiagnostics(mdl, 'cookd');
+%                 plotSlice(mdl);
+%             end
             this.product_ = mdl;
         end
         function this = buildCbfWholebrain(this, varargin)
@@ -291,11 +292,11 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
                 ensureColVector(cbf), ensureColVector(flows), @mlpet.AbstractHerscovitch1985.estimateModelCbf, [1 1]);            
             disp(mdl)
             fprintf('mdl.RMSE -> %g, min(rho) -> %g, max(rho) -> %g\n', mdl.RMSE, min(flows), max(flows));
-            if (isempty(getenv(upper('TEST_HERSCOVITCH1985'))))
-                plotResiduals(mdl);
-                plotDiagnostics(mdl, 'cookd');
-                plotSlice(mdl);
-            end
+%             if (isempty(getenv(upper('TEST_HERSCOVITCH1985'))))
+%                 plotResiduals(mdl);
+%                 plotDiagnostics(mdl, 'cookd');
+%                 plotSlice(mdl);
+%             end
             this.product_ = mdl;
         end
         function this = buildCbvWholebrain(this, varargin)
@@ -375,7 +376,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             
             sdFdg = this.sessionData;
             sdFdg.tracer = 'FDG';
-            msk = sdFdg.aparcAsegBinarized('typ','mlfourd.ImagingContext');
+            msk = sdFdg.brainmaskBinarizeBlended('typ','mlfourd.ImagingContext');
             img = img.*msk.niftid.img;            
             img(~isfinite(img)) = 0;
             img(isnan(img)) = 0;
@@ -448,11 +449,15 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             end
         end
         function this = ensureMask(this)
-            if (~lexist(this.mask_.fqfilename))
-                sessd = this.sessionData;
-                sessd.tracer = 'FDG';
-                this.mask_ = sessd.aparcAsegBinarized('typ', 'mlfourd.ImagingContext');
+            if (~lexist([this.mask_.fqfp '.4dfp.ifh']))
+                sessdFdg = this.sessionData;
+                sessdFdg.tracer = 'FDG';
+                assert(lexist(sessdFdg.brainmaskBinarizeBlended));
+                this.mask_ = sessdFdg.brainmaskBinarizeBlended('typ', 'numericalNiftid');
+            end
+            if (~lexist([this.mask_.fqfp '.nii.gz']))
                 this.sessionData.nifti_4dfp_ng(this.mask_.fqfp);
+                assert(lexist([this.mask_.fqfp '.nii.gz']));
             end
         end
     end
