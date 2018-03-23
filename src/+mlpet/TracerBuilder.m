@@ -303,7 +303,7 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             imgrec.saveas([ip.Results.fqfp '.4dfp.img.rec']);
             popd(pwd0);
         end
-        function this = resolveModalitiesToTracer(this, varargin)
+        function this = resolveModalitiesToProduct(this, varargin)
             %% RESOLVEMODALITIESTOTRACER resolves a set of images from heterogeneous modalities to the tracer encapsulated 
             %  within this.product. 
             %  @param  this.sessionData is well-formed for the problem. 

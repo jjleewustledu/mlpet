@@ -17,7 +17,7 @@ classdef CHPC4TracerDirector < mldistcomp.CHPC
             try
                 this.rsync([sd.freesurferLocation '/'], [csd.freesurferLocation '/']);
             catch ME
-                handwarning(ME);
+                dispwarning(ME);
             end
             
             this.sshMkdir(                              csd.T1('typ','path'));
@@ -53,6 +53,13 @@ classdef CHPC4TracerDirector < mldistcomp.CHPC
                 csd.frame = csd.frame + 1;
             end
         end
+        function this = pushMinimalData(this)
+            if (this.sessionData.attenuationCorrected)
+                this = this.pushMinimalForAC;
+            else
+                this = this.pushMinimalForNAC;
+            end
+        end
         function this = pullData(this)
             import mlraichle.*;
             csd = this.chpcSessionData;
@@ -75,6 +82,67 @@ classdef CHPC4TracerDirector < mldistcomp.CHPC
         
         function this = CHPC4TracerDirector(varargin)
             this = this@mldistcomp.CHPC(varargin{:});
+        end
+    end
+    
+    %% PRIVATE
+    
+    methods (Access = private)
+        function this = pushMinimalForAC(this)
+            import mlraichle.*;
+            csd = this.chpcSessionData;
+            sd  = this.sessionData;
+            
+            try
+                this.sshMkdir(                           csd.freesurferLocation);
+                this.rsync([sd.freesurferLocation '/'], [csd.freesurferLocation '/']);
+            catch ME
+                dispwarning(ME);
+            end
+            
+            sdNac = sd; sdNac.attenuationCorrected = false;
+            csdNac = csd; csdNac.attenuationCorrected = false;
+            this.sshMkdir(                                      csdNac.tracerListmodeLocation);            
+            if (isdir(sdNac.tracerListmodeLocation))
+                this.rsync([sdNac.tracerListmodeLocation '/'], [csdNac.tracerListmodeLocation '/']);
+            end
+            this.sshMkdir(                                      csdNac.tracerLocation);            
+            if (isdir(sdNac.tracerLocation))
+                this.rsync([sdNac.tracerLocation         '/'], [csdNac.tracerLocation '/']);
+            end
+            this.sshMkdir(                                      csd.tracerListmodeLocation); 
+            if (isdir(sd.tracerListmodeLocation))
+                this.rsync([sd.tracerListmodeLocation    '/'], [csd.tracerListmodeLocation '/']);
+            end
+            sd.frame  = 0;
+            csd.frame = 0;
+            while (isdir(sd.tracerListmodeLocation))
+                this.rsync([fileparts(sd.tracerListmodeLocation) '/'], [fileparts(csd.tracerListmodeLocation) '/']);
+                this.rsync([sd.tracerListmodeLocation '/'], [csd.tracerListmodeLocation '/']);
+                sd.frame  = sd.frame + 1;
+                csd.frame = csd.frame + 1;
+            end
+        end
+        function this = pushMinimalForNAC(this)
+            import mlraichle.*;
+            csd = this.chpcSessionData;
+            sd  = this.sessionData;
+            
+            try
+                this.sshMkdir(                           csd.freesurferLocation);
+                this.rsync([sd.freesurferLocation '/'], [csd.freesurferLocation '/']);
+            catch ME
+                dispwarning(ME);
+            end
+            
+            this.sshMkdir(                                         csd.sessionPath);
+            this.rsync(fullfile(sd.sessionPath, 'AC_CT_*.4dfp.*'), csd.sessionPath);
+            this.rsync(fullfile(sd.sessionPath, 'ct*.4dfp.*'),     csd.sessionPath);
+            
+            this.sshMkdir(                                   csd.tracerListmodeLocation);
+            if (isdir(sd.tracerListmodeLocation))
+                this.rsync([sd.tracerListmodeLocation '/'], [csd.tracerListmodeLocation '/']);
+            end
         end
     end
     

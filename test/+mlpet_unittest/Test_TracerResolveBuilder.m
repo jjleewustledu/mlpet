@@ -29,8 +29,8 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
  			this.assertEqual(1,1);
         end
         
-        function test_resolveModalitiesToTracer(this)
-            modalitiesRB = this.testObj.resolveModalitiesToTracer;
+        function test_resolveModalitiesToProduct(this)
+            modalitiesRB = this.testObj.resolveModalitiesToProduct;
             this.verifyClass(modalitiesRB, 'mlpet.TracerResolveBuilder');
             for m = 1:length(modalitiesRB)                
                 this.verifyClass(modalitiesRB(m).product, 'mlfourd.ImagingContext');

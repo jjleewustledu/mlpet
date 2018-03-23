@@ -153,6 +153,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             rB_ = mlfourdfp.T4ResolveBuilder( ...
                 'sessionData', this.sessionData_, ...
                 'theImages', this.product_.fqfileprefix, ...
+                'indicesLogical', this.indicesNonzero, ...
                 'indexOfReference', thisSz(4), ...
                 'NRevisions', 2, ...
                 'resolveTag', this.sessionData_.resolveTagFrame(thisSz(4), 'reset', true)); 
@@ -165,6 +166,20 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             this.product_        = rB_.product;            
             summed               = this.sumProduct;
             popd(pwd0);
+        end
+        function idx  = indicesNonzero(this)
+            %idx = true;
+            %return
+            
+            p = this.product_;
+            if (isa(p, 'mlfourd.ImagingContext'))
+                p = p.numericalNiftid;
+            end
+            if (isa(p, 'mlfourd.NIfTId'))
+                p = mlfourd.NumericalNIfTId(p);
+            end
+            p   = p.volumeAveraged;
+            idx = p.img > 0.05*median(p.img);
         end
         function this = motionCorrectCTAndUmap(this)
             %% MOTIONCORRECTCTANDUMAP
@@ -187,10 +202,16 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 case {'OC' 'OO' 'HO'}
                     sessFdg = this.sessionData_;
                     sessFdg.tracer = 'FDG';
-                    bv.lns_4dfp(sessFdg.tracerResolvedFinalSumt('typ','fqfp'));
+                    try
+                        bv.copyfile_4dfp(sessFdg.tracerResolvedFinalSumt('typ','fqfp'));
+                    catch ME
+                        error('mlpet:pipelinePrerequisiteMissing', ...
+                            '%s may be missing; run constructResolved(''tracer'', ''FDG'') and retry', sessFdg.tracerResolvedFinalSumt('typ','fqfp'));
+                    end
                     theImages = {this.product_.fileprefix ... 
+                                 sessFdg.tracerResolvedFinalSumt('typ','fp') ...
                                  this.ctSourceFp ...
-                                 this.T1('typ','fp')}; % this.t2('typ','fp') sessFdg.tracerResolvedFinalSumt('typ','fp') 
+                                 this.T1('typ','fp') }; % this.t2('typ','fp')
                     cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
                         'sessionData', this.sessionData_, ...
                         'theImages', theImages, ...
@@ -712,6 +733,20 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             end            
             this.product_ = report;
         end
+        function this = sumProduct(this)
+            assert(isa(this.product_, 'mlfourd.ImagingContext'))
+            if (this.buildVisitor.lexist_4dfp([this.product_.fqfp '_sumt']))
+                this.product_ = mlfourd.ImagingContext([this.product_.fqfp '_sumt.4dfp.ifh']);
+                return
+            end
+            sz = this.size_4dfp(this.product_);
+            if (length(sz) < 4 || sz(4) == 1)
+                return
+            end
+            this.product_ = this.product_.timeSummed;
+            this.product_.fourdfp;
+            this.product_.save; % _sumt
+        end
 		  
  		function this = TracerResolveBuilder(varargin)
             %% TRACERRESOLVEBUILDER
@@ -731,12 +766,12 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'ctSourceFqfn', ...
-                fullfile(this.vLocation, 'ctMaskedOnT1001r2_op_T1001.4dfp.ifh'), ...
+                fullfile(this.sessionPath, 'ctMasked.4dfp.ifh'), ...
                 @(x) lexist(x, 'file'));
             addParameter(ip, 'f2rep', [], @isnumeric);
             addParameter(ip, 'fsrc',  [], @isnumeric);
             parse(ip, varargin{:});
-            this.ctSourceFqfn    = this.ensureExistsCtSourceFqfn(ip.Results.ctSourceFqfn);
+            this.ctSourceFqfn    = ip.Results.ctSourceFqfn;
             this.f2rep           = ip.Results.f2rep;
             this.fsrc            = ip.Results.fsrc;
             this = this.updateFinished;            
@@ -866,20 +901,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             sessd_.rnumber = 1;
             assert(this.buildVisitor.lexist_4dfp(sessd_.tracerRevision('typ','fqfp')));
             sz = this.buildVisitor.ifhMatrixSize(sessd_.tracerRevision('typ', '4dfp.ifh'));
-        end
-        function this = sumProduct(this)
-            assert(isa(this.product_, 'mlfourd.ImagingContext'))
-            if (this.buildVisitor.lexist_4dfp([this.product_.fqfp '_sumt']))
-                this.product_ = mlfourd.ImagingContext([this.product_.fqfp '_sumt.4dfp.ifh']);
-                return
-            end
-            sz = this.size_4dfp(this.product_);
-            if (length(sz) < 4 || sz(4) == 1)
-                return
-            end
-            this.product_ = this.product_.timeSummed;
-            this.product_.fourdfp;
-            this.product_.save; % _sumt
         end
         function        touchFinishedMarker(this)
             this.finished.touchFinishedMarker;   
