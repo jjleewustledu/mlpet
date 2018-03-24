@@ -60,7 +60,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             tr = mlfourdfp.Fourdfp.load(this.sessionData.tracerRevision);
             imgsrc = tr.img(:,:,:,this.fsrc);
             for f = 1:length(this.f2rep)
-                tr.img(:,:,:,f) = imgsrc;
+                tr.img(:,:,:,this.f2rep(f)) = imgsrc;
             end
             tr.save;
         end
