@@ -10,8 +10,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
      
     properties
         ctSourceFqfn % fqfilename
-        f2rep
-        fsrc
+        f2rep % use to exclude early frames of OC, OO that have breathing tube in FOV
+        fsrc  %
     end    
     
     properties (Dependent)
@@ -167,9 +167,13 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             summed               = this.sumProduct;
             popd(pwd0);
         end
-        function idx  = indicesNonzero(this)
-            %idx = true;
-            %return
+        function idx  = indicesNonzero(this)            
+            % logic relocated to mlfourdfp.ImageFrames.ctor
+            
+            if (length(this.sessionData.epoch) > 1)
+                idx = true;
+                return
+            end
             
             p = this.product_;
             if (isa(p, 'mlfourd.ImagingContext'))
@@ -179,7 +183,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 p = mlfourd.NumericalNIfTId(p);
             end
             p   = p.volumeAveraged;
-            idx = p.img > 0.05*median(p.img);
+            idx = p.img > this.sessionData.fractionalImageFrameThresh * median(p.img);
+            idx = ensureRowVector(idx) & ensureRowVector(this.sessionData.indicesLogical);
         end
         function this = motionCorrectCTAndUmap(this)
             %% MOTIONCORRECTCTANDUMAP
@@ -913,6 +918,13 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             cub = cub.convertUmapsToE7Format(fps);
             this.product_ = cub.product;
         end
+        function this  = repUmapToE7Format(this)
+            sz  = length(this.sessionData.taus);
+            fps = cellfun(@(x) sprintf('umapSynth_frame%i', x), num2cell(0:sz(4)-1), 'UniformOutput', false);
+            cub = mlfourdfp.CarneyUmapBuilder('sessionData', this.sessionData);
+            cub = cub.repUmapToE7Format(fps);
+            this.product_ = cub.product;
+        end
         function this = partitionUmaps(this)
             
             tNac = zeros(1, length(this.tauFramesNAC));
@@ -1127,7 +1139,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %end           
             
             sessd1 = sessd;
-            sessd1.epoch = 1;
+            sessd1.epoch = 1:nEpoch;
             sessd1.resolveTag = sessd1.resolveTagFrame(this.maxLengthEpoch, 'reset', true);
             umap = ImagingContext(sessd1.umap(sessd1.resolveTag));
             umapFfp = umap.fourdfp;
