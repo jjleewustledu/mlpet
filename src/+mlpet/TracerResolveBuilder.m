@@ -208,6 +208,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     sessFdg = this.sessionData_;
                     sessFdg.tracer = 'FDG';
                     try
+                        delete(         [sessFdg.tracerResolvedFinalSumt('typ','fp') '.4dfp.*']);
                         bv.copyfile_4dfp(sessFdg.tracerResolvedFinalSumt('typ','fqfp'));
                     catch ME
                         error('mlpet:pipelinePrerequisiteMissing', ...
@@ -224,7 +225,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 case 'FDG'
                     theImages = {this.product_.fileprefix ... 
                                  this.ctSourceFp ...
-                                 this.T1('typ','fp')}; % this.t2('typ','fp')
+                                 this.T1('typ','fp')};
                     cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
                         'sessionData', this.sessionData_, ...
                         'theImages', theImages, ...
@@ -1139,7 +1140,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %end           
             
             sessd1 = sessd;
-            sessd1.epoch = 1:nEpoch;
+            sessd1.epoch = 1;
             sessd1.resolveTag = sessd1.resolveTagFrame(this.maxLengthEpoch, 'reset', true);
             umap = ImagingContext(sessd1.umap(sessd1.resolveTag));
             umapFfp = umap.fourdfp;

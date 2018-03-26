@@ -248,38 +248,6 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             deleteExisting('*_b15.4dfp.*');
             popd(pwd0);
         end
-        function this  = instanceConstructHerscovitchOpAtlas(this, varargin)
-            %% INSTANCECONSTRUCTHERSCOVITCHOPATLAS
-            %  @param named target is the filename of a target, recognizable by mlfourd.ImagingContext.ctor;
-            %  the default target is this.tracerResolvedFinal('epoch', this.sessionData.epoch) for FDG;
-            %  see also TracerDirector.tracerResolvedTarget.
-            %  @param this.anatomy is char; it is the sessionData function-name for anatomy in the space of
-            %  this.sessionData.T1; e.g., 'T1', 'T1001', 'brainmask'.
-            %  @result ready-to-use t4 transformation files aligned to this.tracerResolvedTarget.
-            
-            bv = this.builder_.buildVisitor;
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'sources', @iscell);
-            addParameter(ip, 'intermediary', @ischar);
-            parse(ip, varargin{:});  
-            ss = ip.Results.sources;
-            
-            assert(~isempty(ss));
-            pwd0 = pushd(myfileparts(ss{1}));
-            bv.ensureLocalFourdfp(ip.Results.intermediary); 
-            this.builder_ = this.builder_.packageProduct(ip.Results.intermediary); % build everything resolved to intermediary
-            this.builder_ = this.builder_.resolveModalitiesToProduct( ...
-                thus.sessionData.tracerResolvedFinalSumt, varargin{:});
-            
-            cRB = this.builder_.compositeResolveBuilder;
-            for is = 1:length(ss)
-                this.localResolvedOpAtlas(cRB, mlfourd.ImagingContext(ss{is}));
-            end
-            deleteExisting('*_b15.4dfp.*');
-            popd(pwd0);
-        end
         function this  = instanceConstructCompositeResolved(this, varargin)
             %% INSTANCECONSTRUCTCOMPOSITERESOLVED
             %  @param named target is the filename of a target, recognizable by mlfourd.ImagingContext.ctor;
@@ -456,6 +424,28 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                 [s,r] = CHPC.rsync( ...
                     fullfile(csessd.tracerLocation, ip.Results.pattern), ...
                     sessd.tracerLocation, ...
+                    'chpcIsSource', true);
+            catch ME
+                fprintf('s->%i, r->%s\n', s, r);
+                handwarning(ME);
+            end
+            for e = 1:this.sessionData.supEpoch
+                try
+                    Efolder = sprintf('E%i', e);
+                    [s,r] = CHPC.rsync( ...
+                        fullfile(csessd.tracerLocation, Efolder, ip.Results.pattern), ...
+                        fullfile( sessd.tracerLocation, Efolder), ...
+                        'chpcIsSource', true);
+                catch ME
+                    fprintf('s->%i, r->%s\n', s, r);
+                    handwarning(ME);
+                end
+            end
+            try
+                Efolder = sprintf('E1to%i', this.sessionData.supEpoch);
+                [s,r] = CHPC.rsync( ...
+                    fullfile(csessd.tracerLocation, Efolder, ip.Results.pattern), ...
+                    fullfile( sessd.tracerLocation, Efolder), ...
                     'chpcIsSource', true); %#ok<ASGLU>
             catch ME
                 fprintf('s->%i, r->%s\n', s, r);
@@ -502,6 +492,13 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                 return
             end
             this = this.instanceConstructResolvedAC;
+        end
+        function this  = instanceReconstructUnresolved(this)
+            if (~this.sessionData.attenuationCorrected)
+                this = this.instanceConstructUnresolvedNAC;
+                return
+            end
+            this = this.instanceConstructUnresolvedAC;
         end
         function this  = instanceTestLaunching(this, varargin)
             ls(this.sessionData.tracerLocation)
@@ -563,37 +560,39 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             this.builder_ = this.builder_.reconstituteFramesAC2;
             this.builder_ = this.builder_.sumProduct;
         end
-        function this  = instanceConstructResolvedNAC(this)
-            
+        function this  = instanceConstructResolvedNAC(this)     
+            mlraichle.UmapDirector.constructUmaps('sessionData', this.sessionData);       
             this.builder_       = this.builder_.locallyStageTracer;
             this.builder_       = this.builder_.replaceMonolithFrames; % as requested of this.builder_ in its ctor.
             this.builder_       = this.builder_.partitionMonolith; 
             [this.builder_,multiEpochOfSummed,reconstitutedSummed] = this.builder_.motionCorrectFrames;
             reconstitutedSummed = reconstitutedSummed.motionCorrectCTAndUmap;             
             this.builder_       = reconstitutedSummed.motionUncorrectUmap(multiEpochOfSummed);
+            %this.builder_       = this.builder_.createUmapSynthForDynamicFrames;
         end
-        function c     = localResolvedOpAtlas(this, cRB, ic)
-            %  TODO:  refactor with localTracerResolvedFinalSumt
-            
-            assert(isa(cRB, 'mlfourdfp.CompositeT4ResolveBuilder'));
-            assert(lexist_4dfp(ic.fileprefix));
-            sd = this.sessionData;
-            
-            c = {};
-            t4 = sprintf('%sr0_to_%s_t4', sd.tracerResolvedFinalSumt('typ','fp'), cRB.resolveTag);
-            outfile = [ic.fileprefix 'op_TRIO_Y_NDC']; 
-            if (lexist(strrep(t4,'r0','r2'), 'file') && ~lexist_4dfp(outfile))
-                try
-                    cRB.t4img_4dfp( ...
-                        t4, ...
-                        ic.fqfileprefix, ...
-                        'out', outfile, ...
-                        'options', sprintf('-n -O%s', sd.atlas('typ','fqfp')));
-                    c{1} = outfile;
-                catch ME
-                    dispwarning(ME);
-                end
-            end
+        function this  = instanceConstructUnresolvedAC(this)
+            this.builder_ = this.builder_.reconstituteFramesAC;
+            this.sessionData.frame = nan;
+            this.builder_.sessionData.frame = nan;
+            this.builder_ = this.builder_.partitionMonolith;
+            this.builder_ = this.builder_.motionCorrectFrames;            
+            this.builder_ = this.builder_.reconstituteFramesAC2;
+            this.builder_ = this.builder_.sumProduct;
+        end
+        function this  = instanceConstructUnresolvedNAC(this)     
+            this.builder_ = this.builder_.locallyStageTracer;
+            this          = this.sumRevisionAndCopyToFinalSumt;
+            this.builder_ = this.builder_.packageProduct(this.sessionData.tracerResolvedFinalSumt);
+            this.builder_ = this.builder_.motionCorrectCTAndUmap;             
+            this.builder_ = this.builder_.repUmapToE7Format;
+        end
+        function this  = sumRevisionAndCopyToFinalSumt(this)
+            ic  = mlfourd.ImagingContext(this.sessionData.tracerRevision);
+            ic  = ic.timeSummed;
+            nii = ic.niftid;
+            nii.fqfilename = this.sessionData.tracerResolvedFinalSumt;
+            ensuredir(nii.filepath);
+            nii.save;
         end
         function c     = localTracerResolvedFinalSumt(this)  
             %  TODO:  refactor with localTracerResolvedFinal

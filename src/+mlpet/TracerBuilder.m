@@ -131,9 +131,9 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             addParameter(ip, 'fqfn',    ''); %, @(x) lexist(x, 'file'));
             parse(ip, varargin{:});
             
-            deleteExisting_4dfp(this.T1('typ',  'fp'));
+            trydelete([this.T1('typ','fp') '.4dfp.*']);
             bv.copyfile_4dfp(   this.T1('typ','fqfp'));  
-            deleteExisting_4dfp(this.umapSynth('tracer', '', 'typ',   'fp'));
+            trydelete([this.umapSynth('tracer', '', 'typ','fp') '.4dfp.*']);
             bv.copyfile_4dfp(   this.umapSynth('tracer', '', 'typ', 'fqfp'));
             
             if (~isempty(ip.Results.fourdfp))
