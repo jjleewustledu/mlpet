@@ -312,11 +312,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             end
         end
         function this  = instanceConstructResolved(this)
-            if (~this.sessionData.attenuationCorrected)
-                this = this.instanceConstructResolvedNAC;
-                return
-            end
-            this = this.instanceConstructResolvedAC;
+            this = this.instanceReconstructResolved;
         end
         function this  = instanceConstructResolveReports(this)
             this.builder_.sessionData.attenuationCorrected = true; % KLUDGE

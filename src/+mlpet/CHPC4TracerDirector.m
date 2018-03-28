@@ -100,16 +100,16 @@ classdef CHPC4TracerDirector < mldistcomp.CHPC
                 dispwarning(ME);
             end
             
-            sdNac = sd; sdNac.attenuationCorrected = false;
-            csdNac = csd; csdNac.attenuationCorrected = false;
-            this.sshMkdir(                                      csdNac.tracerListmodeLocation);            
-            if (isdir(sdNac.tracerListmodeLocation))
-                this.rsync([sdNac.tracerListmodeLocation '/'], [csdNac.tracerListmodeLocation '/']);
-            end
-            this.sshMkdir(                                      csdNac.tracerLocation);            
-            if (isdir(sdNac.tracerLocation))
-                this.rsync([sdNac.tracerLocation         '/'], [csdNac.tracerLocation '/']);
-            end
+%             sdNac = sd; sdNac.attenuationCorrected = false;
+%             csdNac = csd; csdNac.attenuationCorrected = false;
+%             this.sshMkdir(                                      csdNac.tracerListmodeLocation);            
+%             if (isdir(sdNac.tracerListmodeLocation))
+%                 this.rsync([sdNac.tracerListmodeLocation '/'], [csdNac.tracerListmodeLocation '/']);
+%             end
+%             this.sshMkdir(                                      csdNac.tracerLocation);            
+%             if (isdir(sdNac.tracerLocation))
+%                 this.rsync([sdNac.tracerLocation         '/'], [csdNac.tracerLocation '/']);
+%             end
             this.sshMkdir(                                      csd.tracerListmodeLocation); 
             if (isdir(sd.tracerListmodeLocation))
                 this.rsync([sd.tracerListmodeLocation    '/'], [csd.tracerListmodeLocation '/']);

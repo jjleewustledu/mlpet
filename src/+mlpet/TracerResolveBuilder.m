@@ -565,7 +565,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                    
             assert(this.sessionData_.attenuationCorrected);  
             ensuredir(this.sessionData_.tracerLocation);
-            nFrames = this.getNFrames;
             
             if (lexist(this.sessionData_.tracerRevision, 'file'))                
                 % update this.{sessionData_,product_}
@@ -591,7 +590,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     this.sessionData_, ...
                     this.sessionData_.frame, ...
                     'fqfp', this.sessionData_.tracerRevision('frame', this.sessionData_.frame, 'typ', 'fqfp'));
-                ffp = this.t4imgFromNac(ffp, nFrames);
+                ffp = this.t4imgFromNac(ffp, this.nFramesAC);
                 if (ffp.rank < 4)
                     innerf = innerf + 1;
                     aufbau.img(:,:,:,innerf) = ffp.img;
@@ -608,9 +607,44 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             % update this.{sessionData_,product_}
             this.sessionData_.rnumber = 1;
             aufbau.img = double(aufbau.img);
+            aufbau = this.applyTauMultiplier(aufbau);
             aufbau.save;
             this = this.packageProduct(aufbau);
         end	
+        function nii  = applyTauMultiplier(this, nii)
+            switch (this.sessionData.tauMultiplier)
+                case 1
+                case 2
+                    assert(isa(nii, 'mlfourd.INIfTI'));
+                    sz   = size(nii);
+                    M    = floor(sz(4)/2);                    
+                    N    = ceil( sz(4)/2);
+                    img_ = zeros(sz(1),sz(2),sz(3),N);
+                    u    = 1;
+                    for t = 1:M
+                        img_(:,:,:,t) = (nii.img(:,:,:,u) + nii.img(:,:,:,u+1))/2;
+                        u = u + 2;
+                    end
+                    if (0 ~= mod(sz(4), 2))
+                        img_(:,:,:,end) = nii.img(:,:,:,end);
+                    end
+                    nii.img = img_;
+                case 4
+                    nii = this.applyTauMultiplier( ...
+                          this.applyTauMultiplier(nii));
+                case 8
+                    nii = this.applyTauMultiplier( ...
+                          this.applyTauMultiplier( ...
+                          this.applyTauMultiplier(nii)));
+                case 16
+                    nii = this.applyTauMultiplier( ...
+                          this.applyTauMultiplier( ...
+                          this.applyTauMultiplier( ...
+                          this.applyTauMultiplier(nii))));
+                otherwise
+                    error('mlpet:unsupportedSwitchCase', 'TracerResolveBuilder.applyTauMultiplier');
+            end
+        end
         function ffp  = reconstituteFrame(this, varargin)
             %  @param named sessionData is an mlpipeline.SessionData.
             %  @param this.sessionData.tracerListmodeMhdr exists.
@@ -919,7 +953,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             cub = cub.convertUmapsToE7Format(fps);
             this.product_ = cub.product;
         end
-        function this  = repUmapToE7Format(this)
+        function this = repUmapToE7Format(this)
             sz  = length(this.sessionData.taus);
             fps = cellfun(@(x) sprintf('umapSynth_frame%i', x), num2cell(0:sz(4)-1), 'UniformOutput', false);
             cub = mlfourdfp.CarneyUmapBuilder('sessionData', this.sessionData);
@@ -999,15 +1033,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             epoch = floor(nacFrame/this.maxLengthEpoch) + 1;
             epochSubframe = mod(nacFrame, this.maxLengthEpoch) + 1;  
         end
-        function N    = getNFrames(this)
-            sessd = this.sessionData_;
-            sessd.frame = 0;
-            while (isdir(sessd.tracerConvertedLocation))
-                sessd.frame = sessd.frame + 1;
-            end
-            assert(sessd.frame > 0);
-            N = sessd.frame;
-        end
         function ffp  = t4imgFromNac(this, ffp, nFrames)
             %% t4imgFromNac uses t4s from NAC resolving products to place the AC reconstructions from e7tools in
             %  initial alignment.
@@ -1079,7 +1104,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %% RECONSTITUTEFRAMESAC2__ is the rapid prototype used to develop reconstituteFramesAC2.
             
             import mlfourdfp.*;            
-            nFrames = 85;
+            nFrames = this.nFramesAC;
             nEpochs = floor(nFrames/this.maxLengthEpoch);
             supEpochs = ceil(nFrames/this.maxLengthEpoch);
             sessd = this.sessionData;
