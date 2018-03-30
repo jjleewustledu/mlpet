@@ -146,7 +146,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
  			%  @param builder must be an mlpet.TracerBuilder
             
             ip = inputParser;
-            addRequired( ip, 'builder', @(x) isa(x, 'mlpet.TracerBuilder'));
+            addOptional( ip, 'builder', [], @(x) isempty(x) || isa(x, 'mlpet.TracerBuilder'));
             addParameter(ip, 'anatomy', 'T1001', @ischar);
             parse(ip, varargin{:});
             
@@ -590,19 +590,19 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             ensuredir(nii.filepath);
             nii.save;
         end
-        function c     = localTracerResolvedFinalSumt(this)  
+        function c     = localTracerResolvedFinalSumt(this) 
+            %  @return c := cell-array of fileprefixes. 
             %  TODO:  refactor with localTracerResolvedFinal
             
             fv = mlfourdfp.FourdfpVisitor;
             sd = this.sessionData;
             tr = {'OC' 'OO' 'HO'};
-            sc = 1:3;
             
             c = {};
-            for it = 1:length(tr)
-                for is = sc
-                    sd.tracer = tr{it};
-                    sd.snumber = is;
+            for itr = 1:length(tr)
+                for isl = sd.supScanList
+                    sd.tracer = tr{itr};
+                    sd.snumber = isl;
                     if (lexist(sd.tracerResolvedFinal, 'file'))
                         if (lexist(sd.tracerResolvedFinalSumt, 'file'))
                             try
@@ -617,14 +617,16 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                             nn.filepath = pwd;
                             nn.save;
                         end
-                        c = [c      {sd.tracerResolvedFinalSumt('typ','fp')}]; %#ok<AGROW>
+                        
+                        c = [c {sd.tracerResolvedFinalSumt('typ','fp')}]; %#ok<AGROW>
+                        
                     end
                 end
             end
             assert(~isempty(c));
         end
         function c     = localTracerResolvedFinal(this, cRB, icTarg)
-            %  TODO:  refactor with localTracerResolvedFinalSumt
+            %  TODO:  refactor with localTracerResolvedFinalSumt, 
             
             assert(isa(cRB, 'mlfourdfp.CompositeT4ResolveBuilder'));
             assert(lexist_4dfp(icTarg.fileprefix));
