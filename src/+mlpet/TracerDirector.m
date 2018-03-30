@@ -600,7 +600,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             
             c = {};
             for itr = 1:length(tr)
-                for isl = sd.supScanList
+                for isl = 1:sd.supScanList
                     sd.tracer = tr{itr};
                     sd.snumber = isl;
                     if (lexist(sd.tracerResolvedFinal, 'file'))
