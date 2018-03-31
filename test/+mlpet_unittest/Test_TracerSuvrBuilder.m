@@ -15,6 +15,7 @@ classdef Test_TracerSuvrBuilder < matlab.unittest.TestCase
  		registry
         sessd
  		testObj
+        viewer
         vnumber = 2
  	end
 
@@ -27,14 +28,58 @@ classdef Test_TracerSuvrBuilder < matlab.unittest.TestCase
         end
         function test_buildAll(this)
         end
-        function test_buildSuvr(this)
-            % this.sessd.tracer == 'FDG'
-            this.testObj_.buildSuvr
-            ic = mlfourd.ImagingContext(this.sessd.);
+        function test_buildTimeContraction(this)
+            tracers = {'FDG' 'OC' 'OO' 'HO'};
+            for tr = 1:length(tracers)
+                this.testObj.tracer = tracers{tr};
+                [this.testObj,tw] = this.testObj.buildTimeContraction;
+                plot(tw);
+                xlabel('frame indices'); ylabel(sprintf('\\Sigma_{x} activity(%s(x)) in Bq', tracers{tr}));
+                title('time-windowed volume contraction');
+                this.viewer.view(this.testObj.product);
+            end
         end
-        function test_buildOef(this)
+        function test_buildOnAtl(this)
+            tracers = {'FDG' 'OC' 'OO' 'HO'};
+            for tr = 1:length(tracers)
+                this.testObj.tracer = tracers{tr};
+                this.testObj = this.testObj.buildOnAtl; 
+                this.viewer.view(this.testObj.atlas, this.testObj.product);
+            end
         end
-        function test_buildCmro2(this)
+        function test_buildTracer(this)
+            tracers = {'FDG' 'OC' 'OO' 'HO'};
+            for tr = 1:length(tracers)
+                this.testObj.tracer = tracers{tr};
+                this.testObj = this.testObj.buildTracer;
+                p = this.testObj.product;    
+                this.viewer.view(this.testObj.atlas, p)        
+                this.verifyEqual(this.testObj.volumeAverage(p), 1, 'RelTol', 0.01);
+                this.verifyEqual(p.fqfilename, this.tracer.tracerSuvr('typ','fqfn'));
+                this.verifyTrue(lexist_4dfp(p.fqfileprefix));
+            end
+        end
+        function test_buildBetas(this)
+            [this.testObj,cmro2,oef,msk] = this.testObj.buildBetas;
+            this.verifyEqual(this.testObj.product.Coefficients{1,'Estimate'}, 0.85312, 'RelTol', 0.01);
+            this.verifyEqual(this.testObj.product.Coefficients{2,'Estimate'}, 0.13157, 'RelTol', 0.01);
+            plotResiduals(   this.testObj.product);
+            plotDiagnostics( this.testObj.product, 'cookd');
+            plotSlice(       this.testObj.product);
+            this.viewer.view(this.testObj.atlas, cmro2, oef)
+            volAver = cmro2.volumeAveraged(msk);
+            this.verifyEqual(double(volAver.img), 0.8684285283, 'RelTol', 0.01)
+            volAver = oef.volumeAveraged(msk);
+            this.verifyEqual(double(volAver.img), 1.0403, 'RelTol', 0.01)
+        end
+        function test_buildGlcMetab(this)
+            [this.testObj,ogi,agi] = this.testObj.buildGlcMetab;
+            this.viewer.view(this.testObj.atlas, ogi, agi)
+        end
+        function test_view(this)
+            names = {'fdg' 'oc' 'oo' 'ho' 'cmro2' 'oef' 'ogi' 'agi'};
+            named = cellfun(@(x) this.testObj.tracerSuvrNamed(x, 'typ', '4dfp.img'), names, 'UniformOutput', false);
+            this.viewer.view(named);
         end
 	end
 
@@ -43,8 +88,10 @@ classdef Test_TracerSuvrBuilder < matlab.unittest.TestCase
  			import mlpet.*;
             studyd        = mlraichle.StudyData;
             sessp         = fullfile(studyd.subjectsDir, this.hyglyNN, '');
-            this.sessd    = mlraichle.SessionData('studyData', studyd, 'sessionPath', sessp, 'vnumber', this.vnumber);
+            this.sessd    = mlraichle.SessionData( ...
+                'studyData', studyd, 'sessionPath', sessp, 'vnumber', this.vnumber, 'ac', true);
  			this.testObj_ = TracerSuvrBuilder('sessionData', this.sessd);
+            this.viewer   = mlfourdfp.Viewer('freeview');
  		end
 	end
 
