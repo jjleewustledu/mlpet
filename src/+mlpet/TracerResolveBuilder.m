@@ -716,8 +716,14 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 fpDest = [sessde.tracerRevision('typ','fp') '_' sessd1to11.resolveTag];
                 % fdgv1e1r2_op_fdgv1e1to11r1_frame11
                 % fdgv2e1r2_op_fdgv2e1to11r1_frame11
-                fv.t4img_4dfp(t4, fp, 'out', fpDest, 'options', ['-O' fp]);
-                ffp = Fourdfp.load([fpDest '.4dfp.ifh']);
+                if (lexist(t4, 'file'))
+                    fv.t4img_4dfp(t4, fp, 'out', fpDest, 'options', ['-O' fp]);
+                    ffp = Fourdfp.load([fpDest '.4dfp.ifh']);
+                else
+                    % e.g., for case in which most of epoch 1 is empty because of late
+                    % dose administration
+                    ffp = Fourdfp.load([fp '.4dfp.ifh']);
+                end
                 ffp0.img(:,:,:,(e-1)*this.maxLengthEpoch+1:e*this.maxLengthEpoch) = ffp.img;
                 popd(pwd1);
             end
