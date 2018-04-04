@@ -257,52 +257,6 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
                 [this.vendorSupport_.cropfrac(fqfp0, fqfp) ext]);
         end
         
-        function        reconstituteImgRec(this, varargin)  
-            %% RECONSTITUTEIMGREC
-            %  @param filesystem has {this.sessionData.tracerConvertedLocation} for all available frames.
-            %  @param named fqfp, or fully-qualified fileprefix, of output; defaults to this.product.fqfileprefix. 
-            %  @return prepend timing information from sif_4dfp1 to start of [fqfp '.4dfp.img.rec'].
-            
-            %  TODO @param named toskip is numeric and should be determined by inspection of motion-correction results.
-
-            bv = this.buildVisitor;
-            ip = inputParser;
-            addParameter(ip, 'fqfp', this.product.fqfileprefix, @bv.lexist_4dfp);
-            addParameter(ip, 'toskip', [], @isnumeric);
-            parse(ip, varargin{:});
-            
-            sessd = this.sessionData_;
-            assert(sessd.attenuationCorrected);  
-            assert(isdir(sessd.tracerLocation));
-            pwd0 = pushd(sessd.tracerLocation);
-            prev = mlfourdfp.ImgRecParser.loadx(this.product.fqfileprefix, '.4dfp.img.rec');
-            prev.saveas([this.product.fqfileprefix '_' datestr(now, 30) '.4dfp.img.rec']);
-            imgrec = mlfourdfp.ImgRecLogger;
-            imgrec.consNoHeadFoot(prev.cellContents)
-
-            timingEntry0 = {'mlpet.TracerBuilder.reconstituteImgRec:' ...
-                'Frame           Length(msec)    Midpoint(sec)   Start(msec)      Frame_Min       Frame_Max       Decay_Fac      Rescale'};
-            timingEntries = {};
-            sessd.frame = 0;
-            innerf = 0;
-            while (isdir(sessd.tracerConvertedLocation))
-
-                assert(lexist(sessd.tracerListmodeSif('frame', sessd.frame), 'file'))
-                imgrec_ = mlfourdfp.ImgRecParser.loadx(sessd.tracerListmodeSif('frame', sessd.frame, 'typ', 'fqfp'), '.4dfp.img.rec'); % handle
-                timingEntries_ = imgrec_.extractLinesByRegexp( ...
-                    '^Frame_\d+\s+\d+\s+\d+\.\d+\s+\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\s*$');
-                assert(~isempty(timingEntries_))
-                for te = 1:length(timingEntries_)
-                    innerf = innerf + 1;
-                    timingEntries_{te} = regexprep(timingEntries_{te}, '^Frame_\d+', sprintf('Frame_%i', innerf));
-                end
-                timingEntries = [timingEntries timingEntries_]; %#ok<AGROW>
-                sessd.frame = sessd.frame + 1;
-            end
-            imgrec.cons([timingEntry0 timingEntries]);
-            imgrec.saveas([ip.Results.fqfp '.4dfp.img.rec']);
-            popd(pwd0);
-        end
         function this = resolveModalitiesToProduct(this, varargin)
             %% RESOLVEMODALITIESTOTRACER resolves a set of images from heterogeneous modalities to the tracer encapsulated 
             %  within this.product. 
