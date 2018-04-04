@@ -755,6 +755,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             popd(pwd1);            
             ffp0.save;
             popd(pwd0);
+            this = this.packageProduct(ffp0);
         end
         function this = reportResolved(this)
             %  @return this.product_ := {mlfourdfp.T4ResolveReport objects}
