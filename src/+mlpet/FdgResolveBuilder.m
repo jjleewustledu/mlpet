@@ -267,7 +267,7 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
                     childRB.resolveTag       = childRB.resolveTagFrame(idxRef, 'reset', true); % op_fdgv1e1to9r1_frame${idxRef};                      
                     childRB                  = childRB.updateFinished( ...
                         'tag2', sprintf('_motionUncorrectToEpochs_%s', source.fileprefix), ...
-                        'neverTouch', multiEpochOfSummed(idxRef).getNeverTouch);
+                        'neverTouchFinishfile', multiEpochOfSummed(idxRef).getNeverTouch);
                     
                     childRB.skipT4imgAll = true;
                     childRB              = childRB.resolve; % childRB.product->${E}/umapSynth${e}r1_frame${idxRef}                                      
@@ -334,7 +334,7 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
                     childRB.resolveTag       = childRB.resolveTagFrame(idxRef, 'reset', true); % op_fdgv1${e}r1_frame${idxRef};                      
                     childRB                  = childRB.updateFinished( ...
                         'tag2', sprintf('_motionUncorrectToEpochs2_%s', source.fileprefix), ...
-                        'neverTouch', multiEpochOfSummed.getNeverTouch);
+                        'neverTouchFinishfile', multiEpochOfSummed.getNeverTouch);
                     
                     childRB.skipT4imgAll = true;
                     childRB              = childRB.resolve; % childRB.product->$E1to9/fdgv1e1to9r2_op_fdgv1${e}r1_frame${idxRef}

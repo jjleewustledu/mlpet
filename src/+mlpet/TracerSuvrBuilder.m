@@ -11,17 +11,21 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
     end
     
     properties 
+        atlasVoxelSize = 333;
+        rebuild = true;
         tracerKind = 'tracerResolvedFinalOpFdg' % method@SessionData
     end
 
 	methods   
         function obj = atlas(this, varargin)
-            fqfn = fullfile(getenv('REFDIR'), 'TRIO_Y_NDC_333.4dfp.ifh');
+            fqfn = fullfile(this.sessionData.subjectsDir, 'jjlee2', 'atlasTest', 'source', 'HYGLY_atlas.4dfp.ifh');
             obj  = this.sessionData.fqfilenameObject(fqfn, varargin{:});
         end
         function p = buildAll(this)
             for tr = 1:length(this.SUPPORTED_TRACERS)
+                tracers_ = {};
                 for sc = 1:3
+                    warning('off', 'MATLAB:InputParser:ArgumentFailedValidation');
                     if (strcmpi(this.SUPPORTED_TRACERS{tr}, 'FDG') && sc ~= 1)
                         break
                     end
@@ -31,55 +35,117 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
                         this = this.buildTimeContraction;
                         this = this.buildOnAtl;
                         this = this.buildTracer;
+                        tracers_ = [tracers_ {this.product}]; %#ok<AGROW> % accumulate scans of OC, OO, HO
+                        fprintf('mlpet.TracerSuvrBuilder.buildAll:  %s, s%i\n', ...
+                            this.SUPPORTED_TRACERS{tr}, sc);
                     catch ME
                         dispwarning(ME);
                     end
+                    warning('on', 'MATLAB:InputParser:ArgumentFailedValidation');
                 end                
+                this = this.buildTracerSuvrAveraged(tracers_{:});
             end
             p    = {};
             this = this.buildCbf;
-            p    = [p this.product];
+            p    = [p {this.product}];
             this = this.buildCbv;
-            p    = [p this.product];
-            this = this.buildOef;
-            p    = [p this.product];
-            this = this.buildCmro2;
-            p    = [p this.product];
+            p    = [p {this.product}];
             this = this.buildCmrglc;
-            p    = [p this.product];
-            this = this.buildOgi;
-            p    = [p this.product];
-            this = this.buildAgi;
-            p    = [p this.product];
+            p    = [p {this.product}];
+            this = this.buildBetas;
+            p    = [p this.product]; % cmro2, oef
+            this = this.buildGlcMetab;
+            p    = [p {this.product}];
         end
         function [this,tw] = buildTimeContraction(this)
-            nn = mlfourd.NumericalNIfTId.load(this.tracerObj);
-            [w,nn1] = this.timeWindowIndices(nn);
-            this.product_ = nn.timeContracted(w);
-            this.product_.fqfilename = this.tracerTimeWindowed;
-            this.product_.save;
+            try
+                if (lexist(this.tracerTimeWindowed, 'file') && ~this.rebuild)
+                    this = this.packageProduct(this.tracerTimeWindowed);
+                    return
+                end            
+                
+                if (~lexist(this.tracerObj, 'file'))
+                    tw = [];
+                    this.product_ = [];
+                    return
+                end
+                nn = mlfourd.NumericalNIfTId.load(this.tracerObj);
+                [w,nn1] = this.timeWindowIndices(nn);
+                this.product_ = nn.timeContracted(w);
+                this.product_.fqfilename = this.tracerTimeWindowed;
+                this.product_.save;
+            catch ME
+                handwarning(ME);
+            end
+            this.product_ = mlfourd.ImagingContext(this.product_);
             tw = nn1.img; % xlabel('frame indices'); ylabel(sprintf('\\Sigma_{x} activity(%s(x)) in Bq', tracer));
         end
         function this = buildOnAtl(this)
+            if (lexist(this.tracerTimeWindowedOnAtl, 'file') && ~this.rebuild)
+                this = this.packageProduct(this.tracerTimeWindowedOnAtl);
+                return
+            end
             sdFdg = this.sessionData;
             sdFdg.tracer = 'FDG';
-            t4 = fullfile(this.vLocation, sprintf('%s_to_TRIO_Y_NDC_t4', sdFdg.tracerRevision('typ','fp')));
+            t4 = this.atlBuilder_.tracer_to_atl_t4;
+            assert(lexist(t4, 'file'));
             this.buildVisitor_.t4img_4dfp( ...
-                t4, this.tracerTimeWindowed, 'out', this.tracerTimeWindowedOnAtl, 'options', '-O333');
+                t4, this.tracerTimeWindowed,...
+                'out', this.tracerTimeWindowedOnAtl('typ','fqfp'), ...
+                'options', sprintf('-O%s_%i', this.sessionData.studyAtlas('typ','fqfp'), this.atlasVoxelSize));
             this = this.packageProduct(this.tracerTimeWindowedOnAtl);
         end
         function this = buildTracer(this)
+            if (lexist(this.tracerSuvr, 'file') && ~this.rebuild)
+                this = this.packageProduct(this.tracerSuvr);
+                return
+            end
             import mlfourd.*;
             msk = NumericalNIfTId.load( ...
-                fullfile(getenv('REFDIR'), 'glm_atlas_mask_333.4dfp.ifh'));
+                fullfile(getenv('REFDIR'), sprintf('glm_atlas_mask_%i.4dfp.ifh', this.atlasVoxelSize)));
             msk.img = double(msk.img > 0);
             tracerTW = NumericalNIfTId.load(this.tracerTimeWindowedOnAtl);
             expect = tracerTW.volumeAveraged(msk);
             assert(isscalar(expect.img));
-            this.product_ = tracerTW / expect.img;
-            this.product_.fqfilename = this.tracerSuvr;
-            this.product_.save;
+            tracerTW = tracerTW / expect.img;
+            tracerTW.fqfilename = this.tracerSuvr;
+            tracerTW.save;
+            this.product_ = mlfourd.ImagingContext(tracerTW);
         end
+        function this = buildTracerSuvrAveraged(this, varargin)
+            varargin_ = varargin;
+            assert(~isempty(varargin_));
+            argin_ = varargin_{1};
+            assert(isa(argin_, 'mlfourd.ImagingContext'));
+            
+            if (strcmpi(this.tracer, 'FDG'))
+                this = this.packageProduct(this.tracerSuvrAveraged);
+                return
+            end
+
+            try
+                if (1 == length(varargin_))
+                    argin_.saveas(this.tracerSuvrAveraged);
+                    this = this.packageProduct(this.tracerSuvrAveraged);
+                    return
+                end
+
+                img = zeros(size(argin_.niftid));
+                v = 1;
+                while (v <= length(varargin_))
+                    nii = varargin_{v}.niftid;
+                    img = img + nii.img;
+                    v = v + 1;
+                end
+                img = img/length(varargin_);
+                nii.img = img;
+                nii.fqfileprefix = this.tracerSuvrAveraged('typ','fqfp');
+                nii.save;
+                this = this.packageProduct(nii);
+            catch ME
+                dispexcept(ME);
+            end
+        end        
         function this = buildCbf(this)
             assert(lexist(this.tracerSuvrNamed('ho'), 'file'));
             this = this.packageProduct(this.tracerSuvrNamed('ho'));
@@ -92,11 +158,12 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
             assert(lexist(this.tracerSuvrNamed('fdg'), 'file'));
             this = this.packageProduct(this.tracerSuvrNamed('fdg'));
         end
-        function [this,cmro2,oef,msk] = buildBetas(this)
+        function [this,cmro2,oef,msk,mdl] = buildBetas(this)
             import mlfourd.*;
             msk = NumericalNIfTId.load( ...
                 fullfile(getenv('REFDIR'), 'glm_atlas_mask_333.4dfp.ifh'));
             msk_ = logical(msk.img > 0);
+            msk  = mlfourd.ImagingContext(msk);
             cbf  = this.tracerSuvrNamed('ho', 'typ', 'numericalNiftid');  
             cbv  = this.tracerSuvrNamed('oc', 'typ', 'numericalNiftid');            
             y    = this.tracerSuvrNamed('oo', 'typ', 'numericalNiftid');
@@ -122,7 +189,9 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
             
             oef = cmro2 ./ (cbf * beta1);
             oef.fqfilename = this.tracerSuvrNamed('oef');
-            oef.save;              
+            oef.save;   
+                   
+            this.product_ = {mlfourd.ImagingContext(cmro2) mlfourd.ImagingContext(oef)};
         end        
         function this = buildOef(this)
             assert(lexist(this.tracerSuvrNamed('oef'), 'file'));
@@ -132,7 +201,7 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
             assert(lexist(this.tracerSuvrNamed('cmro2'), 'file'));
             this = this.packageProduct(this.tracerSuvrNamed('cmro2'));
         end
-        function [this,ogi,agi] = buildGlcMetab(this)
+        function [this,ogi] = buildGlcMetab(this)
             assert(lexist(this.tracerSuvrNamed('cmro2'), 'file'));            
             assert(lexist(this.tracerSuvrNamed('fdg'),   'file'));
             cmro2  = this.tracerSuvrNamed('cmro2', 'typ', 'numericalNiftid');
@@ -140,11 +209,10 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
             
             ogi = (cmro2 ./ cmrglc) * 5.4;
             ogi.fqfilename = this.tracerSuvrNamed('ogi');
-            ogi.save;            
+            ogi.save;
+            ogi = mlfourd.ImagingContext(ogi);
             
-            agi = cmrglc - cmro2/6;
-            agi.fqfilename = this.tracerSuvrNamed('agi');
-            agi.save;            
+            this.product_ = ogi;
         end
         function this = buildOgi(this)
             assert(lexist(this.tracerSuvrNamed('ogi'), 'file'));
@@ -154,42 +222,6 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
             assert(lexist(this.tracerSuvrNamed('agi'), 'file'));
             this = this.packageProduct(this.tracerSuvrNamed('agi'));
         end
-        
-        
-        
-        
-        function this   = instanceConstructCompositeResolved__(this, varargin)
-            %% INSTANCECONSTRUCTCOMPOSITERESOLVED
-            %  @param named target is the filename of a target, recognizable by mlfourd.ImagingContext.ctor;
-            %  the default target is this.tracerResolvedFinal('epoch', this.sessionData.epoch) for FDG;
-            %  see also TracerDirector.tracerResolvedTarget.
-            %  @param this.anatomy is char; it is the sessionData function-name for anatomy in the space of
-            %  this.sessionData.T1; e.g., 'T1', 'T1001', 'brainmask'.
-            %  @result ready-to-use t4 transformation files aligned to this.tracerResolvedTarget.
-            
-            bv = this.builder_.buildVisitor;
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'target', '', @ischar);
-            parse(ip, varargin{:});
-            [~,icTarg] = this.tracerResolvedTarget('target', ip.Results.target, 'tracer', 'FDG');   
-            
-            pwd0 = pushd(this.sessionData.vLocation);         
-            bv.lns_4dfp(icTarg.fqfileprefix);
-            icTarg.filepath = pwd;
-            this.builder_ = this.builder_.packageProduct(icTarg); % build everything resolved to FDG
-            bv.ensureLocalFourdfp(this.sessionData.T1001);
-            bv.ensureLocalFourdfp(this.sessionData.(this.anatomy));  
-            this.builder_ = this.builder_.resolveModalitiesToProduct( ...
-                this.localTracerResolvedFinalSumt, varargin{:});            
-            
-            cRB = this.builder_.compositeResolveBuilder;
-            this.localTracerResolvedFinal(cRB, icTarg);            
-            deleteExisting('*_b15.4dfp.*');
-            popd(pwd0);            
-        end
-        
         
         
         
@@ -220,10 +252,17 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
         function obj    = tracerObj(this, varargin)
             obj = this.sessionData.(this.tracerKind)(varargin{:});
         end
-        function obj   = tracerSuvr(this, varargin)
+        function obj    = tracerSuvr(this, varargin)
             obj = this.sessionData.tracerSuvr(varargin{:});
         end
-        function obj   = tracerSuvrNamed(this, name, varargin)
+        function obj    = tracerSuvrAveraged(this, varargin)
+            if (strcmpi(this.tracer, 'FDG'))
+                obj = this.tracerSuvrNamed('fdg', varargin{:});
+                return
+            end
+            obj = this.sessionData.tracerSuvrAveraged(varargin{:});
+        end
+        function obj    = tracerSuvrNamed(this, name, varargin)
             sd = this.sessionData;
             switch (upper(name))
                 case {'FDG' 'OC' 'OO' 'HO'}
@@ -233,10 +272,10 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
             end
             obj = sd.tracerSuvrNamed(name, varargin{:});
         end
-        function obj   = tracerTimeWindowed(this, varargin)
+        function obj    = tracerTimeWindowed(this, varargin)
             obj = this.sessionData.tracerTimeWindowed(varargin{:});
         end
-        function obj   = tracerTimeWindowedOnAtl(this, varargin)
+        function obj    = tracerTimeWindowedOnAtl(this, varargin)
             obj = this.sessionData.tracerTimeWindowedOnAtl(varargin{:});
         end
         function s      = volumeSum(~, obj)
@@ -260,8 +299,16 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
         
  		function this = TracerSuvrBuilder(varargin)
  			this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
+            this.atlBuilder_ = mlpet.AtlasBuilder( ...
+                'sessionData', this.sessionData);
  		end
- 	end 
+    end 
+    
+    %% PRIVATE
+    
+    properties (Access = private)
+        atlBuilder_
+    end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end

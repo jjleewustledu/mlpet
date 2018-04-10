@@ -16,7 +16,8 @@ classdef Test_AtlasBuilder < matlab.unittest.TestCase
  		registry
         sessd
  		testObj
-        vnumber = 2
+        viewer
+        vnumber = 1
  	end
 
 	methods (Test)
@@ -28,17 +29,22 @@ classdef Test_AtlasBuilder < matlab.unittest.TestCase
         end
         function test_tracer_to_atl_t4(this)
             this.verifyEqual(this.testObj.tracer_to_atl_t4, ...
-                fullfile(this.sessd.vLocation, 'fdgv2r1_to_TRIO_Y_NDC_t4'));
+                fullfile(this.sessd.vLocation, sprintf('fdgv%ir1_to_TRIO_Y_NDC_t4', this.vnumber)));
             tracer = this.sessd.tracerResolvedFinalSumt;
             this.assertTrue(lexist(tracer, 'file'));
             fqfp = this.fv.t4img_4dfp( ...
-                this.testObj.tracer_to_atl_t4, myfileprefix(tracer), 'out', sprintf('~/Tmp/test_%s', datestr(now, 30)));
-            mlbash(sprintf('freeview %s.4dfp.img %s', fqfp, this.sessd.atlas.fqfilename))
+                this.testObj.tracer_to_atl_t4, ...
+                myfileprefix(tracer), ...
+                'out', sprintf('~/Tmp/test_%s', datestr(now, 30)), ...
+                'options', ['-O' this.sessd.atlas('typ','fqfp')]);
+            mlbash(sprintf('freeview %s.4dfp.img %s.4dfp.img', ...
+                fqfp, this.sessd.atlas.fqfileprefix))
             delete_4dfp(fqfp);
         end  
-        function test_refreshMpr(this)
-            this.testObj.refreshMpr;
-            this.verifyEqual(this.testObj.mprSeriesNumber, 8);
+        function test_mprForReconall(this)
+            pwd0 = pushd(this.sessd.vLocation);
+            this.viewer.view(this.testObj.mprForReconall('typ','fn'), 't1_mprage_sag_series122.4dfp.ifh')
+            popd(pwd0);
         end
 	end
 
@@ -47,9 +53,10 @@ classdef Test_AtlasBuilder < matlab.unittest.TestCase
  			import mlpet.*;
             studyd        = mlraichle.StudyData;
             sessp         = fullfile(studyd.subjectsDir, this.hyglyNN, '');
-            this.sessd    = mlraichle.SessionData('studyData', studyd, 'sessionPath', sessp, 'vnumber', this.vnumber);
+            this.sessd    = mlraichle.SessionData('studyData', studyd, 'sessionPath', sessp, 'vnumber', this.vnumber, 'ac', true);
  			this.testObj_ = AtlasBuilder('sessionData', this.sessd);
             this.fv       = mlfourdfp.FourdfpVisitor;
+            this.viewer   = mlfourdfp.Viewer('freeview');
  		end
 	end
 
