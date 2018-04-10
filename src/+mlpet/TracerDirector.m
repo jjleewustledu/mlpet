@@ -48,17 +48,19 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             parse(ip, varargin{:});
             
             sessd = ip.Results.sessionData;
-            try
-                deleteExisting(fullfile(sessd.sessionPath,    'T1001*'));
-                deleteExisting(fullfile(sessd.vLocation,      'T1001*'));
-                deleteExisting(fullfile(sessd.tracerLocation, 'T1001*'));
-                for f = 1:length(FSD)                
-                    deleteExisting(fullfile(sessd.sessionPath,    [FSD{f} '.*']));
-                    deleteExisting(fullfile(sessd.vLocation,      [FSD{f} '.*']));
-                    deleteExisting(fullfile(sessd.tracerLocation, [FSD{f} '.*']));
+            if (FORCE_REPLACE)
+                try %#ok<UNRCH>
+                    deleteExisting(fullfile(sessd.sessionPath,    'T1001*'));
+                    deleteExisting(fullfile(sessd.vLocation,      'T1001*'));
+                    deleteExisting(fullfile(sessd.tracerLocation, 'T1001*'));
+                    for f = 1:length(FSD)                
+                        deleteExisting(fullfile(sessd.sessionPath,    [FSD{f} '.*']));
+                        deleteExisting(fullfile(sessd.vLocation,      [FSD{f} '.*']));
+                        deleteExisting(fullfile(sessd.tracerLocation, [FSD{f} '.*']));
+                    end
+                catch ME
+                    dispwarning(ME);
                 end
-            catch ME
-                dispwarning(ME);
             end
             pwd0 = pushd(sessd.vLocation);
             fv   = mlfourdfp.FourdfpVisitor;
@@ -76,6 +78,9 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                         dispwarning(ME);
                     end
                 end
+            end
+            if (~lexist('T1001_to_TRIO_Y_NDC_t4', 'file'))
+                fv.msktgenMprage('T1001');
             end
             popd(pwd0);
         end    
@@ -224,7 +229,10 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             end
             bv.ensureLocalFourdfp(this.sessionData.(this.anatomy));            
             this.builder_ = this.builder_.resolveModalitiesToProduct( ...
-                {this.sessionData.(this.anatomy)('typ','fp')}, 'tag2', this.anatomy, varargin{:});
+                {this.sessionData.(this.anatomy)('typ','fp')}, ...
+                'tag2', this.anatomy, ...
+                'mask', {ic.fqfileprefix this.anatomy}, ...
+                varargin{:});
             
             %  TODO:  refactor with localTracerResolvedFinal[Sumt]
             esf = @mlfourdfp.FourdfpVisitor.ensureSafeFileprefix;
@@ -248,6 +256,15 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             deleteExisting('*_b15.4dfp.*');
             popd(pwd0);
         end
+        function this  = instanceConstructAtlas(this)
+            
+            sd = this.sessionData;
+            pwd0 = pushd(sd.vLocation);            
+            ab = mlpet.AtlasBuilder('sessionData', sd);
+            fprintf('mlpet.TracerDirector.instanceConstructAtlas.tracer_to_atl_t4->%s\n', ...
+                ab.tracer_to_atl_t4);
+            popd(pwd0);            
+        end
         function this  = instanceConstructCompositeResolved(this, varargin)
             %% INSTANCECONSTRUCTCOMPOSITERESOLVED
             %  @param named target is the filename of a target, recognizable by mlfourd.ImagingContext.ctor;
@@ -265,18 +282,20 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             parse(ip, varargin{:});
             [~,icTarg] = this.tracerResolvedTarget('target', ip.Results.target, 'tracer', 'FDG');   
             
-            pwd0 = pushd(this.sessionData.vLocation);         
+            pwd0 = pushd(this.sessionData.vLocation);
             bv.lns_4dfp(icTarg.fqfileprefix);
             icTarg.filepath = pwd;
             this.builder_ = this.builder_.packageProduct(icTarg); % build everything resolved to FDG
             bv.ensureLocalFourdfp(this.sessionData.T1001);
             bv.ensureLocalFourdfp(this.sessionData.(this.anatomy));  
             this.builder_ = this.builder_.resolveModalitiesToProduct( ...
-                this.localTracerResolvedFinalSumt, varargin{:});            
+                this.localTracerResolvedFinalSumt, ...
+                'blurArg', this.sessionData.tracerBlurArg, ...
+                varargin{:});            
             
             cRB = this.builder_.compositeResolveBuilder;
             this.localTracerResolvedFinal(cRB, icTarg);            
-            deleteExisting('*_b15.4dfp.*');
+            deleteExisting('*_b55.4dfp.*');
             popd(pwd0);            
         end
         function this  = instanceConstructExports(this, varargin)
@@ -299,6 +318,17 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             bv.lns_4dfp(fullfile(sessd.tracerLocation, ['aparc+aseg_' sessd.resolveTag]));
             bv.lns(     fullfile(sessd.tracerLocation, sprintf('brainmaskr1r2_to_%s_t4', sessd.resolveTag)));
             popd(pwd0);
+        end
+        function this  = instanceConstructFdgOpT1001(this)
+            
+            sd = this.sessionData;
+            pwd0 = pushd(sd.vLocation);     
+            fv = mlfourdfp.FourdfpVisitor;
+            fv.mpr2atl_4dfp('T1001');
+            ab = mlpet.AtlasBuilder('sessionData', sd);
+            fprintf('mlpet.TracerDirector.instanceConstructFdgOpT1001.tracer_to_T1001_t4->%s\n', ...
+                ab.tracer_to_T1_t4);
+            popd(pwd0);            
         end
         function this  = instanceConstructNiftyPETy(this)
             this = this.stageRawdata4NiftyPETy;
@@ -355,6 +385,19 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                  this.sessionData.T1('typ','fp') ...
                  this.sessionData.t2('typ','fp')});
             popd(pwd0);
+        end
+        function this  = instanceConstructSuvr(this)
+            
+            sd = this.sessionData;
+            pwd0 = pushd(sd.vLocation);    
+            tsb = mlpet.TracerSuvrBuilder('sessionData', sd);
+            p = tsb.buildAll;
+            if (verbose)
+                v = mlfourdfp.Viewer('freeview');
+                v.view(p);
+            end
+            this.builder_ = this.builder_.packageProduct(p);
+            popd(pwd0);            
         end
         function this  = instanceConstructUmapSynthForDynamicFrames(this)
             

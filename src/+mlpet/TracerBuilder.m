@@ -10,7 +10,6 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
     
     
     properties 
-        blur = 1.5
         mask = 'none'
     end
     
@@ -79,22 +78,22 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
         
         function this = setNeverTouch(this, s)
             assert(islogical(s));
-            this.finished_.neverTouch = s;  
-            this.compositeResolveBuilder_.finished_.neverTouch = s;
-            this.resolveBuilder_.finished_.neverTouch = s;
+            this.finished_.neverTouchFinishfile = s;  
+            this.compositeResolveBuilder_.finished_.neverTouchFinishfile = s;
+            this.resolveBuilder_.finished_.neverTouchFinishfile = s;
         end
         function g = getNeverTouch(this)
-            g = this.finished_.neverTouch;     
+            g = this.finished_.neverTouchFinishfile;     
             if (~isempty(this.compositeResolveBuilder_))
                 try
-                    g = g && this.compositeResolveBuilder_.finished_.neverTouch; %#ok<*NASGU>
+                    g = g && this.compositeResolveBuilder_.finished_.neverTouchFinishfile; %#ok<*NASGU>
                 catch ME
                     handwarning(ME);
                 end
             end
             if (~isempty(this.resolveBuilder_))
                 try
-                    g = g && this.resolveBuilder_.finished_.neverTouch;
+                    g = g && this.resolveBuilder_.finished_.neverTouchFinishfile;
                 catch ME
                     handwarning(ME);
                 end
@@ -218,22 +217,6 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             end
             this.product_ = mlfourd.ImagingContext([trSif '.4dfp.ifh']);
         end
-        function this = prepareMprToAtlasT4(this)
-            %% PREPAREMPRTOATLAST4
-            %  @param this.sessionData.{mprage,atlas} are valid.
-            %  @return this.product_ := [mprage '_to_' atlas '_t4'], existing in the same folder as mprage.
-            
-            sessd      = this.sessionData;
-            mpr        = sessd.mprage('typ', 'fp');
-            atl        = sessd.atlas('typ', 'fp');
-            mprToAtlT4 = [mpr '_to_' atl '_t4'];            
-            if (~lexist(fullfile(sessd.mprage('typ', 'path'), mprToAtlT4)))
-                pwd0 = pushd(sessd.mprage('typ', 'path'));
-                this.buildVisitor.msktgenMprage(mpr, atl);
-                popd(pwd0);
-            end
-            this.product_ = mprToAtlT4;
-        end
         function this = prepareCroppedTracerRevision(this)
             %% PREPARECROPPEDTRACERREVISION
             %  @param this.vendorSupport is valid.
@@ -267,38 +250,75 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             %  @param  named tag2 is char used when touching logging file by mlpipeline.Finished.
             %  @param  named mask is char := {'none' 'brainmask' 'headmask' ''}; 
             %  default := 'none'; '' =: use this.mask.
-            %  @param  named blur is numeric fwhh in mm; default := 1.5.
             %  @return these is a composite of mlpet.TracerResolveBuilder, each component.product containing
             %  the resolved heterogenous modalities.            
             
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired( ip, 'modalities', @(x) iscell(x) && all(cellfun(@(y) lexist([y '.4dfp.ifh'], 'file'), x)));
+            addParameter(ip, 'blurArg', this.sessionData.umapBlurArg, @isnumeric);
+            addParameter(ip, 'tag', '', @ischar);
             addParameter(ip, 'tag2', '', @ischar);
             addParameter(ip, 'mask', this.mask, @ischar);
-            addParameter(ip, 'blur', this.blur, @isnumeric);
             parse(ip, varargin{:});
             this.mask = ip.Results.mask;
-            this.blur = ip.Results.blur;
             
-            pwd0 = pushd(this.product_.filepath);   
-            
+            pwd0 = pushd(this.product_.filepath);            
             this.sessionData_.rnumber = 1;
             theImages = [{this.product_.fileprefix} ip.Results.modalities];
             cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
-                'blurArg', this.blur, ...
                 'sessionData', this.sessionData_, ...
                 'theImages', theImages, ...
+                'blurArg', ip.Results.blurArg, ...
                 'maskForImages', this.mask, ...
-                'NRevisions', 2);                                        
-            cRB_ = cRB_.updateFinished('tag2', ip.Results.tag2);
+                'NRevisions', 2);                        
+            cRB_.ignoreFinishfile = true;
+            cRB_ = cRB_.updateFinished('tag', ip.Results.tag, 'tag2', ip.Results.tag2);
                         
             % update this.{compositeResolveBuilder_,sessionData_,product_}   
             cRB_ = cRB_.resolve;  
             this.compositeResolveBuilder_ = cRB_;
             this.sessionData_             = cRB_.sessionData;
-            this.product_                 = cRB_.product; 
+            this.product_                 = cRB_.product;            
+            popd(pwd0);
+        end
+        function this = resolveProductToAnatomy(this, varargin)
+            %% RESOLVEPRODUCTTOANATOMY resolves the tracer encapsulated within this.product to MP-RAGE anatomy. 
+            %  @param  this.sessionData is well-formed for the problem. 
+            %  @param  this.product is a single-epoch motion-corrected tracer.
+            %  @param  anatomies or their sym-links are in the pwd.          
             
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'anatomy', this.sessionData.T1001('typ','fqfp'), @lexist_4dfp);
+            addParameter(ip, 'blurArg', this.sessionData.umapBlurArg, @isnumeric);
+            parse(ip, varargin{:});
+            anatomy_ = mybasename(ip.Results.anatomy);
+            if (~lexist_4dfp(anatomy_))
+                this.buildVisitor_.copy_4dfp(ip.Results.anatomy, anatomy_);
+            end
+            anatomyToAtlT4 = sprintf('%s_to_%s_t4', anatomy_, this.sessionData.atlas('typ','fp'));
+            if (~lexist(anatomyToAtlT4))
+                copyfile(fullfile(this.sessionData.vLocation, anatomyToAtlT4));
+                assert(lexist(anatomyToAtlT4));
+            end
+            
+            pwd0 = pushd(this.product_.filepath);            
+            this.sessionData_.rnumber = 1;
+            theImages = {anatomy_ this.product_.fileprefix};
+            cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
+                'sessionData', this.sessionData_, ...
+                'theImages', theImages, ...
+                'blurArg', ip.Results.blurArg, ...
+                'maskForImages', {anatomy_, this.product_.fileprefix}, ...
+                'NRevisions', 1);                        
+            cRB_ = cRB_.updateFinished('tag', ['mlpet_TracerBuilder_resolveProductToAnatomy_' anatomy_]);
+
+            % update this.{compositeResolveBuilder_,sessionData_,product_}   
+            cRB_ = cRB_.resolve;  
+            this.compositeResolveBuilder_ = cRB_;
+            this.sessionData_             = cRB_.sessionData;
+            this.product_                 = cRB_.product; 
             popd(pwd0);
         end
         function tof  = resolveTofToT1(this)
@@ -335,7 +355,6 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             addParameter(ip, 'vendorSupport', ...
                 mlsiemens.MMRBuilder('sessionData', this.sessionData));
             addParameter(ip, 'ac', this.sessionData.attenuationCorrected, @islogical);
-            addParameter(ip, 'blur', this.blur, @isnumeric);
             parse(ip, varargin{:});
             
             this.roisBuilder_                     = ip.Results.roisBuilder;
@@ -343,7 +362,6 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             this.compositeResolveBuilder_         = ip.Results.compositeResolveBuilder;
             this.vendorSupport_                   = ip.Results.vendorSupport;
             this.sessionData.attenuationCorrected = ip.Results.ac;
-            this.blur                             = ip.Results.blur;
         end        
  	end 
     
