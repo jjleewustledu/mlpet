@@ -63,7 +63,7 @@ classdef RoisBuilder < mlpipeline.AbstractSessionBuilder
             
             import mlfourd.*;
             pwd0 = pushd(this.sessionData.tracerLocation);
-            tracerSafe = mybasename(mlfourdfp.FourdfpVisitor.ensureSafeFileprefix(ip.Results.tracerFn));
+            tracerSafe = mybasename(this.ensureSafeFileprefix(ip.Results.tracerFn));
             if (lexist([tracerSafe '_mskt.4dfp.ifh'], 'file') && ...
                 lexist([tracerSafe '_msktNorm.4dfp.ifh'], 'file'))
                 mskt     = ImagingContext([tracerSafe '_mskt.4dfp.ifh']);
