@@ -119,8 +119,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 % recursion over epochs to generate composite
                 for e = 1:length(this)
                     [this(e),~,multiEpochOfSummed(e)] = this(e).motionCorrectFrames; 
-                    % DEBUG:  execution of t4_resolve does not complete for e > 1.
-                    % This appears to be over/underflow of the t4_resolve executable as of 2017nov1.
                 end
                 singleEpoch = multiEpochOfSummed(1);
                 singleEpoch = singleEpoch.reconstituteComposites(multiEpochOfSummed);
@@ -131,7 +129,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             % base case, returns singlet
             this.product_ = mlfourd.ImagingContext(this.tracerRevision);
             multiEpochOfSummed = [];
-            [this,reconstitutedSummed] = this.motionCorrectEpochs; % DEBUG:  execution of t4_resolve does not complete.
+            [this,reconstitutedSummed] = this.motionCorrectEpochs; 
         end
         function [this,summed] = motionCorrectEpochs(this)
             %% MOTIONCORRECTEPOCHS
@@ -160,14 +158,14 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             
             % update this.{resolveBuilder_,sessionData_,product_}
             pwd0 = pushd(rB_.sessionData.tracerLocation);
-            rB_                  = rB_.resolve; % DEBUG:  execution of t4_resolve does not complete.
+            rB_                  = rB_.resolve;
             this.resolveBuilder_ = rB_;
             this.sessionData_    = rB_.sessionData; 
             this.product_        = rB_.product;            
             summed               = this.sumProduct;
             popd(pwd0);
         end
-        function idx  = indicesNonzero(this)            
+        function idx  = indicesNonzero(this)
             % logic relocated to mlfourdfp.ImageFrames.ctor
             
             if (length(this.sessionData.epoch) > 1)
