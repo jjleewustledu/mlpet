@@ -39,7 +39,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             %  @return 4dfp copies of this.freesurferData in sessionData.vLocation.
             %  @return lst, a cell-array of fileprefixes for 4dfp objects created on the local filesystem.
             
-            FSD = { 'aparc+aseg' 'brainmask' 'T1' }; % 'aparc.a2009s+aseg' 
+            FSD = { 'aparc+aseg' 'aparc.a2009s+aseg' 'brainmask' 'T1' }; % 
             FORCE_REPLACE = false;
         
             ip = inputParser;
@@ -68,11 +68,14 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             for f = 1:length(FSD)
                 if (~fv.lexist_4dfp(FSD{f}) || FORCE_REPLACE)
                     try
-                        sessd.mri_convert( [fullfile(sessd.mriLocation, FSD{f}) '.mgz'], [FSD{f} '.nii']);
-                        sessd.nifti_4dfp_4(FSD{f});
-                        if (strcmp(FSD{f}, 'T1'))
-                            fv.move_4dfp(FSD{f}, [FSD{f} '001']);
+                        if (strcmp(FSD{f}, 'T1') && ~fv.lexist_4dfp('T1001'))
+                            sessd.mri_convert(fullfile(sessd.mriLocation,'T1.mgz'), 'T1001.nii');
+                            FSD{f} = 'T1001';
+                        else
+                            sessd.mri_convert([fullfile(sessd.mriLocation, FSD{f}) '.mgz'], [fv.ensureSafeFileprefix(FSD{f}) '.nii']);
+                            FSD{f} = fv.ensureSafeFileprefix(FSD{f});
                         end
+                        sessd.nifti_4dfp_4(FSD{f});
                         lst = [lst fullfile(pwd, FSD{f})]; %#ok<AGROW>
                     catch ME
                         dispwarning(ME);
@@ -528,9 +531,9 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
         function this  = instanceReconstructResolved(this)
             if (~this.sessionData.attenuationCorrected)
                 this = this.instanceConstructResolvedNAC;
-                return
+            else
+                this = this.instanceConstructResolvedAC;
             end
-            this = this.instanceConstructResolvedAC;
         end
         function this  = instanceReconstructUnresolved(this)
             if (~this.sessionData.attenuationCorrected)
