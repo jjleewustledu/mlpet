@@ -68,47 +68,6 @@ classdef Test_Msktgen < matlab.unittest.TestCase
             popd(pwd0);
         end
         function test_constructMskt_variations(this)
-            trac = this.sessd.tracerRevision;
-            
-            fprintf('test_constructMskt:  source->%s, sourceOfMask->T1001\n', basename(trace));
-            mskt = this.testObj.constructMskt( ...
-                'source', trac, 'sourceOfMask', 'T1001');
-            this.viewer.view({this.sessd.tracerRevision this.sessd.tracerRevisionSumt mskt});            
-            
-            fprintf('test_constructMskt:  source->%s, sourceOfMask->T1001, blurForMask->11, threshp->0\n', basename(trace));
-            mskt = this.testObj.constructMskt( ...
-                'source', trac, 'sourceOfMask', 'T1001', 'blurForMask', 11, 'threshp', 0);
-            this.viewer.view({this.sessd.tracerRevision this.sessd.tracerRevisionSumt mskt});
-            
-            fprintf('test_constructMskt:  source->%s, sourceOfMask->T1001, blurForMask->11, threshp->50\n', basename(trace));
-            mskt = this.testObj.constructMskt( ...
-                'source', trac, 'sourceOfMask', 'T1001', 'blurForMask', 11, 'threshp', 50);
-            this.viewer.view({this.sessd.tracerRevision this.sessd.tracerRevisionSumt mskt});            
-            
-            fprintf('test_constructMskt:  source->%s, sourceOfMask->T1001, blurForMask->11, threshp->100\n', basename(trace));
-            mskt = this.testObj.constructMskt( ...
-                'source', trac, 'sourceOfMask', 'T1001', 'blurForMask', 11, 'threshp', 100);
-            this.viewer.view({this.sessd.tracerRevision this.sessd.tracerRevisionSumt mskt});
-            
-            fprintf('test_constructMskt:  source->%s, sourceOfMask->brainmask\n', basename(trace));
-            mskt = this.testObj.constructMskt( ...
-                'source', trac, 'sourceOfMask', 'brainmask');
-            this.viewer.view({this.sessd.tracerRevision this.sessd.tracerRevisionSumt mskt});
-            
-            fprintf('test_constructMskt:  source->%s, sourceOfMask->brainmask, blurForMask->5.5, threshp->0\n', basename(trace));
-            mskt = this.testObj.constructMskt( ...
-                'source', trac, 'sourceOfMask', 'brainmask', 'blurForMask', 5.5, 'threshp', 0);
-            this.viewer.view({this.sessd.tracerRevision this.sessd.tracerRevisionSumt mskt});
-            
-            fprintf('test_constructMskt:  source->%s, sourceOfMask->brainmask, blurForMask->5.5, threshp->50\n', basename(trace));
-            mskt = this.testObj.constructMskt( ...
-                'source', trac, 'sourceOfMask', 'brainmask', 'blurForMask', 5.5, 'threshp', 50);
-            this.viewer.view({this.sessd.tracerRevision this.sessd.tracerRevisionSumt mskt});
-            
-            fprintf('test_constructMskt:  source->%s, sourceOfMask->brainmask, blurForMask->5.5, threshp->100\n', basename(trace));
-            mskt = this.testObj.constructMskt( ...
-                'source', trac, 'sourceOfMask', 'brainmask', 'blurForMask', 5.5, 'threshp', 100);
-            this.viewer.view({this.sessd.tracerRevision this.sessd.tracerRevisionSumt mskt});
         end
 	end
 

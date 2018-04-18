@@ -1,5 +1,5 @@
 classdef Msktgen < mlpipeline.AbstractDataBuilder
-	%% MSKTGEN  
+	%% MSKTGEN 
 
 	%  $Revision$
  	%  was created 14-Apr-2018 20:06:44 by jjlee,
@@ -19,6 +19,17 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
 
 	methods 
         function obj = constructMskt(this, varargin)
+            %  @param source may be dynamic.   For doConstructResolved == true, resolving work is performed on
+            %  time-summed dynamic data.
+            %  @param doConstructResolved == true =: resolving mask to source making use of CompositeT4ResolveBuilder to
+            %  place the masking intermediary (e.g., T1001) on the source, then binarizing and blurring the masking
+            %  source (e.g., brainmask).  
+            %  @param blurForMask applies the specified blur, in mm fwhh, to a binary mask for operational use similar
+            %  to that of mlfourdfp.FourdfpVisitor.msktgen_4dfp.
+            %  @param threshp is the percentile, [0..100], for thresholding a blurred mask, setting values below the
+            %  threshp to zero.
+            %  @param blurArg is used by CompositeT4ResolvedBuilder.   
+            
             ip = inputParser;
             addParameter(ip, 'source', '');
             addParameter(ip, 'intermediaryForMask', '');
