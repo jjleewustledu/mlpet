@@ -22,6 +22,37 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
     end
     
     methods (Static)
+        function ensureBlurred(obj, blur)
+            %  @param obj requires the 4dfp environment.
+            %  @param blur is numeric.
+            
+            ic = mlfourd.ImagingContext(obj);
+            if (~lexist(ic.fqfilename, 'file'))
+                warning('mlpet:fileDoesNotExistOnFilesystem', 'TracerBuilder.ensureSumt.obj->%s', char(obj));
+                return
+            end
+            if (lexist(sprintf('%s_%i%i%ifwhh.4dfp.ifh', ic.fqfileprefix, blur, blur, blur), 'file'))
+                return
+            end
+            ic = ic.blurred(blur);
+            ic.fourdfp;
+            ic.save;
+        end
+        function ensureSumt(obj)
+            %  @param obj requires the 4dfp environment.
+            
+            ic = mlfourd.ImagingContext(obj);
+            if (~lexist(ic.fqfilename, 'file'))
+                warning('mlpet:fileDoesNotExistOnFilesystem', 'TracerBuilder.ensureSumt.obj->%s', char(obj));
+                return
+            end
+            if (lexist(sprintf('%s_sumt.4dfp.ifh', ic.fqfileprefix), 'file'))
+                return
+            end
+            ic = ic.timeSummed;
+            ic.fourdfp;
+            ic.save;
+        end
         function fqfn = scrubTracer(fqfn, toScrub)
             assert(lexist(fqfn, 'file'));
             assert(isnumeric(toScrub));
@@ -82,7 +113,7 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             this.compositeResolveBuilder_.finished_.neverTouchFinishfile = s;
             this.resolveBuilder_.finished_.neverTouchFinishfile = s;
         end
-        function g = getNeverTouch(this)
+        function g    = getNeverTouch(this)
             g = this.finished_.neverTouchFinishfile;     
             if (~isempty(this.compositeResolveBuilder_))
                 try
@@ -238,8 +269,7 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             end
             this.product_ = ImagingContext( ...
                 [this.vendorSupport_.cropfrac(fqfp0, fqfp) ext]);
-        end
-        
+        end        
         function this = resolveModalitiesToProduct(this, varargin)
             %% RESOLVEMODALITIESTOTRACER resolves a set of images from heterogeneous modalities to the tracer encapsulated 
             %  within this.product. 
