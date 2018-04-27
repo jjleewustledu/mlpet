@@ -10,9 +10,9 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
  		source
         intermediaryForMask
         sourceOfMask
-        blurForMask = 5.5
-        blurArg = 1.5
-        threshp
+        blurForMask = 33
+        blurArg = 5.5
+        threshp = 0
         doConstructResolved
         NRevisions = 1
  	end
@@ -53,11 +53,13 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
             if (this.doConstructResolved)
                 this = this.constructResolvedMask;
             end
-            this.sourceOfMask = this.sourceOfMask.binarized;
-            this.sourceOfMask = this.sourceOfMask.blurred(this.blurForMask);
-            this.sourceOfMask = this.normalizeTo1000(this.sourceOfMask);
-            obj               = this.sourceOfMask.threshp(this.threshp);
-            obj.filesuffix    = '.4dfp.ifh';
+            fqfn              = [this.sourceOfMask.fqfileprefix '.4dfp.ifh'];
+            this.sourceOfMask =  this.sourceOfMask.binarized;
+            this.sourceOfMask =  this.sourceOfMask.blurred(this.blurForMask);
+            this.sourceOfMask =  this.normalizeTo1000(this.sourceOfMask);
+            this.sourceOfMask =  this.sourceOfMask.threshp(this.threshp);
+            this.sourceOfMask.fqfilename = fqfn;
+            obj = this.sourceOfMask;
         end
 		  
  		function this = Msktgen(varargin)
@@ -77,7 +79,7 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
                 'sessionData', this.sessionData_, ...
                 'theImages', theImages, ...
                 'blurArg', this.blurArg, ...
-                'maskForImages', 'none', ...
+                'maskForImages', {'none' 'T1001'}, ...
                 'NRevisions', this.NRevisions);                        
             cRB_.ignoreFinishfile = true;
             cRB_.neverTouchFinishfile = true;
