@@ -231,14 +231,14 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
         function thisUncorrected = motionUncorrectToFrames(this, source, multiEpochOfSummed)
             %% MOTIONUNCORRECTTOFRAMES back-resolves a source in the space of some reference epoch to all available epochs.
             
-            thisUncorrected = this.motionUncorrectToEpochs(source, multiEpochOfSummed);
+            thisUncorrected = this.motionUncorrectEpoch1ToN(source, multiEpochOfSummed);
                 % thisUncorrected(${u}).product->E1to9/umapSynth_op_fdgv1e1to9r1_frame${u}
             for u = 1:length(thisUncorrected)
-                multiEpochOfSummed(u).motionUncorrectToEpochs2(thisUncorrected(u).product, multiEpochOfSummed(u));
+                multiEpochOfSummed(u).motionUncorrectEpoch(thisUncorrected(u).product, multiEpochOfSummed(u));
             end
         end
-        function thisUncorrected = motionUncorrectToEpochs(this, source, multiEpochOfSummed)
-            %% MOTIONUNCORRECTTOEPOCHS back-resolves a source in the space of some reference epoch to all available epochs.
+        function thisUncorrected = motionUncorrectEpoch1ToN(this, source, multiEpochOfSummed)
+            %% MOTIONUNCORRECTTOEPOCHS1TON back-resolves a source in the space of some reference epoch to all available epochs.
             %  @param this.resolveBulder.product is the motion-corrected-summed singlet object to which source will align.
             %  @param source is an ImagingContext.
             %  @return thisUncorrected, a collection of TracerResolveBuilders for E1to9, each conveying back-resolving
@@ -288,7 +288,7 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
                     thisUncorrected(idxRef).sessionData_    = childRB.sessionData;                                    
                     thisUncorrected(idxRef).product_        = ImagingContext(this.resolveBuilder_.umap(childRB.resolveTag)); % ~ childRB.product;  
                     
-                    fprintf('motionUncorrectToEpochs:\n');
+                    fprintf('motionUncorrectEpoch1ToN:\n');
                     fprintf('source.fqfileprefix->\n    %s\n', source.fqfileprefix); 
                         % E1to9/umapSynth_op_fdgv1e1to9r1_frame${e}; 
                     fprintf('this(%i).product->\n    %s\n\n', idxRef, thisUncorrected(idxRef).product); 
@@ -308,7 +308,7 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
                 popd(pwd0); 
             end
         end         
-        function thisUncorrected = motionUncorrectToEpochs2(this, source, multiEpochOfSummed)
+        function thisUncorrected = motionUncorrectEpoch(this, source, multiEpochOfSummed)
             %% MOTIONUNCORRECTTOEPOCHS back-resolves a source in the space of some reference epoch to all available epochs.
             %  @param this.resolveBulder.product is the motion-corrected-summed singlet object to which source will align.
             %  @param source is an ImagingContext.
@@ -355,7 +355,7 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
                     thisUncorrected(idxRef).sessionData_    = childRB.sessionData;                                    
                     thisUncorrected(idxRef).product_        = ImagingContext(this.resolveBuilder_.umap(childRB.resolveTag)); % ~ childRB.product;  
                     
-                    fprintf('motionUncorrectToEpochs:\n');
+                    fprintf('motionUncorrectEpoch1ToN:\n');
                     fprintf('source.fqfileprefix->\n    %s\n', source.fqfileprefix); 
                         % E1to9/umapSynth_op_fdgv1e1to9r1_frame${e}; 
                     fprintf('this(%i).product->\n    %s\n\n', idxRef, thisUncorrected(idxRef).product); 

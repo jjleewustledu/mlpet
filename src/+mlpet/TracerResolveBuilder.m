@@ -262,16 +262,17 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             end
                         
             % update this.{compositeResolveBuilder_,sessionData_,product_}                      
-            cRB_ = cRB_.resolve;      
-            cRB_.buildVisitor.movefile_4dfp(cRB_.product_{end-1}, cRB_.umap(cRB_.resolveTag, 'typ', 'fp'));
-%             cRB_ = cRB_.t4img_4dfp( ...
-%                 sprintf('%sr0_to_%s_t4', this.umapSynthFp, cRB_.resolveTag), ...
-%                 cRB_.umapSynth('tracer', '', 'typ', 'fp'), ...
-%                 'out', cRB_.umap(cRB_.resolveTag, 'typ', 'fp'), ...
-%                 'options', sprintf('-O%s', theImages{1}));
+            cRB_ = cRB_.resolve;            
+            if ( lexist_4dfp(cRB_.product_{end-1}.fqfileprefix) && ...
+                ~lexist_4dfp(cRB_.umap(cRB_.resolveTag, 'typ', 'fp')))
+                cRB_.buildVisitor.copyfile_4dfp( ...
+                    cRB_.product_{end-1}.fqfileprefix, cRB_.umap(cRB_.resolveTag, 'typ', 'fp'));
+            end
+            cRB_ = cRB_.packageProduct(cRB_.umap(cRB_.resolveTag, 'typ', 'fp'));
             this.compositeResolveBuilder_ = cRB_;
             this.sessionData_             = cRB_.sessionData;
-            this.product_                 = cRB_.product;            
+            this.product_                 = cRB_.product;      
+            this.product_.fourdfp;
             popd(pwd0);
         end
         function this = motionUncorrectUmap(this, multiEpochOfSummed)
@@ -297,15 +298,15 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         function thisUncorrected = motionUncorrectToFrames(this, source, multiEpochOfSummed)
             %% MOTIONUNCORRECTTOFRAMES back-resolves a source in the space of some reference epoch to all available epochs.
             
-            thisUncorrected = this.motionUncorrectToEpochs(source, multiEpochOfSummed);
+            thisUncorrected = this.motionUncorrectEpoch1ToN(source, multiEpochOfSummed);
                 % thisUncorrected(${u}).product->E1to9/umapSynth_op_fdgv1e1to9r1_frame${u}
             for u = 1:length(thisUncorrected)
-                multiEpochOfSummed(u).motionUncorrectToEpochs2( ...
+                multiEpochOfSummed(u).motionUncorrectEpoch( ...
                     thisUncorrected(u).product, multiEpochOfSummed(u), u == length(thisUncorrected));
             end
         end
-        function thisUncorrected = motionUncorrectToEpochs(this, source, multiEpochOfSummed)
-            %% MOTIONUNCORRECTTOEPOCHS back-resolves a source in the space of some reference epoch to all available epochs.
+        function thisUncorrected = motionUncorrectEpoch1ToN(this, source, multiEpochOfSummed)
+            %% MOTIONUNCORRECTEPOCH1TON back-resolves a source in the space of some reference epoch to all available epochs.
             %  @param this.resolveBulder.product is the motion-corrected-summed singlet object to which source will align.
             %  @param source is an ImagingContext.
             %  @return thisUncorrected, a collection of TracerResolveBuilders for E1to9, each conveying back-resolving
@@ -327,35 +328,35 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     continue
                 end         
                 try
-                    childRB                  = this.resolveBuilder_;
-                    childRB.rnumber          = 1;
-                    childRB.indexOfReference = idxRef;  
-                    childRB.resolveTag       = childRB.resolveTagFrame(idxRef, 'reset', true); % op_fdgv1e1to9r1_frame${idxRef};                      
-                    childRB                  = childRB.updateFinished( ...
+                    childT4RB                  = this.resolveBuilder_;
+                    childT4RB.rnumber          = 1;
+                    childT4RB.indexOfReference = idxRef;  
+                    childT4RB.resolveTag       = childT4RB.resolveTagFrame(idxRef, 'reset', true); % op_fdgv1e1to9r1_frame${idxRef};                      
+                    childT4RB                  = childT4RB.updateFinished( ...
                         'tag2', sprintf('_motionUncorrectToEpochs_%s', source.fileprefix), ...
                         'neverTouchFinishfile', multiEpochOfSummed(idxRef).getNeverTouch);
                     
-                    childRB.skipT4imgAll = true;
-                    childRB              = childRB.resolve; % childRB.product->${E}/umapSynth${e}r1_frame${idxRef}                                      
-                    childRB.skipT4imgAll = false;                    
-                    childRB              = childRB.t4img_4dfp( ...
-                        this.parentToChildT4(childRB.resolveTag), ...
+                    childT4RB.skipT4imgAll = true;
+                    childT4RB              = childT4RB.resolve; % childRB.product->${E}/fdgv2${e}r2_op_fdgv2${e}r1_frame${idxRef}
+                    childT4RB.skipT4imgAll = false;                    
+                    childT4RB              = childT4RB.t4img_4dfp( ...
+                        this.parentToChildT4(childT4RB.resolveTag), ...
                         source.fqfileprefix, ...
-                        'out', childRB.umap(childRB.resolveTag, 'typ', 'fp'), ...
+                        'out', childT4RB.umap(childT4RB.resolveTag, 'typ', 'fp'), ...
                         'options', ['-O' this.sessionData.tracerResolved('typ','fp')]);
                         % t4     := E1to9/fdgv1e1to9r0_frame9_to_op_fdgv1e1to9r1_frame${idxRef}_t4; 
                         % source := E1to9/umapSynth_op_fdgv1e1to9r1_frame9;                         
                         % out    :=       umapSynth_op_fdgv1e1to9r1_frame${idxRef}, ${idxRef} != 9;                 
-                    childRB.theImages    = childRB.tracerRevision('typ', 'fqfp');   
-                    childRB.epoch        = idxRef;
+                    childT4RB.theImages    = childT4RB.tracerRevision('typ', 'fqfp');   
+                    childT4RB.epoch        = idxRef;
                     
                     %% update thisMotionUncorrected(idxRef).{resolveBuilder_,sessionData_,product_}
                 
-                    thisUncorrected(idxRef).resolveBuilder_ = childRB; 
-                    thisUncorrected(idxRef).sessionData_    = childRB.sessionData;                                    
-                    thisUncorrected(idxRef).product_        = ImagingContext(this.resolveBuilder_.umap(childRB.resolveTag)); % ~ childRB.product;  
+                    thisUncorrected(idxRef).resolveBuilder_ = childT4RB; 
+                    thisUncorrected(idxRef).sessionData_    = childT4RB.sessionData;                                    
+                    thisUncorrected(idxRef).product_        = ImagingContext(this.resolveBuilder_.umap(childT4RB.resolveTag)); % ~ childRB.product;  
                     
-                    fprintf('motionUncorrectToEpochs:\n');
+                    fprintf('motionUncorrectEpoch1ToN:\n');
                     fprintf('source.fqfileprefix->\n    %s\n', source.fqfileprefix); 
                         % E1to9/umapSynth_op_fdgv1e1to9r1_frame${e}; 
                     fprintf('this(%i).product->\n    %s\n\n', idxRef, char(thisUncorrected(idxRef).product)); 
@@ -375,8 +376,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 popd(pwd0); 
             end
         end     
-        function thisUncorrected = motionUncorrectToEpochs2(this, source, multiEpochOfSummed, lastEpoch)
-            %% MOTIONUNCORRECTTOEPOCHS back-resolves a source in the space of some reference epoch to all available epochs.
+        function thisUncorrected = motionUncorrectEpoch(this, source, multiEpochOfSummed, lastEpoch)
+            %% MOTIONUNCORRECTEPOCH back-resolves a source in the space of some reference epoch to all available epochs.
             %  @param this.resolveBulder.product is the motion-corrected-summed singlet object to which source will align.
             %  @param source is an ImagingContext.
             %  @param lastEpoch is logical.
@@ -405,40 +406,43 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     ensuredir(loc);
                     pwd0 = pushd(loc); % E1, ..., E8;
                     thisUncorrected(idxRef) = this; %#ok<*AGROW>
-                    childRB                  = this.resolveBuilder_;
-                    childRB.rnumber          = 1;
-                    childRB.indexOfReference = idxRef;  
-                    childRB.resolveTag       = childRB.resolveTagFrame(idxRef, 'reset', true); % op_fdgv1${e}r1_frame${idxRef};                      
-                    childRB                  = childRB.updateFinished( ...
+                    childT4RB                  = this.resolveBuilder_;
+                    childT4RB.rnumber          = 1;
+                    childT4RB.indexOfReference = idxRef;  
+                    childT4RB.resolveTag       = childT4RB.resolveTagFrame(idxRef, 'reset', true); % op_fdgv1${e}r1_frame${idxRef};                      
+                    childT4RB                  = childT4RB.updateFinished( ...
                         'tag2', sprintf('_motionUncorrectToEpochs2_%s', source.fileprefix), ...
                         'neverTouchFinishfile', multiEpochOfSummed.getNeverTouch);
                     
-                    childRB.skipT4imgAll = true;
-                    childRB              = childRB.resolve; % childRB.product->$E1to9/fdgv1e1to9r2_op_fdgv1${e}r1_frame${idxRef}
-                    childRB.skipT4imgAll = false;                    
-                    parentToChildT4_     = multiEpochOfSummed.parentToChildT4(childRB.resolveTag);
-                    if (~lexist(parentToChildT4_, 'file') || ...
-                        ~childRB.indicesLogical(idxRef))
-                        parentToChildT4_ = childRB.buildVisitor.transverse_t4;
-                    end
-                    childRB          = childRB.t4img_4dfp( ...
-                        parentToChildT4_, ...
-                        source.fqfileprefix, ...
-                        'out', childRB.umap(childRB.resolveTag, 'typ', 'fp'), ...
-                        'options', ['-O' this.sessionData.tracerResolved('typ','fp')]);
-                        % t4     := ${E}/fdgv1${e}r0_frame8_to_op_fdgv1${e}r1_frame${idxRef}_t4; 
-                        % source := E1to9/umapSynth_op_fdgv1e1to9r1_frame${e};          
-                        % out    :=       umapSynth_op_fdgv1${e}r1_frame${idxRef}   
-                    childRB.theImages    = childRB.tracerRevision('typ', 'fqfp');   
-                    childRB.epoch        = idxRef;
+                    childT4RB.skipT4imgAll = true;
+                    childT4RB              = childT4RB.resolve; % childRB.product->${E}/fdgv1${e}r2_op_fdgv1${e}r1_frame${idxRef}
+                    childT4RB.skipT4imgAll = false;                    
+                    parentToChildT4_     = multiEpochOfSummed.parentToChildT4(childT4RB.resolveTag);
+                    if (childT4RB.indicesLogical(idxRef) && ...
+                        lexist(parentToChildT4_, 'file'))
+                        childT4RB          = childT4RB.t4img_4dfp( ...
+                            parentToChildT4_, ...
+                            source.fqfileprefix, ...
+                            'out', childT4RB.umap(childT4RB.resolveTag, 'typ', 'fp'), ...
+                            'options', ['-O' this.sessionData.tracerResolved('typ','fp')]);
+                            % t4     := ${E}/fdgv1${e}r0_frame8_to_op_fdgv1${e}r1_frame${idxRef}_t4; 
+                            % source := E1to9/umapSynth_op_fdgv1e1to9r1_frame${e};          
+                            % out    :=       umapSynth_op_fdgv1${e}r1_frame${idxRef}  
+                    else
+                        childT4RB.buildVisitor.copyfile_4dfp( ...
+                            source.fqfileprefix, ...
+                            childT4RB.umap(childT4RB.resolveTag, 'typ', 'fp'));
+                    end 
+                    childT4RB.theImages    = childT4RB.tracerRevision('typ', 'fqfp');   
+                    childT4RB.epoch        = idxRef;
                     
                     %% update thisMotionUncorrected(idxRef).{resolveBuilder_,sessionData_,product_}
                 
-                    thisUncorrected(idxRef).resolveBuilder_ = childRB; 
-                    thisUncorrected(idxRef).sessionData_    = childRB.sessionData;                                    
-                    thisUncorrected(idxRef).product_        = ImagingContext(this.resolveBuilder_.umap(childRB.resolveTag)); % ~ childRB.product;  
+                    thisUncorrected(idxRef).resolveBuilder_ = childT4RB; 
+                    thisUncorrected(idxRef).sessionData_    = childT4RB.sessionData;                                    
+                    thisUncorrected(idxRef).product_        = ImagingContext(this.resolveBuilder_.umap(childT4RB.resolveTag)); % ~ childRB.product;  
                     
-                    fprintf('motionUncorrectToEpochs2:\n');
+                    fprintf('motionUncorrectEpoch:\n');
                     fprintf('source.fqfileprefix->\n    %s\n', source.fqfileprefix); 
                         % E1to9/umapSynth_op_fdgv1e1to9r1_frame${e}; 
                     fprintf('this(%i).product->\n    %s\n\n', idxRef, char(thisUncorrected(idxRef).product)); 
@@ -998,6 +1002,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             this.product_ = cub.product;
         end
         function this = partitionUmaps(this)
+            %  saves umap frames to the filesystem.
             
             tNac = zeros(1, length(this.tauFramesNAC));
             for iNac = 1:length(this.tauFramesNAC)
