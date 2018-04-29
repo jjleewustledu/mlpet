@@ -9,13 +9,13 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
  	%% It was developed on Matlab 9.2.0.538062 (R2017a) for MACI64.  Copyright 2017 John Joowon Lee.
      
     properties
-        ctSourceFqfn % fqfilename
+        umapSynthFqfn % fqfilename
         f2rep % use to exclude early frames of OC, OO that have breathing tube in FOV
         fsrc  %
     end    
     
     properties (Dependent)
-        ctSourceFp
+        umapSynthFp
         imgblurTag
         nFramesAC
         tauFramesNAC
@@ -25,8 +25,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         
         %% GET
         
-        function g = get.ctSourceFp(this)
-            g = mybasename(this.ctSourceFqfn);
+        function g = get.umapSynthFp(this)
+            g = mybasename(this.umapSynthFqfn);
         end
         function g = get.imgblurTag(this)
             g = this.sessionData_.petPointSpread('tag_imgblur_4dfp', true);
@@ -166,7 +166,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             popd(pwd0);
         end
         function idx  = indicesNonzero(this)
-            % logic relocated to mlfourdfp.ImageFrames.ctor
             
             if (length(this.sessionData.epoch) > 1)
                 idx = true;
@@ -179,10 +178,26 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             end
             if (isa(p, 'mlfourd.NIfTId'))
                 p = mlfourd.NumericalNIfTId(p);
-            end
+            end            
+            
+            %% PROPOSED
+            %  mg  = mlpet.Msktgen('sessionData', this.sessionData);
+            %  p   = p.volumeAveraged( ...
+            %        mg.constructForTracerRevision);
+            
             p   = p.volumeAveraged;
             idx = p.img > this.sessionData.fractionalImageFrameThresh * median(p.img);
             idx = ensureRowVector(idx) & ensureRowVector(this.sessionData.indicesLogical);
+        end
+        function        refreshTracerResolvedFinalSumt(this, sessd)
+            try
+                delete(                        [sessd.tracerResolvedFinalSumt('typ','fp') '.4dfp.*']);
+                this.buildVisitor.copyfile_4dfp(sessd.tracerResolvedFinalSumt('typ','fqfp'));
+            catch ME
+                error('mlpet:pipelinePrerequisiteMissing', ...
+                    '%s may be missing; consider running constructResolved(''tracer'', ''%s'') and retry', ...
+                    sessd.tracerResolvedFinalSumt('typ','fqfp'), sessd.tracer);
+            end
         end
         function this = motionCorrectCTAndUmap(this)
             %% MOTIONCORRECTCTANDUMAP
@@ -191,42 +206,54 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %          e.g., after completing this.motionCorrectFrames, 
             %          reconstitutedSummed.product := E1to9/fdgv1e1to9r2_op_fdgv1e1to9r1_frame9_sumt &&
             %          this := reconstitutedSummed.
-            %  @param  this.ctSourceFqfn is the source of anatomical alignment for the motion-corrected umap.
-            %  @return motion-corrections of this.ctSourceFqfn, T1, t2 onto this.product for 
+            %  @param  this.umapSynthFqfn is the source of anatomical alignment for the motion-corrected umap.
+            %  @return motion-corrections of this.umapSynthFqfn, T1, t2 onto this.product for 
             %          this.{compositeResolveBuilder,sessionData,product};
             %          e.g., this.product := umapSynth_to_op_fdgv1e1to9r1_frame9.
             
             pwd0 = pushd(this.product_.filepath);      
-            this.locallyStageModalities('fourdfp', myfileprefix(this.ctSourceFqfn));             
+            this.locallyStageModalities('fourdfp', myfileprefix(this.umapSynthFqfn));             
             this.sessionData_.rnumber = 1;
-            bv = this.buildVisitor;
+            sessFdg = this.sessionData_;
+            sessFdg.rnumber = 2;
+            sessFdg.tracer = 'FDG';
+            sessHo  = this.sessionData_;
+            sessHo.rnumber = 2;
+            sessHo.tracer = 'HO';
             
             switch (this.sessionData_.tracer)
-                case {'OC' 'OO' 'HO'}
-                    sessFdg = this.sessionData_;
-                    sessFdg.tracer = 'FDG';
-                    try
-                        delete(         [sessFdg.tracerResolvedFinalSumt('typ','fp') '.4dfp.*']);
-                        bv.copyfile_4dfp(sessFdg.tracerResolvedFinalSumt('typ','fqfp'));
-                    catch ME
-                        error('mlpet:pipelinePrerequisiteMissing', ...
-                            '%s may be missing; run constructResolved(''tracer'', ''FDG'') and retry', sessFdg.tracerResolvedFinalSumt('typ','fqfp'));
-                    end
+                case  'OO'
+                    this.refreshTracerResolvedFinalSumt(sessFdg);
+                    this.refreshTracerResolvedFinalSumt(sessHo);
                     theImages = {this.product_.fileprefix ... 
+                                 sessHo.tracerResolvedFinalSumt('typ','fp') ...
                                  sessFdg.tracerResolvedFinalSumt('typ','fp') ...
-                                 this.ctSourceFp ...
+                                 this.umapSynthFp ...
                                  this.T1('typ','fp') }; % this.t2('typ','fp')
                     cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
                         'sessionData', this.sessionData_, ...
                         'theImages', theImages, ...
+                        'maskForImages', {'Msktgen' 'Msktgen' 'Msktgen' 'none' 'T1001'}, ...
+                        'NRevisions', 2);
+                case {'HO' 'OC'}
+                    this.refreshTracerResolvedFinalSumt(sessFdg);
+                    theImages = {this.product_.fileprefix ... 
+                                 sessFdg.tracerResolvedFinalSumt('typ','fp') ...
+                                 this.umapSynthFp ...
+                                 this.T1('typ','fp') }; % this.t2('typ','fp')
+                    cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
+                        'sessionData', this.sessionData_, ...
+                        'theImages', theImages, ...
+                        'maskForImages', {'Msktgen' 'Msktgen' 'none' 'T1001'}, ...
                         'NRevisions', 2);
                 case 'FDG'
                     theImages = {this.product_.fileprefix ... 
-                                 this.ctSourceFp ...
+                                 this.umapSynthFp ...
                                  this.T1('typ','fp')};
                     cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
                         'sessionData', this.sessionData_, ...
                         'theImages', theImages, ...
+                        'maskForImages', {'Msktgen' 'none' 'T1001'}, ...
                         'NRevisions', 2);
                 otherwise
                     error('mlpet:unsupportedSwitchCase', ...
@@ -235,12 +262,13 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             end
                         
             % update this.{compositeResolveBuilder_,sessionData_,product_}                      
-            cRB_ = cRB_.resolve;             
-            cRB_ = cRB_.t4img_4dfp( ...
-                sprintf('%sr0_to_%s_t4', this.ctSourceFp, cRB_.resolveTag), ...
-                cRB_.umapSynth('tracer', '', 'typ', 'fp'), ...
-                'out', cRB_.umap(cRB_.resolveTag, 'typ', 'fp'), ...
-                'options', sprintf('-O%s', theImages{1}));
+            cRB_ = cRB_.resolve;      
+            cRB_.buildVisitor.movefile_4dfp(cRB_.product_{end-1}, cRB_.umap(cRB_.resolveTag, 'typ', 'fp'));
+%             cRB_ = cRB_.t4img_4dfp( ...
+%                 sprintf('%sr0_to_%s_t4', this.umapSynthFp, cRB_.resolveTag), ...
+%                 cRB_.umapSynth('tracer', '', 'typ', 'fp'), ...
+%                 'out', cRB_.umap(cRB_.resolveTag, 'typ', 'fp'), ...
+%                 'options', sprintf('-O%s', theImages{1}));
             this.compositeResolveBuilder_ = cRB_;
             this.sessionData_             = cRB_.sessionData;
             this.product_                 = cRB_.product;            
@@ -368,7 +396,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             else 
                 NRef = this.maxLengthEpoch;
             end
-            for idxRef = 1:NRef
+            for idxRef = 1:NRef % uncorrect source to each frame as a separate reference frame
                 
                 %% resolve source to thisMotionUncorrected(idxRef)
                 
@@ -388,14 +416,19 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     childRB.skipT4imgAll = true;
                     childRB              = childRB.resolve; % childRB.product->$E1to9/fdgv1e1to9r2_op_fdgv1${e}r1_frame${idxRef}
                     childRB.skipT4imgAll = false;                    
-                    childRB              = childRB.t4img_4dfp( ...
-                        multiEpochOfSummed.parentToChildT4(childRB.resolveTag), ...
+                    parentToChildT4_     = multiEpochOfSummed.parentToChildT4(childRB.resolveTag);
+                    if (~lexist(parentToChildT4_, 'file') || ...
+                        ~childRB.indicesLogical(idxRef))
+                        parentToChildT4_ = childRB.buildVisitor.transverse_t4;
+                    end
+                    childRB          = childRB.t4img_4dfp( ...
+                        parentToChildT4_, ...
                         source.fqfileprefix, ...
                         'out', childRB.umap(childRB.resolveTag, 'typ', 'fp'), ...
                         'options', ['-O' this.sessionData.tracerResolved('typ','fp')]);
                         % t4     := ${E}/fdgv1${e}r0_frame8_to_op_fdgv1${e}r1_frame${idxRef}_t4; 
                         % source := E1to9/umapSynth_op_fdgv1e1to9r1_frame${e};          
-                        % out    :=       umapSynth_op_fdgv1${e}r1_frame${idxRef}               
+                        % out    :=       umapSynth_op_fdgv1${e}r1_frame${idxRef}   
                     childRB.theImages    = childRB.tracerRevision('typ', 'fqfp');   
                     childRB.epoch        = idxRef;
                     
@@ -803,22 +836,21 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  @param named 'resolveBuilder' is an mlfourdfp.T4ResolveBuilder.
             %  @param named 'compositeResolveBuilder' is an mlfourdp.CompositeT4ResolveBuilder.
             %  @param named 'vendorSupport' is, e.g., mlsiemens.MMRBuilder.
-            %  @param named 'ctSourceFqfn' is the f.-q.-filename of prepared CT.  
+            %  @param named 'umapSynthFqfn' is the f.-q.-filename of prepared CT.  
             %  @return instance ready for t4-resolve management of tracer data.  
             
  			this = this@mlpet.TracerBuilder(varargin{:});
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'ctSourceFqfn', ...
-                fullfile(this.sessionPath, 'ctMasked.4dfp.ifh'), ...
+            addParameter(ip, 'umapSynthFqfn', this.sessionData.umapSynthOpT1001, ...
                 @(x) lexist(x, 'file'));
             addParameter(ip, 'f2rep', [], @isnumeric);
             addParameter(ip, 'fsrc',  [], @isnumeric);
             parse(ip, varargin{:});
-            this.ctSourceFqfn    = ip.Results.ctSourceFqfn;
-            this.f2rep           = ip.Results.f2rep;
-            this.fsrc            = ip.Results.fsrc;
+            this.umapSynthFqfn = ip.Results.umapSynthFqfn;
+            this.f2rep            = ip.Results.f2rep;
+            this.fsrc             = ip.Results.fsrc;
             this = this.updateFinished;            
         end
         function fqfn = ensureExistsCtSourceFqfn(this, fqfn)
@@ -1002,11 +1034,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             sessd = this.sessionData;
             sessd.rnumber = 1;    
             tracerSz = this.size_4dfp(ImagingContext(sessd.tracerRevision)); 
-            nEpoch = ceil(tracerSz(4)/this.maxLengthEpoch); 
-            %tracerFp = sessd.tracerRevision('typ', 'fp');
-            %if (~this.buildVisitor.lexist_4dfp([tracerFp '_b43']))
-            %    this.buildVisitor.imgblur_4dfp( tracerFp, 4.3);
-            %end           
+            nEpoch = ceil(tracerSz(4)/this.maxLengthEpoch);     
             
             sessd1 = sessd;
             sessd1.epoch = 1;
