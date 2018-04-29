@@ -602,7 +602,6 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
         function this  = instanceConstructResolvedNAC(this)     
             mlraichle.UmapDirector.constructUmaps('sessionData', this.sessionData);       
             this.builder_       = this.builder_.locallyStageTracer;
-            this.builder_       = this.builder_.replaceMonolithFrames; % as requested of this.builder_ in its ctor.
             this.builder_       = this.builder_.partitionMonolith; 
             [this.builder_,multiEpochOfSummed,reconstitutedSummed] = this.builder_.motionCorrectFrames;
             reconstitutedSummed = reconstitutedSummed.motionCorrectCTAndUmap;             
