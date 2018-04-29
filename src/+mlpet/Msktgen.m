@@ -18,6 +18,12 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
  	end
 
 	methods 
+        function obj = constructForTracerRevision(this)
+            obj  = this.constructMskt( ...
+                'source', this.sessionData.tracerRevision, ...
+                'intermediaryForMask', this.sessionData.T1001, ...
+                'sourceOfMask', fullfile(this.sessionData.vLocation, 'brainmask.4dfp.ifh'));
+        end
         function obj = constructMskt(this, varargin)
             %  @param source may be dynamic.   For doConstructResolved == true, resolving work is performed on
             %  time-summed dynamic data.
