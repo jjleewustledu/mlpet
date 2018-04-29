@@ -38,6 +38,21 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             ic.fourdfp;
             ic.save;
         end
+        function ensureBlurred4dfp(obj, blur)
+            %  @param obj requires the 4dfp environment.
+            %  @param blur is numeric.
+            
+            ic = mlfourd.ImagingContext(obj);
+            if (~lexist(ic.fqfilename, 'file'))
+                warning('mlpet:fileDoesNotExistOnFilesystem', 'TracerBuilder.ensureSumt.obj->%s', char(obj));
+                return
+            end
+            if (lexist(sprintf('%s_b%i.4dfp.ifh', ic.fqfileprefix, floor(10*blur)), 'file'))
+                return
+            end
+            fv = mlfourdfp.FourdfpVisitor;
+            fv.imgblur_4dfp(ic.fqfileprefix, blur);
+        end
         function ensureSumt(obj)
             %  @param obj requires the 4dfp environment.
             
