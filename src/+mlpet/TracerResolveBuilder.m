@@ -186,18 +186,21 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %        mg.constructForTracerRevision);
             
             p   = p.volumeAveraged;
-            idx = p.img > this.sessionData.fractionalImageFrameThresh * median(p.img);
+            idx = p.img > this.sessionData.fractionalImageFrameThresh * median(p.img) + 100;
             idx = ensureRowVector(idx) & ensureRowVector(this.sessionData.indicesLogical);
         end
-        function        refreshTracerResolvedFinalSumt(this, sessd)
-            try
+        function sessd = refreshTracerResolvedFinalSumt(this, sessd)
+            while (~lexist(sessd.tracerResolvedFinalSumt) && sessd.supEpoch > 0)
+                sessd.supEpoch = sessd.supEpoch - 1;
+            end
+            if (lexist(sessd.tracerResolvedFinalSumt))                
                 delete(                        [sessd.tracerResolvedFinalSumt('typ','fp') '.4dfp.*']);
                 this.buildVisitor.copyfile_4dfp(sessd.tracerResolvedFinalSumt('typ','fqfp'));
-            catch ME
-                error('mlpet:pipelinePrerequisiteMissing', ...
-                    '%s may be missing; consider running constructResolved(''tracer'', ''%s'') and retry', ...
-                    sessd.tracerResolvedFinalSumt('typ','fqfp'), sessd.tracer);
+                return
             end
+            error('mlpet:pipelinePrerequisiteMissing', ...
+                '%s may be missing; consider running constructResolved(''tracer'', ''%s'') and retry', ...
+                sessd.tracerResolvedFinalSumt('typ','fqfp'), sessd.tracer);
         end
         function this = motionCorrectCTAndUmap(this)
             %% MOTIONCORRECTCTANDUMAP
@@ -236,8 +239,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             else
                 switch (this.sessionData_.tracer)
                     case  'OO'
-                        this.refreshTracerResolvedFinalSumt(sessFdg);
-                        this.refreshTracerResolvedFinalSumt(sessHo);
+                        sessFdg = this.refreshTracerResolvedFinalSumt(sessFdg);
+                        sessHo  = this.refreshTracerResolvedFinalSumt(sessHo);
                         theImages = {product ... 
                                      sessHo.tracerResolvedFinalSumt('typ','fp') ...
                                      sessFdg.tracerResolvedFinalSumt('typ','fp') ...
@@ -250,7 +253,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                             'maskForImages', {'Msktgen' 'Msktgen' 'Msktgen' 'T1001' 'none'}, ...
                             'NRevisions', 1); % 'Msktgen' 
                     case {'HO' 'OC'}
-                        this.refreshTracerResolvedFinalSumt(sessFdg);
+                        sessFdg = this.refreshTracerResolvedFinalSumt(sessFdg);
                         theImages = {product ... 
                                      sessFdg.tracerResolvedFinalSumt('typ','fp') ...
                                      this.T1('typ', 'fp') ...
