@@ -189,19 +189,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             idx = p.img > this.sessionData.fractionalImageFrameThresh * median(p.img) + 100;
             idx = ensureRowVector(idx) & ensureRowVector(this.sessionData.indicesLogical);
         end
-        function sessd = refreshTracerResolvedFinalSumt(this, sessd)
-            while (~lexist(sessd.tracerResolvedFinalSumt) && sessd.supEpoch > 0)
-                sessd.supEpoch = sessd.supEpoch - 1;
-            end
-            if (lexist(sessd.tracerResolvedFinalSumt))                
-                delete(                        [sessd.tracerResolvedFinalSumt('typ','fp') '.4dfp.*']);
-                this.buildVisitor.copyfile_4dfp(sessd.tracerResolvedFinalSumt('typ','fqfp'));
-                return
-            end
-            error('mlpet:pipelinePrerequisiteMissing', ...
-                '%s may be missing; consider running constructResolved(''tracer'', ''%s'') and retry', ...
-                sessd.tracerResolvedFinalSumt('typ','fqfp'), sessd.tracer);
-        end
         function this = motionCorrectCTAndUmap(this)
             %% MOTIONCORRECTCTANDUMAP
             %  @param  this.sessionData is well-formed for the problem.
