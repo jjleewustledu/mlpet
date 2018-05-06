@@ -9,6 +9,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
  	%% It was developed on Matlab 9.2.0.538062 (R2017a) for MACI64.  Copyright 2017 John Joowon Lee.
      
     properties
+        noiseFloorOfCounts = 200
         umapSynthFqfn % fqfilename
         f2rep % use to exclude early frames of OC, OO that have breathing tube in FOV
         fsrc  %
@@ -166,12 +167,12 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             popd(pwd0);
         end
         function idx  = indicesNonzero(this)
-            
-            if (length(this.sessionData.epoch) > 1)
-                idx = true;
-                return
-            end
-            
+             
+%             if (length(this.sessionData.epoch) > 1)
+%                 idx = true;
+%                 return
+%             end
+
             p = this.product_;
             if (isa(p, 'mlfourd.ImagingContext'))
                 p = p.numericalNiftid;
@@ -186,8 +187,9 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %        mg.constructForTracerRevision);
             
             p   = p.volumeAveraged;
-            idx = p.img > this.sessionData.fractionalImageFrameThresh * median(p.img) + 100;
+            idx = p.img > this.sessionData.fractionalImageFrameThresh * median(p.img) + this.noiseFloorOfCounts;
             idx = ensureRowVector(idx) & ensureRowVector(this.sessionData.indicesLogical);
+            fprintf('mlpet.TracerResolveBuilder.indicesNonzero.idx->%s\n', mat2str(idx));
         end
         function this = motionCorrectCTAndUmap(this)
             %% MOTIONCORRECTCTANDUMAP
@@ -281,7 +283,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             [~,out] = fv.align_crossModal( ...
                 'dest', this.product_.fileprefix, ...
                 'source', src, ...
-                'destBlur', 5.5, ...
+                'destBlur', this.sessionData.compositeT4ResolveBuilderBlurArg, ...
                 'sourceBlur', 1.5, ...
                 'out', out);
         end

@@ -11,7 +11,7 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
         intermediaryForMask
         sourceOfMask
         blurForMask = 33
-        blurArg = 5.5
+        blurArg % this.sessionData_.compositeT4ResolveBuilderBlurArg
         threshp = 0
         doConstructResolved
         NRevisions = 1
@@ -70,6 +70,7 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
 		  
  		function this = Msktgen(varargin)
  			this = this@mlpipeline.AbstractDataBuilder(varargin{:});
+            this.blurArg = this.sessionData_.compositeT4ResolveBuilderBlurArg;
  		end
     end 
     
