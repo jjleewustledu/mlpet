@@ -630,7 +630,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             assert(this.sessionData_.attenuationCorrected);  
             ensuredir(this.sessionData_.tracerLocation);
             
-            if (lexist(this.sessionData_.tracerRevision, 'file'))                
+            if (lexist(this.sessionData_.tracerRevision, 'file'))
                 % update this.{sessionData_,product_}
                 this.sessionData_.rnumber = 1; 
                 this.product_ = mlfourd.ImagingContext(this.sessionData_.tracerRevision);

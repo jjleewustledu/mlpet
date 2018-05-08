@@ -172,39 +172,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
         result_
     end
     
-    methods (Access = protected)
-        function         instanceCleanSymlinks(this)            
-            
-            suffs = {'.4dfp.hdr' '.4dfp.ifh' '.4dfp.img' '.4dfp.img.rec'};
-            try
-                sd = this.sessionData;
-                pwd0 = pushd(sd.tracerLocation);
-                for s = 1:length(suffs)
-                    deleteExisting(                 [sd.T1001('typ','fp') suffs{s}]);
-                    copyfile(fullfile(sd.vLocation, [sd.T1001('typ','fp') suffs{s}]));
-                    deleteExisting(                              [sd.tracerListmodeSif('typ','fp') suffs{s}]);
-                    copyfile(fullfile(sd.tracerListmodeLocation, [sd.tracerListmodeSif('typ','fp') suffs{s}]));
-                end
-                popd(pwd0);
-            catch ME
-                handwarning(ME);
-            end
-        end        
-        function         instanceCleanTracerRemotely(this, varargin)
-            %  @param named distcompHost is the hostname or distcomp profile.
-            
-            ip = inputParser;
-            addParameter(ip, 'distcompHost', 'chpc_remote_r2016b', @ischar);
-            parse(ip, varargin{:});
-            
-            try
-                chpc = mlpet.CHPC4TracerDirector( ...
-                    this, 'distcompHost', ip.Results.distcompHost, 'sessionData', this.sessionData);                
-                chpc.cleanTracer;
-            catch ME
-                handwarning(ME);
-            end
-        end        
+    methods (Access = protected)   
         function this  = instanceConstructAnatomy(this, varargin)
             %% INSTANCECONSTRUCTANATOMY
             %  @param named target is the filename of a target, recognizable by mlfourd.ImagingContext.ctor;
