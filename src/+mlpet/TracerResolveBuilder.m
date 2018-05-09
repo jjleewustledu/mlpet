@@ -66,7 +66,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             tr.save;
         end
         function [this,monolith] = partitionMonolith(this)
-            %% PARTITIONMONOLITH into composite {TracerResolveBuilders}; monolithic tracerRevision is partitioned.
+            %% PARTITIONMONOLITH partitions monolithic tracerRevision into a composite of TracerResolveBuilders.
             %  @param  this.tracerRevision exists.
             %  @param  this.maxLengthEpoch is integer > 0.  
             %  @return with identity if rank(monolith) < 4.
@@ -76,7 +76,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %          length(this) := ceil(this.sizeTracerRevision/this.maxLengthEpoch).
             %  @return this.epoch as determined by this.partitionEpochFrames.
             %  @return monolith := struct, fields := {sessionData, imagingContext}, with pre-partitioning state for 
-            %          later use; use FilenameState to minimize memory footprint.
+            %          later use; use imagingContext with mlfourd.FilenameState to minimize memory footprint.
             %  See also:  mlpipeline.RootDataBuilder.
             
             thisSz = this.sizeTracerRevision;
@@ -107,15 +107,14 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         end
         function [this,multiEpochOfSummed,reconstitutedSummed] = motionCorrectFrames(this)
             %% MOTIONCORRECTFRAMES 
-            %  @param  this.product        := composite multi-epoch of frames created by this.partitionMonolith.
-            %  @return this                := composite multi-epoch {TracerResolveBuilder} 
-            %                                 each containing motion-corrected frames.
-            %                                 composite this contains all available frames.
+            %  @param  this.product := composite multi-epoch of frames created by this.partitionMonolith.
+            %  @return this := composite multi-epoch {TracerResolveBuilder}, each containing motion-corrected frames.
+            %          Composite this contains all available frames.
             %  @return multiEpochOfSummed  := composite multi-epoch {TracerResolveBuilder} 
-            %                                 each containing summed motion-corrected frames.
+            %          each containing summed motion-corrected frames.
             %  @return reconstitutedSummed := singlet TracerResolveBuilder containing summed motion-corrected frames.
                 
-            if (length(this) > 1)    
+            if (length(this) > 1)
                 
                 % recursion over epochs to generate composite
                 for e = 1:length(this)
@@ -144,7 +143,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %          e.g., summed.product := E*/fdgv1e*r2_op_fdgv1e*r1_frame*_sumt
             
             thisSz = this.sizeTracerRevision;
-            if (length(thisSz) < 4 || 1 == thisSz(4)) % thisSz(4) == duration of this epoch
+            if (length(thisSz) < 4 || 1 == thisSz(4)) % Consider:  thisSz(4) == duration of this epoch
                 summed = this;
                 return 
             end            
@@ -755,9 +754,9 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             sessd__.rnumber = 1;
             sessd1 = sessd_;
             sessd1.epoch = 1;
-            sessd1to11 = sessd_;
-            sessd1to11.epoch = 1:supEpochs;
-            sessd1to11.frame = supEpochs;
+            sessd1toN = sessd_;
+            sessd1toN.epoch = 1:supEpochs;
+            sessd1toN.frame = supEpochs;
             
             pwd0 = pushd(sessd_.tracerLocation);
             ffp0 = Fourdfp.load(sessd__.tracerRevision('frame', 1));
@@ -771,13 +770,14 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 sessde.epoch = e;
                 sessde.resolveTag = sprintf('%s%sr1_frame%i', sessde.resolveTagPrefix, sessde.tracerEpoch('typ','fp'), this.maxLengthEpoch);                
                 pwd1 = pushd(sessde.tracerLocation);
-                t4 = [sessd1to11.tracerRevision('frame', e, 'typ','fqfp') '_to_' sessd1to11.resolveTag '_t4'];
+                t4 = this.t4ForReconstituteFramesAC2(sessd1toN);
+                % Previous:  [sessd1toN.tracerRevision('frame', e, 'typ','fqfp') '_to_' sessd1toN.resolveTag '_t4'];
                 % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V1/FDG_V1-AC/E1to11/fdgv1e1to11r2_frame1_to_op_fdgv1e1to11r1_frame11_t4
                 % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V2/FDG_V2-AC/E1to11/fdgv2e1to11r2_frame1_to_op_fdgv2e1to11r1_frame11_t4
                 fp = sessde.tracerResolved('typ', 'fp');
                 % fdgv1e1r2_op_fdgv1e1r1_frame8
                 % fdgv2e1r2_op_fdgv2e1r1_frame8
-                fpDest = [sessde.tracerRevision('typ','fp') '_' sessd1to11.resolveTag];
+                fpDest = [sessde.tracerRevision('typ','fp') '_' sessd1toN.resolveTag];
                 % fdgv1e1r2_op_fdgv1e1to11r1_frame11
                 % fdgv2e1r2_op_fdgv2e1to11r1_frame11
                 if (lexist(t4, 'file'))
@@ -820,6 +820,26 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             ffp0.save;
             popd(pwd0);
             this = this.packageProduct(ffp0);
+        end
+        function t4   = t4ForReconstituteFramesAC2(~, sessd1toN)
+            switch (this.NRevisions)
+                case 1
+                    t4 = [sessd1toN.tracerRevision('frame', e, 'typ','fqfp') '_to_' sessd1toN.resolveTag '_t4'];
+                case 2
+                    sdr1 = sessd1toN; sdr1.rnumber = 1;
+                    sdr2 = sessd1toN; sdr2.rnumber = 2;
+                    this.buildVisitor_.t4_mul( ...
+                        [sdr1.tracerRevision('frame', e, 'typ','fqfp') '_to_' sdr1.resolveTag '_t4'], ...
+                        [sdr2.tracerRevision('frame', e, 'typ','fqfp') '_to_' sdr1.resolveTag '_t4']);
+                        % [/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V1/FDG_V1-AC/E1to11/fdgv1e1to11r1_frame1_to_op_fdgv1e1to11r1_frame11_t4] x
+                        % [/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V1/FDG_V1-AC/E1to11/fdgv1e1to11r2_frame1_to_op_fdgv1e1to11r1_frame11_t4] = 
+                        % [/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V1/FDG_V1-AC/E1to11/fdgv1e1to11r1r2_frame1_to_op_fdgv1e1to11r1_frame11_t4]
+                    t4 = [sdr1.tracerRevision('rLabel', 'r1r2', 'frame', e, 'typ','fqfp'), ...
+                          '_to_' sdr1.resolveTag '_t4'];
+                otherwise
+                    error('mlpet:unsupportedSwitchcase', ...
+                          'TracerResolveBuilder.t4ForReconstituteFramesAC2.this.NRevisions->%i', this.NRevisions);
+            end
         end
         function this = reportResolved(this)
             %  @return this.product_ := {mlfourdfp.T4ResolveReport objects}
