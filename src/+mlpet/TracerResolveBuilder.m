@@ -770,7 +770,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 sessde.epoch = e;
                 sessde.resolveTag = sprintf('%s%sr1_frame%i', sessde.resolveTagPrefix, sessde.tracerEpoch('typ','fp'), this.maxLengthEpoch);                
                 pwd1 = pushd(sessde.tracerLocation);
-                t4 = this.t4ForReconstituteFramesAC2(sessd1toN);
+                t4 = this.t4ForReconstituteFramesAC2(e, sessd1toN);
                 % Previous:  [sessd1toN.tracerRevision('frame', e, 'typ','fqfp') '_to_' sessd1toN.resolveTag '_t4'];
                 % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V1/FDG_V1-AC/E1to11/fdgv1e1to11r2_frame1_to_op_fdgv1e1to11r1_frame11_t4
                 % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V2/FDG_V2-AC/E1to11/fdgv2e1to11r2_frame1_to_op_fdgv2e1to11r1_frame11_t4
@@ -821,21 +821,23 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             popd(pwd0);
             this = this.packageProduct(ffp0);
         end
-        function t4   = t4ForReconstituteFramesAC2(~, sessd1toN)
-            switch (this.NRevisions)
+        function t4   = t4ForReconstituteFramesAC2(this, epoch, sessd1toN)
+            switch (this.resolveBuilder.NRevisions)
                 case 1
-                    t4 = [sessd1toN.tracerRevision('frame', e, 'typ','fqfp') '_to_' sessd1toN.resolveTag '_t4'];
+                    t4 = [sessd1toN.tracerRevision('frame', epoch, 'typ','fqfp') '_to_' sessd1toN.resolveTag '_t4'];
                 case 2
                     sdr1 = sessd1toN; sdr1.rnumber = 1;
                     sdr2 = sessd1toN; sdr2.rnumber = 2;
+                    t4 = [sdr1.tracerRevision('rLabel', 'r1r2', 'frame', epoch, 'typ','fqfp'), ...
+                          '_to_' sdr1.resolveTag '_t4'];
                     this.buildVisitor_.t4_mul( ...
-                        [sdr1.tracerRevision('frame', e, 'typ','fqfp') '_to_' sdr1.resolveTag '_t4'], ...
-                        [sdr2.tracerRevision('frame', e, 'typ','fqfp') '_to_' sdr1.resolveTag '_t4']);
+                        [sdr1.tracerRevision('frame', epoch, 'typ','fqfp') '_to_' sdr1.resolveTag '_t4'], ...
+                        [sdr2.tracerRevision('frame', epoch, 'typ','fqfp') '_to_' sdr1.resolveTag '_t4'], ...
+                        t4);
                         % [/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V1/FDG_V1-AC/E1to11/fdgv1e1to11r1_frame1_to_op_fdgv1e1to11r1_frame11_t4] x
                         % [/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V1/FDG_V1-AC/E1to11/fdgv1e1to11r2_frame1_to_op_fdgv1e1to11r1_frame11_t4] = 
                         % [/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V1/FDG_V1-AC/E1to11/fdgv1e1to11r1r2_frame1_to_op_fdgv1e1to11r1_frame11_t4]
-                    t4 = [sdr1.tracerRevision('rLabel', 'r1r2', 'frame', e, 'typ','fqfp'), ...
-                          '_to_' sdr1.resolveTag '_t4'];
+
                 otherwise
                     error('mlpet:unsupportedSwitchcase', ...
                           'TracerResolveBuilder.t4ForReconstituteFramesAC2.this.NRevisions->%i', this.NRevisions);
