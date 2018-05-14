@@ -65,12 +65,20 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
             this.sourceOfMask =  this.normalizeTo1000(this.sourceOfMask);
             this.sourceOfMask =  this.sourceOfMask.threshp(this.threshp);
             this.sourceOfMask.fqfilename = fqfn;
+            this.sourceOfMask.save;
             obj = this.sourceOfMask;
+        end
+        function ic   = ensure4dfp(~, ic)
+            assert(isa(ic, 'mlfourd.ImagingContext'));
+            if (~strcmp(ic.filesuffix, '.4dfp.ifh'))
+                ic.filesuffix = '.4dfp.ifh';
+            end
         end
 		  
  		function this = Msktgen(varargin)
  			this = this@mlpipeline.AbstractDataBuilder(varargin{:});
             this.blurArg = this.sessionData_.compositeT4ResolveBuilderBlurArg;
+            this.sessionData_.compAlignMethod = 'align_crossModal7';
  		end
     end 
     
@@ -81,7 +89,6 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
             
             pwd0 = pushd(this.source.filepath);            
             this.sessionData_.rnumber = 1;
-            %this.sessionData_.compAlignMethod = 'align_commonModal';
             theImages = [{this.source.fileprefix} this.intermediaryForMask.fqfileprefix];
             cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
                 'sessionData', this.sessionData_, ...
@@ -94,10 +101,10 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
             cRB_ = cRB_.updateFinished;                         
             cRB_ = cRB_.resolve;
             t4err = mean(cRB_.t4_resolve_err, 'omitnan');
-            if (t4err > this.blurForMask/3)
+            if (t4err > this.blurForMask)
                 error('mlpet:maskFailure', ...
                       'Msktgen.constructResolvedMask.cRB_.t4_resolve_err->%s, tol->%g', ...
-                      mat2str(t4err), this.blurForMask/3);
+                      mat2str(t4err), this.blurForMask);
             end
             this.sourceOfMask = ...
                 this.buildVisitor.t4img_4dfp( ...
@@ -107,6 +114,8 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
             this.sourceOfMask = ...
                 mlfourd.ImagingContext([this.sourceOfMask '.4dfp.ifh']);                    
             popd(pwd0);
+        end
+        function this = constructMask(this)            
         end
         function ic = normalizeTo1000(~, ic)
             nn = ic.numericalNiftid;
