@@ -15,9 +15,22 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
         threshp = 0
         doConstructResolved
         NRevisions = 1
- 	end
+    end
+    
+    properties (Dependent)
+        t4
+    end
 
 	methods 
+        
+        %% GET
+        
+        function g = get.t4(this)
+            g = this.t4_;
+        end
+        
+        %%
+        
         function obj = constructForTracerRevision(this)
             obj  = this.constructMskt( ...
                 'source', this.sessionData.tracerRevision, ...
@@ -68,11 +81,16 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
             this.sourceOfMask.save;
             obj = this.sourceOfMask;
         end
-        function ic   = ensure4dfp(~, ic)
+        function ic  = ensure4dfp(~, ic)
             assert(isa(ic, 'mlfourd.ImagingContext'));
             if (~strcmp(ic.filesuffix, '.4dfp.ifh'))
                 ic.filesuffix = '.4dfp.ifh';
             end
+        end
+        function out = t4img_4dfp(this, varargin)
+            assert(this.NRevisions == 1);
+            fv = mlfourdfp.FourdfpVisitor;
+            out = fv.t4img_4dfp(varargin{:});
         end
 		  
  		function this = Msktgen(varargin)
@@ -83,6 +101,10 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
     end 
     
     %% PRIVATE
+    
+    properties (Access = private)
+        t4_
+    end
     
     methods (Access = private)
         function this = constructResolvedMask(this)
@@ -106,16 +128,17 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
                       'Msktgen.constructResolvedMask.cRB_.t4_resolve_err->%s, tol->%g', ...
                       mat2str(t4err), this.blurForMask);
             end
+            this.t4_ = cRB_.t4_to_resolveTag(length(theImages));
             this.sourceOfMask = ...
                 this.buildVisitor.t4img_4dfp( ...
-                    cRB_.t4_to_resolveTag(length(theImages)), this.sourceOfMask.fqfileprefix, ...
+                    this.t4, this.sourceOfMask.fqfileprefix, ...
                     'out', [this.source.fileprefix '_mskt'], ...
                     'options', ['-O' cRB_.product{1}.fileprefix]);
             this.sourceOfMask = ...
                 mlfourd.ImagingContext([this.sourceOfMask '.4dfp.ifh']);                    
             popd(pwd0);
         end
-        function this = constructMask(this)            
+        function this = constructMask(this)
         end
         function ic = normalizeTo1000(~, ic)
             nn = ic.numericalNiftid;
