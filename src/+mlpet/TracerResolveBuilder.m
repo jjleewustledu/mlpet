@@ -16,6 +16,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
     end    
     
     properties (Dependent)
+        maskForImagesForT4RB
         umapSynthFp
         imgblurTag
         nFramesAC
@@ -26,6 +27,13 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         
         %% GET
         
+        function g = get.maskForImagesForT4RB(this)
+            if (~this.sessionData.attenuationCorrected)
+                g = 'wholehead2';
+            else
+                g = 'Msktgen';
+            end
+        end
         function g = get.umapSynthFp(this)
             g = mybasename(this.umapSynthFqfn);
         end
@@ -153,6 +161,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 'theImages', this.product_.fqfileprefix, ...
                 'indicesLogical', this.indicesNonzero, ...
                 'indexOfReference', thisSz(4), ...
+                'maskForImages', this.maskForImagesForT4RB, ...
                 'NRevisions', 2, ...
                 'resolveTag', this.sessionData_.resolveTagFrame(thisSz(4), 'reset', true)); 
             
@@ -1136,6 +1145,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             this.buildVisitor.move_4dfp(ffp.fileprefix, [ffp.fileprefix '__']);
             ffp.fileprefix = [ffp.fileprefix  '__'];
             t4rb = mlfourdfp.T4ResolveBuilder( ...
+                'maskForImages', this.maskForImagesForT4RB, ...
                 'sessionData', this.sessionData_, ...
                 'theImages', ffp.fqfileprefix, ...
                 'resolveTag', this.sessionData_.resolveTagFrame(epochSubframe, 'reset', true));
