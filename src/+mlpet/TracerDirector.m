@@ -400,12 +400,16 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             
             ip = inputParser;
             addParameter(ip, 'distcompHost', 'chpc_remote_r2016b', @ischar);
+            addParameter(ip, 'includeListmode', true, @islogical);
+            addParameter(ip, 'exclude', '', @ischar);
             parse(ip, varargin{:});
             
             try
                 chpc = mlpet.CHPC4TracerDirector( ...
                     this, 'distcompHost', ip.Results.distcompHost, 'sessionData', this.sessionData);                
-                chpc = chpc.pullData;
+                chpc = chpc.pullData( ...
+                    'includeListmode', ip.Results.includeListmode, ...
+                    'exclude', ip.Results.exclude);
                 that = chpc.theDeployedDirector; % TracerDirector instance deployed by factoryMethod
                 assert(strcmp(class(that), class(this)));
             catch ME
@@ -489,12 +493,16 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             
             ip = inputParser;
             addParameter(ip, 'distcompHost', 'chpc_remote_r2016b', @ischar);
+            addParameter(ip, 'includeListmode', true, @islogical);
+            addParameter(ip, 'exclude', '', @ischar);
             parse(ip, varargin{:});
             
             try
                 chpc = mlpet.CHPC4TracerDirector( ...
                     this, 'distcompHost', ip.Results.distcompHost, 'sessionData', this.sessionData);                
-                chpc.pushData;
+                chpc.pushData( ...
+                    'includeListmode', ip.Results.includeListmode, ...
+                    'exclude', ip.Results.exclude);
                 that = [];
             catch ME
                 handwarning(ME);
