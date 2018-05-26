@@ -124,8 +124,8 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
             cRB_ = cRB_.resolve;
             t4err = mean(cRB_.t4_resolve_err, 'omitnan');
             if (t4err > this.blurForMask)
-                popd(pwd0); % clients to Msktgen will likely catch the error; prepare pwd.
-                error('mlpet:maskFailure', ...
+                %popd(pwd0); % clients to Msktgen will likely catch the error; prepare pwd.
+                warning('mlpet:maskFailure', ...
                       'Msktgen.constructResolvedMask.cRB_.t4_resolve_err->%s, tol->%g', ...
                       mat2str(t4err), this.blurForMask);
             end
