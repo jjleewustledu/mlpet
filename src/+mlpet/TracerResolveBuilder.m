@@ -2,6 +2,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
 	%% TRACERRESOLVEBUILDER can create t4-resolved images hierarchically managed with cardinalities
     %  |session| >= |visit| > |tracer-monolith| >= |epoch| >= |frame|.  Construction intermediates
     %  are stored in this.product as described by the GoF.  
+    %  TO DO:  refactor to extract classes for variable NRevision; then use strategy pattern.
 
 	%  $Revision$
  	%  was created 18-Aug-2017 13:57:21 by jjlee,
@@ -159,6 +160,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 return 
             end            
             
+            pwd0 = pushd(this.sessionData_.tracerLocation);
             rB_ = mlfourdfp.T4ResolveBuilder( ...
                 'sessionData', this.sessionData_, ...
                 'theImages', this.product_.fqfileprefix, ...
@@ -169,34 +171,21 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 'resolveTag', this.sessionData_.resolveTagFrame(thisSz(4), 'reset', true)); 
             
             % update this.{resolveBuilder_,sessionData_,product_}
-            pwd0 = pushd(rB_.sessionData.tracerLocation);
             rB_                  = rB_.resolve;
             this.resolveBuilder_ = rB_;
             this.sessionData_    = rB_.sessionData; 
-            this.product_        = rB_.product;            
+            this.product_        = rB_.product;
             summed               = this.sumProduct;
             popd(pwd0);
         end
         function idx  = indicesNonzero(this)
-             
-%             if (length(this.sessionData.epoch) > 1)
-%                 idx = true;
-%                 return
-%             end
-
             p = this.product_;
             if (isa(p, 'mlfourd.ImagingContext'))
                 p = p.numericalNiftid;
             end
             if (isa(p, 'mlfourd.NIfTId'))
                 p = mlfourd.NumericalNIfTId(p);
-            end            
-            
-            %% PROPOSED
-            %  mg  = mlpet.Msktgen('sessionData', this.sessionData);
-            %  p   = p.volumeAveraged( ...
-            %        mg.constructForTracerRevision);
-            
+            end
             p   = p.volumeAveraged;
             idx = p.img > this.sessionData.fractionalImageFrameThresh * median(p.img) + this.noiseFloorOfCounts;
             idx = ensureRowVector(idx) & ensureRowVector(this.sessionData.indicesLogical);
@@ -731,9 +720,9 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             bv = this.buildVisitor;
             pwd0 = pushd(sd.tracerListmodeLocation);
             sif_ = sd.tracerListmodeSif('frame', sd.frame, 'typ', 'fp');
-            if (~bv.lexist_4dfp(sif_))
+            %if (~bv.lexist_4dfp(sif_))
                 bv.sif_4dfp(sd.tracerListmodeMhdr, sif_);
-            end
+            %end
             bv.cropfrac_4dfp(0.5, sif_, fqfp0);
             %deleteExisting([sif_ '.4dfp.*']);
             ffp = mlfourdfp.Fourdfp.load([fqfp0 '.4dfp.ifh']);
@@ -763,24 +752,21 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             ffp0 = Fourdfp.load(sessd__.tracerRevision('frame', 1));
             sz = size(ffp0.img);
             ffp0.img = zeros(sz(1), sz(2), sz(3), nFrames);
-            ffp0.fqfileprefix = sessd_.tracerResolved('typ', 'fqfp');
+            ffp0.fqfileprefix = sessd_.tracerResolved('typ', 'fqfp'); % fdgv1r2_op_fdgv1e1to4r1_frame4
             fv = FourdfpVisitor;
             
-            for e = 1:nEpochs
+            inz = this.indicesNonzero;
+            for e = 1:nEpochs  
+                if (~inz(e))
+                    continue
+                end
                 sessde = sessd_;
                 sessde.epoch = e;
-                sessde.resolveTag = sprintf('%s%sr1_frame%i', sessde.resolveTagPrefix, sessde.tracerEpoch('typ','fp'), this.maxLengthEpoch);                
-                pwd1 = pushd(sessde.tracerLocation);
-                t4 = this.t4ForReconstituteFramesAC2(e, sessd1toN);
-                % Previous:  [sessd1toN.tracerRevision('frame', e, 'typ','fqfp') '_to_' sessd1toN.resolveTag '_t4'];
-                % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V1/FDG_V1-AC/E1to11/fdgv1e1to11r2_frame1_to_op_fdgv1e1to11r1_frame11_t4
-                % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V2/FDG_V2-AC/E1to11/fdgv2e1to11r2_frame1_to_op_fdgv2e1to11r1_frame11_t4
-                fp = sessde.tracerResolved('typ', 'fp');
-                % fdgv1e1r2_op_fdgv1e1r1_frame8
-                % fdgv2e1r2_op_fdgv2e1r1_frame8
-                fpDest = [sessde.tracerRevision('typ','fp') '_' sessd1toN.resolveTag];
-                % fdgv1e1r2_op_fdgv1e1to11r1_frame11
-                % fdgv2e1r2_op_fdgv2e1to11r1_frame11
+                sessde.resolveTag = sprintf('op_%sr1_frame%i', sessde.tracerEpoch('typ','fp'), this.maxLengthEpoch);                
+                pwd1 = pushd(sessde.tracerLocation);              
+                t4 = this.t4ForReconstituteFramesAC2(e, sessd1toN); % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V2/FDG_V2-AC/E1to4/fdgv1e1to4r1r2_frame1_to_op_fdgv1e1to4r1_frame4_t4
+                fp = sessde.tracerResolved('typ', 'fp'); % fdgv1e1r2_op_fdgv1e1r1_frame24
+                fpDest = [sessde.tracerRevision('typ','fp') '_' sessd1toN.resolveTag]; % fdgv1e1r2_op_fdgv1e1to4r1_frame4
                 if (lexist(t4, 'file'))
                     fv.t4img_4dfp(t4, fp, 'out', fpDest, 'options', ['-O' fp]);
                     ffp = Fourdfp.load([fpDest '.4dfp.ifh']);
@@ -789,7 +775,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     % dose administration
                     ffp = Fourdfp.load([fp '.4dfp.ifh']);
                 end
-                ffp0.img(:,:,:,(e-1)*this.maxLengthEpoch+1:e*this.maxLengthEpoch) = ffp.img;
+                ffp0.img(:,:,:,(e-1)*this.maxLengthEpoch+1:e*this.maxLengthEpoch) = ffp.img; % FDG_V1-AC/fdgv1r2_op_fdgv1e1to4r1_frame4.4dfp.ifh
                 popd(pwd1);
             end
             
@@ -801,20 +787,21 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             if (1 == length(remainingFrames)) 
                 
                 % single frame remaining
-                fp = sprintf('%sr1', sessde.tracerEpoch('typ','fp'));
-                % fdgv2e11r2_op_fdgv2e11r1_frame5
+                fp = sprintf('%sr1', sessde.tracerEpoch('typ','fp')); % fdgv1e4r1
                 ffp = Fourdfp.load([fp '.4dfp.ifh']);
                 ffp0.img(:,:,:,remainingFrames) = ffp.img;
                 popd(pwd1);                
                 ffp0.save;
                 popd(pwd0);
+                this = this.packageProduct(ffp0);
                 return
             end
             
             % multi-frames remaining
             fp = sprintf('%s_op_%sr1_frame%i', ...
-                sessde.tracerRevision('typ','fp'), sessde.tracerEpoch('typ','fp'), nFrames - nEpochs*this.maxLengthEpoch);
-            % fdgv2e11r2_op_fdgv2e11r1_frame5
+                sessde.tracerRevision('typ','fp'), ...
+                sessde.tracerEpoch('typ','fp'), ...
+                nFrames - nEpochs*this.maxLengthEpoch); % fdgv1e4r2_op_fdgv1e4r1_frame1
             ffp = Fourdfp.load([fp '.4dfp.ifh']);
             ffp0.img(:,:,:,remainingFrames) = ffp.img;
             popd(pwd1);            
@@ -829,8 +816,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 case 2
                     sdr1 = sessd1toN; sdr1.rnumber = 1;
                     sdr2 = sessd1toN; sdr2.rnumber = 2;
-                    t4 = [sdr1.tracerRevision('rLabel', 'r1r2', 'frame', epoch, 'typ','fqfp'), ...
-                          '_to_' sdr1.resolveTag '_t4'];
+                    t4   = [sdr1.tracerRevision('rLabel', 'r1r2', 'frame', epoch, 'typ','fqfp'), ...
+                            '_to_' sdr1.resolveTag '_t4'];
                     this.buildVisitor_.t4_mul( ...
                         [sdr1.tracerRevision('frame', epoch, 'typ','fqfp') '_to_' sdr1.resolveTag '_t4'], ...
                         [sdr2.tracerRevision('frame', epoch, 'typ','fqfp') '_to_' sdr1.resolveTag '_t4'], ...
@@ -838,7 +825,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                         % [/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V1/FDG_V1-AC/E1to11/fdgv1e1to11r1_frame1_to_op_fdgv1e1to11r1_frame11_t4] x
                         % [/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V1/FDG_V1-AC/E1to11/fdgv1e1to11r2_frame1_to_op_fdgv1e1to11r1_frame11_t4] = 
                         % [/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V1/FDG_V1-AC/E1to11/fdgv1e1to11r1r2_frame1_to_op_fdgv1e1to11r1_frame11_t4]
-
                 otherwise
                     error('mlpet:unsupportedSwitchcase', ...
                           'TracerResolveBuilder.t4ForReconstituteFramesAC2.this.NRevisions->%i', this.NRevisions);

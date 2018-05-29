@@ -11,10 +11,14 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
  	%% It was developed on Matlab 9.2.0.538062 (R2017a) for MACI64.  Copyright 2017 John Joowon Lee.
  	
 	properties
+        ac = true
         fast = false
-        hyglyNN = 'HYGLY34'
+        hyglyNN = 'HYGLY09'
         pwd0
  		registry
+        sessd
+        sessp
+        studyd
  		testObj
         tic0
         view = false
@@ -27,25 +31,7 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
  			this.assumeEqual(1,1);
  			this.verifyEqual(1,1);
  			this.assertEqual(1,1);
-        end
-        
-        function test_resolveModalitiesToProduct(this)
-            modalitiesRB = this.testObj.resolveModalitiesToProduct;
-            this.verifyClass(modalitiesRB, 'mlpet.TracerResolveBuilder');
-            for m = 1:length(modalitiesRB)                
-                this.verifyClass(modalitiesRB(m).product, 'mlfourd.ImagingContext');
-                modalitiesRB(m).product.view;
-            end
-        end
-        function test_RoisToTracerSumt(this)
-            roisRB = this.testObj.roisToTracerSumt;
-            this.verifyClass(roisRB, 'mlpet.TracerResolveBuilder');
-            for m = 1:length(roisRB)                
-                this.verifyClass(roisRB(m).product, 'mlfourd.ImagingContext');
-                roisRB(m).product.view;
-            end
-        end
-        
+        end        
         function test_locallyStageTracer(this)
             %  @return verify principal expected files from locallyStageTracer,
             %  combining expected files from prepareTracerLocation, prepaerListmodeMhdr & prepareMprToAtlasT4.
@@ -192,17 +178,49 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             reconstitutedSummed = reconstitutedSummed.motionCorrectCTAndUmap;             
             reconstitutedSummed.motionUncorrectUmap(multiEpochOfSummed);
             
+        end        
+        function test_resolveModalitiesToProduct(this)
+            modalitiesRB = this.testObj.resolveModalitiesToProduct;
+            this.verifyClass(modalitiesRB, 'mlpet.TracerResolveBuilder');
+            for m = 1:length(modalitiesRB)                
+                this.verifyClass(modalitiesRB(m).product, 'mlfourd.ImagingContext');
+                modalitiesRB(m).product.view;
+            end
+        end
+        function test_RoisToTracerSumt(this)
+            roisRB = this.testObj.roisToTracerSumt;
+            this.verifyClass(roisRB, 'mlpet.TracerResolveBuilder');
+            for m = 1:length(roisRB)                
+                this.verifyClass(roisRB(m).product, 'mlfourd.ImagingContext');
+                roisRB(m).product.view;
+            end
+        end
+        function test_reconstituteFramesAC2(this)
+            
+            mlpet.TracerDirector.assertenv;  
+            mlpet.TracerDirector.prepareFreesurferData('sessionData', this.sessd);  
+            
+            this.testObj = this.testObj.reconstituteFramesAC;
+            this.testObj.sessionData.frame = nan;
+            this.testObj.sessionData.frame = nan;
+            this.testObj = this.testObj.partitionMonolith;
+            this.testObj = this.testObj.motionCorrectFrames;            
+            this.testObj = this.testObj.reconstituteFramesAC2;
+            this.testObj.product.view;
+            ic = this.testObj.sessionData.tracerResolvedFinal('typ', 'mlfourd.ImagingContext');
+            ic.view;
         end
 	end
 
  	methods (TestClassSetup)
 		function setupTracerResolveBuilder(this)
  			import mlraichle.*;
-            studyd = StudyData;
-            sessp  = fullfile(studyd.subjectsDir, this.hyglyNN, '');
-            sessd  = SessionData('studyData', studyd, 'sessionPath', sessp, 'vnumber', this.vnumber);
- 			this.testObj_ = mlpet.TracerResolveBuilder('sessionData', sessd, 'NRevisions', 2);
-            this.pwd0 = pushd(sessp);
+            this.studyd = StudyData;
+            this.sessp  = fullfile(this.studyd.subjectsDir, this.hyglyNN, '');
+            this.pwd0 = pushd(this.sessp);
+            this.sessd  = SessionData('studyData', this.studyd, 'sessionPath', this.sessp, 'vnumber', this.vnumber, 'ac', this.ac);
+ 			this.testObj_ = mlpet.TracerResolveBuilder('sessionData', this.sessd, 'NRevisions', 2);
+            
  			this.addTeardown(@this.cleanClassFiles);
  		end
 	end
