@@ -566,7 +566,7 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
             for e = 1:nEpochs
                 sessde = sessd_;
                 sessde.epoch = e;
-                sessde.resolveTag = sprintf('%s%sr1_frame%i', sessde.resolveTagPrefix, sessde.tracerEpoch('typ','fp'), this.maxLengthEpoch);                
+                sessde.resolveTag = sprintf('op_%sr1_frame%i', sessde.tracerEpoch('typ','fp'), this.maxLengthEpoch);                
                 pwd1 = pushd(sessde.tracerLocation);
                 t4 = [sessd1to11.tracerRevision('frame', e, 'typ','fqfp') '_to_' sessd1to11.resolveTag '_t4'];
                 % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V1/FDG_V1-AC/E1to11/fdgv1e1to11r2_frame1_to_op_fdgv1e1to11r1_frame11_t4
