@@ -250,17 +250,17 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             trSif  = sessd.tracerSif(         'typ', 'fqfp');            
             assert(lexist(sessd.tracerListmodeMhdr, 'file'));
             
-            if (~bv.lexist_4dfp(lmSif))
+            %if (~bv.lexist_4dfp(lmSif))
                 pwd0 = pushd(fileparts(lmSif));
                 bv.sif_4dfp(lmMhdr, lmSif);
                 popd(pwd0);
-            end   
-            if (~bv.lexist_4dfp(trSif))
+            %end   
+            %if (~bv.lexist_4dfp(trSif))
                 ensuredir(fileparts(trSif));
                 pwd0 = pushd(fileparts(trSif));
                 bv.lns_4dfp(lmSif);
                 popd(pwd0);
-            end
+            %end
             this.product_ = mlfourd.ImagingContext([trSif '.4dfp.ifh']);
         end
         function this = prepareCroppedTracerRevision(this)
