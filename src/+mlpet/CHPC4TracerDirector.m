@@ -8,49 +8,57 @@ classdef CHPC4TracerDirector < mldistcomp.CHPC
  	
     
     methods
-        function this = pushData(this)
-            import mlraichle.*;
+        function this = pushData(this, varargin)
+            ip = inputParser;   
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'includeListmode', true, @islogical);
+            parse(ip, varargin{:});
             csd = this.chpcSessionData;
             sd  = this.sessionData;
             
-            this.sshMkdir(                           csd.freesurferLocation);
             try
-                this.rsync([sd.freesurferLocation '/'], [csd.freesurferLocation '/']);
+                this.sshMkdir(                           csd.freesurferLocation);
+                this.rsync([sd.freesurferLocation '/'], [csd.freesurferLocation '/'], varargin{:});
+
+                this.sshMkdir(                              csd.T1('typ','path'));
+                this.rsync( sd.brainmask('typ','mgz'),      csd.T1('typ','path'), varargin{:});
+                this.rsync( sd.aparcAseg('typ','mgz'),      csd.T1('typ','path'), varargin{:});
+                this.rsync([sd.T1('typ','fqfp') '.4dfp.*'], csd.T1('typ','path'), varargin{:});
+
+                this.sshMkdir(                                         csd.sessionPath);
+                this.rsync(fullfile(sd.sessionPath, 'AC_CT_*.4dfp.*'), csd.sessionPath, varargin{:});
+                this.rsync(fullfile(sd.sessionPath, 'ct*.4dfp.*'),     csd.sessionPath, varargin{:});
+
+                this.sshMkdir(                                   csd.vLocation);
+                this.rsync(fullfile(sd.vLocation, 'ct*'),        csd.vLocation, varargin{:});
+                this.rsync(fullfile(sd.vLocation, 'T1001*'),     csd.vLocation, varargin{:});
+                this.rsync(fullfile(sd.vLocation, 'umapSynth*'), csd.vLocation, varargin{:});
+
+                this.sshMkdir(                           csd.tracerLocation);
+                if (isdir(sd.tracerLocation))
+                    this.rsync([sd.tracerLocation '/'], [csd.tracerLocation '/'], varargin{:});
+                end
+
+                if (ip.Results.includeListmode)
+                    this.sshMkdir(                                   csd.tracerListmodeLocation);
+                    if (isdir(sd.tracerListmodeLocation))
+                        this.rsync([sd.tracerListmodeLocation '/'], [csd.tracerListmodeLocation '/'], varargin{:});
+                    end
+                    sd.frame  = 0;
+                    csd.frame = 0;
+                    while (isdir(sd.tracerListmodeLocation))
+                        this.rsync( ...
+                            [fileparts(sd.tracerListmodeLocation) '/'], [fileparts(csd.tracerListmodeLocation) '/'], ...
+                            varargin{:});
+                        this.rsync( ...
+                            [sd.tracerListmodeLocation '/'], [csd.tracerListmodeLocation '/'], ...
+                            varargin{:});
+                        sd.frame  = sd.frame + 1;
+                        csd.frame = csd.frame + 1;
+                    end
+                end
             catch ME
                 dispwarning(ME);
-            end
-            
-            this.sshMkdir(                              csd.T1('typ','path'));
-            this.rsync( sd.brainmask('typ','mgz'),      csd.T1('typ','path'));
-            this.rsync( sd.aparcAseg('typ','mgz'),      csd.T1('typ','path'));
-            this.rsync([sd.T1('typ','fqfp') '.4dfp.*'], csd.T1('typ','path'));
-            
-            this.sshMkdir(                                         csd.sessionPath);
-            this.rsync(fullfile(sd.sessionPath, 'AC_CT_*.4dfp.*'), csd.sessionPath);
-            this.rsync(fullfile(sd.sessionPath, 'ct*.4dfp.*'),     csd.sessionPath);
-            
-            this.sshMkdir(                                   csd.vLocation);
-            this.rsync(fullfile(sd.vLocation, 'ct*'),        csd.vLocation);
-            this.rsync(fullfile(sd.vLocation, 'T1001*'),     csd.vLocation);
-            this.rsync(fullfile(sd.vLocation, 'umapSynth*'), csd.vLocation);
-            this.rsync(fullfile(sd.vLocation, 't2*'),        csd.vLocation, 'options', '-rav --no-l --copy-links -e ssh');
-            %this.rsync(fullfile(sd.vLocation, 'mpr*'),       csd.vLocation, 'options', '-rav --no-l --copy-links -e ssh');
-            
-            this.sshMkdir(                                   csd.tracerLocation);
-            if (isdir(sd.tracerLocation))
-                this.rsync([sd.tracerLocation '/'],         [csd.tracerLocation '/']);
-            end
-            this.sshMkdir(                                   csd.tracerListmodeLocation);
-            if (isdir(sd.tracerListmodeLocation))
-                this.rsync([sd.tracerListmodeLocation '/'], [csd.tracerListmodeLocation '/']);
-            end
-            sd.frame  = 0;
-            csd.frame = 0;
-            while (isdir(sd.tracerListmodeLocation))
-                this.rsync([fileparts(sd.tracerListmodeLocation) '/'], [fileparts(csd.tracerListmodeLocation) '/']);
-                this.rsync([sd.tracerListmodeLocation '/'], [csd.tracerListmodeLocation '/']);
-                sd.frame  = sd.frame + 1;
-                csd.frame = csd.frame + 1;
             end
         end
         function this = pushMinimalData(this)
@@ -60,13 +68,12 @@ classdef CHPC4TracerDirector < mldistcomp.CHPC
                 this = this.pushMinimalForNAC;
             end
         end
-        function this = pullData(this)
-            import mlraichle.*;
+        function this = pullData(this, varargin)
             csd = this.chpcSessionData;
-            sd  = this.sessionData;
+            sd  = this.sessionData;            
             
             try
-                this.rsync([csd.vLocation '/'], [sd.vLocation '/'], 'chpcIsSource', true);
+                this.rsync([csd.vLocation '/'], [sd.vLocation '/'], 'chpcIsSource', true, varargin{:});
             catch ME
                 handerror(ME);
             end
