@@ -8,6 +8,7 @@ classdef AbstractAifBuilder
  	
 	properties (Dependent)
  		product
+        sessionData
  	end
 
 	methods 
@@ -16,6 +17,9 @@ classdef AbstractAifBuilder
         
         function g = get.product(this)
             g = this.product_;
+        end
+        function g = get.sessionData(this)
+            g = this.sessionData_;
         end
         
         %%

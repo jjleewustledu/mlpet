@@ -316,6 +316,9 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
                     this.specificActivity_, tzero);
             end
         end
+        function this     = updatePropertyDecayCorrection(this)
+            this.decayCorrection_ = mlpet.DecayCorrection.factoryFor(this);            
+        end
         function v        = visibleVolume(~)
             v = nan;
         end
@@ -366,8 +369,6 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             this.isotope_           = ip.Results.isotope;
             this.doseAdminDatetime_ = ip.Results.doseAdminDatetime;
             this.scannerData        = ip.Results.scannerData;
-            
-            this.decayCorrection_   = mlpet.DecayCorrection.factoryFor(this);
         end
     end
     

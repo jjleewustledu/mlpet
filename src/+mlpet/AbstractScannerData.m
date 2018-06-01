@@ -307,6 +307,9 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             %  @param named manualData is required
             %  @param named sessionData is required
 
+            if (isa(cmp, 'mlfourd.ImagingContext'))
+                cmp = cmp.niftid;
+            end
  			this = this@mlfourd.NIfTIdecoratorProperties(cmp);
             
             ip = inputParser;

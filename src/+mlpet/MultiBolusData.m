@@ -8,6 +8,7 @@ classdef MultiBolusData < mldata.TimingData
  	
 	properties (Dependent)
         activity % used to identify boluses
+        doMeasureBaseline
         expectedBaseline
     end
 
@@ -17,6 +18,9 @@ classdef MultiBolusData < mldata.TimingData
         
         function g = get.activity(this)
             g = this.activity_(this.index0:this.indexF);
+        end
+        function g = get.doMeasureBaseline(this)
+            g = this.doMeasureBaseline_;
         end
         function g = get.expectedBaseline(this)
             g = this.expectedBaseline_;
@@ -31,7 +35,15 @@ classdef MultiBolusData < mldata.TimingData
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'expectedBaseline', this.expectedBaseline, @isnumeric);
+            addParameter(ip, 'doMeasureBaseline', this.doMeasureBaseline, @islogical);
             parse(ip, varargin{:});
+            this.expectedBaseline_ = ip.Results.expectedBaseline;
+            this.doMeasureBaseline_ = ip.Results.doMeasureBaseline;
+            if (~this.doMeasureBaseline_)
+                m = this.expectedBaseline_;
+                s = sqrt(m);
+                return
+            end
             
             [m,s] = this.baselineTimeForward(varargin{:});
             if (m > 2*ip.Results.expectedBaseline + 5*s)
@@ -76,6 +88,7 @@ classdef MultiBolusData < mldata.TimingData
             while (max(a) > NSTD*s)
                 [~,bstart] = max(a > NSTD*s);
                 [~,deltab] = max(a(bstart:end) < -s);
+                deltab     = this.ensurePlausibleDeltab(deltab, length(a(bstart:end))-1);
                 bols(b)    = mlpet.MultiBolusData( ...
                     'activity', a(bstart:bstart+deltab), ...
                     'times',    t(bstart:bstart+deltab), ...
@@ -107,7 +120,7 @@ classdef MultiBolusData < mldata.TimingData
                 end
                 b = b + 1;
             end
-            error('mlpet:searchFailed', 'MultiBolusData.findBolusFrom');
+            bol = bols(b-1);
         end
         function         plot(this, varargin)
             figure;
@@ -125,10 +138,12 @@ classdef MultiBolusData < mldata.TimingData
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'activity', [], @isnumeric);
-            addParameter(ip, 'expectedBaseline', 100, @isnumeric);
+            addParameter(ip, 'expectedBaseline', 90, @isnumeric);
+            addParameter(ip, 'doMeasureBaseline', true, @islogical);
             parse(ip, varargin{:});            
             this.activity_ = ip.Results.activity;
             this.expectedBaseline_ = ip.Results.expectedBaseline;
+            this.doMeasureBaseline_ = ip.Results.doMeasureBaseline;
             
             if (isempty(this.activity_))
                 this.activity_ = nan(size(this.times_));
@@ -143,7 +158,20 @@ classdef MultiBolusData < mldata.TimingData
     
     properties (Access = private)
         activity_
+        doMeasureBaseline_
         expectedBaseline_
+    end
+    
+    methods (Access = private)        
+        function db = ensurePlausibleDeltab(~, db, bestGuess)
+            %  When db == 1 over len samples, it's likely that the calculation of db failed.   Use the best guess.
+            %  @param db is numeric.
+            %  @param bestGuess is numeric.
+            
+            if (1 == db)
+                db = bestGuess;
+            end
+        end
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
