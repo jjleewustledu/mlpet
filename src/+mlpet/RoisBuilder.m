@@ -93,7 +93,7 @@ classdef RoisBuilder < mlpipeline.AbstractSessionBuilder
             return
             
             sessd = ip.Results.sessionData;
-            deleteExisting([sessd.tracerRevision('suffix', '_sumt_g11', 'typ', 'fp') '*']);
+            deleteExisting([sessd.tracerRevision('tag', '_sumt_g11', 'typ', 'fp') '*']);
             tmpdir = fullfile(tempdir, datestr(now, 30));
             mkdir(tmpdir);
             movefileExisting(sprintf('aparcAseg*r%i_op_* ', sessd.rnumber-1), tmpdir);
