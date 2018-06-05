@@ -38,7 +38,7 @@ classdef AbstractScannerBuilder
  			
             this.sessionData_ = ip.Results.sessionData;
             this.roisBuilder_ = ip.Resutls.roisBuilder;
-            this.calibrationBuilder_ = ip.Resutls.calibrationBuilder;
+            this.calibrationBuilder_ = ip.Results.calibrationBuilder;
             this.blindedData_ = ip.Results.blindedData;
  		end
     end 

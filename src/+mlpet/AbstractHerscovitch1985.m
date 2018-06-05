@@ -51,7 +51,8 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         SMALL_LARGE_HCT_RATIO = 0.85 % Grubb, et al., 1978               
         
         CBF_UTHRESH = 500
-        CBV_UTHRESH = 10
+        CBV_UTHRESH = 100
+        OEF_FUDGE   = 0.3105 % normal value ~ 0.44; mask mean ~1.4169
     end
     
     properties
@@ -113,21 +114,21 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             g = this.aifOOIntegral_;
         end
         function g = get.cbf(this)
-            if (~isempty(this.cbf_))
+            %if (~isempty(this.cbf_))
                 g = this.cbf_;
-                return
-            end
-            g = this.sessionData.cbfOpFdg('typ', 'mlfourd.ImagingContext');
+            %    return
+            %end
+            %g = this.sessionData.cbfOpFdg('typ', 'mlfourd.ImagingContext');
         end
         function this = set.cbf(this, s)
             this.cbf_ = s;
         end
         function g = get.cbv(this)
-            if (~isempty(this.cbv_))
+            %if (~isempty(this.cbv_))
                 g = this.cbv_;
-                return
-            end
-            g = this.sessionData.cbvOpFdg('typ', 'mlfourd.ImagingContext');
+            %    return
+            %end
+            %g = this.sessionData.cbvOpFdg('typ', 'mlfourd.ImagingContext');
         end
         function this = set.cbv(this, s)
             this.cbv_ = s;
@@ -168,40 +169,6 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         end
         function g = get.voxelVolume(this)
             g = prod(this.scanner_.mmppix(1:3)/10); % cm^3
-        end
-        
-        %%
-        
- 		function this = AbstractHerscovitch1985(varargin)
- 			%% ABSTRACTHERSCOVITCH1985
- 			%  Usage:  this = AbstractHerscovitch1985()
- 			%  @param named sessionData
-            %  @param named aif
-            %  @param named timeDuration
-            %  @param named mask
-
- 			this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
-            
-            sdFdg = this.sessionData;
-            sdFdg.tracer = 'FDG';
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScannerData') || isa(x, 'mlfourd.NIfTIdecorator') || isempty(x));
-            addParameter(ip, 'aif', [], @(x) isa(x, 'mlpet.IAifData'));
-            addParameter(ip, 'timeDuration', [], @isnumeric);
-            addParameter(ip, 'mask', sdFdg.brainmaskBinarizeBlended('typ', 'mlfourd.ImagingContext'), ...
-                @(x) isa(x, 'mlfourd.ImagingContext'));
-            parse(ip, varargin{:});                   
-            this.aif_ = ip.Results.aif;
-            this.scanner_ = ip.Results.scanner;  
-            if (~isempty(ip.Results.timeDuration))
-                this.aif_.timeDuration = ip.Results.timeDuration;
-                if (~isempty(this.scanner_))
-                    this.scanner_.timeDuration = ip.Results.timeDuration;
-                end
-            end          
-            this.mask_ = ip.Results.mask;
-            this.mask_.filesuffix = '.4dfp.ifh';
         end
         
         %% a1, a2 for CBF
@@ -359,30 +326,31 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         
         function nimg = oefNumer(this, petobs)
             vimg = this.cbv.niftid.img;
-            nimg = petobs*this.W - this.flowHOMetab - this.aifOOIntegral*vimg;
-            
-            %this = this.ensureMask;
-            %nimg = nimg.*this.mask.niftid.img;
+            import mlfourd.*;
+            nnn  = NumericalNIfTId(NIfTId(petobs*this.W - this.flowHOMetab - this.aifOOIntegral*vimg));
+            nnn  = nnn.blurred(this.petPointSpread);
+            nimg = nnn.img;
         end
         function dimg = oefDenom(this)
             vimg = this.cbv.niftid.img;
-            dimg = this.flowOO - 0.835*this.aifOOIntegral*vimg;
-            
-            %this = this.ensureMask;
-            %dimg = dimg.*this.mask.niftid.img;
-            %dimg(abs(dimg) < eps) = 1;
+            import mlfourd.*;
+            dnn  = NumericalNIfTId(NIfTId(this.flowOO - 0.835*this.aifOOIntegral*vimg));
+            dnn  = dnn.blurred(this.petPointSpread);
+            dimg = dnn.img;
         end
         function img  = is0to1(this, img)
             
             sdFdg = this.sessionData;
             sdFdg.tracer = 'FDG';
-            msk = sdFdg.brainmaskBinarizeBlended('typ','mlfourd.ImagingContext');
-            img = img.*msk.niftid.img;            
+            msk = sdFdg.MaskBrainOpFdg;
+            msk.numericalNiftid;
+            msk = msk.blurred(this.petPointSpread);
+            msk = msk.binarized;
+            img = img.*msk.numericalNiftid.img;            
             img(~isfinite(img)) = 0;
             img(isnan(img)) = 0;
-            img = img .* (img >= 0) .* (img <= 1);            
-            
-            %img = img/dipmax(img);
+            img = this.OEF_FUDGE*img;
+            img = img .* (img >= 0) .* (img <= 1); 
         end
         function f    = flowHOMetab(this)
             img = this.cbf.niftid.img;
@@ -406,9 +374,37 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
 %             error('mlsiemens:notImplemented', 'Herscovitch1985.fracHOMetab');
 %         end
 
-         %% others
-         
-        function this = buildCalibrated(this)
+         %%  
+        
+ 		function this = AbstractHerscovitch1985(varargin)
+ 			%% ABSTRACTHERSCOVITCH1985
+ 			%  Usage:  this = AbstractHerscovitch1985()
+ 			%  @param named sessionData
+            %  @param named aif
+            %  @param named timeDuration
+            %  @param named mask
+
+ 			this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
+            
+            sdFdg = this.sessionData;
+            sdFdg.tracer = 'FDG';
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScannerData') || isa(x, 'mlfourd.NIfTIdecorator') || isempty(x));
+            addParameter(ip, 'aif', this.configAcquiredAifData, @(x) isa(x, 'mlpet.IAifData'));
+            addParameter(ip, 'timeDuration', [], @isnumeric);
+            addParameter(ip, 'mask', this.sessionData.MaskBrainOpFdg, @(x) isa(x, 'mlfourd.ImagingContext'));
+            parse(ip, varargin{:});                 
+            this.aif_ = ip.Results.aif;
+            this.scanner_ = ip.Results.scanner;  
+            if (~isempty(ip.Results.timeDuration))
+                this.aif_.timeDuration = ip.Results.timeDuration;
+                if (~isempty(this.scanner_))
+                    this.scanner_.timeDuration = ip.Results.timeDuration;
+                end
+            end          
+            this.mask_ = ip.Results.mask;
+            this.mask_.filesuffix = '.4dfp.ifh';
         end
  	end 
     
@@ -433,6 +429,12 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
     end
     
     methods (Access = protected)
+        function aif = configAcquiredAifData(~)  
+            aif = [];
+        end
+        function aif = configAcquiredFdgAif(~)
+            aif = [];
+        end
         function this = ensureAifHOMetab(this)
             if (isempty(this.aifHOMetab_))
                 this.aifHOMetab_ = this.estimateAifHOMetab;
@@ -453,7 +455,8 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
                 sessdFdg = this.sessionData;
                 sessdFdg.tracer = 'FDG';
                 assert(lexist(sessdFdg.brainmaskBinarizeBlended));
-                this.mask_ = sessdFdg.brainmaskBinarizeBlended('typ', 'numericalNiftid');
+                this.mask_ = sessdFdg.MaskBrainOpFdg;
+                this.mask_ = this.mask_.numericalNiftid;
             end
             if (~lexist([this.mask_.fqfp '.nii.gz']))
                 this.sessionData.nifti_4dfp_ng(this.mask_.fqfp);

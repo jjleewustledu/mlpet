@@ -27,7 +27,7 @@ classdef PETImagingContext < mlfourd.ImagingContext
         function b    = binarizeBlended(this, varargin)
             b = mlpet.PETImagingContext(binarizeBlended@mlfourd.ImagingContext(this, varargin{:}));
         end
-        function b = blurred(this, varargin)
+        function b    = blurred(this, varargin)
             b = mlpet.PETImagingContext(blurred@mlfourd.ImagingContext(this, varargin{:}));
         end 
         function f    = false(this, varargin)

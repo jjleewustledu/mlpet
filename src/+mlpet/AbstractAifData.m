@@ -252,11 +252,8 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         end    
         function this     = setTime0ToInflow(this)
             aif = this;
-            [~,idx0] = max(aif.specificActivity > std(aif.specificActivity(this.index0:this.indexF)));
-            if (idx0 > 1)
-                idx0 = idx0 - 1;
-            end
-            this.index0 = idx0;
+            [~,idx0] = max(aif.specificActivity > 0.5*std(aif.specificActivity(this.index0:this.indexF)));
+            this.index0 = max(1, idx0 - 2);
             if (strcmp(this.sessionData.tracer, 'OC') || strcmp(this.sessionData.tracer, 'CO'))
                 this.time0 = min(this.time0 + 120, this.timeF);
                 return
