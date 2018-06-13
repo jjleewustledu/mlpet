@@ -8,6 +8,7 @@ classdef MultiBolusData < mldata.TimingData
  	
 	properties (Dependent)
         activity % used to identify boluses
+        activityLifetime % 10x this.radionuclides_.halflife;
         doMeasureBaseline
         expectedBaseline
     end
@@ -18,6 +19,9 @@ classdef MultiBolusData < mldata.TimingData
         
         function g = get.activity(this)
             g = this.activity_(this.index0:this.indexF);
+        end
+        function g = get.activityLifetime(this)
+            g = 10*this.radionuclides_.halflife;
         end
         function g = get.doMeasureBaseline(this)
             g = this.doMeasureBaseline_;
@@ -109,6 +113,7 @@ classdef MultiBolusData < mldata.TimingData
                     bol      = bols(b);                                           
                     [~,idx0] = max(doseAdminDatetime < this.datetime);
                     [~,idxF] = max(bol.datetimeF     < this.datetime);
+                       idxF  = min(idxF, idx0 + this.activityLifetime/this.dt);
                     a        = this.activity - this.baseline;
                     t        = this.datetime;
                     bol = mlpet.MultiBolusData( ...
@@ -140,6 +145,7 @@ classdef MultiBolusData < mldata.TimingData
             addParameter(ip, 'activity', [], @isnumeric);
             addParameter(ip, 'expectedBaseline', 90, @isnumeric);
             addParameter(ip, 'doMeasureBaseline', true, @islogical);
+            addParameter(ip, 'radionuclides', @(x) isa(x, 'mlpet.Radionuclides'))
             parse(ip, varargin{:});            
             this.activity_ = ip.Results.activity;
             this.expectedBaseline_ = ip.Results.expectedBaseline;
@@ -151,6 +157,7 @@ classdef MultiBolusData < mldata.TimingData
             if (isempty(this.times_))
                 this.times_ = 0:this.dt_:this.dt_*(length(this.activity_)-1); % empty for empty activity_
             end
+            this.radionuclides_ = ip.Results.radionuclides;
  		end
  	end 
 
@@ -160,6 +167,7 @@ classdef MultiBolusData < mldata.TimingData
         activity_
         doMeasureBaseline_
         expectedBaseline_
+        radionuclides_
     end
     
     methods (Access = private)        

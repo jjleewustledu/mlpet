@@ -11,13 +11,14 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
     
     properties
         isPlasma 
+        time0Shift = -3 % sec
     end
     
 	properties (Dependent)
         activity % in Bq := specificActivity*voxelVolume
         counts   % in Bq/mL := specificActivity without efficiency adjustments; native to scanner
         decays   % in Bq*s := specificActivity*voxelVolume*tau
-        doseAdminDatetime        
+        doseAdminDatetime % see also mlswisstrace.AbstractTwilite.updateTimmingData
         isDecayCorrected
         isotope    
         specificActivity % activity/volume in Bq/mL
@@ -32,6 +33,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         timeDuration
         datetime0 
         index0
+        index0Forced
         indexF
  		dt
         
@@ -175,6 +177,9 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         function g    = get.index0(this)
             g = this.timingData_.index0;
         end
+        function g    = get.index0Forced(this)
+            g = this.sessionData.index0Forced;
+        end
         function this = set.index0(this, s)
             this.timingData_.index0 = s;
         end
@@ -251,12 +256,18 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             di = [];
         end    
         function this     = setTime0ToInflow(this)
-            aif = this;
-            [~,idx0] = max(aif.specificActivity > 0.5*std(aif.specificActivity(this.index0:this.indexF)));
-            this.index0 = max(1, idx0 - 2);
+            if (strcmp(this.sessionData.tracer, 'HO') && ~isempty(this.index0Forced)) % testing with HO
+                this.index0 = this.index0Forced;
+                return
+            end
+            
+            % ensure already deconvolved; is smooth
+            sa_ = this.specificActivity(this.index0:this.indexF);
+            [~,idx] = max(diff(sa_));
+            this.index0 = max(1, this.index0 + idx + this.time0Shift);
             if (strcmp(this.sessionData.tracer, 'OC') || strcmp(this.sessionData.tracer, 'CO'))
                 this.time0 = min(this.time0 + 120, this.timeF);
-                return
+                assert(this.time0 < this.timeF);
             end
         end  
         function this     = shiftTimes(this, Dt)
@@ -265,23 +276,13 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             end
             this.timingData_ = this.timingData_.shiftTimes(Dt);
         end
-        function this     = shiftWorldlines(this, Dt, varargin)
+        function this     = shiftWorldlines(this, t0c, t0uc)
             %% SHIFTWORLDLINES
-            %  @param required Dt, or \Delta t of worldline. 
-            %  Dt > 0 => event occurs at later time and further away in space; boluses are smaller and arrive later.
-            %  Dt < 0 => event occurs at earlier time and closer in space; boluses are larger and arrive earlier.
-            %  @param optional tzero sets the Lorentz coord for decay-correction and uncorrection.  
             
-            ip = inputParser;
-            addParameter(ip, 'tzero', this.time0, @isnumeric);
-            parse(ip, varargin{:});
-            
-            if (Dt == 0)
-                return
-            end
-            this = this.correctedActivities(ip.Results.tzero);
-            this = this.shiftTimes(Dt);
-            this = this.uncorrectedActivities(ip.Results.tzero);
+            this = this.correctedActivities(t0c);
+            this = this.uncorrectedActivities(t0uc); % Anzatz
+            %this = this.shiftTimes(Dt);
+            %this = this.uncorrectedActivities(ip.Results.tzero);
         end
         function bi       = specificActivityIntegral(this)
             idx0 = this.index0;
@@ -347,13 +348,16 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             %  @param named sessionData.
             %  @param named manualData is mldata.IManualMeasurements.
             %  @param named isotope is char supported by mlpet.Radionuclides.
+            %  @param named doseAdminDatetime is a datetime; default == NaT.
+            %  See also mlswisstrace.AbstractTwilite.updateTimmingData.
+            %  @param named scannerData is mlpet.IScannerData || mlfourd.INIfTIdecorator || empty.
             
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'fqfilename', '',  @(x) lexist(x, 'file'));
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'manualData', [],  @(x) isa(x, 'mldata.IManualMeasurements'));
-            addParameter(ip, 'isotope', [],     @(x) ischar(x) && lstrfind(x, mlpet.Radionuclides.SUPPORTED_ISOTOPES));
+            addParameter(ip, 'isotope', [], @ischar);
             addParameter(ip, 'doseAdminDatetime', NaT, @isdatetime);
             addParameter(ip, 'scannerData', [], @(x) isa(x, 'mlpet.IScannerData') || isa(x, 'mlfourd.INIfTIdecorator') || isempty(x));
             parse(ip, varargin{:});            
@@ -363,9 +367,13 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             end
             this.sessionData_       = ip.Results.sessionData;
             this.manualData_        = ip.Results.manualData;
-            this.isotope_           = ip.Results.isotope;
             this.doseAdminDatetime_ = ip.Results.doseAdminDatetime;
             this.scannerData        = ip.Results.scannerData;
+            if (~isempty(ip.Results.isotope))
+                this.isotope_ = ip.Results.isotope;
+            else
+                this.isotope_ = this.sessionData_.isotope;
+            end
         end
     end
     

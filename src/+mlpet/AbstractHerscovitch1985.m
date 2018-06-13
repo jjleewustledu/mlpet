@@ -1,4 +1,4 @@
-classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
+classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
 	%% ABSTRACTHERSCOVITCH1985  
     %  See also:
     %  1. Herscovitch P, Mintun MA, Raichle ME (1985) Brain oxygen utilization measured with oxygen-15 radiotracers and 
@@ -51,8 +51,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         SMALL_LARGE_HCT_RATIO = 0.85 % Grubb, et al., 1978               
         
         CBF_UTHRESH = 500
-        CBV_UTHRESH = 100
-        OEF_FUDGE   = 0.3105 % normal value ~ 0.44; mask mean ~1.4169
+        CBV_UTHRESH = 10
     end
     
     properties
@@ -190,17 +189,20 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             %  @returns this with this.product := mdl.  A1, A2 are in mdl.Coefficients{:,'Estimate'}.
             %  See also:  https://www.mathworks.com/help/releases/R2016b/stats/nonlinear-regression-workflow.html
             
-            fprintf('AbstractHerscovitch1985.buildA1A2 ..........\n');
-            mdl    = fitnlm( ...
-                ensureColVector(petobs), ensureColVector(cbf), @mlpet.AbstractHerscovitch1985.estimateModelCbf, [1 1]);            
+            fprintf('AbstractHerscovitch1985.buildModelCbf ..........\n');
+            mdl = fitnlm( ...
+                ensureColVector(petobs), ...
+                ensureColVector(cbf), ...
+                @mlpet.AbstractHerscovitch1985.estimateModelCbf, ...
+                [1 1]);
             disp(mdl)
-            fprintf('mdl.RMSE -> %g, min(rho) -> %g, max(rho) -> %g\n', mdl.RMSE, min(petobs), max(petobs));
-%             if (isempty(getenv(upper('TEST_HERSCOVITCH1985'))))
-%                 plotResiduals(mdl);
-%                 plotDiagnostics(mdl, 'cookd');
-%                 plotSlice(mdl);
-%             end
+            fprintf('mdl.RMSE -> %g, min(rho) -> %g, max(rho) -> %g\n', mdl.RMSE, min(petobs), max(petobs));            
             this.product_ = mdl;
+            if (~isempty(getenv('DEBUG_HERSCOVITCH1985')))
+                plotResiduals(mdl);
+                plotDiagnostics(mdl, 'cookd');
+                plotSlice(mdl);
+            end
         end
         function this = buildCbfWholebrain(this, varargin)
             if (lexist(this.sessionData.cbfOpFdg('typ','fqfn')))
@@ -223,7 +225,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             this.product_ = cbfvs.double/mskvs.double;
         end
         
-        %% b1, b2, b3, b4 for OEF
+        %% b1, b2, b3, b4 for OEF, CMRO2
         
         function this = buildB1B2(this)
             this = this.ensureAifHOMetab;
@@ -254,16 +256,14 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             %  @returns this with this.product := mdl.  A1, A2 are in mdl.Coefficients{:,'Estimate'}.
             %  See also:  https://www.mathworks.com/help/releases/R2016b/stats/nonlinear-regression-workflow.html
             
-            fprintf('Herscovitch1985.buildA1A2 ..........\n');
+            fprintf('Herscovitch1985.buildModelOOFlow ..........\n');
             mdl    = fitnlm( ...
                 ensureColVector(cbf), ensureColVector(flows), @mlpet.AbstractHerscovitch1985.estimateModelCbf, [1 1]);            
             disp(mdl)
             fprintf('mdl.RMSE -> %g, min(rho) -> %g, max(rho) -> %g\n', mdl.RMSE, min(flows), max(flows));
-%             if (isempty(getenv(upper('TEST_HERSCOVITCH1985'))))
-%                 plotResiduals(mdl);
-%                 plotDiagnostics(mdl, 'cookd');
-%                 plotSlice(mdl);
-%             end
+            plotResiduals(mdl);
+            plotDiagnostics(mdl, 'cookd');
+            plotSlice(mdl);
             this.product_ = mdl;
         end
         function this = buildCbvWholebrain(this, varargin)
@@ -321,21 +321,19 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             cmro2vs = cmro2_.volumeSummed;
             this.product_ = cmro2vs.double/mskvs.double;
         end
-        
-        %% support for buildOefWholebrain
-        
-        function nimg = oefNumer(this, petobs)
-            vimg = this.cbv.niftid.img;
+        function nimg = oefNumer(this, petobs)            
             import mlfourd.*;
+            ic = ImagingContext(petobs);
+            %ic = ic.blurred(this.petPointSpread);
+            petobs = ic.niftid.img;
+            vimg = this.cbv.niftid.img;
             nnn  = NumericalNIfTId(NIfTId(petobs*this.W - this.flowHOMetab - this.aifOOIntegral*vimg));
-            nnn  = nnn.blurred(this.petPointSpread);
             nimg = nnn.img;
         end
         function dimg = oefDenom(this)
             vimg = this.cbv.niftid.img;
             import mlfourd.*;
             dnn  = NumericalNIfTId(NIfTId(this.flowOO - 0.835*this.aifOOIntegral*vimg));
-            dnn  = dnn.blurred(this.petPointSpread);
             dimg = dnn.img;
         end
         function img  = is0to1(this, img)
@@ -349,8 +347,8 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             img = img.*msk.numericalNiftid.img;            
             img(~isfinite(img)) = 0;
             img(isnan(img)) = 0;
-            img = this.OEF_FUDGE*img;
-            img = img .* (img >= 0) .* (img <= 1); 
+            img(img < 0) = 0;
+            img(img > 1) = 1;
         end
         function f    = flowHOMetab(this)
             img = this.cbf.niftid.img;
@@ -361,20 +359,7 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             f = this.b3*img.^2 + this.b4*img;
         end        
         
-%%         function t = ooPeakTime(~)
-%             % time of peak of O[15O] AIF
-%             error('mlsiemens:notImplemented', 'Herscovitch1985.ooPeakTime');
-%         end
-%%         function t = ooFracTime(~)
-%             % time of measuring H2[15O] of metabolism in plasma 
-%             error('mlsiemens:notImplemented', 'Herscovitch1985.ooFracTime');
-%         end
-%%         function f = fracHOMetab(~)
-%             % fraction of H2[15O] in whole blood
-%             error('mlsiemens:notImplemented', 'Herscovitch1985.fracHOMetab');
-%         end
-
-         %%  
+        %%
         
  		function this = AbstractHerscovitch1985(varargin)
  			%% ABSTRACTHERSCOVITCH1985
@@ -386,8 +371,6 @@ classdef AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
 
  			this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
             
-            sdFdg = this.sessionData;
-            sdFdg.tracer = 'FDG';
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScannerData') || isa(x, 'mlfourd.NIfTIdecorator') || isempty(x));

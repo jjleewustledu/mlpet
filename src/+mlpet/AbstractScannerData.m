@@ -7,6 +7,10 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.3.0.713579 (R2017b) for MACI64.  Copyright 2018 John Joowon Lee.
  	
+    properties
+        time0Shift = -3 % sec
+    end
+    
     properties (Dependent)
         times
         taus  
@@ -14,8 +18,9 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         time0
         timeF
         timeDuration
-        datetime0
+        datetime0 % start of scan
         index0
+        index0Forced
         indexF 
         dt
              
@@ -96,6 +101,9 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         function this = set.index0(this, s)
             this.timingData_.index0 = s;
         end
+        function g    = get.index0Forced(this)
+            g = this.sessionData.index0Forced;
+        end
         function g    = get.indexF(this)
             g = this.timingData_.indexF;
         end
@@ -151,7 +159,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             g = this.sessionData_;
         end
         function this = set.sessionData(this, s)
-            assert(isa(s, 'mlpipeline.SessionData'));
+            assert(isa(s, 'mlpipeline.ISessionData'));
             this.sessionData_ = s;
         end      
         function g    = get.tracer(this)
@@ -199,14 +207,11 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         function this = setTime0ToInflow(this)
             sc = this;
             sc = sc.volumeAveraged;
-            [~,idx0] = max(sc.img > std(sc.img));
-            if (idx0 > 1)
-                idx0 = idx0 - 1;
-            end
-            this.index0 = idx0;
+            [~,idx0] = max(sc.img > std(sc.img)/2); % KLUDGE
+            this.index0 = max(1, idx0 + this.time0Shift);
             if (strcmp(this.sessionData.tracer, 'OC') || strcmp(this.sessionData.tracer, 'CO'))
                 this.time0 = this.time0 + 120;
-                return
+                assert(this.time0 < this.timeF);
             end
         end
         function this = shiftTimes(this, Dt)
