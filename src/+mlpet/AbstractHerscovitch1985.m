@@ -1,5 +1,5 @@
 classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
-	%% ABSTRACTHERSCOVITCH1985  
+	%% ABSTRACTHERSCOVITCH1985 abstracts PET scanner platforms such as the Biograph mMR and ECAT EXACT HR+
     %  See also:
     %  1. Herscovitch P, Mintun MA, Raichle ME (1985) Brain oxygen utilization measured with oxygen-15 radiotracers and 
     %  positron emission tomography: generation of metabolic images. J Nucl Med 26(4):416?417.
@@ -14,19 +14,6 @@ classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
  	%  It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2016, 2017 John Joowon Lee,
     %  jjlee@wustl.edu.
-    %
-    %  This program is free software: you can redistribute it and/or modify
-    %  it under the terms of the GNU General Public License as published by
-    %  the Free Software Foundation, version 3.
-    %
-    %  This program is distributed in the hope that it will be useful,
-    %  but WITHOUT ANY WARRANTY; without even the implied warranty of
-    %  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    %  GNU General Public License for more details.
-    % 
-    %  You should have received a copy of the GNU General Public License
-    %  along with this program.  If not, see 
-    %% <https://www.gnu.org/licenses/gpl-3.0.en.html>. 	
 
     properties (Abstract)
         canonFlows
@@ -173,6 +160,7 @@ classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         %% a1, a2 for CBF
         
         function this = buildA1A2(this)
+            this.aif_.isDecayCorrected = false;
             petobs = this.estimatePetobs(this.aif, this.canonFlows);
             this = this.buildModelCbf(petobs, this.canonFlows);
             model = this.product;
@@ -340,7 +328,7 @@ classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             
             sdFdg = this.sessionData;
             sdFdg.tracer = 'FDG';
-            msk = sdFdg.MaskBrainOpFdg;
+            msk = sdFdg.MaskOpFdg;
             msk.numericalNiftid;
             msk = msk.blurred(this.petPointSpread);
             msk = msk.binarized;
@@ -363,7 +351,6 @@ classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
         
  		function this = AbstractHerscovitch1985(varargin)
  			%% ABSTRACTHERSCOVITCH1985
- 			%  Usage:  this = AbstractHerscovitch1985()
  			%  @param named sessionData
             %  @param named aif
             %  @param named timeDuration
@@ -373,13 +360,15 @@ classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScannerData') || isa(x, 'mlfourd.NIfTIdecorator') || isempty(x));
+            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScannerData') || isempty(x));
             addParameter(ip, 'aif', this.configAcquiredAifData, @(x) isa(x, 'mlpet.IAifData'));
             addParameter(ip, 'timeDuration', [], @isnumeric);
-            addParameter(ip, 'mask', this.sessionData.MaskBrainOpFdg, @(x) isa(x, 'mlfourd.ImagingContext'));
-            parse(ip, varargin{:});                 
+            addParameter(ip, 'mask', this.sessionData.MaskOpFdg, @(x) isa(x, 'mlfourd.ImagingContext'));
+            parse(ip, varargin{:});
             this.aif_ = ip.Results.aif;
-            this.scanner_ = ip.Results.scanner;  
+            assert(~isempty(this.aif_));
+            this.scanner_ = ip.Results.scanner;             
+            assert(~isempty(this.scanner_));            
             if (~isempty(ip.Results.timeDuration))
                 this.aif_.timeDuration = ip.Results.timeDuration;
                 if (~isempty(this.scanner_))
@@ -387,7 +376,7 @@ classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
                 end
             end          
             this.mask_ = ip.Results.mask;
-            this.mask_.filesuffix = '.4dfp.ifh';
+            this.mask_.filesuffix = '.4dfp.ifh'; % KLUDGE; POSSIBLE BUG
         end
  	end 
     
@@ -438,7 +427,7 @@ classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
                 sessdFdg = this.sessionData;
                 sessdFdg.tracer = 'FDG';
                 assert(lexist(sessdFdg.brainmaskBinarizeBlended));
-                this.mask_ = sessdFdg.MaskBrainOpFdg;
+                this.mask_ = sessdFdg.MaskOpFdg;
                 this.mask_ = this.mask_.numericalNiftid;
             end
             if (~lexist([this.mask_.fqfp '.nii.gz']))

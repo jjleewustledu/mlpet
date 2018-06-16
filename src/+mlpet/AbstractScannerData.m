@@ -8,7 +8,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
  	%% It was developed on Matlab 9.3.0.713579 (R2017b) for MACI64.  Copyright 2018 John Joowon Lee.
  	
     properties
-        time0Shift = -3 % sec
+        time0Shift = -2 % sec
     end
     
     properties (Dependent)
@@ -207,12 +207,9 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         function this = setTime0ToInflow(this)
             sc = this;
             sc = sc.volumeAveraged;
-            [~,idx0] = max(sc.img > std(sc.img)/2); % KLUDGE
-            this.index0 = max(1, idx0 + this.time0Shift);
-            if (strcmp(this.sessionData.tracer, 'OC') || strcmp(this.sessionData.tracer, 'CO'))
-                this.time0 = this.time0 + 120;
-                assert(this.time0 < this.timeF);
-            end
+            d2img = diff(pchip(sc.times, sc.img, sc.time0:sc.timeF), 2);            
+            [~,t0] = max(d2img > max(d2img)/20);
+            this.time0 = max(this.time0, t0 + this.time0Shift);
         end
         function this = shiftTimes(this, Dt)
             if (0 == Dt)
@@ -333,6 +330,11 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             this.mask_ = ip.Results.mask;   
             if (isa(ip.Results.mask, 'mlfourd.ImagingContext'))
                 this.mask_ = this.mask_.niftid;
+            end
+            if (~isempty(this.sessionData.region))
+                assert(~isempty(this.mask), ...
+                    'mlpet:prerequisitParamIsEmpty', 'AbstractScannerData.ctor.this.mask is empty');
+                this = this.volumeAveraged(this.mask);
             end
             
             this = this.createTimingData;

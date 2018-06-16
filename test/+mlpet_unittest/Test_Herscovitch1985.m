@@ -57,9 +57,9 @@ classdef Test_Herscovitch1985 < matlab.unittest.TestCase
                 this.testObj.plotAifOO;
             end
         end
-        function test_plotScannerWholebrain(this)
+        function test_plotScanner(this)
             this = this.configTracer('OO');
-            this.testObj.plotScannerWholebrain;
+            this.testObj.plotScanner;
         end
         
         function test_buildA1A2(this)

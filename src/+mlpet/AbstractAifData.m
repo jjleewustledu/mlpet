@@ -11,7 +11,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
     
     properties
         isPlasma 
-        time0Shift = -3 % sec
+        time0Shift = -2 % sec
     end
     
 	properties (Dependent)
@@ -256,19 +256,11 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             di = [];
         end    
         function this     = setTime0ToInflow(this)
-            if (strcmp(this.sessionData.tracer, 'HO') && ~isempty(this.index0Forced)) % testing with HO
-                this.index0 = this.index0Forced;
-                return
-            end
-            
             % ensure already deconvolved; is smooth
-            sa_ = this.specificActivity(this.index0:this.indexF);
-            [~,idx] = max(diff(sa_));
-            this.index0 = max(1, this.index0 + idx + this.time0Shift);
-            if (strcmp(this.sessionData.tracer, 'OC') || strcmp(this.sessionData.tracer, 'CO'))
-                this.time0 = min(this.time0 + 120, this.timeF);
-                assert(this.time0 < this.timeF);
-            end
+            sa_ = this.specificActivity;
+            dsa_ = diff(sa_);                        
+            [~,idx] = max(dsa_ > max(dsa_)/20);
+            this.index0 = max(1, idx + this.time0Shift);
         end  
         function this     = shiftTimes(this, Dt)
             if (Dt == 0)
@@ -287,6 +279,10 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         function bi       = specificActivityIntegral(this)
             idx0 = this.index0;
             idxF = this.indexF;
+            if (strcmpi(this.sessionData.tracer, 'OC'))
+                idx0 = idx0 + 120;
+                assert(idx0 < idxF);
+            end
             bi = trapz(this.times(idx0:idxF), this.specificActivity(idx0:idxF));
         end
         function sa       = specificActivityInterpolants(this)

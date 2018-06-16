@@ -8,7 +8,8 @@ classdef MultiBolusData < mldata.TimingData
  	
 	properties (Dependent)
         activity % used to identify boluses
-        activityLifetime % 10x this.radionuclides_.halflife;
+        activityHalflife
+        activityLifetime
         doMeasureBaseline
         expectedBaseline
     end
@@ -20,8 +21,11 @@ classdef MultiBolusData < mldata.TimingData
         function g = get.activity(this)
             g = this.activity_(this.index0:this.indexF);
         end
+        function g = get.activityHalflife(this)
+            g = this.radionuclides_.halflife;
+        end
         function g = get.activityLifetime(this)
-            g = 10*this.radionuclides_.halflife;
+            g = this.radionuclides_.lifetime;
         end
         function g = get.doMeasureBaseline(this)
             g = this.doMeasureBaseline_;
@@ -84,26 +88,28 @@ classdef MultiBolusData < mldata.TimingData
             %% BOLUSES 
             %  @return bols have m := this.baseline removed.
             
-            NSTD  = 10;
+            NSTD  = 10; % heuristic
+            HWHH  = 6;  % 
             [m,s] = this.baseline;
             a     = this.activity - m;
             t     = this.datetime;
             b     = 1;
             while (max(a) > NSTD*s)
                 [~,bstart] = max(a > NSTD*s);
-                [~,deltab] = max(a(bstart:end) < -s);
-                deltab     = this.ensurePlausibleDeltab(deltab, length(a(bstart:end))-1);
+                [~,deltab] = max(a(bstart:end) < -s); % duration for return to baseline
+                deltab     = this.ensurePlausibleDeltab( ...
+                    deltab, length(a(bstart:end))-1); % manage common deltab pathologies
                 bols(b)    = mlpet.MultiBolusData( ...
                     'activity', a(bstart:bstart+deltab), ...
                     'times',    t(bstart:bstart+deltab), ...
                     'dt',       this.dt); %#ok<AGROW>
-                a = a(bstart+deltab+6:end);
-                t = t(bstart+deltab+6:end);
+                a = a(bstart+deltab+HWHH:end);
+                t = t(bstart+deltab+HWHH:end);
                 b = b + 1;
             end
         end
         function bol   = findBolusFrom(this, doseAdminDatetime)
-            %% FINDBOLUSFROM boluses have baselines removed.
+            %% FINDBOLUSFROM boluses have m := this.baseline removed.
             %  @param doseAdminDatetime determines the bolus to find, which begins at or later than doseAdminDatetime.
             
             bols = this.boluses;
@@ -171,13 +177,24 @@ classdef MultiBolusData < mldata.TimingData
     end
     
     methods (Access = private)        
-        function db = ensurePlausibleDeltab(~, db, bestGuess)
+        function db = ensurePlausibleDeltab(this, db, bestGuess)
             %  When db == 1 over len samples, it's likely that the calculation of db failed.   Use the best guess.
             %  @param db is numeric.
             %  @param bestGuess is numeric.
             
+            life = this.activityLifetime/this.dt;
+            minBestGuess = min(bestGuess, life);
             if (1 == db)
                 db = bestGuess;
+                return
+            end
+%             if (db < this.activityHalflife/this.dt)
+%                 db = minBestGuess;
+%                 return
+%             end
+            if (db > life)
+                db = minBestGuess;
+                return
             end
         end
     end

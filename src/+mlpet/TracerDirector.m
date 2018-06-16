@@ -567,6 +567,8 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
     
     methods (Access = private)
         function this  = instanceConstructResolvedAC(this)
+            pwd0 = pushd(this.builder_.sessionData.tracerLocation);
+            
             this.builder_ = this.builder_.reconstituteFramesAC;
             this.sessionData.frame = nan;
             this.builder_.sessionData.frame = nan;
@@ -574,6 +576,8 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             this.builder_ = this.builder_.motionCorrectFrames;            
             this.builder_ = this.builder_.reconstituteFramesAC2;
             this.builder_ = this.builder_.sumProduct;
+            
+            popd(pwd0);
         end
         function this  = instanceConstructResolvedNAC(this)     
             mlraichle.UmapDirector.constructUmaps('sessionData', this.sessionData);       

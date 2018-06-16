@@ -14,6 +14,7 @@ classdef Radionuclides
         decayConstant % \alpha = log(2)/\tau_{1/2}
         halflife
         isotope
+        lifetime
         nuclide % legacy synonym
     end
  		
@@ -40,6 +41,9 @@ classdef Radionuclides
         end
         function g = get.isotope(this) 
             g = this.isotope_;          
+        end
+        function g = get.lifetime(this)
+            g = 10*this.halflife;
         end
         function g = get.nuclide(this)
             g = this.isotope;

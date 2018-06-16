@@ -158,7 +158,7 @@ classdef Herscovitch1985 < mlpet.AbstractHerscovitch1985
             sd = this.sessionData;
             title(sprintf('AbstractHerscovitch1985.plotAifOO:\n%s %s', sd.sessionPath, sd.tracer));
         end
-        function plotScannerWholebrain(this)
+        function plotScanner(this)
             this  = this.ensureMask;
             mskvs = this.mask.volumeSummed;
             
@@ -168,7 +168,7 @@ classdef Herscovitch1985 < mlpet.AbstractHerscovitch1985
             hold on            
             plot(this.aif.timeInterpolants, this.aif.wellCountInterpolants);
             sd = this.sessionData;
-            title(sprintf('AbstractHerscovitch1985.plotScannerWholebrain:\n%s %s', sd.sessionPath, sd.tracer));
+            title(sprintf('AbstractHerscovitch1985.plotScanner:\n%s %s', sd.sessionPath, sd.tracer));
         end 
     end 
     
