@@ -250,58 +250,58 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         function this = blurred(this, varargin)
             bn = mlfourd.NumericalNIfTId(this.component);
             bn = bn.blurred(varargin{:});
-            this.component = bn.component;
+            this.component_ = bn.component;
         end     
         function this = masked(this, msk)
             nn = mlfourd.NumericalNIfTId(this.component);
             nn = nn.masked(msk);
-            this.component = nn.component;
+            this.component_ = nn.component;
             this.mask_ = msk;
         end     
         function this = thresh(this, varargin)
             nn = mlfourd.NumericalNIfTId(this.component);
             nn = nn.thresh(varargin{:});
-            this.component = nn.component;
+            this.component_ = nn.component;
         end
         function this = threshp(this, varargin)
             nn = mlfourd.NumericalNIfTId(this.component);
             nn = nn.threshp(varargin{:});
-            this.component = nn.component;
+            this.component_ = nn.component;
         end
         function this = timeContracted(this, varargin)
             nn = mlfourd.NumericalNIfTId(this.component); 
             nn = nn.timeContracted(varargin{:});
-            this.component = nn.component;
+            this.component_ = nn.component;
         end        
         function this = timeSummed(this, varargin)
             nn = mlfourd.NumericalNIfTId(this.component); 
             nn = nn.timeSummed(varargin{:});
-            this.component = nn.component;
+            this.component_ = nn.component;
         end
         function this = uthresh(this, varargin)
             nn = mlfourd.NumericalNIfTId(this.component);
             nn = nn.uthresh(varargin{:});
-            this.component = nn.component;
+            this.component_ = nn.component;
         end
         function this = uthreshp(this, varargin)
             nn = mlfourd.NumericalNIfTId(this.component);
             nn = nn.uthreshp(varargin{:});
-            this.component = nn.component;
+            this.component_ = nn.component;
         end
         function this = volumeAveraged(this, varargin)
             nn = mlfourd.NumericalNIfTId(this.component); 
             nn = nn.volumeAveraged(varargin{:});
-            this.component = nn.component;
+            this.component_ = nn.component;
         end
         function this = volumeContracted(this, varargin)
             nn = mlfourd.NumericalNIfTId(this.component); 
             nn = nn.volumeContracted(varargin{:});
-            this.component = nn.component;
+            this.component_ = nn.component;
         end
         function this = volumeSummed(this, varargin)
             nn = mlfourd.NumericalNIfTId(this.component); 
             nn = nn.volumeSummed(varargin{:});
-            this.component = nn.component;
+            this.component_ = nn.component;
         end
         
  		function this = AbstractScannerData(cmp, varargin)

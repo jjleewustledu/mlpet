@@ -339,14 +339,14 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
         function this = blurred(this, blur)
             bl = mlfourd.BlurringNIfTId(this.component);
             bl = bl.blurred(blur);
-            this.component = bl.component;
+            this.component_ = bl.component;
         end
         function this = masked(this, msk)
             assert(isa(msk, 'mlfourd.INIfTI'));
             this.mask_ = msk;
             dyn = mlfourd.DynamicNIfTId(this.component); %% KLUDGE to work-around faults with decorators in matlab
             dyn = dyn.masked(msk);
-            this.component = dyn.component;
+            this.component_ = dyn.component;
         end
         function this = petobs(this)
             this.fileprefix = [this.fileprefix '_obs'];
@@ -362,7 +362,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
         function this = timeSummed(this)
             dyn = mlfourd.DynamicNIfTId(this.component); %% KLUDGE to work-around faults with decorators in matlab
             dyn = dyn.timeSummed;
-            this.component = dyn.component;
+            this.component_ = dyn.component;
         end
         function tc   = tscCountInterpolants(this, varargin)
             tc = pchip(this.times, this.tscCounts, this.timeInterpolants);
@@ -373,7 +373,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
         function this = volumeSummed(this)
             dyn = mlfourd.DynamicNIfTId(this.component); %% KLUDGE to work-around faults with decorators in matlab
             dyn = dyn.volumeSummed;
-            this.component = dyn.component;
+            this.component_ = dyn.component;
             this.component.img = this.component.img';
         end
         function wc   = wellCountInterpolants(this, varargin)
@@ -578,12 +578,12 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
         function this = mcflirtedAfterBlur(this, blur)
             dyn = mlfourd.DynamicNIfTId(this.component); %% KLUDGE to work-around faults with decorators in matlab
             dyn = dyn.mcflirtedAfterBlur(blur);
-            this.component = dyn.component;
+            this.component_ = dyn.component;
         end
         function this = withRevertedFrames(this, origNiid, frames)
             dyn = mlfourd.DynamicNIfTId(this.component); %% KLUDGE to work-around faults with decorators in matlab
             dyn = dyn.withRevertedFrames(origNiid, frames);
-            this.component = dyn.component;
+            this.component_ = dyn.component;
         end
     end
 
