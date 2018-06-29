@@ -517,20 +517,20 @@ classdef O15Builder < mlpet.PETBuilder
             end
         end % static modelOxygenContent
         function fp            = cbfFileprefix(fp)
-            fp = fileprefix(fp, mlfourd.INIfTI.FILETYPE_EXT);
+            fp = fileprefix(fp, mlfourd.NIfTId.FILETYPE_EXT);
             fp = [fp '_cbf'];
         end % static cbfFileprefix   
         function fp            = cbvFileprefix(fp)
-            fp = fileprefix(fp, mlfourd.INIfTI.FILETYPE_EXT);
+            fp = fileprefix(fp, mlfourd.NIfTId.FILETYPE_EXT);
             fp = [fp '_cbv'];
         end % static cbvFileprefix
         function fp            = oefFileprefix(fp)
-            fp = fileprefix(fp, mlfourd.INIfTI.FILETYPE_EXT);
+            fp = fileprefix(fp, mlfourd.NIfTId.FILETYPE_EXT);
             fp = [fp '_oef'];
         end % static oefFileprefix
         function fp            = cmro2Fileprefix(fp, fp2)
-            fp  = fileprefix(fp,  mlfourd.INIfTI.FILETYPE_EXT);
-            fp2 = fileprefix(fp2, mlfourd.INIfTI.FILETYPE_EXT);
+            fp  = fileprefix(fp,  mlfourd.NIfTId.FILETYPE_EXT);
+            fp2 = fileprefix(fp2, mlfourd.NIfTId.FILETYPE_EXT);
             fp = [fp '_' fp2 '_cmro2'];
         end % static oefFileprefix
         function pic           = linkMexFlowButanol(pic)
