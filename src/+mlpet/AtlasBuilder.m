@@ -108,11 +108,14 @@ classdef AtlasBuilder < mlpipeline.AbstractSessionBuilder
                 sprintf('%sr2_to_%sr2_t4', sd.brainmask('typ','fp'), sd.tracerResolvedFinalSumt('typ','fp')));
             end          
         end   
-        function t4 = tracer_to_atl_t4(this)
-            sd = this.sessionData;            
-            t4 = fullfile( ...
-                sd.vLocation, ...
-                sprintf('%s_to_%s_t4', sd.tracerResolvedFinalSumt('typ','fp'), sd.studyAtlas('typ','fp')));
+        function t4 = tracer_to_atl_t4(this, varargin)
+            sd = this.sessionData; 
+            ip = inputParser;
+            addParameter(ip, 'tracer', sd.tracerResolvedFinalSumt('typ','fqfp'), @lexist_4dfp);
+            addParameter(ip, 'atlas',  sd.studyAtlas('typ','fp'),                @lexist_4dfp);
+            parse(ip, varargin{:});
+                       
+            t4 = sprintf('%s_to_%s_t4', ip.Results.tracer, ip.Results.atlas);
             if (~lexist(t4, 'file'))
                 this.build_tracer_to_atl_t4;
             end

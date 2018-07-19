@@ -11,12 +11,45 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
     end
     
     properties 
-        atlasVoxelSize = 333;
-        rebuild = true;
+        atlasVoxelSize = 222;
+        rebuild = false;
         tracerKind = 'tracerResolvedFinalOpFdg' % method@SessionData
+    end
+    
+	properties (Dependent)  
+        timeWindowDelaySuvr
+        timeWindowDurationSuvr 
     end
 
 	methods   
+        
+        %% GET/SET
+        
+        function g = get.timeWindowDelaySuvr(this)
+            switch (this.tracer)
+                case 'FDG'
+                    g = 40*60;
+                case {'OC' 'CO'}
+                    g = 2*60;
+                case {'OO' 'HO'}
+                    g = 0;
+                otherwise
+                    error('mlpet:unsupportedSwitchcase', 'TracerSuvrBuilder.get.timeWindowDurationSuvr');
+            end
+        end
+        function g = get.timeWindowDurationSuvr(this)
+            switch (this.tracer)
+                case 'FDG'
+                    g = 20*60;
+                case {'OC' 'CO' 'OO' 'HO'}
+                    g = 60;
+                otherwise
+                    error('mlpet:unsupportedSwitchcase', 'TracerSuvrBuilder.get.timeWindowDurationSuvr');
+            end
+        end
+        
+        %%
+        
         function obj = atlas(this, varargin)
             fqfn = fullfile(this.sessionData.subjectsDir, 'jjlee2', 'atlasTest', 'source', 'HYGLY_atlas.4dfp.ifh');
             obj  = this.sessionData.fqfilenameObject(fqfn, varargin{:});
@@ -60,6 +93,7 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
         function [this,tw] = buildTimeContraction(this)
             try
                 if (lexist(this.tracerTimeWindowed, 'file') && ~this.rebuild)
+                    tw = [];
                     this = this.packageProduct(this.tracerTimeWindowed);
                     return
                 end            
@@ -102,7 +136,7 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
             end
             import mlfourd.*;
             msk = NumericalNIfTId.load( ...
-                fullfile(getenv('REFDIR'), sprintf('glm_atlas_mask_%i.4dfp.ifh', this.atlasVoxelSize)));
+                fullfile(getenv('REFDIR'), sprintf('711-2B_%i_brain.4dfp.ifh', this.atlasVoxelSize)));
             msk.img = double(msk.img > 0);
             tracerTW = NumericalNIfTId.load(this.tracerTimeWindowedOnAtl);
             expect = tracerTW.volumeAveraged(msk);
@@ -161,7 +195,7 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
         function [this,cmro2,oef,msk,mdl] = buildBetas(this)
             import mlfourd.*;
             msk = NumericalNIfTId.load( ...
-                fullfile(getenv('REFDIR'), 'glm_atlas_mask_333.4dfp.ifh'));
+                fullfile(getenv('REFDIR'), sprintf('711-2B_%i_brain.4dfp.ifh', this.atlasVoxelSize)));
             msk_ = logical(msk.img > 0);
             msk  = mlfourd.ImagingContext(msk);
             cbf  = this.tracerSuvrNamed('ho', 'typ', 'numericalNiftid');  
@@ -237,14 +271,14 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
             % consider delay
             idxD = idx0;
             while (idxD < length(nn.img) && ...
-                   sd.times(idxD) - sd.times(idx0) < sd.timeWindowDelaySuvr)
+                   sd.times(idxD) - sd.times(idx0) < this.timeWindowDelaySuvr)
                 idxD = idxD + 1; % per Blazey, unpublished
             end
             
             % consider duration
             idxF = idxD;
             while (idxF < length(nn.img) && ...
-                   sd.times(idxF) - sd.times(idxD) < sd.timeWindowDurationSuvr)
+                   sd.times(idxF) - sd.times(idxD) < this.timeWindowDurationSuvr)
                 idxF = idxF + 1;
             end
             w = [idxD idxF];            
@@ -288,7 +322,7 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
         function s      = volumeAverage(~, obj)
             import mlfourd.*;
             msk = NumericalNIfTId.load( ...
-                fullfile(getenv('REFDIR'), 'glm_atlas_mask_333.4dfp.ifh'));
+                fullfile(getenv('REFDIR'), sprintf('711-2B_%i_brain.4dfp.ifh', this.atlasVoxelSize)));
             msk.img = double(msk.img > 0);
             ic = ImagingContext(obj);
             nn = ic.numericalNiftid;
