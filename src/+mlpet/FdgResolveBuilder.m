@@ -578,7 +578,7 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
                 % fdgv1e1r2_op_fdgv1e1to11r1_frame11
                 % fdgv2e1r2_op_fdgv2e1to11r1_frame11
                 fv.t4img_4dfp(t4, fp, 'out', fpDest, 'options', ['-O' fp]);
-                ffp = Fourdfp.load([fpDest '.4dfp.ifh']);
+                ffp = Fourdfp.load([fpDest '.4dfp.hdr']);
                 ffp0.img(:,:,:,(e-1)*this.maxLengthEpoch+1:e*this.maxLengthEpoch) = ffp.img;
                 popd(pwd1);
             end
@@ -589,7 +589,7 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
             pwd1 = pushd(sessde.tracerLocation);        
             fp = sprintf('%s_op_%sr1_frame%i', sessde.tracerRevision('typ','fp'), sessde.tracerEpoch('typ','fp'), nFrames - nEpochs*this.maxLengthEpoch);
             % fdgv2e11r2_op_fdgv2e11r1_frame5
-            ffp = Fourdfp.load([fp '.4dfp.ifh']);
+            ffp = Fourdfp.load([fp '.4dfp.hdr']);
             ffp0.img(:,:,:,(e-1)*this.maxLengthEpoch+1:nFrames) = ffp.img;
             popd(pwd1);
             
@@ -639,7 +639,7 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
             ip = inputParser;
             ip.KeepUnmatched = true;
             ip.addParameter('ctSourceFqfn', ...
-                fullfile(this.vLocation, 'ctMaskedOnT1001r2_op_T1001.4dfp.ifh'), ...
+                fullfile(this.vLocation, 'ctMaskedOnT1001r2_op_T1001.4dfp.hdr'), ...
                 @(x) lexist(x, 'file'));
             parse(ip, varargin{:});
             this.ctSourceFqfn = ip.Results.ctSourceFqfn;
@@ -751,7 +751,7 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
         function this = sumProduct(this)
             assert(isa(this.product_, 'mlfourd.ImagingContext'))
             if (this.buildVisitor.lexist_4dfp([this.product_.fqfp '_sumt']))
-                this.product_ = mlfourd.ImagingContext([this.product_.fqfp '_sumt.4dfp.ifh']);
+                this.product_ = mlfourd.ImagingContext([this.product_.fqfp '_sumt.4dfp.hdr']);
                 return
             end
             sz = this.size_4dfp(this.product_);
@@ -780,7 +780,7 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
             end
             
             import mlfourd.*;
-            umaps = ImagingContext('umapSynth.4dfp.ifh');
+            umaps = ImagingContext('umapSynth.4dfp.hdr');
             umap0 = umaps.fourdfp;
             umap0.img = umap0.img(:,:,:,1);
             assert(length(tNac) == umaps.fourdfp.size(4));
@@ -820,7 +820,7 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
             sessd1.resolveTag = sessd1.resolveTagFrame(this.maxLengthEpoch, 'reset', true);
             umap = ImagingContext(sessd1.umap(sessd1.resolveTag));
             umapFfp = umap.fourdfp;
-            umapFfp.fqfilename = [sessd.umap('') '.4dfp.ifh'];
+            umapFfp.fqfilename = [sessd.umap('') '.4dfp.hdr'];
             umapSz = umapFfp.size;
             umapFfp.img = zeros(umapSz(1),umapSz(2),umapSz(3),tracerSz(4));
             for ep = 1:nEpoch
@@ -847,12 +847,12 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
             ffp = mlfourdfp.Fourdfp.load(sessDNac.tracerRevision('frame', 1));
             ffp.fqfileprefix = this.sessionData_.tracerRevision('typ', 'fqfp');
             ffp.img = zeros(size(ffp));
-            assert(strcmp(ffp.filesuffix, '.4dfp.ifh'));
+            assert(strcmp(ffp.filesuffix, '.4dfp.hdr'));
         end
         function [epoch,epochSubframe] = getEpochIndices(this, nacFrame)
             epoch = floor(nacFrame/this.maxLengthEpoch) + 1;
             epochSubframe = mod(nacFrame, this.maxLengthEpoch) + 1;  
-        end
+        endlwd
         function N    = getNFrames(this)
             sessd = this.sessionData_;
             sessd.frame = 0;
@@ -906,7 +906,7 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
             if (~bv.lexist_4dfp(dest_))
                 t4rb.t4img_4dfp(t4_, ffp.fileprefix, 'out', dest_);
             end
-            ffp   = mlfourdfp.Fourdfp.load([dest_ '.4dfp.ifh']);
+            ffp   = mlfourdfp.Fourdfp.load([dest_ '.4dfp.hdr']);
             
             deleteExisting([dest_ '__.4dfp.*']);
             deleteExisting([dest_ '___.4dfp.*']);
@@ -923,98 +923,5 @@ classdef FdgResolveBuilder < mlpet.TracerBuilder
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
     
-    %% HIDDEN
-    
-    methods (Hidden)
-        function this = reconstituteFramesAC2__(this)
-            %% RECONSTITUTEFRAMESAC2__ is the rapid prototype used to develop reconstituteFramesAC2.
-            
-            import mlfourdfp.*;            
-            nFrames = 85;
-            nEpochs = floor(nFrames/this.maxLengthEpoch);
-            supEpochs = ceil(nFrames/this.maxLengthEpoch);
-            sessd = this.sessionData;
-            sessd.epoch = [];
-            sessd.frame = nan;
-            sessd.rnumber = 2;
-            pwd0 = pushd(sessd.tracerLocation);            
-            pthMulti = fullfile(sessd.tracerLocation, sprintf('E1to%i', supEpochs), '');
-            % sessd.tracerLocation->/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V2/FDG_V2-AC
-            ffp0 = Fourdfp.load('E1/fdgv1e1r1_frame1.4dfp.ifh');
-            ffp0.img = zeros(size(this.product_.fourdfp));
-            ffp0.fqfileprefix = fullfile(sessd.tracerLocation, sprintf('fdgv1r1_op_fdgv1e1to%ir1_frame%i', supEpochs, supEpochs));
-            % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V2/FDG_V2-AC/fdgv1r1_op_fdgv1e1to11r1_frame11
-            sessd.rnumber = 2;
-            fv = mlfourdfp.FourdfpVisitor;
-            
-            for e = 1:nEpochs
-                sessd.epoch = e;
-                pwd1 = pushd(sessd.tracerLocation);
-                % sessd.tracerLocation->/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V2/FDG_V2-AC/E1
-                t4 = fullfile(pthMulti, sprintf('fdgv1e1to%ir2_frame%i_to_op_fdgv1e1to%ir1_frame%i_t4', supEpochs, e, supEpochs, supEpochs));
-                % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V2/FDG_V2-AC/E1to11/fdgv1e1to11r2_frame1_to_op_fdgv1e1to11r1_frame11_t4
-                fp = sprintf('fdgv1e%ir2_op_fdgv1e%ir1_frame%i', e, e, this.maxLengthEpoch);  % verify
-                % fdgv1e1r2_op_fdgv1e1r1_frame8
-                fpDest = sprintf('fdgv1e%ir2_op_fdgv1e%ir1_frame%i', e, e, supEpochs);
-                % fdgv1e1r2_op_fdgv1e1r1_frame11
-                fv.t4img_4dfp(t4, fp, 'out', fpDest, 'options', ['-O' fp]);
-                ffp = Fourdfp.load([fpDest '.4dfp.ifh']);
-                ffp0.img(:,:,:,(e-1)*this.maxLengthEpoch+1:e*this.maxLengthEpoch) = ffp.img;
-                popd(pwd1);
-            end
-            
-            e = supEpochs;
-            sessd.epoch = e;
-            pwd1 = pushd(sessd.tracerLocation);            
-            fpDest = sprintf('fdgv1e%ir2_op_fdgv1e1to%ir1_frame%i', ...
-                e, supEpochs, nFrames - nEpochs*this.maxLengthEpoch);
-            ffp = Fourdfp.load([fpDest '.4dfp.ifh']);
-            ffp0.img(:,:,:,(e-1)*this.maxLengthEpoch+1:end) = ffp.img;
-            popd(pwd1);
-            
-            ffp0.save;
-            fv.imgblur_4dfp(ffp0.fqfileprefix, 4.3);
-            popd(pwd0);
-        end
-        function this = umapAufbau0(this)
-            %  @return this:  this.product is the multi-frame umap as mlfourdfp.Fourdfp.
-            
-            nEpoch = floor(tracerSz(4)/this.maxLengthEpoch); 
-            tracerFp = sessd.tracerRevision('typ', 'fp');
-            if (~this.buildVisitor.lexist_4dfp([tracerFp '_b43']))
-                this.buildVisitor.imgblur_4dfp( tracerFp, 4.3);
-            end           
-            
-            sessd1 = sessd;
-            sessd1.epoch = 1;
-            sessd1.resolveTag = sessd1.resolveTagFrame(this.maxLengthEpoch, 'reset', true);
-            umap = ImagingContext(sessd1.umap(sessd1.resolveTag));
-            umapFfp = umap.fourdfp;
-            umapFfp.fqfilename = [sessd.umap('') '.4dfp.ifh'];
-            umapSz = umapFfp.size;
-            umapFfp.img = zeros(umapSz(1),umapSz(2),umapSz(3),tracerSz(4));
-            for ep = 1:nEpoch
-                for fr = 1:this.maxLengthEpoch
-                    sessd_ = sessd;
-                    sessd_.epoch = ep;
-                    sessd_.resolveTag = sessd_.resolveTagFrame(fr, 'reset', true);
-                    frame_ = NIfTId.load(sessd_.umap(sessd_.resolveTag));
-                    umapFfp.img(:,:,:,this.maxLengthEpoch*(ep-1)+fr) = frame_.img;
-                end
-            end
-            tLast = nEpoch*this.maxLengthEpoch;
-            frame_ = NIfTId.load(this.product.fqfilename);
-            frameSz_ = frame_.size;
-            if (length(frameSz_) < 4)
-               umapFfp.img(:,:,:,tracerSz(4))  = frame_.img;
-            else
-                for frameT = 1:frameSz_(4)
-                    umapFfp.img(:,:,:,tLast+frameT) = frame_.img(:,:,:,frameT);
-                end
-            end
-            umapFfp.save;
-            this.product_ = umapFfp;
-        end
-    end
  end
 

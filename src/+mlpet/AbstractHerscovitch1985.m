@@ -376,7 +376,7 @@ classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
                 end
             end          
             this.mask_ = ip.Results.mask;
-            this.mask_.filesuffix = '.4dfp.ifh'; % KLUDGE; POSSIBLE BUG
+            this.mask_.filesuffix = '.4dfp.hdr'; % KLUDGE; POSSIBLE BUG
         end
  	end 
     
@@ -423,7 +423,7 @@ classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             end
         end
         function this = ensureMask(this)
-            if (~lexist([this.mask_.fqfp '.4dfp.ifh']))
+            if (~lexist([this.mask_.fqfp '.4dfp.hdr']))
                 sessdFdg = this.sessionData;
                 sessdFdg.tracer = 'FDG';
                 assert(lexist(sessdFdg.brainmaskBinarizeBlended));
@@ -431,7 +431,7 @@ classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
                 this.mask_ = this.mask_.numericalNiftid;
             end
             if (~lexist([this.mask_.fqfp '.nii.gz']))
-                this.sessionData.nifti_4dfp_ng(this.mask_.fqfp);
+                this.sessionData.nifti_4dfp_n(this.mask_.fqfp);
                 assert(lexist([this.mask_.fqfp '.nii.gz']));
             end
         end

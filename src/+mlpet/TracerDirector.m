@@ -21,8 +21,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
         studyData
     end
     
-    methods (Static)
-        
+    methods (Static)        
         function assertenv
             envs = {'RELEASE' 'REFDIR'};
             
@@ -217,7 +216,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                     'out', outfile, ...
                     'options', sprintf('-n -O%s', ic.fileprefix));                
                 if (lstrfind('brainmask', anatomies{a}))
-                    ic = mlfourd.ImagingContext([outfile '.4dfp.ifh']);
+                    ic = mlfourd.ImagingContext([outfile '.4dfp.hdr']);
                     ic.numericalNiftid;
                     ic = ic.binarizeBlended;
                     ic.saveas(this.sessionData.brainmaskBinarizeBlended);
@@ -387,7 +386,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             list = dt.fqfns;            
         end
         function list  = instanceListTracersResolved(this)
-            dt = mlsystem.DirTool([this.sessionData.tracerResolvedFinal('tracer', this.sessionData.tracer, 'typ', '.4dfp.ifh') '*']);
+            dt = mlsystem.DirTool([this.sessionData.tracerResolvedFinal('tracer', this.sessionData.tracer, 'typ', '.4dfp.hdr') '*']);
             list = dt.fqfns;              
         end
         function rpts  = instanceMakeReports(this)
@@ -635,7 +634,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                         else
                             nn = mlfourd.NumericalNIfTId.load(sd.tracerResolvedFinal);
                             nn = nn.timeSummed;
-                            nn.filesuffix = '.4dfp.ifh';
+                            nn.filesuffix = '.4dfp.hdr';
                             nn.filepath = pwd;
                             nn.save;
                         end
@@ -680,7 +679,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
         end
     end
     
-    %% DEPRECATED
+    %% HIDDEN, DEPRECATED
     
     methods (Hidden)        
         function this  = instanceConstructKinetics(this, varargin)

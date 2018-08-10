@@ -45,7 +45,7 @@ classdef TracerReportsBuilder < mlpipeline.AbstractSessionBuilder
     methods (Access = protected)
         function n = frameLength(~, sd)
             sz = this.buildVisitor.ifhMatrixSize( ...
-                sd.tracerResolvedFinal('typ', '.4dfp.ifh'));
+                sd.tracerResolvedFinal('typ', '.4dfp.hdr'));
             assert(length(sz) == 4);
             n = sz(4);
         end

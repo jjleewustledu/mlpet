@@ -72,7 +72,7 @@ classdef NiftyPETyBuilder < mlpet.TracerBuilder
         function this = extractUmapSynthFullFrames(this)
             sessdNac = this.sessionData; 
             sessdNac.attenuationCorrected = false;
-            ic = mlfourd.ImagingContext(fullfile(sessdNac.tracerLocation, 'umapSynth.4dfp.ifh' ));
+            ic = mlfourd.ImagingContext(fullfile(sessdNac.tracerLocation, 'umapSynth.4dfp.hdr' ));
             nn = ic.numericalNiftid;
             for t = 1:size(nn, 4)
                 nn_ = nn;

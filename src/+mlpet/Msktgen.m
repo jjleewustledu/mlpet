@@ -35,7 +35,7 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
             obj  = this.constructMskt( ...
                 'source', this.sessionData.tracerRevision, ...
                 'intermediaryForMask', this.sessionData.T1001, ...
-                'sourceOfMask', fullfile(this.sessionData.vLocation, 'brainmask.4dfp.ifh'));
+                'sourceOfMask', fullfile(this.sessionData.vLocation, 'brainmask.4dfp.hdr'));
         end
         function obj = constructMskt(this, varargin)
             %  @param source may be dynamic.   For doConstructResolved == true, resolving work is performed on
@@ -72,7 +72,7 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
             if (this.doConstructResolved)
                 this = this.constructResolvedMask;
             end
-            fqfn              = [this.sourceOfMask.fqfileprefix '.4dfp.ifh'];
+            fqfn              = [this.sourceOfMask.fqfileprefix '.4dfp.hdr'];
             this.sourceOfMask =  this.sourceOfMask.binarized;
             this.sourceOfMask =  this.sourceOfMask.blurred(this.blurForMask);
             this.sourceOfMask =  this.normalizeTo1000(this.sourceOfMask);
@@ -83,8 +83,8 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
         end
         function ic  = ensure4dfp(~, ic)
             assert(isa(ic, 'mlfourd.ImagingContext'));
-            if (~strcmp(ic.filesuffix, '.4dfp.ifh'))
-                ic.filesuffix = '.4dfp.ifh';
+            if (~strcmp(ic.filesuffix, '.4dfp.hdr'))
+                ic.filesuffix = '.4dfp.hdr';
             end
         end
         function out = t4img_4dfp(this, varargin)
@@ -136,7 +136,7 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
                     'out', [this.source.fileprefix '_mskt'], ...
                     'options', ['-O' cRB_.product{1}.fileprefix]);
             this.sourceOfMask = ...
-                mlfourd.ImagingContext([this.sourceOfMask '.4dfp.ifh']); 
+                mlfourd.ImagingContext([this.sourceOfMask '.4dfp.hdr']); 
                 
             popd(pwd0);
         end

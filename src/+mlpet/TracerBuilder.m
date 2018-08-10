@@ -31,7 +31,7 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
                 warning('mlpet:fileDoesNotExistOnFilesystem', 'TracerBuilder.ensureSumt.obj->%s', char(obj));
                 return
             end
-            if (lexist(sprintf('%s_%i%i%ifwhh.4dfp.ifh', ic.fqfileprefix, blur, blur, blur), 'file'))
+            if (lexist(sprintf('%s_%i%i%ifwhh.4dfp.hdr', ic.fqfileprefix, blur, blur, blur), 'file'))
                 return
             end
             ic = ic.blurred(blur);
@@ -47,7 +47,7 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
                 warning('mlpet:fileDoesNotExistOnFilesystem', 'TracerBuilder.ensureSumt.obj->%s', char(obj));
                 return
             end
-            if (lexist(sprintf('%s_b%i.4dfp.ifh', ic.fqfileprefix, floor(10*blur)), 'file'))
+            if (lexist(sprintf('%s_b%i.4dfp.hdr', ic.fqfileprefix, floor(10*blur)), 'file'))
                 return
             end
             fv = mlfourdfp.FourdfpVisitor;
@@ -61,7 +61,7 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
                 warning('mlpet:fileDoesNotExistOnFilesystem', 'TracerBuilder.ensureSumt.obj->%s', char(obj));
                 return
             end
-            if (lexist(sprintf('%s_sumt.4dfp.ifh', ic.fqfileprefix), 'file'))
+            if (lexist(sprintf('%s_sumt.4dfp.hdr', ic.fqfileprefix), 'file'))
                 return
             end
             ic = ic.timeSummed;
@@ -261,7 +261,7 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
                 bv.lns_4dfp(lmSif);
                 popd(pwd0);
             %end
-            this.product_ = mlfourd.ImagingContext([trSif '.4dfp.ifh']);
+            this.product_ = mlfourd.ImagingContext([trSif '.4dfp.hdr']);
         end
         function this = prepareCroppedTracerRevision(this)
             %% PREPARECROPPEDTRACERREVISION
@@ -274,7 +274,7 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             ext   =  sessd.filetypeExt;
             fqfp0 =  sessd.tracerListmodeSif('typ', 'fqfp', 'frame', sessd.frame);
             fqfp  =  sessd.tracerRevision(   'typ', 'fqfp', 'frame', sessd.frame);
-            fqfn  = [fqfp '.4dfp.ifh'];
+            fqfn  = [fqfp '.4dfp.hdr'];
             
             import mlfourd.*;
             this.vendorSupport_.ensureTracerSymlinks; 
@@ -300,7 +300,7 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addRequired( ip, 'modalities', @(x) iscell(x) && all(cellfun(@(y) lexist([y '.4dfp.ifh'], 'file'), x)));
+            addRequired( ip, 'modalities', @(x) iscell(x) && all(cellfun(@(y) lexist([y '.4dfp.hdr'], 'file'), x)));
             addParameter(ip, 'blurArg', this.sessionData.umapBlurArg, @isnumeric);
             addParameter(ip, 'tag', '', @ischar);
             addParameter(ip, 'tag2', '', @ischar);
@@ -375,7 +375,7 @@ classdef TracerBuilder < mlpipeline.AbstractSessionBuilder
                 'sourceBlur', 1.0, ...
                 't40', this.buildVisitor.sagittal_inv_t4, ...
                 'useMetricGradient', true);
-            tof = mlfourd.ImagingContext([fqfp '.4dfp.ifh']);
+            tof = mlfourd.ImagingContext([fqfp '.4dfp.hdr']);
             %popd(pwd0);
         end
         

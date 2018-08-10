@@ -43,7 +43,7 @@ classdef Test_AtlasBuilder < matlab.unittest.TestCase
         end  
         function test_mprForReconall(this)
             pwd0 = pushd(this.sessd.vLocation);
-            this.viewer.view(this.testObj.mprForReconall('typ','fn'), 't1_mprage_sag_series122.4dfp.ifh')
+            this.viewer.view(this.testObj.mprForReconall('typ','fn'), 't1_mprage_sag_series122.4dfp.hdr')
             popd(pwd0);
         end
 	end

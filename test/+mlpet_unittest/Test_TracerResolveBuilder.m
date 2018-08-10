@@ -129,7 +129,7 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             this.verifyEqual( ...
                 uncorrected(1).product.fqfilename, ...
                 fullfile(this.pwd0, 'V1', 'FDG_V1-NAC', 'E1to9', ...
-                sprintf('umapSynth_op_fdgv%ie1to9r1_frame1.4dfp.ifh', this.vnumber)));
+                sprintf('umapSynth_op_fdgv%ie1to9r1_frame1.4dfp.hdr', this.vnumber)));
         end
         function test_motionUncorrectToFrames(this)
             this.testObj = this.testObj.partitionMonolith;
@@ -159,7 +159,7 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             this.testObj.sessionData = this.testObj.resolveBuilder.sessionData;
             this.testObj             = this.testObj.motionUncorrectUmapToEpochs(prod);
             this.verifyEqual(this.testObj(8).product.fqfilename, ...
-                fullfile(this.pwd0, 'V1', 'FDG_V1-NAC', 'E1to9', 'umapSynth_op_fdgv1e1to9r1_frame8.4dfp.ifh'));
+                fullfile(this.pwd0, 'V1', 'FDG_V1-NAC', 'E1to9', 'umapSynth_op_fdgv1e1to9r1_frame8.4dfp.hdr'));
         end
         function test_motionUncorrectUmapToFrames(this)
             this.testObj   = this.testObj.partitionMonolith;

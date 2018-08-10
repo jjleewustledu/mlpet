@@ -15,7 +15,7 @@ classdef RoisBuilder < mlpipeline.AbstractSessionBuilder
             %% APARCASEGBINARIZED uses a pre-existing ct4rb to orthogonally project aparcAseg to the target of ct4rb,
             %  then binarize.
             %  @param required t4rb is an mlfourdfp.IT4ResolveBuilder.
-            %  @param optional reuse is logical; default true -> use aparcAsegBinarized_op_tracerRevision.4dfp.ifh.
+            %  @param optional reuse is logical; default true -> use aparcAsegBinarized_op_tracerRevision.4dfp.hdr.
             %  returns aab, an mlfourd.ImagingContext.
             
             ip = inputParser;
@@ -25,13 +25,13 @@ classdef RoisBuilder < mlpipeline.AbstractSessionBuilder
             
             sessd = this.sessionData;            
             pwd0 = pushd(sessd.tracerLocation);
-            aab = sprintf('aparcAsegBinarized_op_%s.4dfp.ifh', sessd.tracerRevision('typ','fp'));
+            aab = sprintf('aparcAsegBinarized_op_%s.4dfp.hdr', sessd.tracerRevision('typ','fp'));
             if (ip.Results.reuse && lexist(aab, 'file'))
                 aab = mlfourd.ImagingContext(aab);
                 return
             end
             
-            aa = 'aparcAseg.4dfp.ifh';
+            aa = 'aparcAseg.4dfp.hdr';
             if (~lexist(aa))
                 aa = sessd.aparcAseg('typ', 'mgz');
                 aa = sessd.mri_convert(aa, 'aparcAseg.nii.gz');
@@ -40,11 +40,11 @@ classdef RoisBuilder < mlpipeline.AbstractSessionBuilder
             end
             t4rb = ip.Results.t4rb;
             aa = t4rb.t4img_4dfp_0(sessd.brainmask('typ','fp'), mybasename(aa), 'options', '-n'); % target is specified by t4rb
-            aa = mlfourd.ImagingContext([aa '.4dfp.ifh']);
+            aa = mlfourd.ImagingContext([aa '.4dfp.hdr']);
             nn = aa.numericalNiftid;
-            nn.saveas(['aparcAseg_' t4rb.resolveTag '.4dfp.ifh']);
+            nn.saveas(['aparcAseg_' t4rb.resolveTag '.4dfp.hdr']);
             nn = nn.binarized; % set threshold to intensity floor
-            nn.saveas(['aparcAsegBinarized_' t4rb.resolveTag '.4dfp.ifh']);
+            nn.saveas(['aparcAsegBinarized_' t4rb.resolveTag '.4dfp.hdr']);
             aab = mlfourd.ImagingContext(nn);
             
             % teardown
@@ -64,21 +64,21 @@ classdef RoisBuilder < mlpipeline.AbstractSessionBuilder
             import mlfourd.*;
             pwd0 = pushd(this.sessionData.tracerLocation);
             tracerSafe = mybasename(this.ensureSafeFileprefix(ip.Results.tracerFn));
-            if (lexist([tracerSafe '_mskt.4dfp.ifh'], 'file') && ...
-                lexist([tracerSafe '_msktNorm.4dfp.ifh'], 'file'))
-                mskt     = ImagingContext([tracerSafe '_mskt.4dfp.ifh']);
-                msktNorm = ImagingContext([tracerSafe '_msktNorm.4dfp.ifh']);
+            if (lexist([tracerSafe '_mskt.4dfp.hdr'], 'file') && ...
+                lexist([tracerSafe '_msktNorm.4dfp.hdr'], 'file'))
+                mskt     = ImagingContext([tracerSafe '_mskt.4dfp.hdr']);
+                msktNorm = ImagingContext([tracerSafe '_msktNorm.4dfp.hdr']);
                 return
             end
             
             lns_4dfp(ip.Results.tracerFn, tracerSafe);            
             st4rb  = mlfourdfp.SimpleT4ResolveBuilder('sessionData', this.sessionData);
             st4rb.msktgenImg(tracerSafe); % no resolving done, just utility call
-            mskt   = ImagingContext([tracerSafe '_mskt.4dfp.ifh']);
+            mskt   = ImagingContext([tracerSafe '_mskt.4dfp.hdr']);
             msktNN = mskt.numericalNiftid;
             msktNN.img = msktNN.img/msktNN.dipmax;
             msktNN.fileprefix = [tracerSafe '_msktNorm'];
-            msktNN.filesuffix = '.4dfp.ifh';
+            msktNN.filesuffix = '.4dfp.hdr';
             msktNN.save;
             msktNorm = ImagingContext(msktNN);
             

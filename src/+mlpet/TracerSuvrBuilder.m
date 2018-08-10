@@ -51,7 +51,7 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
         %%
         
         function obj = atlas(this, varargin)
-            fqfn = fullfile(this.sessionData.subjectsDir, 'jjlee2', 'atlasTest', 'source', 'HYGLY_atlas.4dfp.ifh');
+            fqfn = fullfile(this.sessionData.subjectsDir, 'jjlee2', 'atlasTest', 'source', 'HYGLY_atlas.4dfp.hdr');
             obj  = this.sessionData.fqfilenameObject(fqfn, varargin{:});
         end
         function p = buildAll(this)
@@ -136,7 +136,7 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
             end
             import mlfourd.*;
             msk = NumericalNIfTId.load( ...
-                fullfile(getenv('REFDIR'), sprintf('711-2B_%i_brain.4dfp.ifh', this.atlasVoxelSize)));
+                fullfile(getenv('REFDIR'), sprintf('711-2B_%i_brain.4dfp.hdr', this.atlasVoxelSize)));
             msk.img = double(msk.img > 0);
             tracerTW = NumericalNIfTId.load(this.tracerTimeWindowedOnAtl);
             expect = tracerTW.volumeAveraged(msk);
@@ -195,7 +195,7 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
         function [this,cmro2,oef,msk,mdl] = buildBetas(this)
             import mlfourd.*;
             msk = NumericalNIfTId.load( ...
-                fullfile(getenv('REFDIR'), sprintf('711-2B_%i_brain.4dfp.ifh', this.atlasVoxelSize)));
+                fullfile(getenv('REFDIR'), sprintf('711-2B_%i_brain.4dfp.hdr', this.atlasVoxelSize)));
             msk_ = logical(msk.img > 0);
             msk  = mlfourd.ImagingContext(msk);
             cbf  = this.tracerSuvrNamed('ho', 'typ', 'numericalNiftid');  
@@ -322,7 +322,7 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
         function s      = volumeAverage(~, obj)
             import mlfourd.*;
             msk = NumericalNIfTId.load( ...
-                fullfile(getenv('REFDIR'), sprintf('711-2B_%i_brain.4dfp.ifh', this.atlasVoxelSize)));
+                fullfile(getenv('REFDIR'), sprintf('711-2B_%i_brain.4dfp.hdr', this.atlasVoxelSize)));
             msk.img = double(msk.img > 0);
             ic = ImagingContext(obj);
             nn = ic.numericalNiftid;

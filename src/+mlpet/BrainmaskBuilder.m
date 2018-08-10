@@ -26,13 +26,13 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
             pwd0    = pushd(ensuredir(this.sessionData.tracerLocation));
             sessd   = this.sessionData;
             tr      = ip.Results.tracer;
-            if (~lexist([tr.fileprefix '_brain.4dfp.ifh'], 'file'))
+            if (~lexist([tr.fileprefix '_brain.4dfp.hdr'], 'file'))
                 [~,msktNorm] = this.msktgenImg; % ImagingContext
                 msktNormNN   = msktNorm.numericalNiftid;
                 tr_sumtNN    = tr.numericalNiftid;
                 tr           = mlfourd.ImagingContext(tr_sumtNN.*msktNormNN);
                 tr.filepath  = pwd;
-                tr.filename  = [ip.Results.tracer.fileprefix '_brain.4dfp.ifh'];
+                tr.filename  = [ip.Results.tracer.fileprefix '_brain.4dfp.hdr'];
                 tr.save;
             end
             
@@ -41,7 +41,7 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
             end            
             ct4rb = mlfourdfp.CompositeT4ResolveBuilder( ...
                 'sessionData', sessd, 'theImages', {tr.fileprefix this.brainmask.fileprefix});
-            bmbbFn = sessd.brainmaskBinarizeBlended('tag', ['_' ct4rb.resolveTag], 'typ', 'fn.4dfp.ifh');
+            bmbbFn = sessd.brainmaskBinarizeBlended('tag', ['_' ct4rb.resolveTag], 'typ', 'fn.4dfp.hdr');
             if (ip.Results.reuse && lexist(bmbbFn))
                 bmbb = mlfourd.ImagingContext(bmbbFn);
                 return
@@ -78,7 +78,7 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
         end
         
  		function this = BrainmaskBuilder(varargin)
- 			%% BRAINMASKBUILDER ensures there exists sessionData.vLocation/brainmask.4dfp.ifh;
+ 			%% BRAINMASKBUILDER ensures there exists sessionData.vLocation/brainmask.4dfp.hdr;
             %  it is set as the initial state of this.product.
             %  @param named 'logger' is an mlpipeline.AbstractLogger.
             %  @param named 'product' is the initial state of the product to build.
@@ -89,7 +89,7 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
             sessd = this.sessionData;
             bmfp  = fullfile(sessd.vLocation, sessd.brainmask('typ', 'fp'));
             bmnii = [bmfp '.nii'];
-            bmifh = [bmfp '.4dfp.ifh'];
+            bmifh = [bmfp '.4dfp.hdr'];
             if (~lexist_4dfp(bmifh))
                 sessd.mri_convert(sessd.brainmask('typ', 'fqfn'), bmnii);
                 sessd.nifti_4dfp_4(bmfp);
