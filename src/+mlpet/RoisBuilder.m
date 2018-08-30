@@ -39,7 +39,8 @@ classdef RoisBuilder < mlpipeline.AbstractSessionBuilder
                 sessd.nifti_4dfp_4(aa);
             end
             t4rb = ip.Results.t4rb;
-            aa = t4rb.t4img_4dfp_0(sessd.brainmask('typ','fp'), mybasename(aa), 'options', '-n'); % target is specified by t4rb
+            t4 = sprintf('%s_to_%s_t4', sessd.brainmask('typ','fp'), t4rb.resolveTag);
+            aa = t4rb.t4img_4dfp(t4, mybasename(aa), 'options', '-n'); % target is specified by t4rb
             aa = mlfourd.ImagingContext([aa '.4dfp.hdr']);
             nn = aa.numericalNiftid;
             nn.saveas(['aparcAseg_' t4rb.resolveTag '.4dfp.hdr']);

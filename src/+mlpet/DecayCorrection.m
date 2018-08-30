@@ -91,9 +91,10 @@ classdef DecayCorrection < handle
             %  @param c is counts, activity, specific activity
             %  @param zeroTime is numeric, optional
             
-            if (this.client_.isDecayCorrected)
-                return
-            end
+%             if (isprop(this.client_, 'isDecayCorrected') && ...
+%                        this.client_.isDecayCorrected)
+%                 return
+%             end
             c = this.adjustActivities(c, 1, varargin{:});
         end
         function c = uncorrectedActivities(this, c, varargin)
@@ -101,9 +102,10 @@ classdef DecayCorrection < handle
             %  @param c is counts, activity, specific activity
             %  @param zeroTime is numeric, optional
             
-            if (~this.client_.isDecayCorrected)
-                return
-            end
+%             if (isprop(this.client_, 'isDecayCorrected') && ...
+%                       ~this.client_.isDecayCorrected)
+%                 return
+%             end
             c = this.adjustActivities(c, -1, varargin{:});
         end
     end

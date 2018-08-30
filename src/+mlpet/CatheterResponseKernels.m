@@ -19,20 +19,28 @@ classdef CatheterResponseKernels
  			%% CATHETERRESPONSEKERNELS
  			%  Usage:  this = CatheterResponseKernels()
 
-            switch (choice)
-                case 'bsrf_id1'
-                    load(fullfile('ARBELAEZ'), 'bsrf120_id1.mat');
-                    kernel = bsrf120_id1;
-                case 'bsrf_id2'
-                    load(fullfile('ARBELAEZ'), 'bsrf120_id2.mat');
-                    kernel = bsrf120_id2;
-                case 'kernelBest' % red catheter, by Savitsky-Golay filtering
-                    load(fullfile(getenv('ARBELAEZ'), 'kernelBest.mat'));
-                    kernel = kernelBest;
-                    kernel = kernel(12:40);
-                    kernel(kernel < 0) = 0;
-                otherwise
-                    error('mlpet:unmatchedSwitchCase', 'CatheterResponseKernels.ctor');
+            try
+                switch (choice)
+                    case 'bsrf_id1'
+                        load(fullfile('ARBELAEZ'), 'bsrf120_id1.mat');
+                        kernel = bsrf120_id1;
+                    case 'bsrf_id2'
+                        load(fullfile('ARBELAEZ'), 'bsrf120_id2.mat');
+                        kernel = bsrf120_id2;
+                    case 'kernelBest' % red catheter, by Savitsky-Golay filtering
+                        load(fullfile(getenv('ARBELAEZ'), 'kernelBest.mat'));
+                        kernel = kernelBest;
+                        kernel = kernel(12:40);
+                        kernel(kernel < 0) = 0;
+                    otherwise
+                        assert(ischar(choice));
+                        load(choice); %#ok<LOAD>
+                        kernel = kernelBest;
+                end
+            catch ME
+                dispwarning(ME);
+                this.kernel = [];
+                return
             end
             this.kernel = kernel/sum(kernel);
  		end
