@@ -11,16 +11,20 @@ classdef Radionuclides
     end
     
 	properties (Dependent)
-        decayConstant % \alpha = log(2)/\tau_{1/2}
+        decayConstant % legacy synonym for decayRate
+        decayRate % \alpha = log(2)/\tau_{1/2}
         halflife
         isotope
         lifetime
-        nuclide % legacy synonym
+        nuclide % legacy synonym for isotope
     end
  		
     methods %% GET
         function g = get.decayConstant(this)
-            g = log(2)/this.halflife;
+            g = this.decayRate;
+        end
+        function g = get.decayRate(this)
+            g = log(2)/this.halflife;            
         end
         function g = get.halflife(this)
             % wikipedia.org, 2017, in sec
@@ -33,8 +37,12 @@ classdef Radionuclides
                     g = 20.33424*60;
                 case '68Ga'
                     g = 67.719*60;
+                case '68Ge'
+                    g = 270.8*86400; % days * (sec/day)
                 case '18F'
                     g = 109.77120*60;
+                case '22Na'
+                    g = 2.6018*365.2422*86400; % years * (days/year) * (sec/day)
                 otherwise
                     g = nan;
             end
@@ -52,8 +60,11 @@ classdef Radionuclides
 
     methods (Static)
         function dc = decayConstantOf(name)
+            dc = mlpet.Radionuclides.decayRateOf(name);
+        end
+        function dc = decayRateOf(name)
             this = mlpet.Radionuclides(name);
-            dc = this.decayConstant;
+            dc = this.decayRate;
         end
         function hl = halflifeOf(name)
             this = mlpet.Radionuclides(name);
@@ -64,16 +75,11 @@ classdef Radionuclides
 	methods		  
  		function this = Radionuclides(name)
  			%% RADIONUCLIDES
- 			%  Usage:  this = Radionuclides(name)
-            %  @param name is a string containing one of:  15O, 13N, 11C, 68Ga, 18F
+            %  @param name is a string containing one of:  15O, 13N, 11C, 68Ga, 68Ge, 18F, 22Na; FDG, HO, OO, OC, CO.
+            %  @throws mlpet:ValueError.
 
-            name = lower(name);
             assert(ischar(name));
-            if (lstrfind(name,  '15o') || ...
-                lstrfind(name,   'oo') || lstrfind(name, 'ho') || lstrfind(name, 'oc') || lstrfind(name, 'co'))
-                this.isotope_ = '15O';
-                return
-            end
+            name = lower(name);
             if (lstrfind(name,  '13n'))
                 this.isotope_ = '13N';
                 return
@@ -86,11 +92,24 @@ classdef Radionuclides
                 this.isotope_ = '68Ga';
                 return
             end
-            if (lstrfind(name,  '18f'))
+            if (lstrfind(name,  '68ge'))
+                this.isotope_ = '68Ge';
+                return
+            end
+            if (lstrfind(name,  '18f') || lstrfind(name, 'fdg'))
                 this.isotope_ = '18F';
                 return
             end
-            error('mlpet:unsupportedParamValue', 'Radionuclide.ctor.name->%s', name);
+            if (lstrfind(name,  '22na'))
+                this.isotope_ = '22Na';
+                return
+            end
+            if (lstrfind(name,  '15o') || ...
+                lstrfind(name,   'oo') || lstrfind(name, 'ho') || lstrfind(name, 'oc') || lstrfind(name, 'co'))
+                this.isotope_ = '15O';
+                return
+            end
+            error('mlpet:ValueError', 'Radionuclide.ctor.name->%s', name);
  		end
     end 
     
