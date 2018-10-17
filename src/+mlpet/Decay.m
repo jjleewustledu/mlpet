@@ -45,6 +45,7 @@ classdef Decay < handle & mlpet.IDecaying
             if (this.isdecaying)
                 this.zerodose_ = this.zerodose_*this.decayFactor(s);
             end
+            this.zerodatetime_ = this.zerodatetime_ + seconds(s - this.zerotime_);
             this.zerotime_ = s;            
         end
         function g = get.zerodatetime(this)

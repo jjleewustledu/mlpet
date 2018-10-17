@@ -219,18 +219,21 @@ classdef Test_Decay < matlab.unittest.TestCase
             this.verifyEqual(obj.predictDose(0),     30); 
             this.verifyEqual(obj.predictDose(hl_),   15);
             this.verifyEqual(obj.predictDose(2*hl_), 7.5);
+            this.verifyEqual(obj.zerodatetime, this.zerodatetime_ + seconds(hl_));
             
             obj.zerotime = 0;
             this.verifyEqual(obj.zerodose,           30);
             this.verifyEqual(obj.predictDose(0),     30);  
             this.verifyEqual(obj.predictDose(hl_),   15);
             this.verifyEqual(obj.predictDose(2*hl_), 7.5);
+            this.verifyEqual(obj.zerodatetime, this.zerodatetime_);
             
             obj.zerotime = -hl_;
             this.verifyEqual(obj.zerodose,           60);
             this.verifyEqual(obj.predictDose(0),     30);
             this.verifyEqual(obj.predictDose(hl_),   15);
-            this.verifyEqual(obj.predictDose(2*hl_), 7.5);            
+            this.verifyEqual(obj.predictDose(2*hl_), 7.5);  
+            this.verifyEqual(obj.zerodatetime, this.zerodatetime_ - seconds(hl_));          
         end
         function test_zerodatetime(this)
             this.verifyEqual(this.testObj.zerodatetime, this.zerodatetime_);
@@ -239,21 +242,19 @@ classdef Test_Decay < matlab.unittest.TestCase
 
  	methods (TestClassSetup)
 		function setupDecay(this)
- 			import mlpet.*;
             this.zerodatetime_ = datetime(datestr(now));
- 			this.testObj_ = Decay('isotope', '15O', 'zerodose', 30, 'zerotime', 0, 'zerodatetime', this.zerodatetime_);
  		end
 	end
 
  	methods (TestMethodSetup)
 		function setupDecayTest(this)
- 			this.testObj = this.testObj_;
+ 			import mlpet.*;
+ 			this.testObj = Decay('isotope', '15O', 'zerodose', 30, 'zerotime', 0, 'zerodatetime', this.zerodatetime_);
  			this.addTeardown(@this.cleanTestMethod);
  		end
 	end
 
 	properties (Access = private)
- 		testObj_
         zerodatetime_
  	end
 
