@@ -7,11 +7,11 @@ classdef Decay < handle & mlpet.IDecaying
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
  	
 	properties (Dependent)
- 		isdecaying
+        activities
         halflife
+ 		isdecaying
         isotope
         tracer
-        zerodose
         zerotime
         zerodatetime
  	end
@@ -20,6 +20,9 @@ classdef Decay < handle & mlpet.IDecaying
         
         %% GET
         
+        function g = get.activities(this)
+            g = this.activities_;
+        end
         function g = get.isdecaying(this)
             g = this.isdecaying_;
         end
@@ -32,18 +35,15 @@ classdef Decay < handle & mlpet.IDecaying
         function g = get.tracer(this)
             g = this.tracer_;
         end
-        function g = get.zerodose(this)
-            g = this.zerodose_;
-        end
         function g = get.zerotime(this)
             g = this.zerotime_;
         end
         function     set.zerotime(this, s)
-            %% SET.ZEROTIME will adjust zerodose for internal consistency.
+            %% SET.ZEROTIME will adjust zerodatetime & activities for internal consistency.
             
             assert(isscalar(s), 'mlpet:ValueError', 'Decay.set.zerotime.s is a %s', class(s));
             if (this.isdecaying)
-                this.zerodose_ = this.zerodose_*this.decayFactor(s);
+                this.activities_ = this.tprod(this.activities_, this.decayFactor(s));
             end
             this.zerodatetime_ = this.zerodatetime_ + seconds(s - this.zerotime_);
             this.zerotime_ = s;            
@@ -54,17 +54,17 @@ classdef Decay < handle & mlpet.IDecaying
         
         %%
         
-        function a = decayActivities(this, a, varargin)
+        function a = decayActivities(this, varargin)
             %% DECAYACTIVITIES introduces effects of decay, avoiding double decay.
-            %  @param required a is activity, which is numeric.
             %  @param optional times is numeric; default := 0.
-            %  @return activities
+            %  @return activities numeric.
             
-            assert(isnumeric(a));
             if (this.isdecaying)
+                a = this.activities_;
                 return
             end
-            a = a.*this.decayFactor(varargin{:});
+            this.activities_ = this.tprod(this.activities_, this.decayFactor(varargin{:}));
+            a = this.activities_;
             this.isdecaying_ = true;
         end
         function f = decayFactor(this, varargin)
@@ -75,13 +75,6 @@ classdef Decay < handle & mlpet.IDecaying
             
             f = this.createFactor(-1, varargin{:});
         end        
-        function d = predictDose(this, varargin)
-            %% PREDICTDOSE predicts decay effects on the zerodose.
-            %  @param tdt is numeric | datetime.
-            %  @return predicted doses for tdt.
-            
-            d = this.zerodose_*this.decayFactor(varargin{:});
-        end
         function [a,t] = shiftWorldline(this, varargin)
             %% SHIFTWORLDLINE shifts activities and zerotime w.r.t. time to emulate sampling an AIF or TAC from another
             %  spacetime coordinate.  Activities shifted back in time will have increased amplitude; activities shifted 
@@ -99,17 +92,17 @@ classdef Decay < handle & mlpet.IDecaying
             a = ip.Results.a.*this.decayFactor(ip.Results.shift);
             t = ip.Results.t + ip.Results.shift;            
         end
-        function a = undecayActivities(this, a, varargin)
+        function a = undecayActivities(this, varargin)
             %% UNDECAYACTIVITIES removes any effects of decay, avoiding double undecay.
-            %  @param required a is activity, which is numeric.
             %  @param optional times is numeric; default := 0.
-            %  @return activities
+            %  @return activities numeric.
             
-            assert(isnumeric(a));
             if (~this.isdecaying)
+                a = this.activities_;
                 return
             end
-            a = a.*this.undecayFactor(varargin{:});
+            this.activities_ = this.tprod(this.activities_, this.undecayFactor(varargin{:}));
+            a = this.activities_;
             this.isdecaying_ = false;
         end        
         function f = undecayFactor(this, varargin)
@@ -123,30 +116,29 @@ classdef Decay < handle & mlpet.IDecaying
         
  		function this = Decay(varargin)
  			%% DECAY
-            %  @param isotope is char.
-            %  @param tracer is char.
+            %  @param activities := nan without assuming physical units.
  			%  @param isdecaying := true.
-            %  @param zerodose is scalar with arbitrary units.
-            %  @param zerotime is scalar.
-            %  @param zerodatetime is a single datetime.
+            %  @param isotope := ''.
+            %  @param tracer := ''.
+            %  @param zerotime := 0 is scalar.
+            %  @param zerodatetime := NaT is a single datetime.
             
             ip = inputParser;
+            addParameter(ip, 'activities', nan, @isnumeric);
+            addParameter(ip, 'isdecaying', true, @islogical);
             addParameter(ip, 'isotope', '', @ischar);
             addParameter(ip, 'tracer', '', @ischar);
-            addParameter(ip, 'isdecaying', true, @islogical);
-            addParameter(ip, 'zerodose', nan, @(x) isscalar(x) && x > 0);
             addParameter(ip, 'zerotime', 0, @isscalar);
             addParameter(ip, 'zerodatetime', NaT, @(x) isdatetime(x) && length(x) == 1);
             parse(ip, varargin{:});
-
+            this.activities_ = ip.Results.activities;
+            this.isdecaying_ = ip.Results.isdecaying;
             if (~isempty(ip.Results.isotope))
                 this.radionucl_ = mlpet.Radionuclides(ip.Results.isotope);
             else
                 this.radionucl_ = mlpet.Radionuclides(ip.Results.tracer);
             end
             this.tracer_ = ip.Results.tracer;
-            this.isdecaying_ = ip.Results.isdecaying;
-            this.zerodose_ = ip.Results.zerodose;
             this.zerotime_ = ip.Results.zerotime;
             this.zerodatetime_ = ip.Results.zerodatetime;
  		end
@@ -155,10 +147,10 @@ classdef Decay < handle & mlpet.IDecaying
     %% PRIVATE
     
     properties (Access = private)
+        activities_
         isdecaying_
         radionucl_
         tracer_
-        zerodose_
         zerotime_
         zerodatetime_
     end
@@ -168,10 +160,11 @@ classdef Decay < handle & mlpet.IDecaying
             %% CREATEFACTOR introduces or removes effects of decay.
             %  @param required sgn is numeric.
             %  @param optional tdt is numeric | datetime; default := 0.
+            %  @return f is the numeric factor.
             %  @throws mlpet:ValueError.
             
             ip = inputParser;
-            addRequired(ip, 'sgn', @isnumeric);
+            addRequired(ip, 'sgn', @isscalar);
             addOptional(ip, 'tdt', 0, @(x) isnumeric(x) || isdatetime(x));
             parse(ip, varargin{:});          
             
@@ -183,6 +176,41 @@ classdef Decay < handle & mlpet.IDecaying
                 deltat = ip.Results.tdt - this.zerotime_;
             end
             f = 2.^(sgn*deltat/this.halflife);
+        end
+        function p = tprod(~, a, t)
+            t = ensureRowVector(t);
+            switch (ndims(a))
+                case {1,2}
+                    p = zeros(size(a));
+                    for it = 1:length(t)
+                        p(:,it) = a(:,it) * t(it);
+                    end
+                case 3
+                    p = zeros(size(a));
+                    for it = 1:length(t)
+                        p(:,:,it) = a(:,:,it) * t(it);
+                    end
+                case 4
+                    p = zeros(size(a));
+                    for it = 1:length(t)
+                        p(:,:,:,it) = a(:,:,:,it) * t(it);
+                    end
+                otherwise
+                    error('mlpet:IndexError', 'Decay.trpod ndims(a)->%i', ndims(a));
+            end
+        end
+    end
+    
+    %% HIDDEN
+    
+    methods (Hidden)
+        function a = predictActivities(this, varargin)
+            %% PREDICTACTIVITIES predicts decay effects on activity without changing internal state.
+            %  Intention is for debugging.
+            %  @param tdt is numeric | datetime.
+            %  @return predicted activities for tdt.
+            
+            a = this.tprod(this.activities, this.decayFactor(varargin{:}));
         end
     end
 

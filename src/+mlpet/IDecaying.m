@@ -7,11 +7,11 @@ classdef (Abstract) IDecaying < handle
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
  	
 	properties (Abstract)
+        activities
  		isdecaying
         halflife
         isotope
         tracer
-        zerodose
         zerotime
         zerodatetime 		
  	end

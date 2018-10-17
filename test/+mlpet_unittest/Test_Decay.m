@@ -72,12 +72,26 @@ classdef Test_Decay < matlab.unittest.TestCase
                 this.testObj.isdecaying = false;
             end
         end
+        function test_decayActivities_tensor(this)
+            u = ones(2, 2, 2, 123);
+            u(1,2,:,:) = 2*u(1,1,:,:);
+            u(2,1,:,:) = 3*u(1,1,:,:);
+            u(2,2,:,:) = 4*u(1,1,:,:);
+            d = 2.^(-(0:122)/this.hlife);
+            obj = mlpet.Decay('isotope', '15O', 'isdecaying', false, 'activities', u);
+            
+            da = obj.decayActivities(0:122);
+            this.verifyEqual(squeeze(da(1,1,1,:))',   d, 'RelTol', sqrt(eps));
+            this.verifyEqual(squeeze(da(1,2,1,:))', 2*d, 'RelTol', sqrt(eps)); 
+            this.verifyEqual(squeeze(da(2,1,1,:))', 3*d, 'RelTol', sqrt(eps)); 
+            this.verifyEqual(squeeze(da(2,2,1,:))', 4*d, 'RelTol', sqrt(eps));         
+        end
         function test_decayActivities(this)
-            obj = mlpet.Decay('isotope', '15O', 'isdecaying', false);
             u = ones(1, 123);
             d = 2.^(-(0:122)/this.hlife);
+            obj = mlpet.Decay('isotope', '15O', 'isdecaying', false, 'activities', u);
             
-            this.verifyEqual(obj.decayActivities(u, 0:122), d, 'RelTol', sqrt(eps));
+            this.verifyEqual(obj.decayActivities(0:122), d, 'RelTol', sqrt(eps));
             if (this.verbose)
                 figure;
                 plot(0:122, u, 0:122, d); ylim([0 2]); 
@@ -86,18 +100,19 @@ classdef Test_Decay < matlab.unittest.TestCase
             end                
         end
         function test_decayActivities_twice(this)
-            obj = mlpet.Decay('isotope', '15O', 'isdecaying', false);
             u = ones(1, 123);
             d = 2.^(-(0:122)/this.hlife);
+            obj = mlpet.Decay('isotope', '15O', 'isdecaying', false, 'activities', u);
             
-            this.verifyEqual(obj.decayActivities(obj.decayActivities(u, 0:122), 0:122), d, 'RelTol', sqrt(eps));               
+            obj.decayActivities(0:122); % decay internal activities_
+            this.verifyEqual(obj.decayActivities(0:122), d, 'RelTol', sqrt(eps));               
         end
         function test_decayActivities_zerotime(this)            
-            obj = mlpet.Decay('isotope', '15O', 'zerotime', this.hlife, 'isdecaying', false);
             u = ones(1, 123);
             d2 = 2.^(-((-this.hlife):(122-this.hlife))/this.hlife);
+            obj = mlpet.Decay('isotope', '15O', 'zerotime', this.hlife, 'isdecaying', false, 'activities', u);
             
-            this.verifyEqual(obj.decayActivities(u, 0:122), d2, 'RelTol', sqrt(eps));
+            this.verifyEqual(obj.decayActivities(0:122), d2, 'RelTol', sqrt(eps));
             if (this.verbose)
                 figure;
                 plot(0:122, u, 0:122, d2); ylim([0 2]); 
@@ -106,11 +121,11 @@ classdef Test_Decay < matlab.unittest.TestCase
             end    
         end
         function test_undecayActivities(this)
-            obj = mlpet.Decay('isotope', '15O', 'isdecaying', true);
             d = 2.^(-(0:122)/this.hlife);
             u = ones(1, 123);
+            obj = mlpet.Decay('isotope', '15O', 'isdecaying', true, 'activities', d);
             
-            this.verifyEqual(obj.undecayActivities(d, 0:122), u, 'RelTol', sqrt(eps));
+            this.verifyEqual(obj.undecayActivities(0:122), u, 'RelTol', sqrt(eps));
             if (this.verbose)
                 figure;
                 plot(0:122, d, 0:122, u); ylim([0 2]); 
@@ -119,18 +134,19 @@ classdef Test_Decay < matlab.unittest.TestCase
             end    
         end
         function test_undecayActivities_twice(this)
-            obj = mlpet.Decay('isotope', '15O', 'isdecaying', true);
             d = 2.^(-(0:122)/this.hlife);
             u = ones(1, 123);
+            obj = mlpet.Decay('isotope', '15O', 'isdecaying', true, 'activities', d);
             
-            this.verifyEqual(obj.undecayActivities(obj.undecayActivities(d, 0:122), 0:122), u, 'RelTol', sqrt(eps));   
+            obj.undecayActivities(0:122); % undecay internal activities_
+            this.verifyEqual(obj.undecayActivities(0:122), u, 'RelTol', sqrt(eps));   
         end
         function test_undecayActivities_zerotime(this)            
-            obj = mlpet.Decay('isotope', '15O', 'zerotime', this.hlife, 'isdecaying', true);
             d = 2.^(-(0:122)/this.hlife);
             u2 = ones(1, 123)/2;
+            obj = mlpet.Decay('isotope', '15O', 'zerotime', this.hlife, 'isdecaying', true, 'activities', d);
             
-            this.verifyEqual(obj.undecayActivities(d, 0:122), u2, 'RelTol', sqrt(eps));
+            this.verifyEqual(obj.undecayActivities(0:122), u2, 'RelTol', sqrt(eps));
             if (this.verbose)
                 figure;
                 plot(0:122, d, 0:122, u2); ylim([0 2]); 
@@ -141,14 +157,14 @@ classdef Test_Decay < matlab.unittest.TestCase
         function test_halflife(this)
             this.verifyEqual(this.testObj.halflife, this.hlife);
         end
-        function test_predictDose(this)
+        function test_predictActivities(this)
             obj = this.testObj;
             hl_ = this.hlife; % [15O] halflife
             
-            this.verifyEqual(obj.predictDose(-hl_),  60);
-            this.verifyEqual(obj.predictDose(0),     30);
-            this.verifyEqual(obj.predictDose(hl_),   15);
-            this.verifyEqual(obj.predictDose(2*hl_), 7.5);
+            this.verifyEqual(obj.predictActivities(-hl_),  60);
+            this.verifyEqual(obj.predictActivities(0),     30);
+            this.verifyEqual(obj.predictActivities(hl_),   15);
+            this.verifyEqual(obj.predictActivities(2*hl_), 7.5);
         end
         function test_shiftWorldline(this)
             t  = 0:3*round(this.hlife);
@@ -206,33 +222,33 @@ classdef Test_Decay < matlab.unittest.TestCase
                 hold off
             end
         end
-        function test_zerodose(this)
-            this.verifyEqual(this.testObj.zerodose, 30);
+        function test_activities(this)
+            this.verifyEqual(this.testObj.activities, 30);
         end
         function test_zerotime(this)
             obj = this.testObj;
             hl_ = this.hlife; % [15O] halflife
             
-            % zerodose changes concommitantly
+            % activities changes concommitantly
             obj.zerotime = hl_;
-            this.verifyEqual(obj.zerodose,           15);
-            this.verifyEqual(obj.predictDose(0),     30); 
-            this.verifyEqual(obj.predictDose(hl_),   15);
-            this.verifyEqual(obj.predictDose(2*hl_), 7.5);
+            this.verifyEqual(obj.activities,               15);
+            this.verifyEqual(obj.predictActivities(0),     30); 
+            this.verifyEqual(obj.predictActivities(hl_),   15);
+            this.verifyEqual(obj.predictActivities(2*hl_), 7.5);
             this.verifyEqual(obj.zerodatetime, this.zerodatetime_ + seconds(hl_));
             
             obj.zerotime = 0;
-            this.verifyEqual(obj.zerodose,           30);
-            this.verifyEqual(obj.predictDose(0),     30);  
-            this.verifyEqual(obj.predictDose(hl_),   15);
-            this.verifyEqual(obj.predictDose(2*hl_), 7.5);
+            this.verifyEqual(obj.activities,               30);
+            this.verifyEqual(obj.predictActivities(0),     30);  
+            this.verifyEqual(obj.predictActivities(hl_),   15);
+            this.verifyEqual(obj.predictActivities(2*hl_), 7.5);
             this.verifyEqual(obj.zerodatetime, this.zerodatetime_);
             
             obj.zerotime = -hl_;
-            this.verifyEqual(obj.zerodose,           60);
-            this.verifyEqual(obj.predictDose(0),     30);
-            this.verifyEqual(obj.predictDose(hl_),   15);
-            this.verifyEqual(obj.predictDose(2*hl_), 7.5);  
+            this.verifyEqual(obj.activities,               60);
+            this.verifyEqual(obj.predictActivities(0),     30);
+            this.verifyEqual(obj.predictActivities(hl_),   15);
+            this.verifyEqual(obj.predictActivities(2*hl_), 7.5);  
             this.verifyEqual(obj.zerodatetime, this.zerodatetime_ - seconds(hl_));          
         end
         function test_zerodatetime(this)
@@ -249,7 +265,7 @@ classdef Test_Decay < matlab.unittest.TestCase
  	methods (TestMethodSetup)
 		function setupDecayTest(this)
  			import mlpet.*;
- 			this.testObj = Decay('isotope', '15O', 'zerodose', 30, 'zerotime', 0, 'zerodatetime', this.zerodatetime_);
+ 			this.testObj = Decay('isotope', '15O', 'activities', 30, 'zerotime', 0, 'zerodatetime', this.zerodatetime_);
  			this.addTeardown(@this.cleanTestMethod);
  		end
 	end
