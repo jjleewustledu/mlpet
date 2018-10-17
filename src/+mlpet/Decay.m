@@ -8,6 +8,7 @@ classdef Decay < handle & mlpet.IDecaying
  	
 	properties (Dependent)
         activities
+        activityUnits
         halflife
  		isdecaying
         isotope
@@ -22,6 +23,9 @@ classdef Decay < handle & mlpet.IDecaying
         
         function g = get.activities(this)
             g = this.activities_;
+        end
+        function g = get.activityUnits(this)
+            g = this.activityUnits_;
         end
         function g = get.isdecaying(this)
             g = this.isdecaying_;
@@ -54,6 +58,14 @@ classdef Decay < handle & mlpet.IDecaying
         
         %%
         
+        function a = predictDecay(this, varargin)
+            %% PREDICTDECAY predicts introducing decay effects on activity without changing internal state.
+            %  Intention is for debugging.
+            %  @param tdt is numeric | datetime.
+            %  @return predicted activities for tdt.
+            
+            a = this.tprod(this.activities, this.decayFactor(varargin{:}));
+        end
         function a = decayActivities(this, varargin)
             %% DECAYACTIVITIES introduces effects of decay, avoiding double decay.
             %  @param optional times is numeric; default := 0.
@@ -92,6 +104,14 @@ classdef Decay < handle & mlpet.IDecaying
             a = ip.Results.a.*this.decayFactor(ip.Results.shift);
             t = ip.Results.t + ip.Results.shift;            
         end
+        function a = predictUndecay(this, varargin)
+            %% PREDICTUNDECAY predicts removing decay effects on activity without changing internal state.
+            %  Intention is for debugging.
+            %  @param tdt is numeric | datetime.
+            %  @return predicted activities for tdt.
+            
+            a = this.tprod(this.activities, this.undecayFactor(varargin{:}));
+        end
         function a = undecayActivities(this, varargin)
             %% UNDECAYACTIVITIES removes any effects of decay, avoiding double undecay.
             %  @param optional times is numeric; default := 0.
@@ -125,14 +145,16 @@ classdef Decay < handle & mlpet.IDecaying
             
             ip = inputParser;
             addParameter(ip, 'activities', nan, @isnumeric);
+            addParameter(ip, 'activityUnits', 'counts/s', @ischar);
             addParameter(ip, 'isdecaying', true, @islogical);
             addParameter(ip, 'isotope', '', @ischar);
             addParameter(ip, 'tracer', '', @ischar);
             addParameter(ip, 'zerotime', 0, @isscalar);
             addParameter(ip, 'zerodatetime', NaT, @(x) isdatetime(x) && length(x) == 1);
             parse(ip, varargin{:});
-            this.activities_ = ip.Results.activities;
-            this.isdecaying_ = ip.Results.isdecaying;
+            this.activities_    = ip.Results.activities;
+            this.activityUnits_ = ip.Results.activityUnits;
+            this.isdecaying_    = ip.Results.isdecaying;
             if (~isempty(ip.Results.isotope))
                 this.radionucl_ = mlpet.Radionuclides(ip.Results.isotope);
             else
@@ -148,6 +170,7 @@ classdef Decay < handle & mlpet.IDecaying
     
     properties (Access = private)
         activities_
+        activityUnits_
         isdecaying_
         radionucl_
         tracer_
@@ -204,14 +227,6 @@ classdef Decay < handle & mlpet.IDecaying
     %% HIDDEN
     
     methods (Hidden)
-        function a = predictActivities(this, varargin)
-            %% PREDICTACTIVITIES predicts decay effects on activity without changing internal state.
-            %  Intention is for debugging.
-            %  @param tdt is numeric | datetime.
-            %  @return predicted activities for tdt.
-            
-            a = this.tprod(this.activities, this.decayFactor(varargin{:}));
-        end
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

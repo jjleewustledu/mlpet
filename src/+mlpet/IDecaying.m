@@ -8,6 +8,7 @@ classdef (Abstract) IDecaying < handle
  	
 	properties (Abstract)
         activities
+        activityUnits
  		isdecaying
         halflife
         isotope
@@ -15,14 +16,6 @@ classdef (Abstract) IDecaying < handle
         zerotime
         zerodatetime 		
  	end
-
-	methods (Abstract)
-        decayActivities(this)
-        decayFactor(this)
-        shiftWorldline(this)
-        undecayActivities(this)
-        undecayFactor(this)
-  	end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end

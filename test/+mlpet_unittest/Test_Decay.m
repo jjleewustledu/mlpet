@@ -161,10 +161,10 @@ classdef Test_Decay < matlab.unittest.TestCase
             obj = this.testObj;
             hl_ = this.hlife; % [15O] halflife
             
-            this.verifyEqual(obj.predictActivities(-hl_),  60);
-            this.verifyEqual(obj.predictActivities(0),     30);
-            this.verifyEqual(obj.predictActivities(hl_),   15);
-            this.verifyEqual(obj.predictActivities(2*hl_), 7.5);
+            this.verifyEqual(obj.predictDecay(-hl_),  60);
+            this.verifyEqual(obj.predictDecay(0),     30);
+            this.verifyEqual(obj.predictDecay(hl_),   15);
+            this.verifyEqual(obj.predictDecay(2*hl_), 7.5);
         end
         function test_shiftWorldline(this)
             t  = 0:3*round(this.hlife);
@@ -232,23 +232,23 @@ classdef Test_Decay < matlab.unittest.TestCase
             % activities changes concommitantly
             obj.zerotime = hl_;
             this.verifyEqual(obj.activities,               15);
-            this.verifyEqual(obj.predictActivities(0),     30); 
-            this.verifyEqual(obj.predictActivities(hl_),   15);
-            this.verifyEqual(obj.predictActivities(2*hl_), 7.5);
+            this.verifyEqual(obj.predictDecay(0),     30); 
+            this.verifyEqual(obj.predictDecay(hl_),   15);
+            this.verifyEqual(obj.predictDecay(2*hl_), 7.5);
             this.verifyEqual(obj.zerodatetime, this.zerodatetime_ + seconds(hl_));
             
             obj.zerotime = 0;
             this.verifyEqual(obj.activities,               30);
-            this.verifyEqual(obj.predictActivities(0),     30);  
-            this.verifyEqual(obj.predictActivities(hl_),   15);
-            this.verifyEqual(obj.predictActivities(2*hl_), 7.5);
+            this.verifyEqual(obj.predictDecay(0),     30);  
+            this.verifyEqual(obj.predictDecay(hl_),   15);
+            this.verifyEqual(obj.predictDecay(2*hl_), 7.5);
             this.verifyEqual(obj.zerodatetime, this.zerodatetime_);
             
             obj.zerotime = -hl_;
             this.verifyEqual(obj.activities,               60);
-            this.verifyEqual(obj.predictActivities(0),     30);
-            this.verifyEqual(obj.predictActivities(hl_),   15);
-            this.verifyEqual(obj.predictActivities(2*hl_), 7.5);  
+            this.verifyEqual(obj.predictDecay(0),     30);
+            this.verifyEqual(obj.predictDecay(hl_),   15);
+            this.verifyEqual(obj.predictDecay(2*hl_), 7.5);  
             this.verifyEqual(obj.zerodatetime, this.zerodatetime_ - seconds(hl_));          
         end
         function test_zerodatetime(this)
