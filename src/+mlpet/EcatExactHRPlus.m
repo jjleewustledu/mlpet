@@ -247,7 +247,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
         end
         function w   = get.wellFactor(this)
             assert(~isempty(this.wellMatrix_), ...
-                'DecayCorrection.get.wellFactor:  this.wellMatrix_ was empty');
+                'EcatExactHRPlus.get.wellFactor:  this.wellMatrix_ was empty');
             w = this.wellMatrix_(5,1); 
         end
         function f   = get.wellFqfilename(this)

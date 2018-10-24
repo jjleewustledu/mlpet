@@ -126,7 +126,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         function this = set.doseAdminDatetime(this, s)
             assert(isa(s, 'datetime'));
             if (isempty(s.TimeZone))
-                s.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
+                s.TimeZone = mlkinetics.Timing.PREFERRED_TIMEZONE;
             end
             this.doseAdminDatetime_ = s;
         end
@@ -146,7 +146,15 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             this.isDecayCorrected_ = s;
         end
         function g    = get.isotope(this)
-            g = this.sessionData.isotope;
+            if (~isempty(this.isotope_))
+                g = this.isotope_;
+                return
+            end
+            if (~isempty(this.sessionData) && ~isempty(this.sessionData.isotope))
+                g = this.sessionData.isotope;
+                return
+            end
+            g = '';
         end   
         function g    = get.mask(this)
             g = this.mask_;
@@ -163,7 +171,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             this.sessionData_ = s;
         end      
         function g    = get.tracer(this)
-            g = this.sessionData.tracer;
+            g = this.get_tracer__;
         end
         function g    = get.W(this)
             g = this.invEfficiency;
@@ -320,24 +328,25 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'doseAdminDatetime', NaT, @(x) isa(x, 'datetime'));
             addParameter(ip, 'mask', this.ones, @(x) isa(x, 'mlfourd.INIfTI') || isa(x, 'mlfourd.ImagingContext'));
+            addParameter(ip, 'isotope', '', @ischar);
             parse(ip, varargin{:});
             this.manualData_ = ip.Results.manualData;
             this.sessionData_ = ip.Results.sessionData;
             this.doseAdminDatetime_ = ip.Results.doseAdminDatetime;
             if (isempty(this.doseAdminDatetime_.TimeZone))
-                this.doseAdminDatetime_.TimeZone = mldata.TimingData.PREFERRED_TIMEZONE;
+                this.doseAdminDatetime_.TimeZone = mlkinetics.Timing.PREFERRED_TIMEZONE;
             end
             this.mask_ = ip.Results.mask;   
             if (isa(ip.Results.mask, 'mlfourd.ImagingContext'))
                 this.mask_ = this.mask_.niftid;
             end
-            if (~isempty(this.sessionData.region))
+            this.isotope_ = ip.Results.isotope;
+            
+            if (~isempty(this.sessionData) && ~isempty(this.sessionData.region))
                 assert(~isempty(this.mask), ...
                     'mlpet:prerequisitParamIsEmpty', 'AbstractScannerData.ctor.this.mask is empty');
                 this = this.volumeAveraged(this.mask);
-            end
-            
-            this = this.createTimingData;
+            end            
             this.decayCorrection_ = mlpet.DecayCorrection.factoryFor(this);
  		end
  	end 
@@ -348,6 +357,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         decayCorrection_
         doseAdminDatetime_
         isDecayCorrected_
+        isotope_
         dt_
         manualData_
         mask_
@@ -364,26 +374,6 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
     end
     
     methods (Access = protected)
-        function this = createTimingData(this)
-            this.timingData_ = mldata.TimingData( ...
-                'times',     this.sessionData.times, ...
-                'datetime0', this.sessionData.readDatetime0 - this.manualDataClocksTimeOffsetMMRConsole);
-            if (length(size(this)) < 4)
-                return
-            end
-            if (size(this, 4) == length(this.times))
-                return
-            end
-            if (size(this, 4) < length(this.times)) % trim this.times
-                this.times = this.times(1:size(this, 4));
-            end
-            if (length(this.times) < size(this, 4)) % trim this.img
-                this.img = this.img(:,:,:,1:length(this.times));
-            end
-            warning('mlpet:unexpectedNumel', ...
-                'AbstractScannerData.createTiminData:  this.times->%i but size(this,4)->%i', ...
-                length(this.times), size(this, 4));
-        end
         function img  = activity2counts(this, img)
             %% BECQUERELS2PETCOUNTS; does not divide out number of pixels.
             
@@ -455,7 +445,10 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             end
             
             yi = pchip(x, y, xi);
-        end 
+        end
+        function g    = get_tracer__(this)
+            g = this.sessionData.tracer;
+        end
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

@@ -56,7 +56,6 @@ classdef BloodSucker < mlpet.AbstractAifData
             this.bloodSuckerDcv_ = ip.Results.bloodSuckerDcv;
             this.aifTimeShift_   = ip.Results.aifTimeShift;
             this.counts_         = this.bloodSuckerDcv_.counts;
-            this.times           = this.bloodSuckerDcv_.times;
             this.fqfilename      = this.bloodSuckerDcv_.fqfilename;            
             
             this.timingData_ = mldata.TimingData( ...
@@ -65,8 +64,8 @@ classdef BloodSucker < mlpet.AbstractAifData
             
             this = this.shiftTimes(this.aifTimeShift);
             this = this.estimateEfficiencyFactor;   
-            dc = DecayCorrection.factoryFor(this);         
-            this.counts_ = dc.uncorrectedActivities(this.counts_, -this.aifTimeShift);
+            dc = Decay('isotope', '15O', 'activities', this.counts_, 'zerotime', -this.aifTimeShift, 'isdecaying', false);
+            this.counts_ = dc.decayActivities(this.times);
             assert(length(this.counts) == length(this.taus), 'mlpet:arraySizeMismatch', 'Twilite.ctor');
             this.specificActivity_ = this.invEfficiency*this.counts./this.taus./this.visibleVolume;
         end
