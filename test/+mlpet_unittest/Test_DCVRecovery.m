@@ -24,7 +24,7 @@ classdef Test_DCVRecovery < matlab.unittest.TestCase
     
     methods %% GET
         function g = get.AMAtest_fqfn(this)
-            g = fullfile(getenv('ARBELAEZ'), 'deconvolution', 'data 2014jul17', 'AMAtest4.crv');
+            g = fullfile(getenv('HOME'), 'MATLAB-Drive', 'mlarbelaez', 'data', 'AMAtest4.crv');
         end
     end
 

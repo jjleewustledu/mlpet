@@ -56,7 +56,7 @@ classdef DecayCorrection < handle
             g = this.radionuclide_.nuclide;
         end
     
-        %%        
+        %%
 
         function c = adjustActivities(this, varargin)
             %% ADJUSTCOUNTS (un)corrects positron decay from zero-time or this.client_.time0. 

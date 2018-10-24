@@ -7,7 +7,7 @@ classdef Radionuclides
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.
  	
     properties (Constant)
-        SUPPORTED_ISOTOPES = {'15O' '13N' '11C' '68Ga' '18F'}
+        SUPPORTED_ISOTOPES = {'11C' '13N' '15O' '18F' '22Na' '68Ga' '68Ge' '137Cs'}
     end
     
 	properties (Dependent)
@@ -28,21 +28,25 @@ classdef Radionuclides
         end
         function g = get.halflife(this)
             % wikipedia.org, 2017, in sec
+            % https://www.nist.gov/pml/radionuclide-half-life-measurements-data
+            % final units in sec
             switch (this.isotope)
+                case '11C'
+                    g = 20.33424*60; % min * sec/min
+                case '13N'
+                    g = 9.97*60; % min * sec/min
                 case '15O'
                     g = 122.2416;
-                case '13N'
-                    g = 9.97*60;
-                case '11C'
-                    g = 20.33424*60;
-                case '68Ga'
-                    g = 67.719*60;
-                case '68Ge'
-                    g = 270.8*86400; % days * (sec/day)
                 case '18F'
-                    g = 109.77120*60;
+                    g = 1.82951 * 3600; % +/- 0.00034 h * sec/h
                 case '22Na'
-                    g = 2.6018*365.2422*86400; % years * (days/year) * (sec/day)
+                    g = 950.97 * 86400; % +/-0.15 days * sec/day
+                case '68Ga'
+                    g = 67.719 * 60; % min * sec/min
+                case '68Ge'
+                    g = 270.8 * 86400; % days * sec/day
+                case '137Cs'
+                    g = 11018.386400 * 86400; % +/-9.5 days * sec/day
                 otherwise
                     g = nan;
             end
@@ -75,25 +79,22 @@ classdef Radionuclides
 	methods		  
  		function this = Radionuclides(name)
  			%% RADIONUCLIDES
-            %  @param name is a string containing one of:  15O, 13N, 11C, 68Ga, 68Ge, 18F, 22Na; FDG, HO, OO, OC, CO.
+            %  @param name is a string containing one of this.SUPPORTED_ISOTOPES.
             %  @throws mlpet:ValueError.
 
             assert(ischar(name));
             name = lower(name);
-            if (lstrfind(name,  '13n'))
-                this.isotope_ = '13N';
-                return
-            end
             if (lstrfind(name,  '11c'))
                 this.isotope_ = '11C';
                 return
             end
-            if (lstrfind(name,  '68ga'))
-                this.isotope_ = '68Ga';
+            if (lstrfind(name,  '13n'))
+                this.isotope_ = '13N';
                 return
             end
-            if (lstrfind(name,  '68ge'))
-                this.isotope_ = '68Ge';
+            if (lstrfind(name,  '15o') || ...
+                lstrfind(name,  'oc') || lstrfind(name, 'co') || lstrfind(name,   'oo') || lstrfind(name, 'ho'))
+                this.isotope_ = '15O';
                 return
             end
             if (lstrfind(name,  '18f') || lstrfind(name, 'fdg'))
@@ -104,9 +105,16 @@ classdef Radionuclides
                 this.isotope_ = '22Na';
                 return
             end
-            if (lstrfind(name,  '15o') || ...
-                lstrfind(name,   'oo') || lstrfind(name, 'ho') || lstrfind(name, 'oc') || lstrfind(name, 'co'))
-                this.isotope_ = '15O';
+            if (lstrfind(name,  '68ga'))
+                this.isotope_ = '68Ga';
+                return
+            end
+            if (lstrfind(name,  '68ge'))
+                this.isotope_ = '68Ge';
+                return
+            end
+            if (lstrfind(name,  '137cs'))
+                this.isotope_ = '137Cs';
                 return
             end
             error('mlpet:ValueError', 'Radionuclide.ctor.name->%s', name);

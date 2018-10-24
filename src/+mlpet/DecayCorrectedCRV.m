@@ -28,8 +28,8 @@ classdef DecayCorrectedCRV < mlpet.CRV
             assert( isa(crv, 'mlpet.CRV'));
             assert(~isa(crv, 'mlpet.DecayCorrectedCRV'));
             
-            this.decayCorrection_ = mlpet.DecayCorrection.factoryFor(this);
-            this.counts = this.decayCorrection_.correctedActivities(this.counts, 1);
+            this.decayCorrection_ = mlpet.Decay('isotope', this.isotope, 'activities', this.counts, 'zerotime', this.time0);
+            this.counts = this.decayCorrection_.undecayActivities(this.times);
         end 
     end 
     

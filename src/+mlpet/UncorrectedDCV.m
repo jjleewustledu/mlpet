@@ -25,8 +25,8 @@ classdef UncorrectedDCV < mlpet.DCV
  			%  Usage:  this = UncorrectedDCV() 
             
  			this = this@mlpet.DCV(fileLoc); 
-            decayCorr = mlpet.DecayCorrection.factoryFor(this);
-            this.counts_ = decayCorr.uncorrectedActivities(this.counts_);
+            d = mlpet.Decay('isotope', this.isotope, 'activities', this.counts, 'zerotime', this.time0);
+            this.counts_ = d.decayActivities(this.times);
  		end 
         function t    = timeInterpolants(this, varargin)
             assert(~isempty(this.times_));

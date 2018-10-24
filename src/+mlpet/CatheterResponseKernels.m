@@ -28,7 +28,7 @@ classdef CatheterResponseKernels
                         load(fullfile('ARBELAEZ'), 'bsrf120_id2.mat');
                         kernel = bsrf120_id2;
                     case 'kernelBest' % red catheter, by Savitsky-Golay filtering
-                        load(fullfile(getenv('ARBELAEZ'), 'kernelBest.mat'));
+                        load(fullfile(getenv('HOME'), 'MATLAB-Drive', 'mlarbelaez', 'data', 'kernelBest.mat'));
                         kernel = kernelBest;
                         kernel = kernel(12:40);
                         kernel(kernel < 0) = 0;
