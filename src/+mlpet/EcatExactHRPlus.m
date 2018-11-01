@@ -37,7 +37,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
         timeF
         timeDuration
         times
-        timeMidpoints %% cf. man petproc
+        timesMid %% cf. man petproc
         taus
         counts 
         becquerels
@@ -157,7 +157,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
             assert(isnumeric(t));
             this.times_ = t;
         end
-        function tmp  = get.timeMidpoints(this)
+        function tmp  = get.timesMid(this)
             assert(~isempty(this.timeMidpoints_));
             tmp = this.timeMidpoints_;
         end
@@ -300,14 +300,14 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
             if (~isempty(varargin))
                 t = t(varargin{:}); end
         end
-        function [t,this] = timeMidpointInterpolants(this, varargin)
-            if (~isempty(this.timeMidpointInterpolants_))
-                t = this.timeMidpointInterpolants_;
+        function [t,this] = timeMidInterpolants(this, varargin)
+            if (~isempty(this.timeMidInterpolants_))
+                t = this.timeMidInterpolants_;
                 return
             end
             
             t = this.time0+this.dt/2:this.dt:this.timeF+this.dt/2;
-            this.timeMidpointInterpolants_ = t;
+            this.timeMidInterpolants_ = t;
             if (~isempty(varargin))
                 t = t(varargin{:}); end
         end
@@ -423,7 +423,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
         timeMidpoints_
         taus_
         timeInterpolants_
-        timeMidpointInterpolants_
+        timeMidInterpolants_
         tauInterpolants_
         
         header_

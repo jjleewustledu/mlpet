@@ -14,7 +14,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
     properties (Dependent)
         times
         taus  
-        timeMidpoints
+        timesMid
         time0
         timeF
         timeDuration
@@ -67,8 +67,8 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         function g    = get.taus(this)
             g = this.timingData_.taus;
         end 
-        function g    = get.timeMidpoints(this)
-            g = this.timingData_.timeMidpoints;
+        function g    = get.timesMid(this)
+            g = this.timingData_.timesMid;
         end
         function g    = get.time0(this)
             g = this.timingData_.time0;
@@ -250,8 +250,8 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         function [t,this] = timeInterpolants(this, varargin)
             [t,this] = this.timingData_.timeInterpolants(varargin{:});
         end
-        function [t,this] = timeMidpointInterpolants(this, varargin)
-            [t,this] = this.timingData_.timeMidpointInterpolants(varargin{:});
+        function [t,this] = timeMidInterpolants(this, varargin)
+            [t,this] = this.timingData_.timeMidInterpolants(varargin{:});
         end    
         
         % mlfourd.INumerical
@@ -367,7 +367,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         timeF_
         timeMidpoints_
         timeInterpolants_
-        timeMidpointInterpolants_
+        timeMidInterpolants_
         times_
         timingData_
         W_
