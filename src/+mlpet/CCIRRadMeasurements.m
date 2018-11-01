@@ -2,12 +2,13 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
 	%% CCIRRADMEASUREMENTS has dynamic properties named by this.tableNames.
 
     % capracHeader
-    % this.capracHeader -> 3×4 table
-    %     DATE_        x05_Oct_2018            PROJECTID_            CCIR_00754
-    % _____________    _____________    _________________________    __________
+    % this.capracHeader -> 4×4 table
+    %     Var1             Var2                   Var3                   Var4    
+    % _____________    _____________    _________________________    ____________
     % 
-    % 'SUBJECT ID:'    'NP995-24 V1'    'PRINCIPLE INVESTIGATOR:'    'Arbelaez'
-    % 'ISOTOPES:'      ''               'DOSES DELIVERED / mCi:'     '138.9'   
+    % 'DATE:'          '41916'          'PROJECT ID:'                'CCIR_00754'
+    % 'SUBJECT ID:'    'NP995-24 V1'    'PRINCIPLE INVESTIGATOR:'    'Arbelaez'  
+    % 'ISOTOPES:'      ''               'DOSES DELIVERED / mCi:'     '138.9'     
     % 'COMMENTS:'      ''               'OPERATOR:'                  'JJL'     
 
     % countsFdg
@@ -142,6 +143,12 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             'Twilite Calibration - Runs' 'Twilite Calibration - Runs-2' 'Twilite Calibration - Runs-2-1' ...
             'Twilite Calibration - Runs-2-2' 'Twilite Calibration - Runs-2-1-' 'Twilite Calibration - Runs-2-11' ...
             'Twilite Calibration - Runs-2-12'}
+        hasVarNames = [ ...
+            0 ...
+            1 1 1 ...
+            1 1 1 ...
+            1 1 1 ...
+            1] % top row in sheet
         hasRowNames = [ ...
             0 ...
             1 1 1 ...
@@ -199,14 +206,12 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
         function dt   = datetime(this)
             %% DATETIME for all the measurements as determined from internal mlpet.Session or readtables.
             
-            dt1 = datetime(this.session_);
-            dt  = dt1;
-            return
-            
-            dt2 = this.tracerAdminDatetime('earliest', true);
+            dt1 = datetime(this.session_); 
+            dt2 = this.datetimeTracerAdmin('earliest', true);
             if (~isnat(dt1) && ~isnat(dt2))
                 assert(this.equivDates(dt1, dt2), 'mlpet:ValueError', 'internally inconsistent datetime');
                 dt = dt1;
+                return
             end
             if (~isnat(dt1))
                 dt = dt1;
@@ -215,41 +220,65 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 dt = dt2;
             end
         end
-        function dt   = tracerAdminDatetime(this, varargin)
-            %% TRACERADMINDATETIME is the datetime recorded in table tracerAdmin for a tracer and snumber.
+        function dt   = datetimeCapracHeader(this)
+            assert(strcmp(this.capracHeader{1,1}, 'DATE:'));
+            dt = this.datetimeConvertFromExcel(str2double(this.capracHeader{1,2}));
+        end
+        function dt   = datetimeDoseCalibrator(this)
+            dt = this.datetimeConvertFromExcel(str2double(this.doseCalibrator{'residual dose', 'time_Hh_mm_ss'})) - ...
+                seconds(this.clocks{'2nd PEVCO lab', 'TimeOffsetWrtNTS____s'});
+        end
+        function dt   = datetimeSession(this)
+            dt = datetime(this.session_);
+        end
+        function dt   = datetimeTracerAdmin(this, varargin)
+            %% DATETIMETRACERADMIN is the datetime recorded in table tracerAdmin for a tracer and snumber.
+            %  @param earliest is logical; default := true.
             %  @param tracer is char.
             %  @param snumber is numeric.
-            %  @param earliest is logical; default := true.
             
             ip = inputParser;
-            addParameter(ip, 'datetime', NaT, @isdatetime);
             addParameter(ip, 'earliest', false, @islogical);
             addParameter(ip, 'tracer', '', @ischar);
             addParameter(ip, 'snumber', 1, @isnumeric);
             parse(ip, varargin{:});
             
-            if (~isnat(ip.Results.datetime))
-                dt = this.tracerAdmin.TrueAdmin_Time_Hh_mm_ss( ...
-                     this.tracerAdmin.TrueAdmin_Time_Hh_mm_ss == ip.Results.datetime);
-                return
-            end
+            trueAdminTime = this.tracerTrueAdminDatetime;
             if (ip.Results.earliest)
-                dt = min(this.tracerAdmin.TrueAdmin_Time_Hh_mm_ss);
+                dt = min(trueAdminTime);
                 return
             end
-            dt = this.tracerAdmin.TrueAdmin_Time_Hh_mm_ss( ...
-                 this.tracerCode(ip.Results.tracer, ip.Results.snumber));
-            dt.TimeZone = this.PREFERRED_TIMEZONE;
+            dt = trueAdminTime( ...
+                     strcmp( ...
+                         this.tracerAdmin.Properties.RowNames, ...
+                         this.tracerCode(ip.Results.tracer, ip.Results.snumber)));
         end
-        function wcrs = wellCounterRefSrc(this, isotope)
+        function wcrs = wellCounterRefSrc(this, varargin)
             %% WELLCOUNTERREFSRC
-            %  @param isotope is char.
+            %  @param isotope is char, e.g., '[137Cs]', '[22Na]' or '[68Ge]'; default := ''.
             %  @return table(TRACER, TIMECOUNTED_Hh_mm_ss, CF_Kdpm, Ge_68_Kdpm).
             
-            assert(lstrfind(isotope, this.REFERENCE_SOURCES));
+            ip = inputParser;
+            addOptional(ip, 'isotope', '', @ischar);
+            parse(ip, varargin{:});
+            
+            % recursion
+            if (isempty(ip.Results.isotope))
+                wcrs = [];
+                for irs = 1:length(this.REFERENCE_SOURCES)
+                    tbl_ = this.wellCounterRefSrc(this.REFERENCE_SOURCES{irs});
+                    if (~isempty(tbl_))
+                        wcrs = [wcrs; tbl_]; %#ok<AGROW>
+                    end
+                end
+                return
+            end
+            
+            % base case
+            assert(lstrfind(ip.Results.isotope, this.REFERENCE_SOURCES));
             wc   = this.wellCounter;
-            sel  = cellfun(@(x) strcmpi(x, isotope), wc.TRACER);
-            wcrs = table(wc.TRACER{sel}, wc.TIMECOUNTED_Hh_mm_ss(sel), wc.CF_Kdpm(sel), wc.Ge_68_Kdpm(sel), ...
+            sel  = cellfun(@(x) strcmpi(x, ip.Results.isotope), wc.TRACER);
+            wcrs = table(wc.TRACER(sel), wc.TIMECOUNTED_Hh_mm_ss(sel), wc.CF_Kdpm(sel), wc.Ge_68_Kdpm(sel), ...
                 'VariableNames', {'TRACER' 'TIMECOUNTED_Hh_mm_ss' 'CF_Kdpm' 'Ge_68_Kdpm'});
         end
     end
@@ -284,21 +313,22 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             for t = 1:length(this.tableNames)
                 this.addgetprop( ...
                     this.tableNames{t}, ...
-                    this.readtable(fqfn, this.sheetNames{t}, this.hasRowNames(t), this.datetimeTypes{t}));
+                    this.readtable(fqfn, this.sheetNames{t}, this.hasVarNames(t), this.hasRowNames(t), this.datetimeTypes{t}));
             end
             
             this.clocks = this.convertClocks2sec(this.clocks); % needed for dependencies
+            this.tracerAdmin = this.correctDates2(this.tracerAdmin); % provides datetime(this)
             %this.capracHeader
             this.countsFdg = this.correctDates2(this.countsFdg);
             this.countsOcOo = this.correctDates2(this.countsOcOo);
-            this.tracerAdmin = this.correctDates2(this.tracerAdmin); % provides datetime(this)
-            this.doseCalibrator = this.correctDates2(this.doseCalibrator);
+            %this.doseCalibrator
             %this.phantom
-            this.wellCounter = this.correctDates2(this.wellCounter);
-            %this.twilite
+            this.wellCounter = this.correctDates2(this.wellCounter, 'CT radiation lab');
+            this.twilite = this.correctDates2(this.twilite, 'PMOD workstation');
             this.mMR = this.correctDates2(this.mMR);
+            %this.pmod
         end
-        function tbl  = readtable(this, fqfn, sheet, hasRowNames, datetimeType)
+        function tbl  = readtable(this, fqfn, sheet, hasVarNames, hasRowNames, datetimeType)
             %% READTABLE
             %  @param fqfn is char.
             %  @param sheet is char.
@@ -314,7 +344,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 fqfn, ...
                 'Sheet', sheet, ...
                 'FileType', 'spreadsheet', ...
-                'ReadVariableNames', true, 'ReadRowNames', hasRowNames, ...
+                'ReadVariableNames', hasVarNames, 'ReadRowNames', hasRowNames, ...
                 'DatetimeType', datetimeType);
             
             warning('on', 'MATLAB:table:ModifiedVarnames');
@@ -339,9 +369,6 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                         col   = NaT(size(col));
                         col.TimeZone = dt_.TimeZone;
                         col(lrows) = dt_;
-                        if (~this.isTrueTiming(vars{v}))
-                            col(lrows) = col(lrows) - this.adjustClock4(vars{v}, varargin{:});
-                        end
                     end
                     if (any(isdatetime(col)))
                         col.TimeZone = this.PREFERRED_TIMEZONE;
@@ -361,7 +388,8 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
     
     properties (Access = private)
         alwaysUseSessionDate_
-        session_        
+        session_   
+        tracerTrueAdminDatetime_
     end
     
     methods (Access = private) 
@@ -387,7 +415,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                     dur = seconds(this.clocks.TIMEOFFSETWRTNTS____S(wCN));
                     return
                 end
-                if (lstrfind(vN, 'drawn'))
+                if (lstrfind(vN, 'drawn') || lstrfind(vN, 'administrationtime'))
                     dur = seconds(this.clocks.TIMEOFFSETWRTNTS____S('hand timers')); 
                     return
                 end
@@ -466,6 +494,14 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             if (snumber > 1)
                 tc = sprintf('%s_%i', tc, snumber-1);
             end
+        end
+        function dt   = tracerTrueAdminDatetime(this)
+            if (isempty(this.tracerTrueAdminDatetime_))
+                this.tracerTrueAdminDatetime_ = ...
+                    this.datetimeConvertFromExcel2(this.tracerAdmin.ADMINistrationTime_Hh_mm_ss) - ...
+                    seconds(this.clocks{'hand timers', 'TimeOffsetWrtNTS____s'});
+            end
+            dt = this.tracerTrueAdminDatetime_;
         end
     end 
     
