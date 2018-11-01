@@ -115,7 +115,7 @@ classdef PLaif < handle
             h = h + double(t > t0);
         end
         function f       = invs_to_mLmin100g(f)
-            f = 100 * 60 * f / mlpet.AutoradiographyBuilder.BRAIN_DENSITY;
+            f = 100 * 60 * f / mlpet.AutoradiographyBuilder.DENSITY_BRAIN;
         end
         function A       = pchip(t, A, t_, Dt)
             %% PCHIP slides discretized function A(t) to A(t_ - Dt);

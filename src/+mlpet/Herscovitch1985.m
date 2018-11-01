@@ -93,7 +93,7 @@ classdef Herscovitch1985 < mlpet.AbstractHerscovitch1985
             sc = sc.petobs;
             sc.img = sc.img*this.MAGIC;            
             sc = sc.blurred(this.videenBlur);
-            sc.img = 100*sc.img*this.W/(this.RBC_FACTOR*this.BRAIN_DENSITY*this.aif.wellCountsIntegral);
+            sc.img = 100*sc.img*this.W/(this.RBC_FACTOR*this.DENSITY_BRAIN*this.aif.wellCountsIntegral);
             sc.fileprefix = this.sessionData.cbvOpFdg('typ', 'fp');
             sc = sc.blurred(this.videenBlur);
             this.product_ = mlpet.PETImagingContext(sc.component);
@@ -133,7 +133,7 @@ classdef Herscovitch1985 < mlpet.AbstractHerscovitch1985
             aif.counts = this.aif.counts.*fracVec;
         end
         function aifi = estimateAifOOIntegral(this)
-            aifi = 0.01*this.SMALL_LARGE_HCT_RATIO*this.BRAIN_DENSITY*this.aifOO.countsIntegral;
+            aifi = 0.01*this.RATIO_SMALL_LARGE_HCT*this.DENSITY_BRAIN*this.aifOO.countsIntegral;
         end
         
         %% plotting support 
