@@ -33,9 +33,9 @@ classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
     
     properties (Constant)
         LAMBDA = 0.95           % brain-blood equilibrium partition coefficient, mL/mL, Herscovitch, Raichle, JCBFM (1985) 5:65
-        BRAIN_DENSITY = 1.05    % assumed mean brain density, g/mL
+        DENSITY_BRAIN = 1.05    % assumed mean brain density, g/mL
         RBC_FACTOR = 0.766      % per Tom Videen, metproc.inc, line 193  
-        SMALL_LARGE_HCT_RATIO = 0.85 % Grubb, et al., 1978               
+        RATIO_SMALL_LARGE_HCT = 0.85 % Grubb, et al., 1978               
         
         CBF_UTHRESH = 500
         CBV_UTHRESH = 10
@@ -76,10 +76,10 @@ classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             cbf = petobs.^2*As(1) + petobs*As(2);
         end    
         function cbf = invsToCbf(f)
-            cbf = 6000*f/mlpet.Herscovitch1985.BRAIN_DENSITY;
+            cbf = 6000*f/mlpet.Herscovitch1985.DENSITY_BRAIN;
         end
         function f   = cbfToInvs(cbf)
-            f = cbf*mlpet.Herscovitch1985.BRAIN_DENSITY/6000;
+            f = cbf*mlpet.Herscovitch1985.DENSITY_BRAIN/6000;
         end
     end
     

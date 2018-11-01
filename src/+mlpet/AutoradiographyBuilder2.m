@@ -11,8 +11,7 @@ classdef (Abstract) AutoradiographyBuilder2 < mlbayesian.AbstractMcmcProblem
     
     properties (Constant)
         LAMBDA = 0.95           % brain-blood equilibrium partition coefficient, mL/mL, Herscovitch, Raichle, JCBFM (1985) 5:65
-        BRAIN_DENSITY = 1.05    % assumed mean brain density, g/mL
-        SMALL_LARGE_HCT = 0.85  % Grubb et al., 1978, Videen et al., 1987
+        DENSITY_BRAIN = 1.05    % assumed mean brain density, g/mL
         TIME_SUP = 200          % sec
     end
 
@@ -125,7 +124,7 @@ classdef (Abstract) AutoradiographyBuilder2 < mlbayesian.AbstractMcmcProblem
             error('mlpet:requiredObjectNotFound', 'AutoradiographyBuilder2.loadMask');
         end         
         function f    = invs_to_mLmin100g(f)
-            f = 100 * 60 * f / mlpet.AutoradiographyBuilder2.BRAIN_DENSITY;
+            f = 100 * 60 * f / mlpet.AutoradiographyBuilder2.DENSITY_BRAIN;
         end           
         function tito = indexTakeOff(curve)
             maxCurve = max(curve);

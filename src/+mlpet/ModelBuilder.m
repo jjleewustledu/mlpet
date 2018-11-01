@@ -7,12 +7,12 @@ classdef ModelBuilder
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
  	
     properties (Constant)
-        BRAIN_DENSITY = 1.05    % assumed mean brain density, g/mL
+        DENSITY_BRAIN = 1.05    % assumed mean brain density, g/mL
         CBF_UTHRESH = 500
         CBV_UTHRESH = 100
         LAMBDA = 0.95           % brain-blood equilibrium partition coefficient, mL/mL, Herscovitch, Raichle, JCBFM (1985) 5:65
         RBC_FACTOR = 0.766      % per Tom Videen, metproc.inc, line 193  
-        SMALL_LARGE_HCT_RATIO = 0.85 % Grubb, et al., 1978         
+        RATIO_SMALL_LARGE_HCT = 0.85 % Grubb, et al., 1978         
     end
     
 	properties (Dependent)
