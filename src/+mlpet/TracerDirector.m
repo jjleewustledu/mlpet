@@ -373,11 +373,6 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             this.builder_ = this.builder_.packageProduct(p);
             popd(pwd0);            
         end
-        function this  = instanceConstructUmapSynthForDynamicFrames(this)
-            
-            this.builder_ = this.builder_.packageProduct(this.sessionData.umap);
-            this.builder_ = this.builder_.createUmapSynthForDynamicFrames;
-        end  
         function list  = instanceListTracersConverted(this)
             if (this.sessionData.attenuationCorrected)
                 this.sessionData.frame = 0;
@@ -585,7 +580,6 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             [this.builder_,multiEpochOfSummed,reconstitutedSummed] = this.builder_.motionCorrectFrames;
             reconstitutedSummed = reconstitutedSummed.motionCorrectCTAndUmap;             
             this.builder_       = reconstitutedSummed.motionUncorrectUmap(multiEpochOfSummed);
-            %this.builder_       = this.builder_.createUmapSynthForDynamicFrames;
         end
         function this  = instanceConstructUnresolvedAC(this)
             this.builder_ = this.builder_.reconstituteFramesAC;

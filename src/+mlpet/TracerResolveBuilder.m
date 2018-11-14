@@ -593,16 +593,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 popd(pwd0); 
             end
         end 
-        function this = createUmapSynthForDynamicFrames(this)
-            this.product_ = this.product_.zoomed([2 2 1 1]);
-            nn = this.product_.numericalNiftid;
-            for f = 1:size(nn, 4)
-                nnFrame = nn;
-                nnFrame.img = nn.img(:,:,:,f);
-                nnFrame.fileprefix = this.sessionData.umap(sprintf('full_frame%i', f));
-                nnFrame.save;
-            end
-        end
         function this = reconstituteFramesAC(this)
             %% RECONSTITUTEACFRAMES uses e7 results referenced by this.sessionData.tracerListmodeMhdr.
             %  It crops frames and concatenates frames.  Since some of the tracerListmodeMhdr may be multiframed,
