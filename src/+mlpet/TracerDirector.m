@@ -21,17 +21,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
         studyData
     end
     
-    methods (Static)        
-        function assertenv
-            envs = {'RELEASE' 'REFDIR'};
-            
-            for ie = 1:length(envs)
-                val = getenv(envs{ie});
-                dt  = mlsystem.DirTool([val '/*']);
-                assert(~isempty(dt.fqfns), ...
-                    sprintf('mlpet.TracerDirector:  environment variable %s points to a empty directory', val));
-            end
-        end  
+    methods (Static)       
         function lst = prepareFreesurferData(varargin)
             %% PREPAREFREESURFERDATA prepares session & visit-specific copies of data enumerated by this.freesurferData.
             %  @param named sessionData is an mlraichle.SessionData.

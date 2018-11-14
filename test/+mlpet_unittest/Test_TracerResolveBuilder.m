@@ -197,7 +197,6 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
         end
         function test_reconstituteFramesAC2(this)
             
-            mlpet.TracerDirector.assertenv;  
             mlpet.TracerDirector.prepareFreesurferData('sessionData', this.sessd);  
             
             this.testObj = this.testObj.reconstituteFramesAC;
