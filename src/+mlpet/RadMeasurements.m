@@ -9,7 +9,7 @@ classdef (Abstract) RadMeasurements < handle
     methods (Abstract)
         cath = catheterInfo(this)
         dt   = datetime(this)    
-        dt   = tracerAdminDatetime(this, varargin)
+        dt   = datetimeTracerAdmin(this, varargin)
         wcrs = wellCounterRefSrc(this, isotope)
     end
     

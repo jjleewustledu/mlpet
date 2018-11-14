@@ -14,10 +14,9 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
     properties (Dependent)
         times
         taus  
-        timesMid
         time0
         timeF
-        timeDuration
+        timeWindow
         datetime0 % start of scan
         index0
         index0Forced
@@ -67,9 +66,6 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         function g    = get.taus(this)
             g = this.timingData_.taus;
         end 
-        function g    = get.timesMid(this)
-            g = this.timingData_.timesMid;
-        end
         function g    = get.time0(this)
             g = this.timingData_.time0;
         end
@@ -82,11 +78,11 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         function this = set.timeF(this, s)
             this.timingData_.timeF = s;
         end
-        function g    = get.timeDuration(this)
-            g = this.timingData_.timeDuration;
+        function g    = get.timeWindow(this)
+            g = this.timingData_.timeWindow;
         end
-        function this = set.timeDuration(this, s)
-            this.timingData_.timeDuration = s;
+        function this = set.timeWindow(this, s)
+            this.timingData_.timeWindow = s;
         end
         function g    = get.datetime0(this)
             g = this.timingData_.datetime0;
@@ -250,9 +246,6 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         function [t,this] = timeInterpolants(this, varargin)
             [t,this] = this.timingData_.timeInterpolants(varargin{:});
         end
-        function [t,this] = timeMidInterpolants(this, varargin)
-            [t,this] = this.timingData_.timeMidInterpolants(varargin{:});
-        end    
         
         % mlfourd.INumerical
         function this = blurred(this, varargin)
@@ -365,9 +358,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         taus_
         time0_
         timeF_
-        timeMidpoints_
         timeInterpolants_
-        timeMidInterpolants_
         times_
         timingData_
         W_

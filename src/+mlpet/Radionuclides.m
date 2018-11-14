@@ -64,14 +64,17 @@ classdef Radionuclides
 
     methods (Static)
         function dc = decayConstantOf(name)
-            dc = mlpet.Radionuclides.decayRateOf(name);
+            import mlpet.Radionuclides;
+            dc = Radionuclides.decayRateOf(name);
         end
         function dc = decayRateOf(name)
-            this = mlpet.Radionuclides(name);
+            import mlpet.Radionuclides;
+            this = Radionuclides(name);
             dc = this.decayRate;
         end
         function hl = halflifeOf(name)
-            this = mlpet.Radionuclides(name);
+            import mlpet.Radionuclides;
+            this = Radionuclides(name);
             hl = this.halflife;
         end
     end

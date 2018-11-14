@@ -9,17 +9,30 @@ classdef (Abstract) Instrument < handle
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
  	
 	properties (Dependent)
- 		invEfficiency
+        alpha
+        calibrations
         logger
         radMeasurements
+    end    
+    
+    methods (Abstract, Static)
+        [tbl,h] = screenInvEfficiency
     end
     
-    methods (Static)        
+    methods (Static)
         function checkRangeInvEfficiency(ie)
             %  @param required ie is numeric.
             %  @throws mlpet:ValueError.
             
-            assert(all(0.95 < ie) && all(ie < 1.05), ...
+            import mlpet.Instrument;
+            assert(isnumeric(ie), ...
+                'mlpet:ValueError', ...
+                'Instrument.checkRangeInvEfficiency.ie has unsupported typeclass %s', class(ie));
+            assert(~isempty(ie), ...
+                'mlpet:ValueError', ...
+                ['Instrument.checkRangeInvEfficiency.ie was empty.  ' ...
+                 'Call calibrateDevice before calling calibrateMeasurement or invEfficiency.']);
+            assert(all(1 - Instrument.alpha < ie) && all(ie < 1 + Instrument.alpha), ...
                 'mlpet:ValueError', ...
                 'Instrument.checkRangeInvEfficiency.ie->%s', mat2str(ie));
         end
@@ -29,16 +42,11 @@ classdef (Abstract) Instrument < handle
         
         %% GET
         
-        function g = get.invEfficiency(this)
-            assert(~isempty(this.invEfficiency_), ...
-                'mlpet:ValueError', ...
-                'request for Instrument.get.invEfficiency made before calibration; first use the calibrate method');
-            assert(~isnan(this.invEfficiency_), ...
-                'mlpet:ValueError', ...
-                'request for Instrument.get.invEfficiency made before calibration; first use the calibrate method');
-            assert(this.invEfficiency_ > 0);
-            assert(isfinite(this.invEfficiency_));
-            g = this.invEfficiency_;
+        function g = get.alpha(~)
+            g = mlpet.Resources.instance.alpha;
+        end
+        function g = get.calibrations(this)
+            g = this.calibrations_;
         end
         function g = get.logger(this)
             g = this.logger_;
@@ -50,22 +58,37 @@ classdef (Abstract) Instrument < handle
         %%
         
         function this = calibrateDevice(this, varargin)
-            %% CALIBRATEDEVICE sets invEfficiency for this instrument by comparing its calibration data 
-            %  against reference data.
+            %% CALIBRATEDEVICE prepares invEfficiency and calibrateMeasurements for this instrument using calibration data. 
+            
+            this.calibrations_ = 1;
         end
-        function d = makeMeasurements(this)
-            error('mlpet:NotImplementedError');
+        function m    = calibrateMeasurement(this, varargin)
+            ip = inputParser;
+            addRequired(ip, 'measurement', @isnumeric);
+            parse(ip);
+            
+            m = this.invEfficiency * ip.Results.measurement;
+        end
+        function ie   = invEfficiency(this, varargin)
+            %% INVEFFICIENCY is the linear estimate of the mapping from raw measurements to calibrated measurements.
+            %  @throws mlpet.ValueError if the gradient of the estimate exceeds alpha.
+            
+            ie = this.calibrations_;
+            this.checkRangeInvEfficiency(ie);
         end
         
         function this = Instrument(varargin)
             %% INSTRUMENT for positron emission measurements.
             %  @param radMeasurements is mlpet.RadMeasurements.
+            %  @param alpha is numeric.
             
  			ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'radMeasurements', [], @(x) isa(x, 'mlpet.RadMeasurements'));
+            addParameter(ip, 'alpha', 0.05, @isnumeric);
             parse(ip, varargin{:});
             this.radMeasurements_ = ip.Results.radMeasurements;
+            this.alpha_ = ip.Results.alpha;
             this.logger_ = mlpipeline.Logger2(this);
         end
         		  
@@ -74,9 +97,13 @@ classdef (Abstract) Instrument < handle
     %% PROTECTED
     
     properties (Access = protected)
-        invEfficiency_
+        calibrations_
         logger_
         radMeasurements_
+        alpha_
+    end
+    
+    methods (Access = protected)
     end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

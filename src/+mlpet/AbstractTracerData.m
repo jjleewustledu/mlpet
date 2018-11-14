@@ -37,10 +37,6 @@ classdef (Abstract) AbstractTracerData < handle & mlpet.ITracerDosing & mlpet.ID
         time0         % selects time window; >= this.time(1)                
         timeF         % selects time window; <= this.times(end)
         timeInterpolants
-        timesMid      % frame middle times, length() == length(times)
-        timeMid0      % frame middle time0
-        timeMidF      % frame middle timeF
-        timeMidInterpolants
         indices       % of times
         index0        % index of time0
         indexF        % index of timeF
@@ -117,12 +113,8 @@ classdef (Abstract) AbstractTracerData < handle & mlpet.ITracerDosing & mlpet.ID
         
         activitiesCache_
         activityInterpolantsCache_
-        activityMidpointInterpolantsCache_
         datetimeCache_
-        tausCache_
         timeInterpolantsCache_
-        timeMidpointInterpolantsCache_
-        timeMidpointsCache_
         timesCache_
     end
 

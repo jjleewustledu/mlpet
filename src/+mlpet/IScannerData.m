@@ -1,4 +1,4 @@
-classdef (Abstract) IScannerData < mlpet.IRadiationData & mldata.ITimingData & mlpet.IWorldLines
+classdef (Abstract) IScannerData
 	%% ISCANNERDATA   
 
 	%  $Revision$ 

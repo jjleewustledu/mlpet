@@ -77,8 +77,21 @@ classdef ReferenceSource
         end
     end
 
-	methods 
+	methods         
+        function d = halflifeDays(this)
+            d = mlpet.Radionuclides.halflifeOf(this.isotope)/86400; % sec->days
+        end
         function tf = isempty(this)
+            % recursion
+            if (length(this) > 1)
+                tf = true;
+                for it = 1:length(this)
+                    tf = tf && isempty(this(1));
+                end
+                return
+            end
+            
+            % base case
             tf = isempty(this.isotope) || ...
                  isempty(this.activity) || ...
                  isempty(this.activityUnits) || ...
@@ -86,9 +99,7 @@ classdef ReferenceSource
                  isempty(this.refDate);
         end
         function a = predictedActivity(this, targetDatetime, targetActivityUnits)
-            import mlpet.Radionuclides;
-            hl_days = Radiouclides.halflifeOf(this.isotope)/86400; % sec->days
-            a = this.activity * 2^(days(targetDatetime - this.refDate)/hl_days);
+            a = this.activity ./ 2.^(days(targetDatetime - this.refDate)/this.halflifeDays);
             a = this.convertUnits(a, this.activityUnits, targetActivityUnits);            
         end
 		  
