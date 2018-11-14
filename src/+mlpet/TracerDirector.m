@@ -1,4 +1,4 @@
-classdef TracerDirector < mlpet.AbstractTracerDirector
+classdef TracerDirector
 	%% TRACERDIRECTOR  
 
 	%  $Revision$
@@ -16,7 +16,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
 	properties (Dependent)
         anatomy
         builder
-        result
+        product
         sessionData
         studyData
     end
@@ -26,10 +26,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             %% PREPAREFREESURFERDATA prepares session & visit-specific copies of data enumerated by this.freesurferData.
             %  @param named sessionData is an mlraichle.SessionData.
             %  @return 4dfp copies of this.freesurferData in sessionData.vLocation.
-            %  @return lst, a cell-array of fileprefixes for 4dfp objects created on the local filesystem.
-            
-            FSD = { 'aparc+aseg' 'aparc.a2009s+aseg' 'brainmask' 'T1' }; % 
-            FORCE_REPLACE = false;
+            %  @return lst, a cell-array of fileprefixes for 4dfp objects created on the local filesystem.            
         
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -37,35 +34,22 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             parse(ip, varargin{:});
             
             sessd = ip.Results.sessionData;
-            if (FORCE_REPLACE)
-                try %#ok<UNRCH>
-                    deleteExisting(fullfile(sessd.sessionPath,    'T1001*'));
-                    deleteExisting(fullfile(sessd.vLocation,      'T1001*'));
-                    deleteExisting(fullfile(sessd.tracerLocation, 'T1001*'));
-                    for f = 1:length(FSD)                
-                        deleteExisting(fullfile(sessd.sessionPath,    [FSD{f} '.*']));
-                        deleteExisting(fullfile(sessd.vLocation,      [FSD{f} '.*']));
-                        deleteExisting(fullfile(sessd.tracerLocation, [FSD{f} '.*']));
-                    end
-                catch ME
-                    dispwarning(ME);
-                end
-            end
-            pwd0 = pushd(sessd.vLocation);
-            fv   = mlfourdfp.FourdfpVisitor;
-            lst  = cell(1, length(FSD));
-            for f = 1:length(FSD)
-                if (~fv.lexist_4dfp(FSD{f}) || FORCE_REPLACE)
+            pwd0  = pushd(sessd.vLocation);
+            fv    = mlfourdfp.FourdfpVisitor;
+            fsd   = { 'aparc+aseg' 'aparc.a2009s+aseg' 'brainmask' 'T1' };  
+            lst   = cell(1, length(fsd));
+            for f = 1:length(fsd)
+                if (~fv.lexist_4dfp(fsd{f}))
                     try
-                        if (strcmp(FSD{f}, 'T1') && ~fv.lexist_4dfp('T1001'))
+                        if (strcmp(fsd{f}, 'T1') && ~fv.lexist_4dfp('T1001'))
                             sessd.mri_convert(fullfile(sessd.mriLocation,'T1.mgz'), 'T1001.nii');
-                            FSD{f} = 'T1001';
+                            fsd{f} = 'T1001';
                         else
-                            sessd.mri_convert([fullfile(sessd.mriLocation, FSD{f}) '.mgz'], [fv.ensureSafeFileprefix(FSD{f}) '.nii']);
-                            FSD{f} = fv.ensureSafeFileprefix(FSD{f});
+                            sessd.mri_convert([fullfile(sessd.mriLocation, fsd{f}) '.mgz'], [fv.ensureSafeFileprefix(fsd{f}) '.nii']);
+                            fsd{f} = fv.ensureSafeFileprefix(fsd{f});
                         end
-                        sessd.nifti_4dfp_4(FSD{f});
-                        lst = [lst fullfile(pwd, FSD{f})]; %#ok<AGROW>
+                        fv.nifti_4dfp_4(fsd{f});
+                        lst{f} = fullfile(pwd, fsd{f});
                     catch ME
                         dispwarning(ME);
                     end
@@ -88,8 +72,8 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
         function g = get.builder(this)
             g = this.builder_;
         end
-        function g = get.result(this)
-            g = this.result_;
+        function g = get.product(this)
+            g = this.product_;
         end
         function g = get.sessionData(this)
             g = this.builder_.sessionData;
@@ -158,7 +142,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
     properties (Access = protected)
         anatomy_
         builder_
-        result_
+        product_
     end
     
     methods (Access = protected)   
@@ -170,7 +154,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             %  @param this.sessionData.{T1,aparcAseg,wmparc} exist on the filesystem.
             %  @param this.anatomy is char, the sessionData function-name for anatomy in the space of
             %  this.sessionData.T1; e.g., 'T1', 'T1001', 'brainmask'.
-            %  @result ready-to-use t4 transformation files named {T1001,brainmask,wmparc}r1r2_to_op_fdgv1r1_t4 
+            %  @product ready-to-use t4 transformation files named {T1001,brainmask,wmparc}r1r2_to_op_fdgv1r1_t4 
             %  aligned to this.tracerResolvedTarget.
             
             bv = this.builder_.buildVisitor;
@@ -232,7 +216,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
             %  see also TracerDirector.tracerResolvedTarget.
             %  @param this.anatomy is char; it is the sessionData function-name for anatomy in the space of
             %  this.sessionData.T1; e.g., 'T1', 'T1001', 'brainmask'.
-            %  @result ready-to-use t4 transformation files aligned to this.tracerResolvedTarget.
+            %  @product ready-to-use t4 transformation files aligned to this.tracerResolvedTarget.
             
             bv = this.builder_.buildVisitor;
             
@@ -501,7 +485,7 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
         end
         function this  = instanceTestLaunching(this, varargin)
             ls(this.sessionData.tracerLocation)
-            this.result_ = ls(this.sessionData.tracerLocation);
+            this.product_ = ls(this.sessionData.tracerLocation);
         end
         function obj   = tracerResolvedFinal(this, varargin)
             sessd = this.sessionData;
@@ -660,28 +644,6 @@ classdef TracerDirector < mlpet.AbstractTracerDirector
                     end
                 end
             end
-        end
-    end
-    
-    %% HIDDEN, DEPRECATED
-    
-    methods (Hidden)        
-        function this  = instanceConstructKinetics(this, varargin)
-            %% INSTANCECONSTRUCTKINETICS requests that the builder prepare filesystems, coregistrations and 
-            %  resolve-projections of ancillary data to tracer data.  
-            %  Subsequently, it requests that the builder construct kinetics.
-            %  @param named 'roisBuild' is an 'mlrois.IRoisBuilder'.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'roisBuilder', ...
-                mlpet.BrainmaskBuilder('sessionData', this.sessionData), ...
-                @(x) isa(x, 'mlrois.IRoisBuilder'));
-            parse(ip, varargin{:});
-            
-            this.result_ = mlraichle.HyperglycemiaResults(varargin{:});
-            %this.builder_ = this.builder_.resolveRoisOnTracer(varargin{:});
-            %this.builder_ = this.builder_.instanceConstructKinetics(varargin{:});
         end
     end
     
