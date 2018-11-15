@@ -353,7 +353,7 @@ classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
  			%% ABSTRACTHERSCOVITCH1985
  			%  @param named sessionData
             %  @param named aif
-            %  @param named timeDuration
+            %  @param named timeWindow
             %  @param named mask
 
  			this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
@@ -362,17 +362,17 @@ classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             ip.KeepUnmatched = true;
             addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.IScannerData') || isempty(x));
             addParameter(ip, 'aif', this.configAcquiredAifData, @(x) isa(x, 'mlpet.IAifData'));
-            addParameter(ip, 'timeDuration', [], @isnumeric);
+            addParameter(ip, 'timeWindow', [], @isnumeric);
             addParameter(ip, 'mask', this.sessionData.MaskOpFdg, @(x) isa(x, 'mlfourd.ImagingContext'));
             parse(ip, varargin{:});
             this.aif_ = ip.Results.aif;
             assert(~isempty(this.aif_));
             this.scanner_ = ip.Results.scanner;             
             assert(~isempty(this.scanner_));            
-            if (~isempty(ip.Results.timeDuration))
-                this.aif_.timeDuration = ip.Results.timeDuration;
+            if (~isempty(ip.Results.timeWindow))
+                this.aif_.timeWindow = ip.Results.timeWindow;
                 if (~isempty(this.scanner_))
-                    this.scanner_.timeDuration = ip.Results.timeDuration;
+                    this.scanner_.timeWindow = ip.Results.timeWindow;
                 end
             end          
             this.mask_ = ip.Results.mask;

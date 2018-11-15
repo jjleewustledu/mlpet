@@ -35,9 +35,8 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
  		dt
         time0
         timeF
-        timeDuration
+        timeWindow
         times
-        timesMid %% cf. man petproc
         taus
         counts 
         becquerels
@@ -139,15 +138,15 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
             assert(isnumeric(s));
             this.timeF_ = s;
         end
-        function g    = get.timeDuration(this)
+        function g    = get.timeWindow(this)
             g = this.timeF - this.time0;
         end
-        function this = set.timeDuration(this, s)
+        function this = set.timeWindow(this, s)
             if (isnumeric(s) && s < this.times(end) - this.time0)
                 this.timeF = this.time0 + s;
                 return
             end
-            warning('mlpet:setPropertyIgnored', 'EcatExactHRPlus.set.timeDuration');
+            warning('mlpet:setPropertyIgnored', 'EcatExactHRPlus.set.timeWindow');
         end
         function t    = get.times(this)
             assert(~isempty(this.times_));
@@ -156,10 +155,6 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
         function this = set.times(this, t)
             assert(isnumeric(t));
             this.times_ = t;
-        end
-        function tmp  = get.timesMid(this)
-            assert(~isempty(this.timeMidpoints_));
-            tmp = this.timeMidpoints_;
         end
         function t    = get.taus(this)
             assert(~isempty(this.taus_));
@@ -300,17 +295,6 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
             if (~isempty(varargin))
                 t = t(varargin{:}); end
         end
-        function [t,this] = timeMidInterpolants(this, varargin)
-            if (~isempty(this.timeMidInterpolants_))
-                t = this.timeMidInterpolants_;
-                return
-            end
-            
-            t = this.time0+this.dt/2:this.dt:this.timeF+this.dt/2;
-            this.timeMidInterpolants_ = t;
-            if (~isempty(varargin))
-                t = t(varargin{:}); end
-        end
         function [t,this] = tauInterpolants(this, varargin)
             if (~isempty(this.tauInterpolants_))
                 t = this.tauInterpolants_;
@@ -404,8 +388,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
             
             this = this.append_descrip('decorated by EcatExactHRPlus');   
             this = this.readRec;
-            this = this.readWellMatrix; 
-            this = this.setTimeMidpoints;
+            this = this.readWellMatrix;
             this = this.readPie;
             this = this.shiftTimes(this.scannerTimeShift);
         end
@@ -423,7 +406,6 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
         timeMidpoints_
         taus_
         timeInterpolants_
-        timeMidInterpolants_
         tauInterpolants_
         
         header_
@@ -506,12 +488,6 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
             catch ME
                 handexcept(ME, 'mlpet:fileNotFound', 'EcatExactHRPlus could not find %s', this.hdrinfoFqfilename);
             end
-        end
-        function this = setTimeMidpoints(this)
-            this.timeMidpoints_ = this.times; %% KLUDGE?
-            for t = 2:this.length
-                this.timeMidpoints_(t) = (this.times(t-1) + this.times(t))/2;
-            end            
         end
         function img  = petCounts2becquerels(this, img)
             %% PETCOUNTS2BECQUERELS; cf. man pie; does not divide out number/volume of pixels.

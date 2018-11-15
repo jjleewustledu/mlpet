@@ -43,7 +43,6 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         isotope
         
         taus
-        timesMid
     end 
     
     methods %% GET, SET 
@@ -159,13 +158,6 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         function t   = get.taus(this)
             assert(~isempty(this.taus_));
             t = this.taus_;
-        end
-        function tmp = get.timesMid(this)
-            tmp = this.times;
-            tmp(1) = this.times_(1)/2;
-            for t = 2:this.length
-                tmp(t) = (this.times_(t-1) + this.times_(t))/2;
-            end
         end
     end
     

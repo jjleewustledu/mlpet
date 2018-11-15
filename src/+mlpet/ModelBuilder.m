@@ -62,7 +62,7 @@ classdef ModelBuilder
             %'manualData',        this.mand, ...
             %'mask',              this.mask);
             %this.scanner.time0 = this.configScannerTime0; % mlpet.AlignmentContext
-            %this.scanner.timeDuration = this.aif.timeDuration;
+            %this.scanner.timeWindow = this.aif.timeWindow;
             %this.scanner.dt = 1;
             %this.scanner.isDecayCorrected = false;  
         end

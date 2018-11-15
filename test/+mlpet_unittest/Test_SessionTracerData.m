@@ -48,8 +48,6 @@ classdef Test_SessionTracerData < matlab.unittest.TestCase
         end
         function test_times(this)
         end
-        function test_timeMidpoints(this)
-        end
         function test_cbf(this)
         end
         function test_cbv(this)

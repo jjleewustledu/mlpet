@@ -26,7 +26,7 @@ classdef Test_BloodSucker < matlab.unittest.TestCase
             this.verifyEqual(this.testObj.fqfilename, this.sessd.dcv);
 %            this.verifyEqual(this.testObj.sessionData.snumber, 1);
 %            this.verifyEqual(this.testObj.length, 117);
-            this.verifyEqual(this.testObj.timeDuration, 127);
+            this.verifyEqual(this.testObj.timeWindow, 127);
         end
         function test_times(this)
             this.verifyEqual(this.testObj.times(4), 4);

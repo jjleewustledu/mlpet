@@ -27,7 +27,6 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         % IAifData        
         times
         taus
-        timesMid
         time0
         timeF
         timeDuration
@@ -145,9 +144,6 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         end
         function g    = get.taus(this)
             g = this.timingData_.taus;
-        end
-        function g    = get.timesMid(this)
-            g = this.timingData_.timesMid;
         end
         function g    = get.time0(this)
             g = this.timingData_.time0;
@@ -295,9 +291,6 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         function [t,this] = timeInterpolants(this, varargin)
             [t,this] = this.timingData_.timeInterpolants(varargin{:});
         end
-        function [t,this] = timeMidInterpolants(this, varargin)
-            [t,this] = this.timingData_.timeMidInterpolants(varargin{:});
-        end  
         function this     = uncorrectedActivities(this, tzero)
             if (~isempty(this.counts_))
                 this.counts_ = ...
