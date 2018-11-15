@@ -1,4 +1,4 @@
-classdef BloodSuckerData < handle & AbstractTracerData
+classdef BloodSuckerData < handle & mlpet.AbstractTracerData
 	%% BLOODSUCKERDATA  
 
 	%  $Revision$
@@ -16,7 +16,7 @@ classdef BloodSuckerData < handle & AbstractTracerData
  			%% BLOODSUCKERDATA
  			%  @param .
 
- 			this = this@AbstractTracerData(varargin{:});
+ 			this = this@mlpet.AbstractTracerData(varargin{:});
  		end
  	end 
 
