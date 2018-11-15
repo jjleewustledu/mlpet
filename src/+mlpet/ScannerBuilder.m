@@ -1,4 +1,4 @@
-classdef ScannerBuilder < mlpipeline.AbstractDataBuilder
+classdef ScannerBuilder < mlpipeline.AbstractBuilder
 	%% SCANNERBUILDER  
 
 	%  $Revision$
@@ -15,7 +15,7 @@ classdef ScannerBuilder < mlpipeline.AbstractDataBuilder
  			%% SCANNERBUILDER
  			%  Usage:  this = ScannerBuilder()
 
-            this = this@mlpipeline.AbstractDataBuilder(varargin{:});
+            this = this@mlpipeline.AbstractBuilder(varargin{:});
             
             sessd = this.sessionData;
             if (isa(sessd.studyData, 'mlderdeyn.StudyDataSingleton'))

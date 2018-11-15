@@ -1,4 +1,4 @@
-classdef Msktgen < mlpipeline.AbstractDataBuilder
+classdef Msktgen < mlpipeline.AbstractBuilder
 	%% MSKTGEN 
 
 	%  $Revision$
@@ -94,7 +94,7 @@ classdef Msktgen < mlpipeline.AbstractDataBuilder
         end
 		  
  		function this = Msktgen(varargin)
- 			this = this@mlpipeline.AbstractDataBuilder(varargin{:});
+ 			this = this@mlpipeline.AbstractBuilder(varargin{:});
             this.blurArg = this.sessionData_.compositeT4ResolveBuilderBlurArg;
             this.sessionData_.compAlignMethod = 'align_crossModal7';
  		end
