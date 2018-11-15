@@ -182,6 +182,17 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 'mlpet:FileNotFoundError', ...
                 'file %s must be accessible', fqfn)
         end
+        function this = CreateByDate(aDate, varargin)
+            import mlpet.CCIRRadMeasurements.*;
+            this = CreateByFilename(date2filename(aDate), varargin{:});
+        end
+        function this = CreateByFilename(fqfn, varargin)
+            this = mlpet.CCIRRadMeasurements(varargin{:});
+            this = this.readtables(fqfn);
+        end
+        function this = CreateBySession(sess, varargin)
+            this = mlpet.CCIRRadMeasurements('session', sess, varargin{:});
+        end
     end
 
 	methods 
@@ -289,20 +300,20 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
  		function this = CCIRRadMeasurements(varargin)
  			%% CCIRRADMEASUREMENTS reads tables from measurement files specified by env var CCIR_RAD_MEASUREMENTS_DIR
             %  and a datetime for the measurements.
-            %  @param session is mlraichle.Session; default := trivial ctor.
+            %  @param session is mlpet.Session; default := trivial ctor.
             %  @param alwaysUseReferenceDate is logical; default := true.
  			
  			this = this@mldata.Xlsx(varargin{:});
             ip = inputParser;
-            addParameter(ip, 'session', mlraichle.Session, @(x) isa(x, 'mlraichle.Session'));
+            addParameter(ip, 'session', mlxnat.Session, @(x) isa(x, 'mlxnat.Session'));
             addParameter(ip, 'alwaysUseSessionDate', true, @islogical);
             parse(ip, varargin{:});
             this.session_ = ip.Results.session;
             this.alwaysUseSessionDate_ = ip.Results.alwaysUseSessionDate;
             
             if (isnat(datetime(this.session_)))
-                warning('mlraichle:ValueWarning', ...
-                    'ctor:  instance of CCIRRadMeasurements contains neither datetime nor tables');
+                warning('mlpet:ValueWarning', ...
+                    'ctor:  CCIRRadMeasurements.session contains no datetime.');
                 return
             end
             this = this.readtables( ...
