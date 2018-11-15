@@ -87,7 +87,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  @return this.epoch as determined by this.partitionEpochFrames.
             %  @return monolith := struct, fields := {sessionData, imagingContext}, with pre-partitioning state for 
             %          later use; use imagingContext with mlfourd.FilenameState to minimize memory footprint.
-            %  See also:  mlpipeline.RootDataBuilder.
+            %  See also:  mlpipeline.RootBuilder.
             
             thisSz = this.sizeTracerRevision;
             if (length(thisSz) < 4 || 1 == thisSz(4))

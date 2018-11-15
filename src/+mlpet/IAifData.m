@@ -1,4 +1,4 @@
-classdef (Abstract) IAifData < mlpet.IRadiationData & mldata.ITimingData & mlpet.IWorldLines
+classdef (Abstract) IAifData
 	%% IAIFDATA  
 
 	%  $Revision$

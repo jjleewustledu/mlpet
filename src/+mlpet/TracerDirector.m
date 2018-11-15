@@ -1,4 +1,4 @@
-classdef TracerDirector
+classdef TracerDirector < mlpipeline.AbstractDirector
 	%% TRACERDIRECTOR  
 
 	%  $Revision$
@@ -15,10 +15,6 @@ classdef TracerDirector
     
 	properties (Dependent)
         anatomy
-        builder
-        product
-        sessionData
-        studyData
     end
     
     methods (Static)       
@@ -30,22 +26,22 @@ classdef TracerDirector
         
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', @(x) isa(x, 'mlraichle.SessionData'));
+            addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             
-            sessd = ip.Results.sessionData;
-            pwd0  = pushd(sessd.vLocation);
-            fv    = mlfourdfp.FourdfpVisitor;
-            fsd   = { 'aparc+aseg' 'aparc.a2009s+aseg' 'brainmask' 'T1' };  
-            lst   = cell(1, length(fsd));
+            sess = ip.Results.sessionData;
+            pwd0 = pushd(sess.vLocation);
+            fv   = mlfourdfp.FourdfpVisitor;
+            fsd  = { 'aparc+aseg' 'aparc.a2009s+aseg' 'brainmask' 'T1' };  
+            lst  = cell(1, length(fsd));
             for f = 1:length(fsd)
                 if (~fv.lexist_4dfp(fsd{f}))
                     try
                         if (strcmp(fsd{f}, 'T1') && ~fv.lexist_4dfp('T1001'))
-                            sessd.mri_convert(fullfile(sessd.mriLocation,'T1.mgz'), 'T1001.nii');
+                            sess.mri_convert(fullfile(sess.mriLocation,'T1.mgz'), 'T1001.nii');
                             fsd{f} = 'T1001';
                         else
-                            sessd.mri_convert([fullfile(sessd.mriLocation, fsd{f}) '.mgz'], [fv.ensureSafeFileprefix(fsd{f}) '.nii']);
+                            sess.mri_convert([fullfile(sess.mriLocation, fsd{f}) '.mgz'], [fv.ensureSafeFileprefix(fsd{f}) '.nii']);
                             fsd{f} = fv.ensureSafeFileprefix(fsd{f});
                         end
                         fv.nifti_4dfp_4(fsd{f});
@@ -69,23 +65,6 @@ classdef TracerDirector
         function g = get.anatomy(this)
             g = this.anatomy_;
         end
-        function g = get.builder(this)
-            g = this.builder_;
-        end
-        function g = get.product(this)
-            g = this.product_;
-        end
-        function g = get.sessionData(this)
-            g = this.builder_.sessionData;
-        end
-        function g = get.studyData(this)
-            g = this.builder_.sessionData.studyData;
-        end
-        
-        function this = set.sessionData(this, s)
-            assert(isa(s, 'mlpipeline.SessionData'));
-            this.builder_.sessionData = s;
-        end
         
         %%        
                
@@ -99,9 +78,6 @@ classdef TracerDirector
             parse(ip, varargin{:});
             
             tf = this.builder_.constructKineticsPassed(varargin{:});
-        end        
-        function obj  = getResult(this)
-            obj = this.builder_.product;
         end
         function tf   = isJSReconComplete(~)
             tf = true;
@@ -141,8 +117,6 @@ classdef TracerDirector
     
     properties (Access = protected)
         anatomy_
-        builder_
-        product_
     end
     
     methods (Access = protected)   
@@ -154,7 +128,7 @@ classdef TracerDirector
             %  @param this.sessionData.{T1,aparcAseg,wmparc} exist on the filesystem.
             %  @param this.anatomy is char, the sessionData function-name for anatomy in the space of
             %  this.sessionData.T1; e.g., 'T1', 'T1001', 'brainmask'.
-            %  @product ready-to-use t4 transformation files named {T1001,brainmask,wmparc}r1r2_to_op_fdgv1r1_t4 
+            %  @return ready-to-use t4 transformation files named {T1001,brainmask,wmparc}r1r2_to_op_fdgv1r1_t4 
             %  aligned to this.tracerResolvedTarget.
             
             bv = this.builder_.buildVisitor;
@@ -216,7 +190,7 @@ classdef TracerDirector
             %  see also TracerDirector.tracerResolvedTarget.
             %  @param this.anatomy is char; it is the sessionData function-name for anatomy in the space of
             %  this.sessionData.T1; e.g., 'T1', 'T1001', 'brainmask'.
-            %  @product ready-to-use t4 transformation files aligned to this.tracerResolvedTarget.
+            %  @return ready-to-use t4 transformation files aligned to this.tracerResolvedTarget.
             
             bv = this.builder_.buildVisitor;
             
@@ -483,10 +457,7 @@ classdef TracerDirector
             end
             this = this.instanceConstructUnresolvedAC;
         end
-        function this  = instanceTestLaunching(this, varargin)
-            ls(this.sessionData.tracerLocation)
-            this.product_ = ls(this.sessionData.tracerLocation);
-        end
+        
         function obj   = tracerResolvedFinal(this, varargin)
             sessd = this.sessionData;
             sessd.attenuationCorrected = true;
@@ -571,6 +542,7 @@ classdef TracerDirector
             this.builder_ = this.builder_.motionCorrectCTAndUmap;             
             this.builder_ = this.builder_.repUmapToE7Format;
         end
+        
         function this  = sumRevisionAndCopyToFinalSumt(this)
             ic  = mlfourd.ImagingContext(this.sessionData.tracerRevision);
             ic  = ic.timeSummed;

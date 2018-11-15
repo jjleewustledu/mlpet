@@ -23,7 +23,7 @@ classdef TracerSurferBuilder < mlpipeline.AbstractSessionBuilder
         %%
         
         function this = findLegacySurfer001(this)
-            %  @return ls001 in this.product as specified by mlpipeline.AbstractDataBuilder.packageProduct if found.
+            %  @return ls001 in this.product as specified by mlpipeline.AbstractBuilder.packageProduct if found.
             %  @return this.product := [] otherwise.            
             
             ext = {'.mgz' '.nii.gz' '.nii'};

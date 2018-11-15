@@ -30,7 +30,7 @@ classdef IWellData
     
     methods (Abstract)
         timeInterpolants(this)
-        countInterpolants(this)
+        %countInterpolants(this)
         wellCountInterpolants(this)
     end
 
