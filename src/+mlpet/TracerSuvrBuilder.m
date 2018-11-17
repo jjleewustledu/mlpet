@@ -1,4 +1,4 @@
-classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
+classdef TracerSuvrBuilder < mlfourdfp.AbstractSessionBuilder
 	%% TRACERSUVRBUILDER  
 
 	%  $Revision$
@@ -332,7 +332,7 @@ classdef TracerSuvrBuilder < mlpipeline.AbstractSessionBuilder
         end
         
  		function this = TracerSuvrBuilder(varargin)
- 			this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
+ 			this = this@mlfourdfp.AbstractSessionBuilder(varargin{:});
             this.atlBuilder_ = mlpet.AtlasBuilder( ...
                 'sessionData', this.sessionData);
  		end

@@ -1,4 +1,4 @@
-classdef TracerReportsBuilder < mlpipeline.AbstractSessionBuilder
+classdef TracerReportsBuilder < mlfourdfp.AbstractSessionBuilder
 	%% TRACERREPORTSBUILDER  
 
 	%  $Revision$
@@ -16,7 +16,7 @@ classdef TracerReportsBuilder < mlpipeline.AbstractSessionBuilder
  			%% TRACERREPORTSBUILDER
  			%  Usage:  this = TracerReportsBuilder()
 
-            this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
+            this = this@mlfourdfp.AbstractSessionBuilder(varargin{:});
             
             sd = this.sessionData;
             sd.epoch = [];

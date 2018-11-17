@@ -1,4 +1,4 @@
-classdef AtlasBuilder < mlpipeline.AbstractSessionBuilder
+classdef AtlasBuilder < mlfourdfp.AbstractSessionBuilder
 	%% ATLASBUILDER  
 
 	%  $Revision$
@@ -60,7 +60,7 @@ classdef AtlasBuilder < mlpipeline.AbstractSessionBuilder
  			%% ATLASBUILDER
  			%  Usage:  this = AtlasBuilder()
 
- 			this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
+ 			this = this@mlfourdfp.AbstractSessionBuilder(varargin{:});
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'forceRebuildT1ToTracer', false, @islogical);

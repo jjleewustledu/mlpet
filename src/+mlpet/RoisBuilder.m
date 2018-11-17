@@ -1,4 +1,4 @@
-classdef RoisBuilder < mlpipeline.AbstractSessionBuilder
+classdef RoisBuilder < mlfourdfp.AbstractSessionBuilder
 	%% ROISBUILDER  
 
 	%  $Revision$
@@ -110,7 +110,7 @@ classdef RoisBuilder < mlpipeline.AbstractSessionBuilder
             %  @param named 'product' is the initial state of the product to build.
             %  @param named 'sessionData' is an mlpipeline.ISessionData.
 
- 			this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
+ 			this = this@mlfourdfp.AbstractSessionBuilder(varargin{:});
         end
     end 
 
