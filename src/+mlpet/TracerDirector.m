@@ -27,22 +27,24 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
-            parse(ip, varargin{:});
-            
+            parse(ip, varargin{:});            
             sess = ip.Results.sessionData;
-            pwd0 = pushd(sess.vLocation);
-            fv   = mlfourdfp.FourdfpVisitor;
-            fsd  = { 'aparc+aseg' 'aparc.a2009s+aseg' 'brainmask' 'T1' };  
-            lst  = cell(1, length(fsd));
+            
+            pwd0    = pushd(sess.vLocation);
+            fsd     = { 'aparc+aseg' 'aparc.a2009s+aseg' 'brainmask' 'T1' };  
+            fv      = mlfourdfp.FourdfpVisitor;
+            safefsd = fv.ensureSafeFileprefix(fsd);
+            lst     = cell(1, length(safefsd));
+            sess = ip.Results.sessionData;
             for f = 1:length(fsd)
-                if (~fv.lexist_4dfp(fsd{f}))
+                if (~fv.lexist_4dfp(fullfile(sess.vLocation, safefsd{f})))
                     try
                         if (strcmp(fsd{f}, 'T1') && ~fv.lexist_4dfp('T1001'))
                             sess.mri_convert(fullfile(sess.mriLocation,'T1.mgz'), 'T1001.nii');
                             fsd{f} = 'T1001';
                         else
-                            sess.mri_convert([fullfile(sess.mriLocation, fsd{f}) '.mgz'], [fv.ensureSafeFileprefix(fsd{f}) '.nii']);
-                            fsd{f} = fv.ensureSafeFileprefix(fsd{f});
+                            sess.mri_convert([fullfile(sess.mriLocation, fsd{f}) '.mgz'], [safefsd{f} '.nii']);
+                            fsd{f} = safefsd{f};
                         end
                         fv.nifti_4dfp_4(fsd{f});
                         lst{f} = fullfile(pwd, fsd{f});
@@ -525,6 +527,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             [this.builder_,multiEpochOfSummed,reconstitutedSummed] = this.builder_.motionCorrectFrames;
             reconstitutedSummed = reconstitutedSummed.motionCorrectCTAndUmap;             
             this.builder_       = reconstitutedSummed.motionUncorrectUmap(multiEpochOfSummed);
+            this.builder_       = this.builder_.convertUmapsToE7Format;
         end
         function this  = instanceConstructUnresolvedAC(this)
             this.builder_ = this.builder_.reconstituteFramesAC;
