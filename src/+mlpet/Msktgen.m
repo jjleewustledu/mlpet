@@ -76,7 +76,9 @@ classdef Msktgen < mlpipeline.AbstractBuilder
             this.sourceOfMask =  this.sourceOfMask.binarized;
             this.sourceOfMask =  this.sourceOfMask.blurred(this.blurForMask);
             this.sourceOfMask =  this.normalizeTo1000(this.sourceOfMask);
-            this.sourceOfMask =  this.sourceOfMask.threshp(this.threshp);
+            if (this.threshp > sqrt(eps))
+                this.sourceOfMask =  this.sourceOfMask.threshp(this.threshp);
+            end
             this.sourceOfMask.fqfilename = fqfn;
             this.sourceOfMask.save;
             obj = this.sourceOfMask;
