@@ -1,4 +1,4 @@
-classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
+classdef (Abstract) AbstractHerscovitch1985 < mlfourdfp.AbstractSessionBuilder
 	%% ABSTRACTHERSCOVITCH1985 abstracts PET scanner platforms such as the Biograph mMR and ECAT EXACT HR+
     %  See also:
     %  1. Herscovitch P, Mintun MA, Raichle ME (1985) Brain oxygen utilization measured with oxygen-15 radiotracers and 
@@ -356,7 +356,7 @@ classdef (Abstract) AbstractHerscovitch1985 < mlpipeline.AbstractSessionBuilder
             %  @param named timeWindow
             %  @param named mask
 
- 			this = this@mlpipeline.AbstractSessionBuilder(varargin{:});
+ 			this = this@mlfourdfp.AbstractSessionBuilder(varargin{:});
             
             ip = inputParser;
             ip.KeepUnmatched = true;
