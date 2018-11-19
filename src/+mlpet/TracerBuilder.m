@@ -116,35 +116,10 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
             g = this.vendorSupport_;
         end        
         function this = set.vendorSupport(this, s)
-            assert(isa(s, 'mlpipeline.VendorBuilder'));
             this.vendorSupport_ = s;
         end
 
         %%
-        
-        function this = setNeverTouch(this, s)
-            assert(islogical(s));
-            this.finished_.neverTouchFinishfile = s;  
-            this.compositeResolveBuilder_.finished_.neverTouchFinishfile = s;
-            this.resolveBuilder_.finished_.neverTouchFinishfile = s;
-        end
-        function g    = getNeverTouch(this)
-            g = this.finished_.neverTouchFinishfile;     
-            if (~isempty(this.compositeResolveBuilder_))
-                try
-                    g = g && this.compositeResolveBuilder_.finished_.neverTouchFinishfile; %#ok<*NASGU>
-                catch ME
-                    handwarning(ME);
-                end
-            end
-            if (~isempty(this.resolveBuilder_))
-                try
-                    g = g && this.resolveBuilder_.finished_.neverTouchFinishfile;
-                catch ME
-                    handwarning(ME);
-                end
-            end
-        end
         
         function this = locallyStageBrainmasks(this)
             
@@ -292,7 +267,6 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
             %  @param  this.product is a single-epoch motion-corrected tracer.
             %  @param  modalities is a cell-array of fileprefixes without filepaths.
             %  @param  modalities or their sym-links are in the pwd.
-            %  @param  named tag2 is char used when touching logging file by mlpipeline.Finished.
             %  @param  named mask is char := {'none' 'brainmask' 'headmask' ''}; 
             %  default := 'none'; '' =: use this.mask.
             %  @return these is a composite of mlpet.TracerResolveBuilder, each component.product containing
@@ -303,7 +277,6 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
             addRequired( ip, 'modalities', @(x) iscell(x) && all(cellfun(@(y) lexist([y '.4dfp.hdr'], 'file'), x)));
             addParameter(ip, 'blurArg', this.sessionData.umapBlurArg, @isnumeric);
             addParameter(ip, 'tag', '', @ischar);
-            addParameter(ip, 'tag2', '', @ischar);
             addParameter(ip, 'mask', this.mask, @ischar);
             parse(ip, varargin{:});
             this.mask = ip.Results.mask;
@@ -318,7 +291,7 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
                 'maskForImages', this.mask, ...
                 'NRevisions', 2);                        
             cRB_.ignoreFinishfile = true;
-            cRB_ = cRB_.updateFinished('tag', ip.Results.tag, 'tag2', ip.Results.tag2);
+            cRB_ = cRB_.updateFinished('tag', ip.Results.tag);
                         
             % update this.{compositeResolveBuilder_,sessionData_,product_}   
             cRB_ = cRB_.resolve;  
