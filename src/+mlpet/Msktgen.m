@@ -111,10 +111,11 @@ classdef Msktgen < mlpipeline.AbstractBuilder
     methods (Access = private)
         function this = constructResolvedMask(this)
             
-            pwd0 = pushd(this.source.filepath);  
-
-            this.sessionData_.rnumber = 1;
+            pwd0 = pushd(this.source.filepath);
+            res = mlpet.Resources.instance;
+            this.sessionData_.rnumber = 1;            
             theImages = [{this.source.fileprefix} this.intermediaryForMask.fqfileprefix];
+            
             cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
                 'sessionData', this.sessionData_, ...
                 'theImages', theImages, ...
@@ -122,8 +123,8 @@ classdef Msktgen < mlpipeline.AbstractBuilder
                 'maskForImages', {'none' 'T1001'}, ...
                 'NRevisions', this.NRevisions);                        
             cRB_.ignoreFinishfile = true;
-            cRB_.neverTouchFinishfile = true;
-            cRB_ = cRB_.resolve;
+            cRB_.neverMarkFinished = res.neverMarkFinished;
+            cRB_ = cRB_.resolve;            
             t4err = mean(cRB_.t4_resolve_err, 'omitnan');
             if (t4err > this.blurForMask)
                 %popd(pwd0); % clients to Msktgen will likely catch the error; prepare pwd.
@@ -138,8 +139,7 @@ classdef Msktgen < mlpipeline.AbstractBuilder
                     'out', [this.source.fileprefix '_mskt'], ...
                     'options', ['-O' cRB_.product{1}.fileprefix]);
             this.sourceOfMask = ...
-                mlfourd.ImagingContext([this.sourceOfMask '.4dfp.hdr']); 
-                
+                mlfourd.ImagingContext([this.sourceOfMask '.4dfp.hdr']);                 
             popd(pwd0);
         end
         function this = constructMask(this)

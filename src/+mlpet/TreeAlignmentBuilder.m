@@ -84,6 +84,7 @@ classdef TreeAlignmentBuilder < mlpet.AlignmentBuilder
             
             assert(iscell(imgs));
             cwd = pushd(this.sessionData.opAtlasLocation);
+            res = mlpet.Resources.instance;
             cRB = mlfourdfp.CompositeT4ResolveBuilder( ...
                 'sessionData', this.sessionData, ...
                 'theImages', imgs, ...
@@ -91,7 +92,7 @@ classdef TreeAlignmentBuilder < mlpet.AlignmentBuilder
                 'resolveTag', ip.Results.resolveTag, ...
                 'NRevisions', ip.Results.NRevisions, ...
                 'blurArg', ip.Results.blurArg);
-            cRB.neverTouchFinishfile = true;
+            cRB.neverMarkFinished = res.neverMarkFinished;
             cRB.ignoreFinishfile = true;
             this.cRB_ = cRB.resolve;
             this.product_ = this.cRB_.product;
