@@ -150,7 +150,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             bv.ensureLocalFourdfp(this.sessionData.(this.anatomy));            
             this.builder_ = this.builder_.resolveModalitiesToProduct( ...
                 {this.sessionData.(this.anatomy)('typ','fp')}, ...
-                'tag2', this.anatomy, ...
+                'tag', this.anatomy, ...
                 'mask', {ic.fqfileprefix this.anatomy}, ...
                 varargin{:});
             
@@ -294,22 +294,6 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             aab = bmb.aparcAsegBinarized(ct4rb);
             popd(pwd0);
         end      
-        function this  = instanceConstructResolvedTof(this, varargin)
-            [~,ic] = this.tracerResolvedTarget(varargin{:});
-            this.builder_ = this.builder_.packageProduct(ic);
-            pwd0 = pushd(ic.filepath);
-            this.builder_.buildVisitor.lns_4dfp(this.sessionData.tof('typ','fqfp'));
-            this.builder_.buildVisitor.lns_4dfp(fullfile(this.sessionData.vLocation, 'ctMaskedOnT1001r2_op_T1001'));
-            this.builder_.buildVisitor.lns_4dfp(this.sessionData.T1('typ','fqfp'));
-            this.builder_.buildVisitor.lns_4dfp(this.sessionData.t2('typ','fqfp'));
-            tof = this.builder_.resolveTofToT1;
-            this.builder_ = this.builder_.resolveModalitiesToProduct( ...
-                {tof ...
-                 'ctMaskedOnT1001r2_op_T1001' ...
-                 this.sessionData.T1('typ','fp') ...
-                 this.sessionData.t2('typ','fp')});
-            popd(pwd0);
-        end
         function this  = instanceConstructSuvr(this)
             
             sd = this.sessionData;
