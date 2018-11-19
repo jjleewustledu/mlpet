@@ -1,4 +1,4 @@
-classdef MultiBolusData < mldata.TimingData
+classdef MultiBolusData < handle & mldata.TimingData
 	%% TWILITETIMINGDATA  
 
 	%  $Revision$
@@ -160,8 +160,8 @@ classdef MultiBolusData < mldata.TimingData
             if (isempty(this.activity_))
                 this.activity_ = nan(size(this.times_));
             end
-            if (isempty(this.times_))
-                this.times_ = 0:this.dt_:this.dt_*(length(this.activity_)-1); % empty for empty activity_
+            if (isempty(this.times))
+                this.times = 0:this.dt:this.dt*(length(this.activity_)-1); % empty for empty activity_
             end
             this.radionuclides_ = ip.Results.radionuclides;
  		end

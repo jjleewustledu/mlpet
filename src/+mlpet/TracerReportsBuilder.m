@@ -45,7 +45,7 @@ classdef TracerReportsBuilder < mlfourdfp.AbstractSessionBuilder
     methods (Access = protected)
         function n = frameLength(~, sd)
             sz = this.buildVisitor.ifhMatrixSize( ...
-                sd.tracerResolvedFinal('typ', '.4dfp.hdr'));
+                sd.tracerResolvedFinal('typ', '.4dfp.ifh'));
             assert(length(sz) == 4);
             n = sz(4);
         end
