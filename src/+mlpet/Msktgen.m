@@ -1,4 +1,4 @@
-classdef Msktgen < mlpipeline.AbstractBuilder
+classdef Msktgen < mlfourdfp.AbstractSessionBuilder
 	%% MSKTGEN 
 
 	%  $Revision$
@@ -96,9 +96,15 @@ classdef Msktgen < mlpipeline.AbstractBuilder
         end
 		  
  		function this = Msktgen(varargin)
- 			this = this@mlpipeline.AbstractBuilder(varargin{:});
-            this.blurArg = this.sessionData_.compositeT4ResolveBuilderBlurArg;
+ 			this = this@mlfourdfp.AbstractSessionBuilder(varargin{:});
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'blurArg', this.sessionData_.compositeT4ResolveBuilderBlurArg, @isnumeric);
+            parse(ip, varargin{:});
+            
+            this.blurArg = ip.Results.blurArg;
             this.sessionData_.compAlignMethod = 'align_crossModal7';
+            this = this.updateFinished;
  		end
     end 
     
@@ -122,7 +128,7 @@ classdef Msktgen < mlpipeline.AbstractBuilder
                 'blurArg', this.blurArg, ...
                 'maskForImages', {'none' 'T1001'}, ...
                 'NRevisions', this.NRevisions);                        
-            cRB_.ignoreFinishfile = true;
+            cRB_.ignoreFinishMark = true;
             cRB_.neverMarkFinished = res.neverMarkFinished;
             cRB_ = cRB_.resolve;            
             t4err = mean(cRB_.t4_resolve_err, 'omitnan');
