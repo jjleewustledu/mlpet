@@ -3,7 +3,7 @@ classdef Resources < handle
     properties (Dependent)
         alpha
         defaultN
-        ignoreFinishfile
+        ignoreFinishMark
         matlabDrive
         neverMarkFinished
         noiseFloorOfActivity % Bq/mL
@@ -41,8 +41,8 @@ classdef Resources < handle
             assert(islogical(s));
             this.defaultN_ = s;
         end
-        function g = get.ignoreFinishfile(this)
-            g = this.ignoreFinishfile_;
+        function g = get.ignoreFinishMark(this)
+            g = this.ignoreFinishMark_;
         end
         function g = get.matlabDrive(~)
             g = fullfile(getenv('HOME'), 'MATLAB-Drive', '');
@@ -73,7 +73,7 @@ classdef Resources < handle
         alpha_
         data_
         defaultN_        
-        ignoreFinishfile_        
+        ignoreFinishMark_        
         neverMarkFinished_
     end
     
@@ -83,7 +83,7 @@ classdef Resources < handle
             this.data_  = [];
             this.defaultN_ = true;
             
-            this.ignoreFinishfile_ = false;
+            this.ignoreFinishMark_ = false;
             this.neverMarkFinished_ = false;
         end
     end
