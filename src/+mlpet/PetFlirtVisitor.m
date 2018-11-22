@@ -1,4 +1,4 @@
-classdef PETFlirtVisitor < mlfsl.FlirtVisitor
+classdef PetFlirtVisitor < mlfsl.FlirtVisitor
 	%% PETFLIRTVISITOR 
     %  overwrites intermediate files used by flirt operations but will not overwrite data from 
     %  AbstractRegistrationBuilder:  sourceImage, referenceImage, sourceWeight, referenceWeight.
@@ -34,7 +34,7 @@ classdef PETFlirtVisitor < mlfsl.FlirtVisitor
             bldr.xfm             = aOpts.transformation;
             bldr.product         = this.applyxfm4D__(aOpts); % saves bldr.product
             bldr.product.addLog('mlpet.PETFlirtVisitor.motionCorrect');
-            bldr.product.addLog(bldr.sourceImage.getLog.contents);
+            bldr.product.addLog(bldr.sourceImage.logger.contents);
         end
         function [bldr,xfm] = registerBijective(this, bldr, proxyBldr)
             this.ensureBuilderSaved(bldr);
@@ -60,12 +60,12 @@ classdef PETFlirtVisitor < mlfsl.FlirtVisitor
             opts.refweight    = bldr.referenceWeight; 
             bldr.product      = this.transform__(opts);
             bldr.product.addLog('mlpet.PETFlirtVisitor.registerBijective');
-            bldr.product.addLog(bldr.sourceImage.getLog.contents);
+            bldr.product.addLog(bldr.sourceImage.logger.contents);
             bldr.xfm          = opts.init;
             xfm               = opts.init;
         end
         
- 		function this = PETFlirtVisitor(varargin)
+ 		function this = PetFlirtVisitor(varargin)
  			this = this@mlfsl.FlirtVisitor(varargin{:});
  		end
     end 
