@@ -93,7 +93,7 @@ classdef TreeAlignmentBuilder < mlpet.AlignmentBuilder
                 'NRevisions', ip.Results.NRevisions, ...
                 'blurArg', ip.Results.blurArg);
             cRB.neverMarkFinished = res.neverMarkFinished;
-            cRB.ignoreFinishfile = true;
+            cRB.ignoreFinishMark = res.neverMarkFinished;
             this.cRB_ = cRB.resolve;
             this.product_ = this.cRB_.product;
             popd(cwd);

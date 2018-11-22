@@ -290,7 +290,7 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
                 'blurArg', ip.Results.blurArg, ...
                 'maskForImages', this.mask, ...
                 'NRevisions', 2);                        
-            cRB_.ignoreFinishfile = true;
+            cRB_.ignoreFinishMark = mlpet.Resources.instance.ignoreFinishMark;
             cRB_ = cRB_.updateFinished('tag', ip.Results.tag);
                         
             % update this.{compositeResolveBuilder_,sessionData_,product_}   
