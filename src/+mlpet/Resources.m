@@ -72,7 +72,7 @@ classdef Resources < handle
     properties (Access = private)
         alpha_
         data_
-        defaultN_        
+        defaultN_  
         ignoreFinishMark_        
         neverMarkFinished_
     end

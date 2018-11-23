@@ -1,4 +1,4 @@
-classdef TracerTool < handle & mlfourd.AbstractImagingTool
+classdef TracerTool < handle & mlfourd.ImagingFormatTool
 	%% TRACERTOOL  
 
 	%  $Revision$
@@ -16,7 +16,7 @@ classdef TracerTool < handle & mlfourd.AbstractImagingTool
  			%% TRACERTOOL
  			%  @param .
 
-            this = this@mlfourd.AbstractImagingTool(h, varargin{:});
+            this = this@mlfourd.ImagingFormatTool(h, varargin{:});
  		end
  	end 
 
