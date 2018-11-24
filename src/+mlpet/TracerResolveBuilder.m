@@ -313,9 +313,9 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 %% resolve source to thisMotionUncorrected(idxRef)
                 
                 try
-                    loc = this.resolveBuilder_.sessionData.tracerLocation;
-                    ensuredir(loc);
-                    pwd0 = pushd(loc); % E1, ..., E8;
+                    E_idxRef = this.resolveBuilder_.sessionData.tracerLocation;
+                    ensuredir(E_idxRef);
+                    pwd0 = pushd(E_idxRef); % E1, ..., E8;
                     unco(idxRef) = this; %#ok<*AGROW>
                     childT4RB                  = this.resolveBuilder_;
                     childT4RB.rnumber          = 1;
@@ -327,7 +327,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     childT4RB.skipT4imgAll = true;
                     childT4RB              = childT4RB.resolve; % childRB.product->${E}/fdgv1${e}r2_op_fdgv1${e}r1_frame${idxRef}
                     childT4RB.skipT4imgAll = false;                    
-                    parentToChildT4_     = multiEpochOfSummed.parentToChildT4(childT4RB.resolveTag);
+                    parentToChildT4_       = multiEpochOfSummed.parentToChildT4(childT4RB.resolveTag);
                     if (childT4RB.indicesLogical(idxRef) && ...
                         lexist(parentToChildT4_, 'file'))
                         childT4RB          = childT4RB.t4img_4dfp( ...
@@ -355,7 +355,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     fprintf('motionUncorrectEpoch:\n');
                     fprintf('source.fqfileprefix->\n    %s\n', source.fqfileprefix); 
                         % E1to9/umapSynth_op_fdgv1e1to9r1_frame${e}; 
-                    fprintf('this(%i).product->\n    %s\n\n', idxRef, char(unco(idxRef).product)); 
+                    fprintf('this(%i).product->\n    %s\n\n', idxRef, unco(idxRef).product.fqfileprefix); 
                         % E${idxRef}/umapSynth_op_fdgv1e1to9r1_frame${idxRef};                 
                     popd(pwd0);
                     
