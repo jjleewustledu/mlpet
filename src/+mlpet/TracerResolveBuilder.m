@@ -979,10 +979,10 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         function this = umapAufbau(this)
             %  @return this:  this.product is the multi-frame umap as mlfourdfp.Fourdfp.
                    
-            if (1 == this.nFramesModMaxLengthEpoch) % KLUDGE preservation of what was working with FDG, 2017oct11
-                this = this.umapAufbau0;
-                return
-            end
+%             if (1 == this.nFramesModMaxLengthEpoch) % KLUDGE preservation of what was working with FDG, 2017oct11
+%                 this = this.umapAufbau0;
+%                 return
+%             end
             
             import mlfourd.* mlfourdfp.*;
             fprintf('TracerResolveBuilder.umapAufbau:  working in %s\n', pwd);            
