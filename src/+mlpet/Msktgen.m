@@ -60,9 +60,9 @@ classdef Msktgen < mlfourdfp.AbstractSessionBuilder
             addParameter(ip, 'NRevisions', 1, @isnumeric);
             parse(ip, varargin{:});
             import mlfourd.*;
-            this.source              = ImagingContext(ip.Results.source);
-            this.intermediaryForMask = ImagingContext(ip.Results.intermediaryForMask);
-            this.sourceOfMask        = ImagingContext(ip.Results.sourceOfMask);
+            this.source              = ImagingContext2(ip.Results.source);
+            this.intermediaryForMask = ImagingContext2(ip.Results.intermediaryForMask);
+            this.sourceOfMask        = ImagingContext2(ip.Results.sourceOfMask);
             this.blurForMask         = ip.Results.blurForMask;
             this.blurArg             = ip.Results.blurArg;
             this.threshp             = ip.Results.threshp;
@@ -84,7 +84,7 @@ classdef Msktgen < mlfourdfp.AbstractSessionBuilder
             obj = this.sourceOfMask;
         end
         function ic  = ensure4dfp(~, ic)
-            assert(isa(ic, 'mlfourd.ImagingContext'));
+            assert(isa(ic, 'mlfourd.ImagingContext2'));
             if (~strcmp(ic.filesuffix, '.4dfp.hdr'))
                 ic.filesuffix = '.4dfp.hdr';
             end
@@ -145,15 +145,13 @@ classdef Msktgen < mlfourdfp.AbstractSessionBuilder
                     'out', [this.source.fileprefix '_mskt'], ...
                     'options', ['-O' cRB_.product{1}.fileprefix]);
             this.sourceOfMask = ...
-                mlfourd.ImagingContext([this.sourceOfMask '.4dfp.hdr']);                 
+                mlfourd.ImagingContext2([this.sourceOfMask '.4dfp.hdr']);                 
             popd(pwd0);
         end
         function this = constructMask(this)
         end
         function ic = normalizeTo1000(~, ic)
-            nn = ic.numericalNiftid;
-            nn = nn*(1000/nn.dipmax);
-            ic = mlfourd.ImagingContext(nn);
+            ic = ic*(1000/ic.dipmax);
         end
     end
 

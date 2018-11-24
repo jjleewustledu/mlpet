@@ -166,8 +166,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
                     'out', outfile, ...
                     'options', sprintf('-n -O%s', ic.fileprefix));                
                 if (lstrfind('brainmask', anatomies{a}))
-                    ic = mlfourd.ImagingContext([outfile '.4dfp.hdr']);
-                    ic.numericalNiftid;
+                    ic = mlfourd.ImagingContext2([outfile '.4dfp.hdr']);
                     ic = ic.binarizeBlended;
                     ic.saveas(this.sessionData.brainmaskBinarizeBlended);
                 end
@@ -290,7 +289,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             pushd(pwd0);
             bmb = mlpet.BrainmaskBuilder('sessionData', sessd);
             [~,ct4rb] = bmb.brainmaskBinarized( ...
-                'tracer', this.sessionData.tracerRevisionSumt('typ', 'mlfourd.ImagingContext'));
+                'tracer', this.sessionData.tracerRevisionSumt('typ', 'mlfourd.ImagingContext2'));
             aab = bmb.aparcAsegBinarized(ct4rb);
             popd(pwd0);
         end      
@@ -464,7 +463,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             
             if (~isempty(ip.Results.target))
                 obj = ip.Results.target;
-                ic  = ImagingContext(obj);
+                ic  = ImagingContext2(obj);
                 return
             end
             
@@ -474,14 +473,13 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             sessd.rnumber = 2;
             obj = sessd.tracerResolvedFinalSumt;   
             if (lexist(obj, 'file'))
-                ic  = ImagingContext(obj);
+                ic  = ImagingContext2(obj);
                 return
             end
 
             obj_ = this.tracerResolvedFinal('epoch', this.sessionData.epoch);
             assert(lexist(obj_, 'file'))
-            ic = ImagingContext(obj_);
-            ic.numericalNiftid;
+            ic = ImagingContext2(obj_);
             ic = ic.timeSummed;
             ic.fourdfp;
             ic.save;
@@ -531,7 +529,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
         end
         
         function this  = sumRevisionAndCopyToFinalSumt(this)
-            ic  = mlfourd.ImagingContext(this.sessionData.tracerRevision);
+            ic  = mlfourd.ImagingContext2(this.sessionData.tracerRevision);
             ic  = ic.timeSummed;
             nii = ic.niftid;
             nii.fqfilename = this.sessionData.tracerResolvedFinalSumt;

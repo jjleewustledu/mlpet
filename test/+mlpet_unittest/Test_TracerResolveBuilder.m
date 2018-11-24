@@ -147,31 +147,6 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             this.verifyEqual(uncorrected(8).product.fileprefix, ...
                 sprintf('umapSynth_op_fdgv%ie1to9r1_frame8', this.vnumber));
         end
-        function test_motionUncorrectUmapToEpochs(this)
-            this.testObj   = this.testObj.partitionMonolith;
-            this.testObj   = this.testObj.motionCorrectFrames;  
-            this.testObj   = this.testObj.motionCorrectCTAndUmap;   
-            prod = this.testObj.product;             
-            
-            this.testObj = this.testObj.setNeverTouch(true); 
-            assert(~isempty(this.testObj.resolveBuilder), ...
-                'ensure motionCorrectFrames has completed successfully');
-            this.testObj.sessionData = this.testObj.resolveBuilder.sessionData;
-            this.testObj             = this.testObj.motionUncorrectUmapToEpochs(prod);
-            this.verifyEqual(this.testObj(8).product.fqfilename, ...
-                fullfile(this.pwd0, 'V1', 'FDG_V1-NAC', 'E1to9', 'umapSynth_op_fdgv1e1to9r1_frame8.4dfp.hdr'));
-        end
-        function test_motionUncorrectUmapToFrames(this)
-            this.testObj   = this.testObj.partitionMonolith;
-            this.testObj   = this.testObj.motionCorrectFrames;  
-            this.testObj   = this.testObj.motionCorrectCTAndUmap; 
-            
-            this.testObj = this.testObj.setNeverTouch(true);
-            this.verifyEqual(this.testObj.product.fileprefix,    'umapSynth_op_fdgv1e1to9r1_frame9');
-            this.testObj   = this.testObj.motionUncorrectUmapToFrames(this.testObj.product);
-            this.verifyEqual(this.testObj(1).product.fileprefix, 'umapSynth_op_fdgv1e1to9r1_frame1');
-            this.verifyEqual(this.testObj(8).product.fileprefix, 'umapSynth_op_fdgv1e1to9r1_frame8');
-        end
         function test_motionUncorrectUmap(this)
             this.testObj = this.testObj.partitionMonolith;
             [this.testObj,multiEpochOfSummed,reconstitutedSummed] = this.testObj.motionCorrectFrames;  

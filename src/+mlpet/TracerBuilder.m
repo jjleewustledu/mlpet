@@ -26,9 +26,9 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
             %  @param obj requires the 4dfp environment.
             %  @param blur is numeric.
             
-            ic = mlfourd.ImagingContext(obj);
+            ic = mlfourd.ImagingContext2(obj);
             if (~lexist(ic.fqfilename, 'file'))
-                warning('mlpet:fileDoesNotExistOnFilesystem', 'TracerBuilder.ensureSumt.obj->%s', char(obj));
+                warning('mlpet:fileDoesNotExistOnFilesystem', 'TracerBuilder.ensureBlurred.obj->%s', char(obj));
                 return
             end
             if (lexist(sprintf('%s_%i%i%ifwhh.4dfp.hdr', ic.fqfileprefix, blur, blur, blur), 'file'))
@@ -42,9 +42,9 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
             %  @param obj requires the 4dfp environment.
             %  @param blur is numeric.
             
-            ic = mlfourd.ImagingContext(obj);
+            ic = mlfourd.ImagingContext2(obj);
             if (~lexist(ic.fqfilename, 'file'))
-                warning('mlpet:fileDoesNotExistOnFilesystem', 'TracerBuilder.ensureSumt.obj->%s', char(obj));
+                warning('mlpet:fileDoesNotExistOnFilesystem', 'TracerBuilder.ensureBlurred4dfp.obj->%s', char(obj));
                 return
             end
             if (lexist(sprintf('%s_b%i.4dfp.hdr', ic.fqfileprefix, floor(10*blur)), 'file'))
@@ -53,25 +53,10 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
             fv = mlfourdfp.FourdfpVisitor;
             fv.imgblur_4dfp(ic.fqfileprefix, blur);
         end
-        function ensureSumt(obj)
-            %  @param obj requires the 4dfp environment.
-            
-            ic = mlfourd.ImagingContext(obj);
-            if (~lexist(ic.fqfilename, 'file'))
-                warning('mlpet:fileDoesNotExistOnFilesystem', 'TracerBuilder.ensureSumt.obj->%s', char(obj));
-                return
-            end
-            if (lexist(sprintf('%s_sumt.4dfp.hdr', ic.fqfileprefix), 'file'))
-                return
-            end
-            ic = ic.timeSummed;
-            ic.fourdfp;
-            ic.save;
-        end
         function fqfn = scrubTracer(fqfn, toScrub)
             assert(lexist(fqfn, 'file'));
             assert(isnumeric(toScrub));
-            ffp = mlfourdfp.Fourdfp.load(fqfn);
+            ffp = mlfourd.ImagingFormatContext(fqfn);
             ffp.fileprefix = [ffp.fileprefix '_scrubbed'];
             lenScrubbed = ffp.size(4) - length(toScrub);
             img = zeros(ffp.size(1), ffp.size(2), ffp.size(3), lenScrubbed);
