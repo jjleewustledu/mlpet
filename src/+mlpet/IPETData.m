@@ -22,7 +22,7 @@ classdef IPETData
         f = oc(  this, ~)
         f = oo(  this, ~)
         f = tr(  this, ~)
-        f = umap(this, ~)
+        f = umapTagged(this, ~)
  	end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

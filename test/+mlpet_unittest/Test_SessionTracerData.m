@@ -142,7 +142,7 @@ classdef Test_SessionTracerData < matlab.unittest.TestCase
         end
         function test_tracerSuvrNamed(this)
         end
-        function test_umap(this)
+        function test_umapTagged(this)
             % legacy support
         end
         function test_umapSynth(this)
