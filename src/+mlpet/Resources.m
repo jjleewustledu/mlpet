@@ -6,6 +6,7 @@ classdef Resources < handle
         ignoreFinishMark
         matlabDrive
         neverMarkFinished
+        nipetFolder
         noiseFloorOfActivity % Bq/mL
         pointSpread % mm
         suffixBlurPointSpread
@@ -50,6 +51,9 @@ classdef Resources < handle
         function g = get.neverMarkFinished(this)
             g = this.neverMarkFinished_;
         end
+        function g = get.nipetFolder(~)
+            g = this.nipetFolder_;
+        end
         function g = get.noiseFloorOfActivity(~)
             g = 0; % Bq/mL
         end
@@ -75,6 +79,7 @@ classdef Resources < handle
         defaultN_  
         ignoreFinishMark_        
         neverMarkFinished_
+        nipetFolder_
     end
     
     methods (Access = private)
@@ -85,6 +90,7 @@ classdef Resources < handle
             
             this.ignoreFinishMark_ = false;
             this.neverMarkFinished_ = false;
+            nipetFolder_ = 'Pawel';
         end
     end
    
