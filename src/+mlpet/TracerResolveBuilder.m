@@ -112,7 +112,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  @return reconstituted := singlet ImagingFormatContext containing time sum of motion-corrected frames.
                 
             % recursion over epochs to generate composite
-            if (length(this) > 1)                
+            if (length(this) > 1)
                 for e = 1:length(this)
                     this(e) = this(e).setLogPath( ...
                         fullfile(myfileparts(this(e).tracerRevision), 'Log', ''));
@@ -226,6 +226,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             cd(loc);
             this = this.aufbauUmap;
             this = this.expandFovOfUmap;
+            this = this.loadReconHistIntoUmap;
+            this.product_.save;
         end        
         function this = reconstituteFramesAC(this)
             %% RECONSTITUTEACFRAMES uses e7 results referenced by this.sessionData.tracerListmodeMhdr.
@@ -307,11 +309,9 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             sessd1toN.frame = supEpochs;
             
             pwd0 = pushd(sessd_.tracerLocation);
-            ffp0 = ImagingFormatContext(sessd__.tracerRevision('frame', 1));
-            sz = size(ffp0.img);
-            ffp0.img = zeros(sz(1), sz(2), sz(3), nFrames);
+            ffp0 = ImagingFormatContext(sessd__.tracerRevision('typ', 'fqfn'));
+            ffp0.img = zeros(size(ffp0));
             ffp0.fqfileprefix = sessd_.tracerResolved('typ', 'fqfp'); % fdgv1r2_op_fdgv1e1to4r1_frame4
-            fv = FourdfpVisitor;
             
             inz = this.indicesNonzero;
             for e = 1:nEpochs  
@@ -326,7 +326,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 fp = sessde.tracerResolved('typ', 'fp'); % fdgv1e1r2_op_fdgv1e1r1_frame24
                 fpDest = [sessde.tracerRevision('typ','fp') '_' sessd1toN.resolveTag]; % fdgv1e1r2_op_fdgv1e1to4r1_frame4
                 if (lexist(t4, 'file'))
-                    fv.t4img_4dfp(t4, fp, 'out', fpDest, 'options', ['-O' fp]);
+                    this.buildVisitor.t4img_4dfp(t4, fp, 'out', fpDest, 'options', ['-O' fp]);
                     ffp = ImagingFormatContext([fpDest '.4dfp.hdr']);
                 else
                     % e.g., for case in which most of epoch 1 is empty because of late
@@ -379,6 +379,19 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             cub = mlfourdfp.CarneyUmapBuilder('sessionData', this.sessionData);
             cub = cub.convertUmapsToE7Format(fps);
             this.product_ = cub.product;
+        end
+        function this = deleteWorkFiles(this)
+            pwd0 = pushd(this.sessionData.tracerLocation);
+            dt = mlsystem.DirTool('E*');
+            for idt = 1:length(dt.dns)
+                pwd1 = pushd(dt.dns{idt});
+                deleteExisting('*.4dfp.ifh');
+                deleteExisting('*.4dfp.hdr');
+                deleteExisting('*.4dfp.img');
+                deleteExisting('*.4dfp.img.rec');
+                popd(pwd1);
+            end
+            popd(pwd0);
         end
         function idx  = indicesNonzero(this)
             p = this.product_;
@@ -737,15 +750,25 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     umapFfp.img(:,:,:,this.maxLengthEpoch*(ep-1)+fr) = frame_.img;
                 end
             end
-            umapFfp.save;
-            this.packageProduct(umapFfp);
+            this = this.packageProduct(umapFfp);
         end
         function this = expandFovOfUmap(this)
-            umap = this.product_;
-            fov  = this.sessionData.fullFov;
-            umap.zoomed(0, fov(1), 0, fov(2), 0, fov(3));
-            umap.saveas([umap.fqfileprefix '.nii.gz']);
-            this.packageProduct(umap);
+            umap  = this.product_;
+            fov   = this.sessionData.fullFov;
+            umap  = umap.zoomed(-fov(1)/4, fov(1), -fov(2)/4, fov(2), 0, -1, 0, -1); 
+            this = this.packageProduct(umap);
+        end
+        function this = loadReconHistIntoUmap(this)
+            import mlfourd.*;
+            sess = this.sessionData;
+            sess.attenuationCorrected = true;
+            info = NIfTIInfo(this.sessionData.tracerNipet('nativeFov', true));
+            nii = this.product_.nifti;
+            nii.filepath = sess.tracerConvertedLocation;
+            nii.fileprefix = mybasename(sess.umapTagged);
+            nii.filesuffix = '.nii.gz';
+            this = this.packageProduct( ...
+                ImagingContext2(nii, 'hist', info.hdr.hist));
         end
         function nf   = nFramesModMaxLengthEpoch(this)
             sz = this.sizeTracerRevision;
