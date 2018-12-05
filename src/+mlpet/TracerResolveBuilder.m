@@ -753,9 +753,11 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             this = this.packageProduct(umapFfp);
         end
         function this = expandFovOfUmap(this)
-            umap  = this.product_;
-            fov   = this.sessionData.fullFov;
-            umap  = umap.zoomed(-fov(1)/4, fov(1), -fov(2)/4, fov(2), 0, -1, 0, -1); 
+            nii  = this.product_.nifti;
+            nii.datatype = 'single';
+            umap = mlfourd.ImagingContext2(nii);
+            fov  = this.sessionData.fullFov;
+            umap = umap.zoomed(-fov(1)/4, fov(1), -fov(2)/4, fov(2), 0, -1, 0, -1); 
             this = this.packageProduct(umap);
         end
         function this = loadReconHistIntoUmap(this)
@@ -767,6 +769,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             nii.filepath = sess.tracerConvertedLocation;
             nii.fileprefix = mybasename(sess.umapTagged);
             nii.filesuffix = '.nii.gz';
+            nii.datatype = 'single';
             this = this.packageProduct( ...
                 ImagingContext2(nii, 'hist', info.hdr.hist));
         end
