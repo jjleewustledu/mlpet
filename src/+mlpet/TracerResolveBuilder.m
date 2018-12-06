@@ -227,6 +227,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             this = this.aufbauUmap;
             this = this.expandFovOfUmap;
             this = this.loadReconHistIntoUmap;
+            ensuredir(this.product_.filepath);
             this.product_.save;
         end        
         function this = reconstituteFramesAC(this)
@@ -516,7 +517,9 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     popd(pwd0);
                     
                 catch ME
-                    handexcept(ME); 
+                    dispexcept(ME, 'mlpet:RuntimeError', ...
+                        'TracerResolveBuilder.motionUncorrectEpoch failed resolve or t4img_4dfp on %s', ...
+                        source.fqfilename); 
                     % E1to9 && idxRef->9 will fail with 
                     % Warning: The value of 'tracerSif' is invalid. It must satisfy the function: lexist_4dfp.
                     % Cf. mlfourdfp.ImageFrames lines 154, 173.  TODO.
@@ -585,7 +588,9 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     fprintf('this(%i).product->\n    %s\n\n', idxRef, char(unco(idxRef).product)); 
                         %  E${idxRef}/umapSynth_op_fdgv1e1to9r1_frame${idxRef}; 
                 catch ME
-                    handexcept(ME); 
+                    dispexcept(ME, 'mlpet:RuntimeError', ...
+                        'TracerResolveBuilder.motionUncorrectEpoch1ToN failed resolve or t4img_4dfp on %s', ...
+                        source.fqfilename); 
                     % E1to9 && idxRef->9 will fail with 
                     % Warning: The value of 'tracerSif' is invalid. It must satisfy the function: lexist_4dfp.
                     % Cf. mlfourdfp.ImageFrames lines 154, 173.  TODO.
@@ -594,8 +599,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     % file: /home/usr/jjlee/Local/src/mlcvl/mlfourdfp/src/+mlfourdfp/AbstractT4ResolveBuilder.m; name: AbstractT4ResolveBuilder.set.theImages; line: 164; 
                     % file: /home/usr/jjlee/Local/src/mlcvl/mlpet/src/+mlpet/TracerResolveBuilder.m; name: TracerResolveBuilder.motionUncorrectUmapToEpochs; line: 235; 
                     % file: /home/usr/jjlee/Local/src/mlcvl/mlpet/src/+mlpet/TracerResolveBuilder.m; name: TracerResolveBuilder.motionUncorrectUmapToFrames; line: 184; 
-                end
-                
+                end                
                 popd(pwd0); 
             end
         end     

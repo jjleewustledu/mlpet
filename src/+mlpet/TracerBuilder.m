@@ -141,25 +141,22 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
             trydelete([this.umapSynth('tracer', '', 'typ','fp') '.4dfp.*']);
             bv.copyfile_4dfp(   this.umapSynth('tracer', '', 'typ', 'fqfp'));
             
-            if (~isempty(ip.Results.fourdfp))
-                try
+            try
+                if (~isempty(ip.Results.fourdfp))
                     ffp = ensureCell(ip.Results.fourdfp);
                     dprintf('mlpet.TracerBuilder.locallyStageModalities:  copyfile_4dfp %s', ...
                         cell2str(ffp, 'AsRows', true));
                     cellfun(@(x) bv.copyfile_4dfp(x), ffp, 'UniformOutput', false);
-                catch ME
-                    dispwarning(ME);
                 end
-            end
-            if (~isempty(ip.Results.fqfn))
-                try
+                if (~isempty(ip.Results.fqfn))
                     fqfn = ensureCell(ip.Results.fqfn);
                     dprintf('mlpet.TracerBuilder.locallyStageModalities:  copyfile %s', ...
                         cell2str(fqfn, 'AsRows', true));
                     cellfun(@(x) copyfile(x), fqfn, 'UniformOutput', false);
-                catch ME
-                    dispwarning(ME);
                 end
+            catch ME
+                dispwarning(ME, 'mlpet:RuntimeWarning', ...
+                    'TracerBuilder.locallyStageModalities failed copyfile operations on %s', fqfn);
             end
         end
         function this = locallyStageTracer(this)
