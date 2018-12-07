@@ -147,14 +147,14 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             sessFdg = this.sessionData_;
             sessFdg.rnumber = 2;
             sessFdg.tracer = 'FDG';
-            sessHo  = this.sessionData_;
-            sessHo.rnumber = 2;
-            sessHo.tracer = 'HO';
             product = this.product_.fileprefix;
             switch (this.sessionData_.tracer)
                 case  'OO'
-                    sessFdg = this.refreshTracerResolvedFinalSumt(sessFdg);
+                    sessHo  = this.sessionData_;
+                    sessHo.rnumber = 2;
+                    sessHo.tracer = 'HO';
                     sessHo  = this.refreshTracerResolvedFinalSumt(sessHo);
+                    sessFdg = this.refreshTracerResolvedFinalSumt(sessFdg);
                     theImages = {product ... 
                                  sessHo.tracerResolvedFinalSumt('typ','fp') ...
                                  sessFdg.tracerResolvedFinalSumt('typ','fp') ...
