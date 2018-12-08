@@ -9,6 +9,7 @@ classdef Resources < handle
         nipetFolder
         noiseFloorOfActivity % Bq/mL
         pointSpread % mm
+        reconstructionVersion
         suffixBlurPointSpread
     end
     
@@ -60,6 +61,13 @@ classdef Resources < handle
         function g = get.pointSpread(~)
             g = mlsiemens.MMRRegistry.instance.petPointSpread;
         end
+        function g = get.reconstructionVersion(this)
+            if (lstrfind(getenv('SUBJECTS_DIR'), this.nipetFolder))
+                g = sprintf('nipet=1.1');
+                return
+            end
+            g = sprintf('Siemens e7 E11p');
+        end
         function g = get.suffixBlurPointSpread(this)
             g = ['_b' num2str(floor(10*this.pointSpread))];
         end
@@ -80,17 +88,17 @@ classdef Resources < handle
         ignoreFinishMark_        
         neverMarkFinished_
         nipetFolder_
+        nipetVersion_ = 1.1
     end
     
     methods (Access = private)
         function this = Resources()
             this.alpha_ = 0.05;
             this.data_  = [];
-            this.defaultN_ = true;
-            
+            this.defaultN_ = true;            
             this.ignoreFinishMark_ = false;
             this.neverMarkFinished_ = false;
-            nipetFolder_ = 'Pawel';
+            this.nipetFolder_ = 'Pawel';
         end
     end
    
