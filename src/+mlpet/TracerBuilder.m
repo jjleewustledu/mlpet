@@ -137,16 +137,16 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
             parse(ip, varargin{:});
             
             trydelete([this.T1('typ','fp') '.4dfp.*']);
-            bv.copyfile_4dfp(   this.T1('typ','fqfp'));  
-            trydelete([this.umapSynth('tracer', '', 'typ','fp') '.4dfp.*']);
-            bv.copyfile_4dfp(   this.umapSynth('tracer', '', 'typ', 'fqfp'));
+            bv.copyfile_4dfp(this.T1('typ','fqfp'), this.T1('typ','fp'));  
+            trydelete([this.umapSynth('tracer','','typ','fp') '.4dfp.*']);
+            bv.copyfile_4dfp(this.umapSynth('tracer','','typ','fqfp'), this.umapSynth('tracer','','typ','fp'));
             
             try
                 if (~isempty(ip.Results.fourdfp))
                     ffp = ensureCell(ip.Results.fourdfp);
                     dprintf('mlpet.TracerBuilder.locallyStageModalities:  copyfile_4dfp %s', ...
                         cell2str(ffp, 'AsRows', true));
-                    cellfun(@(x) bv.copyfile_4dfp(x), ffp, 'UniformOutput', false);
+                    cellfun(@(x) bv.copyfile_4dfp(x, mybasename(x)), ffp, 'UniformOutput', false);
                 end
                 if (~isempty(ip.Results.fqfn))
                     fqfn = ensureCell(ip.Results.fqfn);
