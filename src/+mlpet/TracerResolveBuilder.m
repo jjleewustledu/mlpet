@@ -227,8 +227,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             this = this.aufbauUmap;
             this = this.expandFovOfUmap;
             this = this.loadReconHistIntoUmap;
-            ensuredir(this.product_.filepath);
-            this.product_.save;
         end        
         function this = reconstituteFramesAC(this)
             %% RECONSTITUTEACFRAMES uses e7 results referenced by this.sessionData.tracerListmodeMhdr.
@@ -480,7 +478,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     childT4RB.indexOfReference = idxRef;  
                     childT4RB.resolveTag       = childT4RB.resolveTagFrame(idxRef, 'reset', true); % op_fdgv1${e}r1_frame${idxRef};                      
                     childT4RB                  = childT4RB.updateFinished( ...
-                        'tag', sprintf('_motionUncorrectToEpochs2_%s', source.fileprefix));
+                        'tag', sprintf('_motionUncorrectEpoch_%s_idxRef%i', source.fileprefix, idxRef));
                     
                     childT4RB.skipT4imgAll = true;
                     childT4RB              = childT4RB.resolve; % childRB.product->${E}/fdgv1${e}r2_op_fdgv1${e}r1_frame${idxRef}
@@ -560,7 +558,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     childT4RB.indexOfReference = idxRef;  
                     childT4RB.resolveTag       = childT4RB.resolveTagFrame(idxRef, 'reset', true); % op_fdgv1e1to9r1_frame${idxRef};                      
                     childT4RB                  = childT4RB.updateFinished( ...
-                        'tag', sprintf('_motionUncorrectToEpochs_%s', source.fileprefix));
+                        'tag', sprintf('_motionUncorrectEpoch1ToN_%s_idxRef%i', source.fileprefix, idxRef));
                     
                     childT4RB.skipT4imgAll = true;
                     childT4RB              = childT4RB.resolve; % childRB.product->${E}/fdgv2${e}r2_op_fdgv2${e}r1_frame${idxRef}
