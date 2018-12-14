@@ -552,7 +552,9 @@ classdef TracerDirector < mlpipeline.AbstractDirector
                     if (lexist(sd.tracerResolvedFinal, 'file'))
                         if (lexist(sd.tracerResolvedFinalSumt, 'file'))
                             try
-                                fv.copyfile_4dfp(sd.tracerResolvedFinalSumt('typ','fqfp'));
+                                fv.copyfile_4dfp( ...
+                                    sd.tracerResolvedFinalSumt('typ','fqfp'), ...
+                                    sd.tracerResolvedFinalSumt('typ','fp'));
                             catch ME
                                 dispwarning(ME);
                             end
