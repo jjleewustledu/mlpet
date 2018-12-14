@@ -53,7 +53,7 @@ classdef AtlasBuilder < mlfourdfp.AbstractSessionBuilder
         function refreshMpr(this)
             this.buildVisitor_.copyfile_4dfp( ...
                 this.sessionData.t1MprageSagSeriesForReconall('typ','fqfp'), ...
-                this.sessionData.mprForReconall('typ','fqfp'), 'f');
+                this.sessionData.mprForReconall('typ','fqfp'));
         end
 		  
  		function this = AtlasBuilder(varargin)
