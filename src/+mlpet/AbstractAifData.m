@@ -32,7 +32,6 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         timeDuration
         datetime0 
         index0
-        index0Forced
         indexF
  		dt
         
@@ -172,9 +171,6 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         end
         function g    = get.index0(this)
             g = this.timingData_.index0;
-        end
-        function g    = get.index0Forced(this)
-            g = this.sessionData.index0Forced;
         end
         function this = set.index0(this, s)
             this.timingData_.index0 = s;

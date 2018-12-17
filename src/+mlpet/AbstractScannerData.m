@@ -19,7 +19,6 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         timeWindow
         datetime0 % start of scan
         index0
-        index0Forced
         indexF 
         dt
              
@@ -96,9 +95,6 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         end
         function this = set.index0(this, s)
             this.timingData_.index0 = s;
-        end
-        function g    = get.index0Forced(this)
-            g = this.sessionData.index0Forced;
         end
         function g    = get.indexF(this)
             g = this.timingData_.indexF;
