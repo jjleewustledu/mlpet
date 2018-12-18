@@ -120,6 +120,7 @@ classdef Msktgen < mlfourdfp.AbstractSessionBuilder
             res = mlpet.Resources.instance;
             this.sessionData_.rnumber = 1;            
             theImages = [{this.source.fqfileprefix} this.intermediaryForMask.fqfileprefix];
+            t4err = [];
             
             pwd0 = pushd(this.source.filepath);
             try 
