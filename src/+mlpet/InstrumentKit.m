@@ -12,22 +12,22 @@ classdef (Abstract) InstrumentKit < handle
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
  	
 	methods (Static)
-        function rm = CreateRadMeasurements(varargin)
+        function rm  = CreateRadMeasurements(varargin)
             rm = [];
         end
-        function obj = PrepareBloodSuckerDevice(varargin)
+        function obj = prepareBloodSuckerDevice(varargin)
             obj = [];
         end
-        function obj = PrepareCapracDevice(varargin)
+        function obj = prepareCapracDevice(varargin)
             obj = [];
         end
-        function obj = PrepareTwiliteDevice(varargin)
+        function obj = prepareTwiliteDevice(varargin)
             obj = [];
         end
-        function obj = PrepareBiographMMRDevice(varargin)
+        function obj = prepareBiographMMRDevice(varargin)
             obj = [];
         end
-        function obj = PrepareEcatExactHRPlusDevice(varargin)
+        function obj = prepareEcatExactHRPlusDevice(varargin)
             obj = [];
         end
     end
@@ -35,7 +35,7 @@ classdef (Abstract) InstrumentKit < handle
     %% PROTECTED
     
     methods (Access = protected)        
- 		function this = InstrumentKit(varargin) 			
+ 		function this = InstrumentKit(varargin)
  		end	  
     end 
 
