@@ -18,13 +18,13 @@ classdef (Abstract) RadMeasurements < handle
     end
 
     methods (Static)
-        function this = CreateByDate(varargin)
+        function this = createByDate(varargin)
             this = [];
         end
-        function this = CreateByFilename(varargin)
+        function this = createByFilename(varargin)
             this = [];
         end
-        function this = CreateBySession(varargin)
+        function this = createBySession(varargin)
             this = [];
         end
     end

@@ -182,15 +182,15 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 'mlpet:FileNotFoundError', ...
                 'file %s must be accessible', fqfn)
         end
-        function this = CreateByDate(aDate, varargin)
+        function this = createByDate(aDate, varargin)
             import mlpet.CCIRRadMeasurements.*;
-            this = CreateByFilename(date2filename(aDate), varargin{:});
+            this = createByFilename(date2filename(aDate), varargin{:});
         end
-        function this = CreateByFilename(fqfn, varargin)
+        function this = createByFilename(fqfn, varargin)
             this = mlpet.CCIRRadMeasurements(varargin{:});
             this = this.readtables(fqfn);
         end
-        function this = CreateBySession(sess, varargin)
+        function this = createBySession(sess, varargin)
             this = mlpet.CCIRRadMeasurements('session', sess, varargin{:});
         end
     end
@@ -219,6 +219,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             
             dt1 = datetime(this.session_); 
             dt2 = this.datetimeTracerAdmin('earliest', true);
+            dt  = NaT;
             if (~isnat(dt1) && ~isnat(dt2))
                 assert(this.equivDates(dt1, dt2), 'mlpet:ValueError', 'internally inconsistent datetime');
                 dt = dt1;
@@ -266,8 +267,9 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
         end
         function wcrs = wellCounterRefSrc(this, varargin)
             %% WELLCOUNTERREFSRC
-            %  @param isotope is char, e.g., '[137Cs]', '[22Na]' or '[68Ge]'; default := ''.
+            %  @param isotope is char, e.g., '[137Cs]', '[22Na]' or '[68Ge]'; default := '' induces a search for available isotopes.
             %  @return table(TRACER, TIMECOUNTED_Hh_mm_ss, CF_Kdpm, Ge_68_Kdpm).
+            %  @return [] if no references sources are available.
             
             ip = inputParser;
             addOptional(ip, 'isotope', '', @ischar);
@@ -290,7 +292,22 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             wc   = this.wellCounter;
             sel  = cellfun(@(x) strcmpi(x, ip.Results.isotope), wc.TRACER);
             wcrs = table(wc.TRACER(sel), wc.TIMECOUNTED_Hh_mm_ss(sel), wc.CF_Kdpm(sel), wc.Ge_68_Kdpm(sel), ...
-                'VariableNames', {'TRACER' 'TIMECOUNTED_Hh_mm_ss' 'CF_Kdpm' 'Ge_68_Kdpm'});
+                'VariableNames', {'TRACER' 'TIMECOUNTED_Hh_mm_ss' 'CF_Kdpm' 'Ge_68_Kdpm' ''});
+        end
+        function wcrs = wellCounterRefSyringes(this, varargin)
+            %% WELLCOUNTERREFSYRINGES
+            %  @param isotope is char; default := '[18F]DG'.
+            %  @return table(TRACER, TIMECOUNTED_Hh_mm_ss, CF_Kdpm, Ge_68_Kdpm, MASSSAMPLE_G).
+            
+            ip = inputParser;
+            addOptional(ip, 'isotope', '[18F]DG', @ischar);
+            parse(ip, varargin{:});
+            
+            wc   = this.wellCounter;
+            sel  = cellfun(@(x) strcmpi(x, ip.Results.isotope), wc.TRACER);
+            wcrs = table( ...
+                wc.TRACER(sel), wc.TIMECOUNTED_Hh_mm_ss(sel), wc.CF_Kdpm(sel), wc.Ge_68_Kdpm(sel), wc.MASSSAMPLE_G(sel), ...
+                'VariableNames', {'TRACER' 'TIMECOUNTED_Hh_mm_ss' 'CF_Kdpm' 'Ge_68_Kdpm' 'MASSSAMPLE_G'});            
         end
     end
     
@@ -305,7 +322,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
  			
  			this = this@mldata.Xlsx(varargin{:});
             ip = inputParser;
-            addParameter(ip, 'session', mlxnat.Session, @(x) isa(x, 'mlxnat.Session'));
+            addParameter(ip, 'session', mlxnat.Session, @(x) isa(x, 'mlxnat.Session') || isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'alwaysUseSessionDate', true, @islogical);
             parse(ip, varargin{:});
             this.session_ = ip.Results.session;
@@ -443,6 +460,9 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 dt = this.datetime(dt);
             end
             sessdt      = datetime(this);
+            if (isnat(sessdt))
+                return
+            end
             dt.Year     = sessdt.Year;
             dt.Month    = sessdt.Month;
             dt.Day      = sessdt.Day;
