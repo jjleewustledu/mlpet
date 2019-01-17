@@ -12,8 +12,7 @@ classdef (Abstract) AbstractHerscovitch1985 < mlfourdfp.AbstractSessionBuilder
  	%  by jjlee,
  	%  last modified $LastChangedDate$
  	%  and checked into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
- 	%  It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2016, 2017 John Joowon Lee,
-    %  jjlee@wustl.edu.
+ 	%  It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2016, 2017 John Joowon Lee
 
     properties (Abstract)
         canonFlows
