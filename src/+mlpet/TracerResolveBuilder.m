@@ -817,7 +817,10 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                         ffp = ImagingFormatContext(those(e).tracerRevision(typ{:})); % fdgv1e*r2
                     end                    
                 end
-                assert(lexist(ffp.fqfilename));
+                assert(lexist(ffp.fqfilename), ...
+                    'mlpet:runtimeError', ...
+                    ['TracerResolveBuilder.reconstituteComposites failed to reconstitute %s;\n' ...
+                     'if indicesNonzero have been all false, the imaging frames may be empty'], ffp.fqfilename);
                 aufbau4dfp.img(:,:,:,e) = ffp.img;
             end
             
