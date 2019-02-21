@@ -51,7 +51,7 @@ classdef PETRegistry < mlpatterns.Singleton
     methods
         function ps   = petPointSpread(this, varargin)
             %% PETPOINTSPREAD returns a 3-vector in mm; fwhh or sigma
-            %  ps = mlpet.PETBuilder.petPointSpread([attribute, value..., attribute, value])
+            %  ps = mlpet.PETRegistry.petPointSpread([attribute, value..., attribute, value])
             %  ^ double                              ^ scanner, radial position, dispersion, orientation
             %
             %  FWHH, (geom.) means of tan. & radial resolution of ECAT EXACT HR+ 2D mode

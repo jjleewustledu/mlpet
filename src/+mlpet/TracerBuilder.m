@@ -165,7 +165,7 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
             %  tracerLocation, tracerLocation, tracerListmodeMhdr, tracerListmodeSif, tracerSif, mprage, atlas.
             %  @param valid named param vendorSupport in ctor.
             %  @param recoverBackup logical:  if recoverBackup then [this.sessionData.tracerLocation '-Backup'] must be a well-formed dir.
-            %  @return this.product := vendorSupport->cropfrac(this.sessionData.tracerSif) as mlfourdfp.ImagingContext.
+            %  @return this.product := vendorSupport->cropfrac(this.sessionData.tracerSif) as mlfourd.ImagingContext.
             
             this.prepareTracerLocation;         
             this.prepareListmodeMhdr;
@@ -218,13 +218,13 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
                 bv.lns_4dfp(lmSif);
                 popd(pwd0);
             %end
-            this.product_ = mlfourd.ImagingContext([trSif '.4dfp.hdr']);
+            this.product_ = mlfourd.ImagingContext2([trSif '.4dfp.hdr']);
         end
         function this = prepareCroppedTracerRevision(this)
             %% PREPARECROPPEDTRACERREVISION
             %  @param this.vendorSupport is valid.
             %  @param this.sessionData.{tracerRevision,filetypeExt} are valid.
-            %  @return this.product := vendorSupport.cropfrac(this.sessionData.sif) as mlfourdfp.ImagingContext.
+            %  @return this.product := vendorSupport.cropfrac(this.sessionData.sif) as mlfourd.ImagingContext.
             
             this.vendorSupport_.sessionData = this.sessionData;
             sessd = this.vendorSupport_.sessionData;
@@ -236,10 +236,10 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
             import mlfourd.*;
             this.vendorSupport_.ensureTracerSymlinks; 
             if (lexist(fqfn, 'file'))   
-                this.product_ = ImagingContext(fqfn);
+                this.product_ = ImagingContext2(fqfn);
                 return
             end
-            this.product_ = ImagingContext( ...
+            this.product_ = ImagingContext2( ...
                 [this.vendorSupport_.cropfrac(fqfp0, fqfp) ext]);
         end        
         function this = resolveModalitiesToProduct(this, varargin)
@@ -330,7 +330,7 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
                 'sourceBlur', 1.0, ...
                 't40', this.buildVisitor.sagittal_inv_t4, ...
                 'useMetricGradient', true);
-            tof = mlfourd.ImagingContext([fqfp '.4dfp.hdr']);
+            tof = mlfourd.ImagingContext2([fqfp '.4dfp.hdr']);
             %popd(pwd0);
         end
         
