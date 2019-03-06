@@ -29,10 +29,10 @@ classdef CHPC4TracerDirector < mldistcomp.CHPC
                 this.rsync(fullfile(sd.sessionPath, 'AC_CT_*.4dfp.*'), csd.sessionPath, varargin{:});
                 this.rsync(fullfile(sd.sessionPath, 'ct*.4dfp.*'),     csd.sessionPath, varargin{:});
 
-                this.sshMkdir(                                   csd.vLocation);
-                this.rsync(fullfile(sd.vLocation, 'ct*'),        csd.vLocation, varargin{:});
-                this.rsync(fullfile(sd.vLocation, 'T1001*'),     csd.vLocation, varargin{:});
-                this.rsync(fullfile(sd.vLocation, 'umapSynth*'), csd.vLocation, varargin{:});
+                this.sshMkdir(                                   csd.sessionPath);
+                this.rsync(fullfile(sd.sessionPath, 'ct*'),        csd.sessionPath, varargin{:});
+                this.rsync(fullfile(sd.sessionPath, 'T1001*'),     csd.sessionPath, varargin{:});
+                this.rsync(fullfile(sd.sessionPath, 'umapSynth*'), csd.sessionPath, varargin{:});
 
                 this.sshMkdir(                           csd.tracerLocation);
                 if (isdir(sd.tracerLocation))
@@ -73,7 +73,7 @@ classdef CHPC4TracerDirector < mldistcomp.CHPC
             sd  = this.sessionData;            
             
             try
-                this.rsync([csd.vLocation '/'], [sd.vLocation '/'], 'chpcIsSource', true, varargin{:});
+                this.rsync([csd.sessionPath '/'], [sd.sessionPath '/'], 'chpcIsSource', true, varargin{:});
             catch ME
                 handerror(ME);
             end
@@ -84,7 +84,7 @@ classdef CHPC4TracerDirector < mldistcomp.CHPC
         end
         function        cleanTracer(this)
             csd = this.chpcSessionData;
-            this.sshRm(fullfile(csd.vLocation, [upper(csd.tracer) '_V*']));
+            this.sshRm(fullfile(csd.sessionPath, [upper(csd.tracer) '_V*']));
         end
         
         function this = CHPC4TracerDirector(varargin)

@@ -22,7 +22,6 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
  		testObj
         tic0
         view = false
-        vnumber = 1
  	end
 
 	methods (Test)
@@ -38,17 +37,17 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             
             this.testObj = this.testObj.locallyStageTracer;
             
-            sessd = this.testObj.sessionData;
-            bv    = this.testObj.buildVisitor;
-            this.verifyTrue(isdir(sessd.tracerLocation)); % prepareTracerLocation
-            this.verifyTrue(lexist(sessd.tracerListmodeMhdr)); % prepareListmodeMhdr
-            this.verifyTrue(bv.lexist_4dfp(sessd.tracerListmodeSif('typ','fqfp'))); 
-            this.verifyTrue(bv.lexist_4dfp(sessd.tracerListmodeMhdr('typ','fqfp')));
-            this.verifyTrue(bv.lexist_4dfp(sessd.tracerSif('typ','fqfp')));
-            this.verifyTrue(bv.lexist_4dfp(sessd.tracerRevision('typ','fqfp')));
+            sd = this.testObj.sessionData;
+            bv = this.testObj.buildVisitor;
+            this.verifyTrue(isdir(sd.tracerLocation)); % prepareTracerLocation
+            this.verifyTrue(lexist(sd.tracerListmodeMhdr)); % prepareListmodeMhdr
+            this.verifyTrue(bv.lexist_4dfp(sd.tracerListmodeSif('typ','fqfp'))); 
+            this.verifyTrue(bv.lexist_4dfp(sd.tracerListmodeMhdr('typ','fqfp')));
+            this.verifyTrue(bv.lexist_4dfp(sd.tracerSif('typ','fqfp')));
+            this.verifyTrue(bv.lexist_4dfp(sd.tracerRevision('typ','fqfp')));
             this.verifyTrue(lexist( ...
-                fullfile(sessd.vLocation, ...
-                sprintf('%s_to_%s_t4', sessd.mprage('typ','fp'), sessd.atlas('typ','fp'))))); % prepareMprToAtlasT4
+                fullfile(sd.sessionPath, ...
+                sprintf('%s_to_%s_t4', sd.mprage('typ','fp'), sd.atlas('typ','fp'))))); % prepareMprToAtlasT4
             if (this.view)
                 this.testObj.product.view;
             end 
@@ -79,32 +78,26 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             this.testObj(9)          = this.testObj(9).motionCorrectEpochs;
                          
             this.verifyEqual(this.testObj(8).product.fqfileprefix, ...
-                sprintf('%s/V%i/FDG_V%i-NAC/E8/fdgv%ie8r2_op_fdgv%ie8r1_frame8', ...
-                this.pwd0, this.vnumber, this.vnumber, this.vnumber, this.vnumber));  
+                sprintf('%s/NAC/E8/fdge8r2_op_fdge8r1_frame8', this.pwd0));  
             
             this.verifyEqual(summed.product.fqfileprefix, ...
-                sprintf('%s/V%i/FDG_V%i-NAC/E8/fdgv%ie8r2_op_fdgv%ie8r1_frame8_sumt', ...
-                this.pwd0, this.vnumber, this.vnumber, this.vnumber, this.vnumber));  
+                sprintf('%s/FDG-NAC/E8/fdge8r2_op_fdge8r1_frame8_sumt', this.pwd0));  
             
             this.verifyEqual(this.testObj(9).product.fqfileprefix, ...
-                sprintf('%s/V%i/FDG_V%i-NAC/E9/fdgv%ie9r1', ...
-                this.pwd0, this.vnumber, this.vnumber, this.vnumber));                  
+                sprintf('%s/FDG-NAC/E9/fdge9r1', this.pwd0));                  
         end
         function test_motionCorrectFrames(this)
             this.testObj = this.testObj.partitionMonolith;
             [this.testObj,multiEpochOfSummed,reconstitutedSummed] = this.testObj.motionCorrectFrames;   
             
             this.verifyEqual(this.testObj(7).product.fqfileprefix, ...
-                sprintf('%s/V%i/FDG_V%i-NAC/E7/fdgv%ie7r2_op_fdgv%ie7r1_frame8', ...
-                this.pwd0, this.vnumber, this.vnumber, this.vnumber, this.vnumber));
+                sprintf('%s/FDG-NAC/E7/fdge7r2_op_fdge7r1_frame8', this.pwd0));
             
             this.verifyEqual(multiEpochOfSummed(7).product.fqfileprefix, ...
-                sprintf('%s/V%i/FDG_V%i-NAC/E7/fdgv%ie7r2_op_fdgv%ie7r1_frame8_sumt', ...
-                this.pwd0, this.vnumber, this.vnumber, this.vnumber, this.vnumber));
+                sprintf('%s/FDG-NAC/E7/fdge7r2_op_fdge7r1_frame8_sumt', this.pwd0));
             
             this.verifyEqual(reconstitutedSummed.product.fqfileprefix, ...
-                sprintf('%s/V%i/FDG_V%i-NAC/E1to9/fdgv%ie1to9r2_op_fdgv%ie1to9r1_frame9_sumt', ...
-                this.pwd0, this.vnumber, this.vnumber, this.vnumber, this.vnumber));
+                sprintf('%s/FDG-NAC/E1to9/fdge1to9r2_op_fdge1to9r1_frame9_sumt', this.pwd0));
         end
         function test_motionCorrectModalities(this)
             this.testObj = this.testObj.partitionMonolith;
@@ -112,8 +105,7 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             reconstitutedSummed = reconstitutedSummed.motionCorrectCTAndUmap;  
             
             this.verifyEqual(reconstitutedSummed.product.fqfileprefix, ...
-                sprintf('%s/V%i/FDG_V%i-NAC/E1to9/umapSynth_op_fdgv%ie1to9r1_frame9', ...
-                this.pwd0, this.vnumber, this.vnumber, this.vnumber));
+                sprintf('%s/FDG-NAC/E1to9/umapSynth_op_fdge1to9r1_frame9', this.pwd0));
         end
         function test_motionUncorrectToEpochs(this)
             this.testObj = this.testObj.partitionMonolith;
@@ -128,8 +120,7 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             uncorrected = reconstitutedSummed.motionUncorrectEpoch1ToN(umapOnFrame9, multiEpochOfSummed);
             this.verifyEqual( ...
                 uncorrected(1).product.fqfilename, ...
-                fullfile(this.pwd0, 'V1', 'FDG_V1-NAC', 'E1to9', ...
-                sprintf('umapSynth_op_fdgv%ie1to9r1_frame1.4dfp.hdr', this.vnumber)));
+                fullfile(this.pwd0, 'V1', 'FDG_V1-NAC', 'E1to9', 'umapSynth_op_fdge1to9r1_frame1.4dfp.hdr'));
         end
         function test_motionUncorrectToFrames(this)
             this.testObj = this.testObj.partitionMonolith;
@@ -142,10 +133,8 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
                 multiEpochOfSummed(c) = multiEpochOfSummed(c).setNeverTouch(true);
             end            
             uncorrected = reconstitutedSummed.motionUncorrectToFrames(umapOnFrame9, multiEpochOfSummed);
-            this.verifyEqual(uncorrected(1).product.fileprefix, ...
-                sprintf('umapSynth_op_fdgv%ie1to9r1_frame1', this.vnumber));
-            this.verifyEqual(uncorrected(8).product.fileprefix, ...
-                sprintf('umapSynth_op_fdgv%ie1to9r1_frame8', this.vnumber));
+            this.verifyEqual(uncorrected(1).product.fileprefix, 'umapSynth_op_fdge1to9r1_frame1');
+            this.verifyEqual(uncorrected(8).product.fileprefix, 'umapSynth_op_fdge1to9r1_frame8');
         end
         function test_motionUncorrectUmap(this)
             this.testObj = this.testObj.partitionMonolith;
@@ -192,7 +181,7 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             this.studyd = StudyData;
             this.sessp  = fullfile(this.studyd.subjectsDir, this.hyglyNN, '');
             this.pwd0 = pushd(this.sessp);
-            this.sessd  = SessionData('studyData', this.studyd, 'sessionPath', this.sessp, 'vnumber', this.vnumber, 'ac', this.ac);
+            this.sessd  = SessionData('studyData', this.studyd, 'sessionPath', this.sessp, 'ac', this.ac);
  			this.testObj_ = mlpet.TracerResolveBuilder('sessionData', this.sessd, 'NRevisions', 2);
             
  			this.addTeardown(@this.cleanClassFiles);

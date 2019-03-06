@@ -299,7 +299,7 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
             end
             anatomyToAtlT4 = sprintf('%s_to_%s_t4', anatomy_, this.sessionData.atlas('typ','fp'));
             if (~lexist(anatomyToAtlT4))
-                copyfile(fullfile(this.sessionData.vLocation, anatomyToAtlT4));
+                copyfile(fullfile(this.sessionData.sessionPath, anatomyToAtlT4));
                 assert(lexist(anatomyToAtlT4));
             end
             

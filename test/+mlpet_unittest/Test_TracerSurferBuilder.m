@@ -33,7 +33,7 @@ classdef Test_TracerSurferBuilder < matlab.unittest.TestCase
                 mlbash(sprintf('mv %s %s', mrip, backup));
             end
             mlraichle.HyperglycemiaDirector.reconAll( ...
-                'sessionsExpr', [this.hygly '*'], 'visitsExpr', 'V1*');
+                'sessionsExpr', [this.hygly '*']);
         end
 	end
 

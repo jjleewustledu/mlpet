@@ -21,7 +21,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
         function lst = prepareFreesurferData(varargin)
             %% PREPAREFREESURFERDATA prepares session & visit-specific copies of data enumerated by this.freesurferData.
             %  @param named sessionData is an mlraichle.SessionData.
-            %  @return 4dfp copies of this.freesurferData in sessionData.vLocation.
+            %  @return 4dfp copies of this.freesurferData in sessionData.sessionPath.
             %  @return lst, a cell-array of fileprefixes for 4dfp objects created on the local filesystem.            
         
             ip = inputParser;
@@ -30,14 +30,14 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             parse(ip, varargin{:});            
             sess = ip.Results.sessionData;
             
-            pwd0    = pushd(sess.vLocation);
+            pwd0    = pushd(sess.sessionPath);
             fsd     = { 'aparc+aseg' 'aparc.a2009s+aseg' 'brainmask' 'T1' };  
             fv      = mlfourdfp.FourdfpVisitor;
             safefsd = fv.ensureSafeFileprefix(fsd);
             lst     = cell(1, length(safefsd));
             sess = ip.Results.sessionData;
             for f = 1:length(fsd)
-                if (~fv.lexist_4dfp(fullfile(sess.vLocation, safefsd{f})))
+                if (~fv.lexist_4dfp(fullfile(sess.sessionPath, safefsd{f})))
                     try
                         if (strcmp(fsd{f}, 'T1') && ~fv.lexist_4dfp('T1001'))
                             sess.mri_convert(fullfile(sess.mriLocation,'T1.mgz'), 'T1001.nii');
@@ -178,7 +178,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
         function this  = instanceConstructAtlas(this)
             
             sd = this.sessionData;
-            pwd0 = pushd(sd.vLocation);            
+            pwd0 = pushd(sd.sessionPath);            
             ab = mlpet.AtlasBuilder('sessionData', sd);
             fprintf('mlpet.TracerDirector.instanceConstructAtlas.tracer_to_atl_t4->%s\n', ...
                 ab.tracer_to_atl_t4);
@@ -201,7 +201,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             parse(ip, varargin{:});
             [~,icTarg] = this.tracerResolvedTarget('target', ip.Results.target, 'tracer', 'FDG');   
             
-            pwd0 = pushd(this.sessionData.vLocation);
+            pwd0 = pushd(this.sessionData.sessionPath);
             bv.lns_4dfp(icTarg.fqfileprefix);
             icTarg.filepath = pwd;
             this.builder_ = this.builder_.packageProduct(icTarg); % build everything resolved to FDG
@@ -219,10 +219,10 @@ classdef TracerDirector < mlpipeline.AbstractDirector
         end
         function this  = instanceConstructExports(this, varargin)
             %% INSTANCECONSTRUCTEXPORTS creates symbolic links of useful results in directory named export.
-            %  @return fullfile(sessionData.vLocation, export) with aligned tracer results and aligned anatomical results.
+            %  @return fullfile(sessionData.sessionPath, export) with aligned tracer results and aligned anatomical results.
             
             sessd = this.sessionData;
-            exportDir = fullfile(sessd.vLocation, 'export');
+            exportDir = fullfile(sessd.sessionPath, 'export');
             if (isdir(exportDir))
                 rmdir(exportDir, 's');
             end
@@ -241,7 +241,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
         function this  = instanceConstructFdgOpT1001(this)
             
             sd = this.sessionData;
-            pwd0 = pushd(sd.vLocation);     
+            pwd0 = pushd(sd.sessionPath);     
             fv = mlfourdfp.FourdfpVisitor;
             fv.mpr2atl_4dfp('T1001');
             ab = mlpet.AtlasBuilder('sessionData', sd);
@@ -296,7 +296,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
         function this  = instanceConstructSuvr(this)
             
             sd = this.sessionData;
-            pwd0 = pushd(sd.vLocation);    
+            pwd0 = pushd(sd.sessionPath);    
             tsb = mlpet.TracerSuvrBuilder('sessionData', sd);
             p = tsb.buildAll;
             if (verbose)
@@ -321,7 +321,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             
         end
         function that  = instancePullFromRemote(this, varargin)
-            %  INSTANCEPULLFROMREMOTE pulls everything in the remote sessionData.vLocation.
+            %  INSTANCEPULLFROMREMOTE pulls everything in the remote sessionData.sessionPath.
             %  @param named distcompHost is the hostname or distcomp profile.
             %  @return that, an instance of mlpet.TracerDirector.
             
@@ -358,8 +358,8 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             try
                 s = []; r = '';
                 [s,r] = CHPC.rsync( ...
-                    fullfile(csessd.vLocation, ip.Results.pattern), ...
-                    [sessd.vLocation '/'], ...
+                    fullfile(csessd.sessionPath, ip.Results.pattern), ...
+                    [sessd.sessionPath '/'], ...
                     'chpcIsSource', true);
             catch ME
                 fprintf('s->%i, r->%s\n', s, r);
@@ -398,7 +398,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             end
         end        
         function that  = instancePushMinimalToRemote(this, varargin)
-            %  INSTANCEPUSHTOREMOTE pushes everything to the remote sessionData.vLocation.
+            %  INSTANCEPUSHTOREMOTE pushes everything to the remote sessionData.sessionPath.
             %  @param named distcompHost is the hostname or distcomp profile.
             
             ip = inputParser;
@@ -415,7 +415,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             end
         end
         function that  = instancePushToRemote(this, varargin)
-            %  INSTANCEPUSHTOREMOTE pushes everything to the remote sessionData.vLocation.
+            %  INSTANCEPUSHTOREMOTE pushes everything to the remote sessionData.sessionPath.
             %  @param named distcompHost is the hostname or distcomp profile.
             
             ip = inputParser;

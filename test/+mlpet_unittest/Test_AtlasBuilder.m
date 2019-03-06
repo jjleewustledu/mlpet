@@ -29,7 +29,7 @@ classdef Test_AtlasBuilder < matlab.unittest.TestCase
         end
         function test_tracer_to_atl_t4(this)
             this.verifyEqual(this.testObj.tracer_to_atl_t4, ...
-                fullfile(this.sessd.vLocation, sprintf('fdgv%ir1_to_TRIO_Y_NDC_t4', this.vnumber)));
+                fullfile(this.sessd.sessionPath, sprintf('fdgv%ir1_to_TRIO_Y_NDC_t4', this.vnumber)));
             tracer = this.sessd.tracerResolvedFinalSumt;
             this.assertTrue(lexist(tracer, 'file'));
             fqfp = this.fv.t4img_4dfp( ...
@@ -42,7 +42,7 @@ classdef Test_AtlasBuilder < matlab.unittest.TestCase
             delete_4dfp(fqfp);
         end  
         function test_mprForReconall(this)
-            pwd0 = pushd(this.sessd.vLocation);
+            pwd0 = pushd(this.sessd.sessionPath);
             this.viewer.view(this.testObj.mprForReconall('typ','fn'), 't1_mprage_sag_series122.4dfp.hdr')
             popd(pwd0);
         end

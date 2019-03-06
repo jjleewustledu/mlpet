@@ -140,7 +140,7 @@ classdef AtlasBuilder2 < mlfourdfp.AbstractSessionBuilder
         end
         function build_T1_to_atl_t4(this)
             sd = this.sessionData;            
-            pwd0 = pushd(sd.vLocation);   
+            pwd0 = pushd(sd.sessionPath);   
             this.mprForReconall;
             T1001_ = sd.T1001('typ','fp');
             this.buildVisitor_.mpr2atl_4dfp( ...
@@ -149,18 +149,18 @@ classdef AtlasBuilder2 < mlfourdfp.AbstractSessionBuilder
         end
         function t4 = build_T1_to_tracer_t4(this)    
             sd = this.sessionData;            
-            pwd0 = pushd(sd.vLocation);
+            pwd0 = pushd(sd.sessionPath);
             
             bv = this.buildVisitor;
             asssert(lexist(this.tracer_to_atl_t4, 'file'))
             bv.msktgen_4dfp(sd.tracerResolvedFinalSumt('typ','fqfp'), 'options', ['-T' sd.atlas.fqfileprefix]);
             bv.t4_resolve();            
-            t4 = fullfile(sd.vLocation, [sd.T1001('typ','fp') '_to_op_' sd.tracerRevision('typ','fp')]);
+            t4 = fullfile(sd.sessionPath, [sd.T1001('typ','fp') '_to_op_' sd.tracerRevision('typ','fp')]);
             popd(pwd0);
         end
         function t4 = build_tracer_to_atl_t4(this)
             sd = this.sessionData;            
-            pwd0 = pushd(sd.vLocation);  
+            pwd0 = pushd(sd.sessionPath);  
             t4 = this.buildVisitor_.t4_mul( ...
                 this.tracer_to_T1_t4, this.T1_to_atl_t4, ...
                 sprintf('%s_to_%s_t4', sd.tracerResolvedFinalSumt('typ','fp'), sd.studyAtlas('typ','fp')));            
@@ -187,7 +187,7 @@ classdef AtlasBuilder2 < mlfourdfp.AbstractSessionBuilder
             %  BROKEN
             
             sd = this.sessionData;            
-            pwd0 = pushd(sd.vLocation);   
+            pwd0 = pushd(sd.sessionPath);   
             % mpr2atl_4dfp for mpr is prerequisite for freesurfer2mpr_4dfp
             this.mprForReconall;
             mpr_   = sd.mprForReconall('typ','fp');

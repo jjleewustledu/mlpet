@@ -78,7 +78,7 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
         end
         
  		function this = BrainmaskBuilder(varargin)
- 			%% BRAINMASKBUILDER ensures there exists sessionData.vLocation/brainmask.4dfp.hdr;
+ 			%% BRAINMASKBUILDER ensures there exists sessionData.sessionPath/brainmask.4dfp.hdr;
             %  it is set as the initial state of this.product.
             %  @param named 'logger' is an mlpipeline.AbstractLogger.
             %  @param named 'product' is the initial state of the product to build.
@@ -87,7 +87,7 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
  			this = this@mlpet.RoisBuilder(varargin{:});
             
             sessd = this.sessionData;
-            bmfp  = fullfile(sessd.vLocation, sessd.brainmask('typ', 'fp'));
+            bmfp  = fullfile(sessd.sessionPath, sessd.brainmask('typ', 'fp'));
             bmnii = [bmfp '.nii'];
             bmifh = [bmfp '.4dfp.hdr'];
             if (~lexist_4dfp(bmifh))
