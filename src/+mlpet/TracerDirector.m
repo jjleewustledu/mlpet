@@ -11,6 +11,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
 
 	properties (Constant)
         NUM_VISITS = 3
+        SUP_SCAN_LIST = 3
     end
     
 	properties (Dependent)
@@ -546,7 +547,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             
             c = {};
             for itr = 1:length(tr)
-                for isl = 1:sd.supScanList
+                for isl = 1:this.SUP_SCAN_LIST
                     sd.tracer = tr{itr};
                     sd.snumber = isl;
                     if (lexist(sd.tracerResolvedFinal, 'file'))
