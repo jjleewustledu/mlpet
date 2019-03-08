@@ -64,7 +64,7 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
             return
             
             sessd = ip.Results.sessionData;
-            tmpdir = fullfile(tempdir, datestr(now, 30));
+            tmpdir = fullfile(tempdir, mydatetimestr(now));
             mkdir(tmpdir);
             movefileExisting(sprintf('brainmaskr%i_op_*', sessd.rnumber-1), tmpdir);
             movefileExisting(sprintf('%s_brainr%i_op_*', ip.Results.tracer.fileprefix, sessd.rnumber-1), tmpdir);

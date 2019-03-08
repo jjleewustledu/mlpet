@@ -267,7 +267,7 @@ classdef EcatExactHRPlus < mlfourd.NIfTIdecoratorProperties % & mlpet.IScannerDa
             len = length(this.times);
         end
         function this = save(this)
-            this.component.fqfileprefix = sprintf('%s_%s', this.component.fqfileprefix, datestr(now, 30));
+            this.component.fqfileprefix = sprintf('%s_%s', this.component.fqfileprefix, mydatetimestr(now));
             this.component.save;
         end
         function this = saveas(this, fqfn)

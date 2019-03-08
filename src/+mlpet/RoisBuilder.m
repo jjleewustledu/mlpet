@@ -95,7 +95,7 @@ classdef RoisBuilder < mlfourdfp.AbstractSessionBuilder
             
             sessd = ip.Results.sessionData;
             deleteExisting([sessd.tracerRevision('tag', '_sumt_g11', 'typ', 'fp') '*']);
-            tmpdir = fullfile(tempdir, datestr(now, 30));
+            tmpdir = fullfile(tempdir, mydatetimestr(now));
             mkdir(tmpdir);
             movefileExisting(sprintf('aparcAseg*r%i_op_* ', sessd.rnumber-1), tmpdir);
             deleteExisting('aparcAsegr*');
