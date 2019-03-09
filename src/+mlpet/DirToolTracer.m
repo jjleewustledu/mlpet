@@ -6,14 +6,42 @@ classdef DirToolTracer
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.5.0.1049112 (R2018b) Update 3 for MACI64.  Copyright 2019 John Joowon Lee.
  	
-	properties
- 		folder_expression = '(?<tracer>\w+)_(?<dt>DT\d+(|\.\d+))\-Converted\-(?<ac>[ACN]+)'
+	properties (Constant)
+ 		FOLDER_EXPRESSION = '(?<tracer>\w+)_(?<dt>DT\d+(|\.\d+))\-Converted\-(?<ac>[ACN]+)'
     end
     
     properties (Dependent)
         acTag
         itsPath
         itsListing
+    end
+    
+    methods (Static)
+        function ac = folder2ac(s)
+            assert(ischar(s));            
+            re = regexp(s, mlpet.DirToolTracer.FOLDER_EXPRESSION, 'names');
+            ac = strcmpi(re.ac, 'AC');
+        end
+        function dt = folder2datetime(s)
+            assert(ischar(s));            
+            re = regexp(s, mlpet.DirToolTracer.FOLDER_EXPRESSION, 'names');
+            s = re.dt(3:end);
+            if (contains(s, '.'))
+                cs = strsplit(s, '.');
+                s = cs{1};
+            end
+            dt = datetime([s(1:8) 'T' s(9:end)]);
+        end
+        function tr = folder2tracer(s)
+            assert(ischar(s));            
+            re = regexp(s, mlpet.DirToolTracer.FOLDER_EXPRESSION, 'names');
+            tr = re.tracer;
+        end
+        function tf = isfolder(s)
+            assert(ischar(s));            
+            re = regexp(s, mlpet.DirToolTracer.FOLDER_EXPRESSION, 'names');
+            tf = ~isempty(re);
+        end
     end
 
 	methods 
@@ -57,13 +85,13 @@ classdef DirToolTracer
                 try
                     dt = datetime( ...
                         re.dt(3:end), 'InputFormat', 'yyyyMMddHHmmss.SSSSSS', ...
-                        'TimeZone', mldata.TimingData.PREFERRED_TIMEZONE);
+                        'TimeZone', mlnipet.Resources.PREFERRED_TIMEZONE);
                 catch ME
                     handwarning(ME);
                     if (strcmp(ME.identifier, 'MATLAB:datetime:ParseErr'))
                         dt = datetime( ...
                             re.dt(3:end), 'InputFormat', 'yyyyMMdd', ...
-                            'TimeZone', mldata.TimingData.PREFERRED_TIMEZONE);
+                            'TimeZone', mlnipet.Resources.PREFERRED_TIMEZONE);
                     end
                 end
             end
@@ -79,7 +107,7 @@ classdef DirToolTracer
         end
         function re  = regexp_names(this, s)
             assert(ischar(s));
-            re = regexp(s, this.folder_expression, 'names');
+            re = regexp(s, this.FOLDER_EXPRESSION, 'names');
         end
 		  
  		function this = DirToolTracer(varargin)
@@ -123,7 +151,7 @@ classdef DirToolTracer
             if (~contains(e, '*'))
                 e = [e '*'];
             end
-            if (islogical(this.ac_))
+            if (islogical(this.ac_) && ~contains(e, this.acTag))
                 e = [e '-' this.acTag];
             end
             e = {e};
