@@ -776,7 +776,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             sess.attenuationCorrected = true;
             info = NIfTIInfo(this.sessionData.tracerNipet('nativeFov', true));
             nii = this.product_.nifti;
-            nii.filepath = sess.tracerConvertedLocation;
+            nii.filepath = sess.tracerPath;
             nii.fileprefix = mybasename(sess.umapTagged);
             nii.filesuffix = '.nii.gz';
             nii.datatype = 'single';
@@ -851,12 +851,9 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             end
         end	
         function ffp  = reconstituteFrame(this, varargin)
-            if (lstrfind(this.sessionData.subjectsDir, ...
-                    mlpet.Resources.nipetFolder))
-                ffp = this.reconstituteFrame_nipet(varargin{:});
-            else
-                ffp = this.reconstituteFrame_e7(varargin{:});
-            end
+            error('mlpet:NotImplementedError', 'TracerResolveBuilder.reconstituteFrame');
+            ffp = this.reconstituteFrame_nipet(varargin{:});
+            %ffp = this.reconstituteFrame_e7(varargin{:});
         end
         function this = repUmapToE7Format(this)
             sz  = length(this.sessionData.taus);
@@ -1088,6 +1085,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             fqfp0 = this.sessionData_.tracerNipet('typ', 'fqfp');
             ip = inputParser;
             addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addOptional(ip, 'frame', nan, @isnumeric);
             addParameter(ip, 'fqfp', fqfp0, @ischar);
             parse(ip, varargin{:});       
             
