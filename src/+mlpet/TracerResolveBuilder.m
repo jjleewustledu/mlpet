@@ -135,13 +135,13 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             try
                 switch (this.sessionData_.tracer)
                     case  'OO'
-                        sessHo    = this.recallOtherTracerResolvedFinalSumt('HO');
-                        %sessFdg   = this.recallOtherTracerResolvedFinalSumt('FDG');
+                        %sessHo    = this.recallOtherTracerResolvedFinalAvgt('HO');
+                        %sessFdg   = this.recallOtherTracerResolvedFinalAvgt('FDG');
                         theImages = {product ... 
-                                     sessHo.tracerResolvedFinalSumt('typ','fp') ...
                                      this.T1('typ', 'fp') ...
-                                     this.sessionData.umapSynthOpT1001('typ', 'fp')}; 
-                                     % sessFdg.tracerResolvedFinalSumt('typ','fp') ...
+                                     this.sessionData.umapSynthOpT1001('typ', 'fp')};                                 
+                                     %sessHo.tracerResolvedFinalAvgt('typ','fp') ...
+                                     % sessFdg.tracerResolvedFinalAvgt('typ','fp') ...
                         cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
                             'sessionData', this.sessionData_, ...
                             'theImages', theImages, ...
@@ -150,11 +150,11 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                             'NRevisions', 1); % 'Msktgen'                     
                         cRB_ = cRB_.resolve;
                     case {'HO' 'OC'}
-                        %sessFdg   = this.recallOtherTracerResolvedFinalSumt('FDG');
+                        %sessFdg   = this.recallOtherTracerResolvedFinalAvgt('FDG');
                         theImages = {product ... 
                                      this.T1('typ', 'fp') ...
                                      this.sessionData.umapSynthOpT1001('typ', 'fp')}; 
-                                     % sessFdg.tracerResolvedFinalSumt('typ','fp') ...
+                                     % sessFdg.tracerResolvedFinalAvgt('typ','fp') ...
                         cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
                             'sessionData', this.sessionData_, ...
                             'theImages', theImages, ...
@@ -187,6 +187,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                         'maskForImages', {'none' 'none'}, ...
                         'NRevisions', 1); 
                     cRB_ = cRB_.resolve;
+                else
+                    rethrow(ME)
                 end
             end
                         
@@ -810,11 +812,11 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             typ = {'typ', '.4dfp.hdr'};
             for e = 2:length(those)
                 if (e < length(those))                    
-                    ffp = ImagingFormatContext(those(e).tracerResolvedSumt(typ{:})); % fdgv1e*r2_sumt                    
+                    ffp = ImagingFormatContext(those(e).tracerResolvedAvgt(typ{:})); % fdgv1e*r2_sumt                    
                 else
                     % append last remaining frames, which may be singleton without time-sum, to aufbau4dfp
-                    if (lexist_4dfp(               those(e).tracerResolvedSumt(typ{:})))
-                        ffp = ImagingFormatContext(those(e).tracerResolvedSumt(typ{:})); % fdgv1e*r2_sumt
+                    if (lexist_4dfp(               those(e).tracerResolvedAvgt(typ{:})))
+                        ffp = ImagingFormatContext(those(e).tracerResolvedAvgt(typ{:})); % fdgv1e*r2_sumt
                     elseif (lexist_4dfp(           those(e).tracerRevision(typ{:})))
                         ffp = ImagingFormatContext(those(e).tracerRevision(typ{:})); % fdgv1e*r2
                     end                    
@@ -1094,29 +1096,32 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             ic.saveas(cRB.sessionData.umapSynth);
             cRB = cRB.packageProduct(ic);
         end
-        function sess   = recallOtherTracerResolvedFinalSumt(this, varargin)
+        function sess   = recallOtherTracerResolvedFinalAvgt(this, varargin)
             ip = inputParser;
             addRequired(ip, 'tracer', @ischar);
             parse(ip, varargin{:})
             
-            sess = this.sessionData_;
+            % assemble the other
+            sess = this.sessionData;
             sess.attenuationCorrected = true;
-            sess.rnumber = 2;
             sess.tracer = ip.Results.tracer;
+            sess.rnumber = 2;
             sess.snumber = 1;
             sess.epoch = 1:sess.supEpoch;
-            while (~lexist(sess.tracerResolvedFinalSumt) && sess.supEpoch > 0)
+            while (~lexist(sess.tracerResolvedFinalAvgt) && sess.supEpoch > 0)
                 sess.supEpoch = sess.supEpoch - 1;
             end
-            if (lexist(sess.tracerResolvedFinalSumt))                
-                delete(                        [sess.tracerResolvedFinalSumt('typ','fp') '.4dfp.*']);
-                this.buildVisitor.copyfile_4dfp(sess.tracerResolvedFinalSumt('typ','fqfp'), ...
-                                                sess.tracerResolvedFinalSumt('typ','fp'));
-                return
-            end
-            error('mlfourdfp:pipelinePrerequisiteMissing', ...
-                '%s may be missing; consider running constructResolved(''tracer'', ''%s'') and retry', ...
-                sess.tracerResolvedFinalSumt('typ','fqfp'), sess.tracer);
+            
+            % use the other if possible
+            if (~lexist_4dfp(sess.tracerResolvedFinalAvgt('typ','fqfp')))  
+                error('mlpet:AssertionError', ...
+                      '%s may be missing; ensure completion of construct_resolved(''tracer'', ''%s'') and retry', ...
+                      sess.tracerResolvedFinalAvgt('typ','fqfp'), sess.tracer);
+            end              
+            deleteExisting([sess.tracerResolvedFinalAvgt('typ','fp') '.4dfp.*']);
+            this.buildVisitor.copyfile_4dfp( ...
+                            sess.tracerResolvedFinalAvgt('typ','fqfp'), ...
+                            sess.tracerResolvedFinalAvgt('typ','fp'));
         end
         function t4     = t4ForReconstituteFramesAC2(this, epoch, sessd1toN)
             switch (this.resolveBuilder.NRevisions)

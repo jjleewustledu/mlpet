@@ -54,12 +54,12 @@ classdef RoisBuilder < mlfourdfp.AbstractSessionBuilder
         end
         function [mskt,msktNorm] = msktgenImg(this, varargin)
             %% MSKTGENIMG calls mpr2atl_4dfp and msktgen_4dfp on tracerFn to create quasi-binary masks.
-            %  @param optional tracerFn is char; default is this.sessiondata.tracerRevisionSumt.
+            %  @param optional tracerFn is char; default is this.sessiondata.tracerRevisionAvgt.
             %  @returns mskt     is a quasi-binary mask with max ~ 1000 (mlfourd.ImagingContext)
             %  @returns msktNorm is a quasi-binary mask with max = 1    (mlfourd.ImagingContext)            
             
             ip = inputParser;
-            addOptional(ip, 'tracerFn', this.sessionData.tracerRevisionSumt('typ', 'fn'), @ischar);
+            addOptional(ip, 'tracerFn', this.sessionData.tracerRevisionAvgt('typ', 'fn'), @ischar);
             parse(ip, varargin{:});
             
             import mlfourd.*;

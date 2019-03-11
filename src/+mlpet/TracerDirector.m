@@ -290,7 +290,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             pushd(pwd0);
             bmb = mlpet.BrainmaskBuilder('sessionData', sessd);
             [~,ct4rb] = bmb.brainmaskBinarized( ...
-                'tracer', this.sessionData.tracerRevisionSumt('typ', 'mlfourd.ImagingContext2'));
+                'tracer', this.sessionData.tracerRevisionAvgt('typ', 'mlfourd.ImagingContext2'));
             aab = bmb.aparcAsegBinarized(ct4rb);
             popd(pwd0);
         end      
@@ -472,7 +472,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             sessd.tracer = ip.Results.tracer;
             sessd.attenuationCorrected = true;
             sessd.rnumber = 2;
-            obj = sessd.tracerResolvedFinalSumt;   
+            obj = sessd.tracerResolvedFinalAvgt;   
             if (lexist(obj, 'file'))
                 ic  = ImagingContext2(obj);
                 return
@@ -524,7 +524,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
         function this  = instanceConstructUnresolvedNAC(this)     
             this.builder_ = this.builder_.locallyStageTracer;
             this          = this.sumRevisionAndCopyToFinalAvgt;
-            this.builder_ = this.builder_.packageProduct(this.sessionData.tracerResolvedFinalSumt);
+            this.builder_ = this.builder_.packageProduct(this.sessionData.tracerResolvedFinalAvgt);
             this.builder_ = this.builder_.motionCorrectCTAndUmap;             
             this.builder_ = this.builder_.repUmapToE7Format;
         end
