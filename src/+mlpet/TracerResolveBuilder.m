@@ -19,7 +19,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         imgblurTag
         maskForImagesForT4RB
         nFramesAC
-        noiseFloorOfActivity
         tauFramesNAC
         umapSynthFp
         umapSynthFqfn 
@@ -41,9 +40,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         end
         function g = get.nFramesAC(this)
             g = length(this.sessionData.taus);
-        end
-        function g = get.noiseFloorOfActivity(~)
-            g = mlpet.Resources.instance.noiseFloorOfActivity;
         end
         function g = get.tauFramesNAC(this)
             g = this.sessionData.taus;
