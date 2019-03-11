@@ -682,19 +682,15 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  @param named 'resolveBuilder' is an mlfourdfp.T4ResolveBuilder.
             %  @param named 'compositeResolveBuilder' is an mlfourdp.CompositeT4ResolveBuilder.
             %  @param named 'vendorSupport' is, e.g., mlsiemens.MMRBuilder.
-            %  @param named 'umapSynthFqfn' is the f.-q.-filename of prepared CT.  
             %  @return instance ready for t4-resolve management of tracer data.  
             
  			this = this@mlpet.TracerBuilder(varargin{:});
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'umapSynthFqfn', this.sessionData.umapSynthOpT1001, ...
-                @(x) lexist(x, 'file'));
             addParameter(ip, 'f2rep', [], @isnumeric);
             addParameter(ip, 'fsrc',  [], @isnumeric);
             parse(ip, varargin{:});
-            this.umapSynthFqfn_ = ip.Results.umapSynthFqfn;
             this.f2rep          = ip.Results.f2rep;
             this.fsrc           = ip.Results.fsrc;
             this                = this.updateFinished;            
@@ -706,7 +702,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
     properties (Access = protected)
         aComposite_ % cell array for simplicity
         nEpochs_
-        umapSynthFqfn_
     end
     
     methods (Access = protected)
