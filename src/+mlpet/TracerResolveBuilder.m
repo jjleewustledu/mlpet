@@ -404,14 +404,19 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             if (~isa(p, 'mlfourd.ImagingContext2'))
                 p = mlfourd.ImagingContext2(p);
             end
-            p   = p.volumeSummed;
+            p = p.volumeSummed;
             img = p.fourdfp.img;
-            idx = img > this.sessionData.fractionalImageFrameThresh * median(img) + ...
-                        this.noiseFloorOfActivity;
-            idx = ensureRowVector(idx) & ensureRowVector(this.sessionData.indicesLogical);
-            this.logger.add('indicesNonzero.p.img->%s\n', mat2str(img));
-            this.logger.add('indicesNonzero.idx->%s\n',   mat2str(idx));
+            idx = this.indicesNum2bool(img);
+            idx = ensureRowVector(idx) & ...
+                  ensureRowVector(this.sessionData.indicesLogical);
+            this.logger.add('indicesNonzero.img->%s\n', mat2str(img));
+            this.logger.add('indicesNonzero.idx->%s\n', mat2str(idx));
         end
+        function idx  = indicesNum2bool(this, img)
+            assert(isnumeric(img));
+            idx = img > this.sessionData.fractionalImageFrameThresh * median(img) + ...
+                        mlpet.Resources.instance.noiseFloorOfActivity;
+        end      
         function [this,summed] = motionCorrectEpochs(this)
             %% MOTIONCORRECTEPOCHS accepts time-resolved image and returns them with motion-correction.
             %  It also returns the time-sum ofthe motion-corrected frames.
