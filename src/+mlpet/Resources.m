@@ -6,7 +6,6 @@ classdef Resources < handle
         ignoreFinishMark
         matlabDrive
         neverMarkFinished
-        nipetFolder
         noiseFloorOfActivity % Bq/mL
         pointSpread % mm
         reconstructionVersion
@@ -52,21 +51,15 @@ classdef Resources < handle
         function g = get.neverMarkFinished(this)
             g = this.neverMarkFinished_;
         end
-        function g = get.nipetFolder(~)
-            g = this.nipetFolder_;
-        end
         function g = get.noiseFloorOfActivity(~)
             g = 0; % Bq/mL
         end
         function g = get.pointSpread(~)
             g = mlsiemens.MMRRegistry.instance.petPointSpread;
         end
-        function g = get.reconstructionVersion(this)
-            if (lstrfind(getenv('SUBJECTS_DIR'), this.nipetFolder))
-                g = sprintf('nipet=1.1');
-                return
-            end
-            g = sprintf('Siemens e7 E11p');
+        function g = get.reconstructionVersion(~)
+            g = sprintf('nipet=1.1');
+            %g = sprintf('Siemens e7 E11p');
         end
         function g = get.suffixBlurPointSpread(this)
             g = ['_b' num2str(floor(10*this.pointSpread))];
@@ -87,7 +80,6 @@ classdef Resources < handle
         defaultN_  
         ignoreFinishMark_        
         neverMarkFinished_
-        nipetFolder_
         nipetVersion_ = 1.1
     end
     
@@ -98,7 +90,6 @@ classdef Resources < handle
             this.defaultN_ = true;            
             this.ignoreFinishMark_ = false;
             this.neverMarkFinished_ = false;
-            this.nipetFolder_ = 'Pawel';
         end
     end
    
