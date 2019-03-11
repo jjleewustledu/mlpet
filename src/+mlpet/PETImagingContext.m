@@ -60,6 +60,9 @@ classdef PETImagingContext < mlfourd.ImagingContext
         function p    = threshp(this, p)
             p = mlpet.PETImagingContext(threshp@mlfourd.ImagingContext(this, p));
         end
+        function t    = timeAveraged(this)
+            t = mlpet.PETImagingContext(timeAveraged@mlfourd.ImagingContext(this));
+        end
         function t    = timeContracted(this)
             t = mlpet.PETImagingContext(timeContracted@mlfourd.ImagingContext(this));
         end

@@ -404,7 +404,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             idx = img > this.sessionData.fractionalImageFrameThresh * median(img) + ...
                         mlpet.Resources.instance.noiseFloorOfActivity;
         end      
-        function [this,summed] = motionCorrectEpochs(this)
+        function [this,averaged] = motionCorrectEpochs(this)
             %% MOTIONCORRECTEPOCHS accepts time-resolved image and returns them with motion-correction.
             %  It also returns the time-sum ofthe motion-corrected frames.
             %
@@ -412,13 +412,13 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  @return this.{resolveBuilder,sessionData,product} := updated motion-correction objects.
             %  @return this.product := ImagingContext of time-resolved motion-corrected frames;
             %          E.g., this.product := files E*/fdgv1e*r2_op_fdgv1e*r1_frame*.
-            %  @return summed := ImagingFormatContext with time-sum of motion-corrected frames.
-            %          E.g., summed.product := files E*/fdgv1e*r2_op_fdgv1e*r1_frame*_sumt.
-            %  @return this unchanged and summed := this for ndims(sessionData.tracerRevision) < 4.
+            %  @return averaged := ImagingFormatContext with time-average of motion-corrected frames.
+            %          E.g., averaged.product := files E*/fdgv1e*r2_op_fdgv1e*r1_frame*_avgt.
+            %  @return this unchanged and averaged := this for ndims(sessionData.tracerRevision) < 4.
             
             sz = this.sizeTracerRevision;
             if (length(sz) < 4 || 1 == sz(4)) % Consider:  thisSz(4) == duration of this epoch
-                summed = this;
+                averaged = this;
                 return 
             end            
             
@@ -438,7 +438,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             this.resolveBuilder_ = t4rB_;
             this.sessionData_    = t4rB_.sessionData; 
             this.product_        = t4rB_.product;
-            summed               = this.sumProduct;
+            averaged               = this.avgtProduct;
             popd(pwd0);
         end
         function unco = motionUncorrectEpoch(this, source, multiEpochOfSummed, lastEpoch)
@@ -655,19 +655,20 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             end            
             this.product_ = report;
         end
-        function this = sumProduct(this)
-            assert(isa(this.product_, 'mlfourd.ImagingContext2'))
-            if (this.buildVisitor.lexist_4dfp([this.product_.fqfp '_sumt']))
-                this.product_ = mlfourd.ImagingContext2([this.product_.fqfp '_sumt.4dfp.hdr']);
+        function this = avgtProduct(this)
+            AVGT = mlfourd.DynamicsTool.AVGT_SUFFIX;
+            assert(isa(this.product_, 'mlfourd.ImagingContext2'));
+            if (this.buildVisitor.lexist_4dfp([this.product_.fqfp AVGT]))
+                this.product_ = mlfourd.ImagingContext2([this.product_.fqfp AVGT '.4dfp.hdr']);
                 return
             end
             sz = this.size_4dfp(this.product_);
             if (length(sz) < 4 || sz(4) == 1)
                 return
             end
-            this.product_ = this.product_.timeSummed;
+            this.product_ = this.product_.timeAveraged;
             this.product_.fourdfp;
-            this.product_.save; % _sumt
+            this.product_.save; % _avgt
         end
 		  
         %%

@@ -209,7 +209,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             bv.ensureLocalFourdfp(this.sessionData.T1001);
             bv.ensureLocalFourdfp(this.sessionData.(this.anatomy));  
             this.builder_ = this.builder_.resolveModalitiesToProduct( ...
-                this.localTracerResolvedFinalSumt, ...
+                this.localTracerResolvedFinalAvgt, ...
                 'blurArg', this.sessionData.tracerBlurArg, ...
                 varargin{:});            
             
@@ -481,7 +481,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             obj_ = this.tracerResolvedFinal('epoch', this.sessionData.epoch);
             assert(lexist(obj_, 'file'))
             ic = ImagingContext2(obj_);
-            ic = ic.timeSummed;
+            ic = ic.timeAveraged;
             ic.fourdfp;
             ic.save;
         end          
@@ -499,7 +499,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             this.builder_ = this.builder_.partitionMonolith;
             this.builder_ = this.builder_.motionCorrectFrames;            
             this.builder_ = this.builder_.reconstituteFramesAC2;
-            this.builder_ = this.builder_.sumProduct;
+            this.builder_ = this.builder_.avgtProduct;
             
             popd(pwd0);
         end
@@ -519,25 +519,25 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             this.builder_ = this.builder_.partitionMonolith;
             this.builder_ = this.builder_.motionCorrectFrames;            
             this.builder_ = this.builder_.reconstituteFramesAC2;
-            this.builder_ = this.builder_.sumProduct;
+            this.builder_ = this.builder_.avgtProduct;
         end
         function this  = instanceConstructUnresolvedNAC(this)     
             this.builder_ = this.builder_.locallyStageTracer;
-            this          = this.sumRevisionAndCopyToFinalSumt;
+            this          = this.sumRevisionAndCopyToFinalAvgt;
             this.builder_ = this.builder_.packageProduct(this.sessionData.tracerResolvedFinalSumt);
             this.builder_ = this.builder_.motionCorrectCTAndUmap;             
             this.builder_ = this.builder_.repUmapToE7Format;
         end
         
-        function this  = sumRevisionAndCopyToFinalSumt(this)
+        function this  = sumRevisionAndCopyToFinalAvgt(this)
             ic  = mlfourd.ImagingContext2(this.sessionData.tracerRevision);
-            ic  = ic.timeSummed;
+            ic  = ic.timeAveraged;
             nii = ic.niftid;
-            nii.fqfilename = this.sessionData.tracerResolvedFinalSumt;
+            nii.fqfilename = this.sessionData.tracerResolvedFinalAvgt;
             ensuredir(nii.filepath);
             nii.save;
         end
-        function c     = localTracerResolvedFinalSumt(this) 
+        function c     = localTracerResolvedFinalAvgt(this) 
             %  @return c := cell-array of fileprefixes. 
             %  TODO:  refactor with localTracerResolvedFinal
             
@@ -551,23 +551,23 @@ classdef TracerDirector < mlpipeline.AbstractDirector
                     sd.tracer = tr{itr};
                     sd.snumber = isl;
                     if (lexist(sd.tracerResolvedFinal, 'file'))
-                        if (lexist(sd.tracerResolvedFinalSumt, 'file'))
+                        if (lexist(sd.tracerResolvedFinalAvgt, 'file'))
                             try
                                 fv.copyfile_4dfp( ...
-                                    sd.tracerResolvedFinalSumt('typ','fqfp'), ...
-                                    sd.tracerResolvedFinalSumt('typ','fp'));
+                                    sd.tracerResolvedFinalAvgt('typ','fqfp'), ...
+                                    sd.tracerResolvedFinalAvgt('typ','fp'));
                             catch ME
                                 dispwarning(ME);
                             end
                         else
                             nn = mlfourd.NumericalNIfTId.load(sd.tracerResolvedFinal);
-                            nn = nn.timeSummed;
+                            nn = nn.timeAveraged;
                             nn.filesuffix = '.4dfp.hdr';
                             nn.filepath = pwd;
                             nn.save;
                         end
                         
-                        c = [c {sd.tracerResolvedFinalSumt('typ','fp')}]; %#ok<AGROW>
+                        c = [c {sd.tracerResolvedFinalAvgt('typ','fp')}]; %#ok<AGROW>
                         
                     end
                 end
@@ -575,7 +575,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             assert(~isempty(c));
         end
         function c     = localTracerResolvedFinal(this, cRB, icTarg)
-            %  TODO:  refactor with localTracerResolvedFinalSumt, 
+            %  TODO:  refactor with localTracerResolvedFinalAvgt, 
             
             assert(isa(cRB, 'mlfourdfp.CompositeT4ResolveBuilder'));
             assert(lexist_4dfp(icTarg.fileprefix));
@@ -588,7 +588,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
                 for is = sc
                     sd.tracer = tr{it};
                     sd.snumber = is;
-                    t4 = sprintf('%sr0_to_%s_t4', sd.tracerResolvedFinalSumt('typ','fp'), cRB.resolveTag);
+                    t4 = sprintf('%sr0_to_%s_t4', sd.tracerResolvedFinalAvgt('typ','fp'), cRB.resolveTag);
                     outfile = sd.tracerResolvedFinalOpFdg('typ','fp');
                     if (lexist(strrep(t4,'r0','r2'), 'file') && ~lexist_4dfp(outfile))
                         try

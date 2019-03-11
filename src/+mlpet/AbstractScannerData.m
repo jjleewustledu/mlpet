@@ -265,6 +265,11 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             nn = nn.threshp(varargin{:});
             this.component_ = nn.component;
         end
+        function this = timeAveraged(this, varargin)
+            nn = mlfourd.NumericalNIfTId(this.component); 
+            nn = nn.timeAveraged(varargin{:});
+            this.component_ = nn.component;
+        end        
         function this = timeContracted(this, varargin)
             nn = mlfourd.NumericalNIfTId(this.component); 
             nn = nn.timeContracted(varargin{:});
