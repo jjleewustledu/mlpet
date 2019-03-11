@@ -20,8 +20,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         maskForImagesForT4RB
         nFramesAC
         tauFramesNAC
-        umapSynthFp
-        umapSynthFqfn 
     end
 
 	methods 
@@ -46,12 +44,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             assert(~isempty(this.product));
             sizeProd = size(this.product);
             g = g(1:sizeProd(4));
-        end
-        function g = get.umapSynthFp(this)
-            g = mybasename(this.umapSynthFqfn);
-        end
-        function g = get.umapSynthFqfn(this)
-            g = this.umapSynthFqfn_;
         end
         
         %% Common sequential building behaviors
@@ -132,13 +124,12 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %          e.g., after completing this.motionCorrectFrames, 
             %          reconstitutedSummed.product := E1to9/fdgv1e1to9r2_op_fdgv1e1to9r1_frame9_sumt &&
             %          this := reconstitutedSummed.
-            %  @param  this.umapSynthFqfn is the source of anatomical alignment for the motion-corrected umap.
-            %  @return motion-corrections of this.umapSynthFqfn, T1, t2 onto this.product for 
+            %  @return motion-corrections of umapSynth, T1, t2 onto this.product for 
             %          this.{compositeResolveBuilder,sessionData,product};
             %          e.g., this.product := umapSynth_to_op_fdgv1e1to9r1_frame9.
             
             pwd0 = pushd(this.product_.filepath);      
-            this.locallyStageModalities('fourdfp', myfileprefix(this.umapSynthFqfn));             
+            this.locallyStageModalities('fourdfp', this.sessionData.umapSynthOpT1001('typ', 'fqfp'));
             this.sessionData_.rnumber = 1;
             product = this.product_.fileprefix;
             try
@@ -149,7 +140,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                         theImages = {product ... 
                                      sessHo.tracerResolvedFinalSumt('typ','fp') ...
                                      this.T1('typ', 'fp') ...
-                                     this.umapSynthFp}; 
+                                     this.sessionData.umapSynthOpT1001('typ', 'fp')}; 
                                      % sessFdg.tracerResolvedFinalSumt('typ','fp') ...
                         cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
                             'sessionData', this.sessionData_, ...
@@ -162,7 +153,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                         %sessFdg   = this.recallOtherTracerResolvedFinalSumt('FDG');
                         theImages = {product ... 
                                      this.T1('typ', 'fp') ...
-                                     this.umapSynthFp}; 
+                                     this.sessionData.umapSynthOpT1001('typ', 'fp')}; 
                                      % sessFdg.tracerResolvedFinalSumt('typ','fp') ...
                         cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
                             'sessionData', this.sessionData_, ...
@@ -174,7 +165,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     case 'FDG'
                         theImages = {product ... 
                                      this.T1('typ', 'fp') ...
-                                     this.umapSynthFp};
+                                     this.sessionData.umapSynthOpT1001('typ', 'fp')};
                         cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
                             'sessionData', this.sessionData_, ...
                             'theImages', theImages, ...
@@ -191,7 +182,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 if (strcmp(ME.identifier, 'mlfourdfp:abnormalExit'))
                     cRB_ = mlfourdfp.CompositeT4ResolveBuilder( ...
                         'sessionData', this.sessionData_, ...
-                        'theImages', {product this.umapSynthFp}, ...
+                        'theImages', {product this.sessionData.umapSynthOpT1001('typ', 'fp')}, ...
                         'blurArg', 8.6, ...
                         'maskForImages', {'none' 'none'}, ...
                         'NRevisions', 1); 
