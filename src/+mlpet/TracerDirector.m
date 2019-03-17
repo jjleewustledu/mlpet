@@ -481,7 +481,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
             obj_ = this.tracerResolvedFinal('epoch', this.sessionData.epoch);
             assert(lexist(obj_, 'file'))
             ic = ImagingContext2(obj_);
-            ic = ic.timeAveraged;
+            ic = ic.timeAveraged('taus', this.sessionData.taus);
             ic.fourdfp;
             ic.save;
         end          
@@ -531,7 +531,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
         
         function this  = sumRevisionAndCopyToFinalAvgt(this)
             ic  = mlfourd.ImagingContext2(this.sessionData.tracerRevision);
-            ic  = ic.timeAveraged;
+            ic  = ic.timeAveraged('taus', this.sessionData.taus);
             nii = ic.niftid;
             nii.fqfilename = this.sessionData.tracerResolvedFinalAvgt;
             ensuredir(nii.filepath);
@@ -561,7 +561,7 @@ classdef TracerDirector < mlpipeline.AbstractDirector
                             end
                         else
                             nn = mlfourd.NumericalNIfTId.load(sd.tracerResolvedFinal);
-                            nn = nn.timeAveraged;
+                            nn = nn.timeAveraged('taus', this.sessionData.taus);
                             nn.filesuffix = '.4dfp.hdr';
                             nn.filepath = pwd;
                             nn.save;

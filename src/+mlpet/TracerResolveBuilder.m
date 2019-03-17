@@ -673,7 +673,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             if (length(sz) < 4 || sz(4) == 1)
                 return
             end
-            this.product_ = this.product_.timeAveraged;
+            this.product_ = this.product_.timeAveraged('taus', this.taus);
             this.product_.fourdfp;
             this.product_.save; % _avgt
         end
