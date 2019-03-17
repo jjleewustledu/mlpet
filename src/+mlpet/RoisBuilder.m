@@ -106,7 +106,7 @@ classdef RoisBuilder < mlfourdfp.AbstractSessionBuilder
         
  		function this = RoisBuilder(varargin)
  			%% ROISBUILDER
-            %  @param named 'logger' is an mlpipeline.AbstractLogger.
+            %  @param named 'logger' is an mlpipeline.ILogger.
             %  @param named 'product' is the initial state of the product to build.
             %  @param named 'sessionData' is an mlpipeline.ISessionData.
 

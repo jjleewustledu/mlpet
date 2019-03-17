@@ -80,7 +80,7 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
  		function this = BrainmaskBuilder(varargin)
  			%% BRAINMASKBUILDER ensures there exists sessionData.sessionPath/brainmask.4dfp.hdr;
             %  it is set as the initial state of this.product.
-            %  @param named 'logger' is an mlpipeline.AbstractLogger.
+            %  @param named 'logger' is an mlpipeline.ILogger.
             %  @param named 'product' is the initial state of the product to build.
  			%  @param named 'sessionData' is an 'mlpipeline.ISessionData'.
 

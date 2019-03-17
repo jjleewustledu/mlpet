@@ -682,7 +682,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         
  		function this = TracerResolveBuilder(varargin)
             %% TRACERRESOLVEBUILDER
-            %  @param named 'logger' is an mlpipeline.AbstractLogger.
+            %  @param named 'logger' is an mlpipeline.ILogger.
             %  @param named 'product' is the initial state of the product to build; default := [].
             %  @param named 'sessionData' is an mlpipeline.ISessionData; default := [].
  			%  @param named 'buildVisitor' is an mlfourdfp.FourdfpVisitor.
