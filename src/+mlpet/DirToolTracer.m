@@ -116,7 +116,7 @@ classdef DirToolTracer
 
             ip = inputParser;
             addParameter(ip, 'tracer', '', @(x) ischar(x) || iscell(x));
-            addParameter(ip, 'ac', [], @(x) ischar(x) || islogical(x));
+            addParameter(ip, 'ac', [], @(x) ischar(x) || islogical(x) || isempty(x));
             parse(ip, varargin{:});
             if (ischar(ip.Results.ac))
                 this.ac_ = strcmpi('AC', ip.Results.ac);
