@@ -354,14 +354,18 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
                 [], @(x) isa(x, 'mlfourdfp.CompositeT4ResolveBuilder') || isempty(x));
             addParameter(ip, 'vendorSupport', ...
                 mlsiemens.MMRBuilder('sessionData', this.sessionData));
-            addParameter(ip, 'ac', this.sessionData.attenuationCorrected, @islogical);
+            addParameter(ip, 'ac', this.sessionData.attenuationCorrected, @(x) islogical(x) || ischar(x) || isempty(x));
             parse(ip, varargin{:});
             
             this.roisBuilder_                     = ip.Results.roisBuilder;
             this.resolveBuilder_                  = ip.Results.resolveBuilder;
             this.compositeResolveBuilder_         = ip.Results.compositeResolveBuilder;
             this.vendorSupport_                   = ip.Results.vendorSupport;
-            this.sessionData.attenuationCorrected = ip.Results.ac;
+            if (ischar(ip.Results.ac))
+                this.sessionData.attenuationCorrected = strcmpi('true', ip.Results.ac);
+            else
+                this.sessionData.attenuationCorrected = ip.Results.ac;
+            end            
         end        
  	end 
     
