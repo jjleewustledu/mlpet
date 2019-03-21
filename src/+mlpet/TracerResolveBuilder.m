@@ -499,13 +499,16 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                             % t4     := ${E}/fdgv1${e}r0_frame8_to_op_fdgv1${e}r1_frame${idxRef}_t4; 
                             % source := E1to9/umapSynth_op_fdgv1e1to9r1_frame${e};          
                             % out    :=       umapSynth_op_fdgv1${e}r1_frame${idxRef}  
+                            
+                        childT4RB.theImages = childT4RB.tracerRevision('typ', 'fqfp');
                     else
                         childT4RB.buildVisitor.copyfile_4dfp( ...
                             source.fqfileprefix, ...
                             childT4RB.umapTagged(childT4RB.resolveTag, 'typ', 'fp'));
-                    end 
-                    childT4RB.theImages    = childT4RB.tracerRevision('typ', 'fqfp');   
-                    childT4RB.epoch        = idxRef;
+                        childT4RB.rnumber = 1;
+                        childT4RB.theImages = childT4RB.tracerRevision('typ', 'fqfp');
+                    end  
+                    childT4RB.epoch = idxRef;
                     
                     %% update thisMotionUncorrected(idxRef).{resolveBuilder_,sessionData_,product_}
                 
@@ -521,9 +524,16 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     popd(pwd0);
                     
                 catch ME
-                    dispexcept(ME, 'mlpet:RuntimeError', ...
-                        'TracerResolveBuilder.motionUncorrectEpoch failed resolve or t4img_4dfp on %s', ...
-                        source.fqfilename); 
+                    if (strcmp('mlfourdfp:IOErr:fileNotFound', ME.identifier))
+                        % e.g., all frames of epoch are empty except for last so no t4_resolve was done for the epoch
+                        childT4RB.buildVisitor.copyfile_4dfp( ...
+                            source.fqfileprefix, ...
+                            childT4RB.umapTagged(childT4RB.resolveTag, 'typ', 'fp'));
+                    else
+                        dispexcept(ME, 'mlpet:RuntimeError', ...
+                            'TracerResolveBuilder.motionUncorrectEpoch failed resolve or t4img_4dfp on %s', ...
+                            source.fqfilename);
+                    end
                     % E1to9 && idxRef->9 will fail with 
                     % Warning: The value of 'tracerSif' is invalid. It must satisfy the function: lexist_4dfp.
                     % Cf. mlfourdfp.ImageFrames lines 154, 173.  TODO.
