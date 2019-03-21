@@ -35,7 +35,11 @@ classdef DirToolTracer
         function tr = folder2tracer(s)
             assert(ischar(s));            
             re = regexp(s, mlpet.DirToolTracer.FOLDER_EXPRESSION, 'names');
-            tr = re.tracer;
+            if (~isempty(re))
+                tr = re.tracer;
+            else
+                tr = '';
+            end
         end
         function tf = isfolder(s)
             assert(ischar(s));            
