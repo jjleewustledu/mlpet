@@ -373,6 +373,21 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         
         %% Utilities
         
+        function this = avgtProduct(this)
+            AVGT = mlfourd.DynamicsTool.AVGT_SUFFIX;
+            assert(isa(this.product_, 'mlfourd.ImagingContext2'));
+            if (this.buildVisitor.lexist_4dfp([this.product_.fqfp AVGT]))
+                this.product_ = mlfourd.ImagingContext2([this.product_.fqfp AVGT '.4dfp.hdr']);
+                return
+            end
+            sz = this.size_4dfp(this.product_);
+            if (length(sz) < 4 || sz(4) == 1)
+                return
+            end
+            this.product_ = this.product_.timeAveraged('taus', this.taus);
+            this.product_.fourdfp;
+            this.product_.save; % _avgt
+        end
         function this = convertUmapsToE7Format(this)
             sz  = this.sizeTracerRevision;
             fps = cellfun(@(x) sprintf('umapSynth_frame%i', x), num2cell(0:sz(4)-1), 'UniformOutput', false);
@@ -445,7 +460,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             this.resolveBuilder_ = t4rB_;
             this.sessionData_    = t4rB_.sessionData; 
             this.product_        = t4rB_.product;
-            averaged               = this.avgtProduct;
+            averaged             = this.avgtProduct;
             popd(pwd0);
         end
         function unco = motionUncorrectEpoch(this, source, multiEpochOfSummed, lastEpoch)
@@ -671,21 +686,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 report = [report mlfourdfp.T4ResolveReport(parser)]; 
             end            
             this.product_ = report;
-        end
-        function this = avgtProduct(this)
-            AVGT = mlfourd.DynamicsTool.AVGT_SUFFIX;
-            assert(isa(this.product_, 'mlfourd.ImagingContext2'));
-            if (this.buildVisitor.lexist_4dfp([this.product_.fqfp AVGT]))
-                this.product_ = mlfourd.ImagingContext2([this.product_.fqfp AVGT '.4dfp.hdr']);
-                return
-            end
-            sz = this.size_4dfp(this.product_);
-            if (length(sz) < 4 || sz(4) == 1)
-                return
-            end
-            this.product_ = this.product_.timeAveraged('taus', this.taus);
-            this.product_.fourdfp;
-            this.product_.save; % _avgt
         end
 		  
         %%
