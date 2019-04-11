@@ -296,35 +296,36 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             nFrames = this.nFramesAC;
             nEpochs = floor(nFrames/this.maxLengthEpoch);
             supEpochs = ceil(nFrames/this.maxLengthEpoch);
-            sessd_ = this.sessionData;
-            sessd_.epoch = [];
-            sessd_.frame = nan;
-            sessd_.rnumber = 2;
-            sessd__ = sessd_;
-            sessd__.rnumber = 1;
-            sessd1 = sessd_;
-            sessd1.epoch = 1;
-            sessd1toN = sessd_;
-            sessd1toN.epoch = 1:supEpochs;
-            sessd1toN.frame = supEpochs;
             
-            pwd0 = pushd(sessd_.tracerLocation);
-            ffp0 = ImagingFormatContext(sessd__.tracerRevision('typ', 'fqfn'));
+            assert(1 == this.sessionData.rnumber);            
+            sessdr2e1toN = this.sessionData;
+            sessdr2e1toN.epoch = 1:supEpochs;
+            sessdr2e1toN.frame = supEpochs;
+            sessdr2e1toN.resolveTag = sprintf('%s_frame%i', sessdr2e1toN.resolveTag, supEpochs);
+            sessdr2e1toN.rnumber = 2;
+            sessdr2 = this.sessionData;
+            sessdr2.resolveTag = sessdr2e1toN.resolveTag;
+            sessdr2.rnumber = 2;
+            sessdr1 = this.sessionData;
+            sessdr1.resolveTag = sessdr2e1toN.resolveTag;
+            
+            pwd0 = pushd(sessdr2.tracerLocation);
+            ffp0 = ImagingFormatContext(sessdr1.tracerRevision('typ', 'fqfn'));
             ffp0.img = zeros(size(ffp0));
-            ffp0.fqfileprefix = sessd_.tracerResolved('typ', 'fqfp'); % fdgv1r2_op_fdgv1e1to4r1_frame4
+            ffp0.fqfileprefix = sessdr2.tracerResolved('typ', 'fqfp'); % fdgv1r2_op_fdgv1e1to4r1_frame4
             
             inz = this.indicesNonzero;
             for e = 1:nEpochs  
                 if (~inz(e))
                     continue
                 end
-                sessde = sessd_;
+                sessde = sessdr2;
                 sessde.epoch = e;
                 sessde.resolveTag = sprintf('op_%sr1_frame%i', sessde.tracerEpoch('typ','fp'), this.maxLengthEpoch);                
                 pwd1 = pushd(sessde.tracerLocation);              
-                t4 = this.t4ForReconstituteFramesAC2(e, sessd1toN); % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V2/FDG_V2-AC/E1to4/fdgv1e1to4r1r2_frame1_to_op_fdgv1e1to4r1_frame4_t4
+                t4 = this.t4ForReconstituteFramesAC2(e, sessdr2e1toN); % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V2/FDG_V2-AC/E1to4/fdgv1e1to4r1r2_frame1_to_op_fdgv1e1to4r1_frame4_t4
                 fp = sessde.tracerResolved('typ', 'fp'); % fdgv1e1r2_op_fdgv1e1r1_frame24
-                fpDest = [sessde.tracerRevision('typ','fp') '_' sessd1toN.resolveTag]; % fdgv1e1r2_op_fdgv1e1to4r1_frame4
+                fpDest = [sessde.tracerRevision('typ','fp') '_' sessdr2e1toN.resolveTag]; % fdgv1e1r2_op_fdgv1e1to4r1_frame4
                 if (lexist(t4, 'file'))
                     this.buildVisitor.t4img_4dfp(t4, fp, 'out', fpDest, 'options', ['-O' fp]);
                     ffp = ImagingFormatContext([fpDest '.4dfp.hdr']);
@@ -338,7 +339,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             end
             
             e = supEpochs;
-            sessde = sessd_;
+            sessde = sessdr2;
             sessde.epoch = e;
             pwd1 = pushd(sessde.tracerLocation);      
             remainingFrames = (e-1)*this.maxLengthEpoch+1:nFrames; % vector
@@ -1138,13 +1139,13 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                             sess.tracerResolvedFinalAvgt('typ','fqfp'), ...
                             sess.tracerResolvedFinalAvgt('typ','fp'));
         end
-        function t4     = t4ForReconstituteFramesAC2(this, epoch, sessd1toN)
-            switch (this.resolveBuilder.NRevisions)
+        function t4     = t4ForReconstituteFramesAC2(this, epoch, sessde1toN)
+            switch (sessde1toN.rnumber)
                 case 1
-                    t4 = [sessd1toN.tracerRevision('frame', epoch, 'typ','fqfp') '_to_' sessd1toN.resolveTag '_t4'];
+                    t4 = [sessde1toN.tracerRevision('frame', epoch, 'typ','fqfp') '_to_' sessde1toN.resolveTag '_t4'];
                 case 2
-                    sdr1 = sessd1toN; sdr1.rnumber = 1;
-                    sdr2 = sessd1toN; sdr2.rnumber = 2;
+                    sdr1 = sessde1toN; sdr1.rnumber = 1;
+                    sdr2 = sessde1toN; sdr2.rnumber = 2;
                     t4   = [sdr1.tracerRevision('rLabel', 'r1r2', 'frame', epoch, 'typ','fqfp'), ...
                             '_to_' sdr1.resolveTag '_t4'];
                     this.buildVisitor_.t4_mul( ...
