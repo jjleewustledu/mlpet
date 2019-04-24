@@ -316,7 +316,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             
             inz = this.indicesNonzero;
             for e = 1:nEpochs  
-                if (~inz(e))
+                if (0 == sum(inz((e-1)*this.maxLengthEpoch+1:e*this.maxLengthEpoch)))
                     continue
                 end
                 sessde = sessdr2;
