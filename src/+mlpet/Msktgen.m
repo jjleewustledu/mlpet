@@ -27,10 +27,6 @@ classdef Msktgen < mlfourdfp.AbstractSessionBuilder
         
         function g = get.t4(this)
             g = this.t4_;
-            parent = fileparts(pwd);
-            if ~lexist(g) && lexist(fullfile(parent, g))
-                copyfile(fullfile(parent, g))
-            end
         end
         
         %%
