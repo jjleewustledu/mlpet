@@ -385,7 +385,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             if (length(sz) < 4 || sz(4) == 1)
                 return
             end
-            this.product_ = this.product_.timeAveraged('taus', this.taus);
+            this.product_ = this.product_.timeAveraged;
             this.product_.fourdfp;
             this.product_.save; % _avgt
         end
@@ -855,9 +855,9 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 this.product_.save;
             end
         end	
-        function ffp  = reconstituteFrame(this, varargin)
+        function ffp  = reconstituteFrame(this, varargin) %#ok<STOUT,INUSD>
             error('mlpet:NotImplementedError', 'TracerResolveBuilder.reconstituteFrame');
-            ffp = this.reconstituteFrame_nipet(varargin{:});
+            ffp = this.reconstituteFrame_nipet(varargin{:}); %#ok<UNRCH>
             %ffp = this.reconstituteFrame_e7(varargin{:});
         end
         function this = repUmapToE7Format(this)
