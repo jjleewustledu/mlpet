@@ -1,5 +1,6 @@
 classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
-	%% TRACERBUILDER
+	%% TRACERBUILDER supports staging brainmask, T1, atlases, Siemens' *.mhdr, cropping tracer data.
+    %  It was used primarily for workflows dependent on Siemens e7 tools and JSRecon12.
 
 	%  $Revision$
  	%  was created 9-Mar-2017 15:39
