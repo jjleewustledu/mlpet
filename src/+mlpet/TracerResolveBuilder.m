@@ -10,6 +10,10 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.2.0.538062 (R2017a) for MACI64.  Copyright 2017 John Joowon Lee.
     
+    properties (Constant)
+        FULL_FOV = [344 344 127]
+    end
+    
     properties
         f2rep % use to exclude early frames of OC, OO that have breathing tube in FOV
         fsrc  %
@@ -771,7 +775,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             nii  = this.product_.nifti;
             nii.datatype = 'single';
             umap = mlfourd.ImagingContext2(nii);
-            fov  = this.sessionData.fullFov;
+            fov  = this.FULL_FOV;
             umap = umap.zoomed(-fov(1)/4, fov(1), -fov(2)/4, fov(2), 0, -1, 0, -1); 
             this = this.packageProduct(umap);
         end
