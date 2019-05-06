@@ -65,11 +65,6 @@ classdef Resources < handle
             g = ['_b' num2str(floor(10*this.pointSpread))];
         end
         
-        %%
-        
-        function datademo(this, val)
-            this.data_ = val;
-        end
     end
     
     %% PRIVATE
