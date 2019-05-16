@@ -1,5 +1,5 @@
 classdef DirToolTracer
-	%% DIRTOOLTRACER  
+	%% DIRTOOLTRACER provides globbing of folders bearing notation FOLDER_EXPRESSION.
 
 	%  $Revision$
  	%  was created 06-Mar-2019 17:30:17 by jjlee,
@@ -106,6 +106,12 @@ classdef DirToolTracer
         function ff  = dns(this, varargin)
             ff = this.dirtools_.dns(varargin{:});
         end
+        function ff  = fqfns(this, varargin)
+            ff = this.dirtools_.fqfns(varargin{:});
+        end
+        function ff  = fns(this, varargin)
+            ff = this.dirtools_.fns(varargin{:});
+        end
         function len = length(this)
             len = this.dirtools_.length;
         end
@@ -116,7 +122,10 @@ classdef DirToolTracer
 		  
  		function this = DirToolTracer(varargin)
  			%% DIRTOOLTRACER
- 			%  @param .
+ 			%  @param tracer is char; may include path preceding a tracer identifer as well as asterisks for globbing,
+            %  e. g., /path/to/FDG*.
+            %  @param ac is logical
+            %  @return object with subset functionality of mlsystem.DirTool.
 
             ip = inputParser;
             addParameter(ip, 'tracer', '', @(x) ischar(x) || iscell(x));
