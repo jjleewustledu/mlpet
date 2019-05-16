@@ -785,7 +785,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             sess.attenuationCorrected = true;
             info = NIfTIInfo(this.sessionData.tracerNipet('nativeFov', true));
             nii = this.product_.nifti;
-            nii.filepath = sess.tracerPath;
+            nii.filepath = sess.scanPath;
             nii.fileprefix = mybasename(sess.umapTagged);
             nii.filesuffix = '.nii.gz';
             nii.datatype = 'single';
