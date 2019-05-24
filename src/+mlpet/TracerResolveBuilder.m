@@ -714,9 +714,11 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             addParameter(ip, 'f2rep', [], @isnumeric);
             addParameter(ip, 'fsrc',  [], @isnumeric);
             parse(ip, varargin{:});
-            this.f2rep          = ip.Results.f2rep;
-            this.fsrc           = ip.Results.fsrc;
-            this                = this.updateFinished;            
+            this.f2rep = ip.Results.f2rep;
+            this.fsrc = ip.Results.fsrc;
+            this = this.updateFinished; 
+            assert(isfile(this.sessionData.tracerListmodeJson), ...
+                'mlnipet:AssertionError', 'TracerResolveBuilder.ctor cannot find %s', this.sessionData.tracerListmodeJson);           
         end
     end 
     
