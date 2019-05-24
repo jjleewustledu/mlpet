@@ -30,11 +30,11 @@ classdef SessionResolveBuilder
             this.collectionRB_.referenceTracer = s;
         end 
         function g    = get.tracer(this)
-            g = this.collectionRB_.compositeRB.tracer;
+            g = this.collectionRB_.tracer;
         end
         function this = set.tracer(this, s)
             assert(ischar(s));
-            this.collectionRB_.compositeRB.tracer = upper(s) ;
+            this.collectionRB_.tracer = upper(s) ;
         end
         function g    = get.workpath(this)
             g = this.collectionRB_.workpath;

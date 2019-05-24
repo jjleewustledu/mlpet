@@ -1,5 +1,5 @@
 classdef NiftyPETyBuilder < mlpet.TracerBuilder
-	%% NIFTYPETYBUILDER  
+	%% NIFTYPETYBUILDER is an early use of NiftyPETy.
 
 	%  $Revision$
  	%  was created 17-Nov-2017 18:34:21 by jjlee,
