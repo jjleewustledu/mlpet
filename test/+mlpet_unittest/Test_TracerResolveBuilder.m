@@ -161,7 +161,7 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
         end
         function test_reconstituteFramesAC2(this)
             
-            mlpet.TracerDirector.prepareFreesurferData('sessionData', this.sessd);  
+            mlraichle.TracerDirector.prepareFreesurferData('sessionData', this.sessd);  
             
             this.testObj = this.testObj.reconstituteFramesAC;
             this.testObj.sessionData.frame = nan;
