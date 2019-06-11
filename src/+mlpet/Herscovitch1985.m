@@ -33,7 +33,7 @@ classdef Herscovitch1985 < mlpet.AbstractHerscovitch1985
     
     methods (Static)
         function fwhh   = petPointSpread
-            fwhh = mlpet.PETRegistry.instance.petPointSpread;
+            fwhh = mlsiemens.ECATRegistry.instance.petPointSpread;
         end
     end
     
