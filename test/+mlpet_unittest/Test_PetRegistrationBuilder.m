@@ -1,4 +1,4 @@
-classdef Test_PETRegistrationBuilder < matlab.unittest.TestCase
+classdef Test_PetRegistrationBuilder < matlab.unittest.TestCase
 	%% TEST_PETREGISTRATIONBUILDER 
 
 	%  Usage:  >> results = run(mlpet_unittest.Test_PETRegistrationBuilder)
@@ -66,9 +66,9 @@ classdef Test_PETRegistrationBuilder < matlab.unittest.TestCase
 	end
 
  	methods (TestClassSetup)
-		function setupPETRegistrationBuilder(this)
+		function setupPetRegistrationBuilder(this)
  			import mlpet.*;
-            this.registry = PETRegistry.instance('initialize');
+            this.registry = mlsiemens.ECATRegistry.instance('initialize');
             this.studyData = this.registry.testStudyData('test_derdeyn');
             this.sessionData = this.registry.testSessionData('test_derdeyn'); 
             disp(this.sessionData);
@@ -77,7 +77,7 @@ classdef Test_PETRegistrationBuilder < matlab.unittest.TestCase
 	end
 
  	methods (TestMethodSetup)
-		function setupPETRegistrationBuilderTest(this)
+		function setupPetRegistrationBuilderTest(this)
  			this.prb = this.prb_;
             this.addTeardown(@this.cleanupFiles);
  		end
