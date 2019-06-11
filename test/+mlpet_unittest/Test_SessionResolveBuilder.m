@@ -12,10 +12,10 @@ classdef Test_SessionResolveBuilder < matlab.unittest.TestCase
  	
 	properties
         sesData
-        sesFolder = 'ses-E182863' % HYGLY26
+        sesFolder = 'ses-E00853' % 'ses-E182863' % HYGLY26
         studyData
         subData
-        subFolder = 'sub-S40037'
+        subFolder = 'sub-S58163' % 'sub-S40037'
  		testObj
         fast = false
  	end
