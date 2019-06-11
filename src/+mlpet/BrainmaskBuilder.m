@@ -41,7 +41,7 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
             end            
             ct4rb = mlfourdfp.CompositeT4ResolveBuilder( ...
                 'sessionData', sessd, 'theImages', {tr.fileprefix this.brainmask.fileprefix});
-            bmbbFn = sessd.brainmaskBinarizeBlended('tag', ['_' ct4rb.resolveTag], 'typ', 'fn.4dfp.hdr');
+            bmbbFn = sessd.brainmaskBinarizeBlended('tag', ['_' ct4rb.resolveTag], 'typ', '4dfp.hdr');
             if (ip.Results.reuse && lexist(bmbbFn))
                 bmbb = mlfourd.ImagingContext(bmbbFn);
                 return
