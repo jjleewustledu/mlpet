@@ -399,7 +399,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                         col(lrows) = dt_;
                     end
                     if (any(isdatetime(col)))
-                        col.TimeZone = this.PREFERRED_TIMEZONE;
+                        col.TimeZone = this.preferredTimeZone;
                         lrows = logical(~isnat(col));
                         col(lrows) = this.correctDateToSessionDate(col(lrows));
                         if (~this.isTrueTiming(vars{v}))

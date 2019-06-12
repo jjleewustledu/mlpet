@@ -15,8 +15,8 @@ classdef (Abstract) InstrumentKit < handle
         obj = doMakeClass(this)
     end
     
-	properties (Constant)		
-        PREFERRED_TIMEZONE = mlkinetics.Timing.PREFERRED_TIMEZONE
+    properties (Dependent)
+        preferredTimeZone
     end
     
     methods (Static)
@@ -56,14 +56,14 @@ classdef (Abstract) InstrumentKit < handle
                 'activity', 500, ...
                 'activityUnits', 'nCi', ...
                 'sourceId', '1231-8-87', ...
-                'refDate', datetime(2007,4,1, 'TimeZone', InstrumentKit.PREFERRED_TIMEZONE));
+                'refDate', datetime(2007,4,1, 'TimeZone', InstrumentKit.preferredTimeZone));
             if (datetime(ip.Results.session) > datetime(2016,4,7, 'TimeZone', 'America/Chicago'))
                 rs(2) = ReferenceSource( ...
                     'isotope', '22Na', ...
                     'activity', 101.4, ...
                     'activityUnits', 'nCi', ...
                     'sourceId', '1382-54-1', ...
-                    'refDate', datetime(2009,8,1, 'TimeZone', InstrumentKit.PREFERRED_TIMEZONE));
+                    'refDate', datetime(2009,8,1, 'TimeZone', InstrumentKit.preferredTimeZone));
             end
             if (datetime(ip.Results.session) > datetime(2018,10,4, 'TimeZone', 'America/Chicago'))
                 rs(3) = ReferenceSource( ...
@@ -71,7 +71,7 @@ classdef (Abstract) InstrumentKit < handle
                     'activity', 101.3, ...
                     'activityUnits', 'nCi', ...
                     'sourceId', '1932-53', ...
-                    'refDate', datetime(2017,11,1, 'TimeZone', InstrumentKit.PREFERRED_TIMEZONE), ...
+                    'refDate', datetime(2017,11,1, 'TimeZone', InstrumentKit.preferredTimeZone), ...
                     'productCode', 'MGF-068-R3');
             end
             for irs = 1:length(rs)
@@ -127,7 +127,16 @@ classdef (Abstract) InstrumentKit < handle
         end
     end
     
-    methods        
+    methods    
+        
+        %% GET
+        
+        function g = get.preferredTimeZone(~)
+            g = mlpipeline.ResourcesRegistry.instance().preferredTimeZone;
+        end
+        
+        %%
+        
         function m  = twiliteCalMeasurements(this)
         end
         function m  = biographMMRCalMeasurements(this)
