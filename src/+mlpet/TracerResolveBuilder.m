@@ -429,7 +429,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         function idx  = indicesNum2bool(this, img)
             assert(isnumeric(img));
             idx = img > this.sessionData.fractionalImageFrameThresh * median(img) + ...
-                        mlpet.Resources.instance.noiseFloorOfActivity;
+                        mlnipet.ResourcesRegistry.instance().noiseFloorOfActivity;
         end      
         function [this,averaged] = motionCorrectEpochs(this)
             %% MOTIONCORRECTEPOCHS accepts time-resolved image and returns them with motion-correction.

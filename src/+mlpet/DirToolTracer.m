@@ -89,13 +89,13 @@ classdef DirToolTracer
                 try
                     dt = datetime( ...
                         re.dt(3:end), 'InputFormat', 'yyyyMMddHHmmss.SSSSSS', ...
-                        'TimeZone', mlnipet.Resources.PREFERRED_TIMEZONE);
+                        'TimeZone', mlpipeline.ResourcesRegistry.instance().preferredTimeZone);
                 catch ME
                     handwarning(ME);
                     if (strcmp(ME.identifier, 'MATLAB:datetime:ParseErr'))
                         dt = datetime( ...
                             re.dt(3:end), 'InputFormat', 'yyyyMMdd', ...
-                            'TimeZone', mlnipet.Resources.PREFERRED_TIMEZONE);
+                            'TimeZone', mlpipeline.ResourcesRegistry.instance().preferredTimeZone);
                     end
                 end
             end

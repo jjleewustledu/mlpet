@@ -22,7 +22,7 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous
         %% GET
         
         function g = get.alpha(~)
-            g = mlpet.Resources.instance.alpha;
+            g = mlpipeline.ResourcesRegistry.instance().alpha;
         end
         function g = get.trainedModelInvEff(this)
             g = this.getTrainedModelInvEff__;

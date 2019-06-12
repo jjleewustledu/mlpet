@@ -118,7 +118,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
         function this = set.doseAdminDatetime(this, s)
             assert(isa(s, 'datetime'));
             if (isempty(s.TimeZone))
-                s.TimeZone = mlkinetics.Timing.PREFERRED_TIMEZONE;
+                s.TimeZone = mlpipeline.ResourcesRegistry.instance().preferredTimeZone;
             end
             this.doseAdminDatetime_ = s;
         end
@@ -328,7 +328,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             this.sessionData_ = ip.Results.sessionData;
             this.doseAdminDatetime_ = ip.Results.doseAdminDatetime;
             if (isempty(this.doseAdminDatetime_.TimeZone))
-                this.doseAdminDatetime_.TimeZone = mlkinetics.Timing.PREFERRED_TIMEZONE;
+                this.doseAdminDatetime_.TimeZone = mlpipeline.ResourcesRegistry.instance().preferredTimeZone;
             end
             this.mask_ = ip.Results.mask;   
             if (isa(ip.Results.mask, 'mlfourd.ImagingContext'))

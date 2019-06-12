@@ -43,7 +43,7 @@ classdef (Abstract) Instrument < handle
         %% GET
         
         function g = get.alpha(~)
-            g = mlpet.Resources.instance.alpha;
+            g = mlpipeline.ResourcesRegistry.instance().alpha;
         end
         function g = get.calibrations(this)
             g = this.calibrations_;

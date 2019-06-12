@@ -117,7 +117,7 @@ classdef Msktgen < mlfourdfp.AbstractSessionBuilder
     methods (Access = private)
         function this = constructResolvedMask(this)
             
-            res = mlpet.Resources.instance;
+            res = mlpipeline.ResourcesRegistry.instance();
             this.sessionData_.rnumber = 1;            
             theImages = [{this.source.fqfileprefix} this.intermediaryForMask.fqfileprefix];
             t4err = [];
