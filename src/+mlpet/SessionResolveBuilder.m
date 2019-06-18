@@ -1,4 +1,4 @@
-classdef SessionResolveBuilder < mlfourdfp.AbstractBuilder
+classdef SessionResolveBuilder % < mlfourdfp.AbstractBuilder
 	%% SESSIONRESOLVEBUILDER operates on scans contained in $SUBJECTS_DIR/sub-S000000/ses-E000000
 
 	%  $Revision$
@@ -293,7 +293,7 @@ classdef SessionResolveBuilder < mlfourdfp.AbstractBuilder
  			%% SESSIONRESOLVEBUILDER
  			%  @param sessionData is an mlpipeline.ISessionData.
             
-            this = this@mlfourdfp.AbstractBuilder(varargin{:});
+            %this = this@mlfourdfp.AbstractBuilder(varargin{:});
             
             ip = inputParser;
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
