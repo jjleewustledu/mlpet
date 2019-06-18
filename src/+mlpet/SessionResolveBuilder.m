@@ -1,4 +1,4 @@
-classdef SessionResolveBuilder
+classdef SessionResolveBuilder < mlfourdfp.AbstractBuilder
 	%% SESSIONRESOLVEBUILDER operates on scans contained in $SUBJECTS_DIR/sub-S000000/ses-E000000
 
 	%  $Revision$
@@ -6,11 +6,32 @@ classdef SessionResolveBuilder
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
  
+    properties (Constant)
+        N_FRAMES_FOR_BOLUS = 8
+    end
+    
     properties (Dependent)
         product
         referenceTracer
         tracer
         workpath
+    end
+    
+    methods (Static)       
+        function dt = ensureDtFormat(dt)
+            if isempty(dt)
+                dt = '';
+                return
+            end
+            if isdatetime(dt)
+                dt = datestr(dt, 'yyyymmddHHMMSS');
+            end
+            assert(ischar(dt));
+            if ~strncmp(dt, 'dt', 2)
+                dt = ['dt' dt];
+            end
+            dt = strtok(dt, '.');
+        end
     end
     
 	methods 
@@ -42,6 +63,9 @@ classdef SessionResolveBuilder
         
         %%
         
+        function this = align(this)
+            this = this.alignCrossModal;
+        end
         function this = alignCommonModal(this, varargin)
             %  @param required tracer is char.
             %  @return resolution of all scans with specified tracer in the session.
@@ -166,14 +190,54 @@ classdef SessionResolveBuilder
             this = this.collectionRB_.constructFramesSubset(tracer, frames, varargin{:});
             popd(pwd0);
         end
-                
-        
         
         function            constructReferenceTracerToT1001T4(this)
             this.collectionRB_.constructReferenceTracerToT1001T4();
         end
         function            constructTracerRevisionToReferenceT4(this, varargin)
             this.collectionRB_.constructTracerRevisionToReferenceT4(varargin{:})
+        end
+        function fqfp     = finalFdg(this, dt)
+            fqfp = fullfile(this.collectionRB_.sessionData.sessionPath, ...
+                sprintf('fdg%s_op_fdg_on_op_fdg_avgtr1', this.ensureDtFormat(dt)));
+        end
+        function fqfp     = finalHo(this, dt, dt0)
+            fqfp = fullfile(this.collectionRB_.sessionData.sessionPath, ...
+                sprintf('ho%s_op_ho%s_avgtr1_on_op_fdg_avgr1', this.ensureDtFormat(dt), this.ensureDtFormat(dt0)));
+        end
+        function fqfp     = finalOo(this, dt, dt0)
+            fqfp = fullfile(this.collectionRB_.sessionData.sessionPath, ...
+                sprintf('oo%s_op_oo%s_avgtr1_on_op_fdg_avgr1', this.ensureDtFormat(dt), this.ensureDtFormat(dt0)));
+        end
+        function fqfp     = finalOc(this, dt, dt0, dtfdg, varargin)
+            ip = inputParser;
+            addOptional(ip, 'avgstr', '', @ischar)
+            parse(ip, varargin{:})
+            
+            fqfp = fullfile(this.collectionRB_.sessionData.sessionPath, ...
+                sprintf('oc%s_op_oc%s%s_on_op_fdg%s_frames1to%i_avgtr1', ...
+                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.avgstr, this.ensureDtFormat(dtfdg), this.N_FRAMES_FOR_BOLUS));
+            if ~isfile([fqfp '.4dfp.img'])
+                fqfp = this.finalOc(dt, dt0, dtfdg, 'avgtr1');
+            end
+        end
+        function tf       = isfinished(this)
+            import mlsystem.DirTool
+            pwd0 = pushd(fullfile(this.collectionRB_.sessionData.sessionPath));
+            dt_FDG = DirTool('FDG_DT*.000000-Converted-AC');
+            dt_HO  = DirTool('HO_DT*.000000-Converted-AC');
+            dt_OO  = DirTool('OO_DT*.000000-Converted-AC');
+            dt_OC  = DirTool('OC_DT*.000000-Converted-AC');
+            dt_fdg = DirTool('fdg*_op_fdg_on_op_fdg_avgtr1.4dfp.img');
+            dt_ho  = DirTool('ho*_op_ho*_avgtr1_on_op_fdg_avgr1.4dfp.img');
+            dt_oo  = DirTool('oo*_op_oo*_avgtr1_on_op_fdg_avgr1.4dfp.img');
+            dt_oc  = DirTool(sprintf('oc*_op_oc*_on_op_fdg*_frames1to%i_avgtr1', this.N_FRAMES_FOR_BOLUS));
+            popd(pwd0)
+            
+            tf = ~isempty(dt_FDG.fqdns) && ~isempty(dt_fdg.fqfns) && ...
+                 ~isempty(dt_HO.fqdns)  && ~isempty(dt_ho.fqfns) && ...
+                 ~isempty(dt_OO.fqdns)  && ~isempty(dt_oo.fqfns) && ...
+                 ~isempty(dt_OC.fqdns)  && ~isempty(dt_oc.fqfns);
         end
         function this     = productAverage(this, varargin)
             this.collectionRB_ = this.collectionRB_.productAverage(varargin{:});
@@ -192,8 +256,23 @@ classdef SessionResolveBuilder
             ts = this.collectionRB_.selectT4s(varargin{:});
         end
         function prefixes = stageSessionScans(this, varargin)
-            prefixes = this.collectionRB_.stageSessionScans(varargin{:});
-        end
+            %% Creates links to tracer images distributed on the filesystem so that resolve operations may be done in the pwd.
+            %  e.g.:  HO_DT(yyyymmddHHMMSS).000000-Converted-AC/ho_avgt.4dfp.hdr -> hodt(yyyymmddHHMMSS)_avgt.4dfp.hdr
+            %  @param required tracer is char.
+            %  @param optional suffix is char, e.g., _avgt.
+            %  @return prefixes = cell(1, N(available images)) as unique fileprefixes in the pwd.
+            %  TODO:  stageSessionScans -> stageImages
+            
+            ip = inputParser;
+            addRequired(ip, 'tracer', @ischar);
+            addOptional(ip, 'suffix', '', @ischar);
+            parse(ip, varargin{:});         
+            
+            files = this.collectionRB_.lns_with_datetime( ...
+                sprintf('%s_DT*.000000-Converted-AC/%s%s.4dfp.*', ...
+                upper(ip.Results.tracer), lower(ip.Results.tracer), ip.Results.suffix));   
+            prefixes = this.collectionRB_.uniqueFileprefixes(files);
+        end    
         function this     = sqrt(this, varargin)
             this.collectionRB_ = this.collectionRB_.sqrt(varargin{:});
         end
@@ -213,6 +292,8 @@ classdef SessionResolveBuilder
  		function this = SessionResolveBuilder(varargin)
  			%% SESSIONRESOLVEBUILDER
  			%  @param sessionData is an mlpipeline.ISessionData.
+            
+            this = this@mlfourdfp.AbstractBuilder(varargin{:});
             
             ip = inputParser;
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
