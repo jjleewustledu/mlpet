@@ -10,6 +10,19 @@ classdef (Abstract) StudyRegistry < handle & mlpipeline.StudyRegistry
         referenceTracer
     end
     
+    properties (Dependent)
+        YeoDir
+    end
+    
+    methods
+        
+        %% GET
+        
+        function g = get.YeoDir(~)
+            g = getenv('YEODIR');
+        end
+    end
+    
 	methods (Access = protected)		  
  		function this = StudyRegistry(varargin)
  			%% STUDYREGISTRY
