@@ -1,4 +1,4 @@
-classdef SubjectResolveBuilder < mlpet.SessionResolveBuilder
+classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
 	%% SUBJECTRESOLVEBUILDER  
 
 	%  $Revision$
@@ -6,12 +6,7 @@ classdef SubjectResolveBuilder < mlpet.SessionResolveBuilder
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
  	
-	properties
- 		
- 	end
-
-	methods 
-        
+	methods
         function this = alignCommonModal(this, varargin)
             %  @param required tracer is char.
             %  @return resolution of all scans with specified tracer in the session.
@@ -25,91 +20,94 @@ classdef SubjectResolveBuilder < mlpet.SessionResolveBuilder
                 this = this.resolve(prefixes, varargin{2:end});
             end
             this.tracer = ip.Results.tracer;
-        end
-        function this = alignCrossModal(this) 
-            %% ALIGNCROSSMODAL
-            %  theFdg,theHo,theOo,theOc
-            %  @return t4 in this.t4s:            e.g., {hov[1-9]r1_sumtr1_op_hov[1-9]r1_avgr1_to_op_fdgv1r1_t4}.
-            %  @return resolved in this.product:  e.g., {hov[1-9]r1_sumtr1_op_hov[1-9]r1_avgr1_op_fdgv1r1.4dfp.hdr}.            
-
-            pwd0     = pushd(this.workpath);            
-            theHo    = this.alignCommonModal('HO');
-            theHo    = theHo.productAverage('HO');            
-            theOo    = this.alignCommonModal('OO');
-            theOo    = theOo.productAverage('OO'); 
-            theFdg   = this.alignCommonModal('FDG');
-            theFdg   = theFdg.productAverage('FDG');
-            this     = theFdg;
-            prefixes = {theFdg.product{1}.fileprefix ...
-                        theHo.product{1}.fileprefix ...
-                        theOo.product{1}.fileprefix}; 
-            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/fdgv1r1_sumtr1_op_fdgv1r1_avg'
-            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/hov1r1_sumtr1_op_hov1r1_avg'
-            % '/data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/Vall/oov1r1_sumtr1_op_oov1r1_avg'
-
-            this = this.resolve(prefixes, ...
-                'compAlignMethod', 'align_crossModal', ...
-                'NRevisions', 1, ...
-                'maskForImages', 'Msktgen', ...
-                'client', 'alignCrossModal_this');
-            % cell2str(this.t4s_) =>
-            % fdgv1r1_sumtr1_op_fdgv1r1_avgr1_to_op_fdgv1r1_t4
-            % hov1r1_sumtr1_op_hov1r1_avgr1_to_op_fdgv1r1_t4
-            % oov1r1_sumtr1_op_oov1r1_avgr1_to_op_fdgv1r1_t4
-            % cellfun(@(x) ls(x.filename), this.product_, 'UniformOutput', false) =>
-            % fdgv1r1_sumtr1_op_fdgv1r1_avgr1_op_fdgv1r1.4dfp.hdr
-            % hov1r1_sumtr1_op_hov1r1_avgr1_op_fdgv1r1.4dfp.hdr
-            % oov1r1_sumtr1_op_oov1r1_avgr1_op_fdgv1r1.4dfp.hdr
-
-            this.alignDynamicImages('commonRef', theHo,  'crossRef', this);
-            this.alignDynamicImages('commonRef', theOo,  'crossRef', this);
-            theFdg = this.alignDynamicImages('commonRef', theFdg, 'crossRef', this);
-            popd(pwd0);    
-
-            theOc = theFdg.alignCrossModalSubset;
-            this.product = [this.product theOc.product];
-            %this.constructReferenceTracerToT1001T4;
         end  
-        function this = alignDynamicImages(this, varargin)
-            %% ALIGNDYNAMICIMAGES aligns common-modal source dynamic images to a cross-modal reference.
-            %  @param commonRef, or common-modal reference, e.g., any of OC, OO, HO, FDG.
-            %  @param crossRef,  or cross-modal reference, e.g., FDG.
-            %  @return this.product := dynamic images aligned to a cross-modal reference is saved to the filesystem.
-            
-            %  TODO:  manage case of homo-tracer subsets
+        function prefixes = stageSubjectScans(this, varargin)
+            %% Creates links to tracer images distributed on the filesystem so that resolve operations may be done in the pwd.
+            %  e.g.:  HO_DT(yyyymmddHHMMSS).000000-Converted-AC/ho_avgt.4dfp.hdr -> hodt(yyyymmddHHMMSS)_avgt.4dfp.hdr
+            %  @param required tracer is char.
+            %  @param optional suffix is char, e.g., _avgt.
+            %  @return prefixes = cell(1, N(available images)) as unique fileprefixes in the pwd.
+            %  TODO:  stageSessionScans -> stageImages
             
             ip = inputParser;
-            addParameter(ip, 'commonRef', [], @(x) isa(x, 'mlpet.SubjectResolveBuilder'));
-            addParameter(ip, 'crossRef',  [], @(x) isa(x, 'mlpet.SubjectResolveBuilder'));
-            parse(ip, varargin{:});
-            comm  = ip.Results.commonRef;
-            cross = ip.Results.crossRef;
+            addRequired(ip, 'tracer', @ischar);
+            addOptional(ip, 'suffix', '', @ischar);
+            parse(ip, varargin{:});         
             
-            pwd0 = pushd(this.workpath);            
-            comm = comm.t4imgDynamicImages_sub(comm.tracer); % comm.product := dynamic aligned to time-summed comm.product{1}
-            comm_to_cross_t4 = cross.selectT4s('sourceTracer', lower(comm.tracer)); % construct t4s{r} for comm.product to cross.product{1}
-    
-            cross = cross.t4imgc(comm_to_cross_t4, comm.product);                
-            
-            cross.teardownIntermediates;
-            this.collectionRB_ = this.collectionRB_.packageProduct(cross.product);
-            popd(pwd0);
-        end      
-        
-        function prefixes = stageSubjectScans(this, varargin)
-            prefixes = this.collectionRB_.stageSubjectScans(varargin{:});
-        end
-        function this     = t4imgDynamicImages_sub(this, varargin)
-            this.collectionRB_ = this.collectionRB_.t4imgDynamicImages_sub(varargin{:});
+            dt = mlsystem.DirTool('ses-E*');
+            for ses = dt.dns
+                try
+                    files = this.collectionRB_.lns_with_datetime( ...
+                        fullfile(ses{1}, ...
+                        sprintf('%s.4dfp.*', this.finalTracerGlob(ip.Results.tracer))));
+                    prefixes = this.collectionRB_.uniqueFileprefixes(files);
+                catch ME
+                    handwarning(ME)
+                end
+            end
+        end 
+        function this     = t4imgDynamicImages(this, varargin)
+            this.collectionRB_ = this.collectionRB_.t4imgDynamicImages( ...
+                varargin{:}, 'staging_handle', @this.stageSubjectScans);
         end
 		  
  		function this = SubjectResolveBuilder(varargin)
  			%% SUBJECTRESOLVEBUILDER
  			%  @param .
-
- 			this = this@mlpet.SessionResolveBuilder(varargin{:});
+            
+            this = this@mlpet.StudyResolveBuilder(varargin{:});
+            this = this.configureSubjectPath__;
+            this = this.configureSessions__;
  		end
  	end 
+    
+    %% PRIVATE
+    
+    methods (Access = private)
+        function this = configureSessions__(this)
+            
+            import mlsystem.DirTool
+            if isempty(this.subjectData_)
+                return
+            end    
+            pwd0 = pushd(this.subjectData_.subjectPath);
+            dt = DirTool('ses-*');
+            for ses = dt.dns
+
+                pwd1 = pushd(ses{1});
+                dt1 = DirTool('*_DT*.000000-Converted-AC');
+                if ~isempty(dt1.dns) 
+                    sd = SessionData( ...
+                        'studyData', this.studyData_, ...
+                        'subjectData', this.subjectData_, ...
+                        'sessionFolder', ses{1}, ...
+                        'tracer', this.studyData_.referenceTracer, ...
+                        'ac', true); % referenceTracer
+                    srb = mlpet.SessionResolveBuilder('sessionData', sd);
+                    if ~srb.isfinished
+                        srb.align;
+                    end
+                    
+                    % for this object
+                    this.collectionRB_ = mlfourdfp.CollectionResolveBuilder( ...
+                        'sessionData', sd, ...
+                        'workpath', fullfile(sd.subjectPath, sd.sessionFolder, ''));
+                end
+                popd(pwd1)
+            end
+            popd(pwd0)
+        end
+        function this = configureSubjectPath__(this)
+            if isempty(this.subjectData_)
+                return
+            end
+            S = this.subjectData_.subjectsJson;
+            for sub = fields(S)'
+                d = this.subjectData_.ensuredirSub(S.(sub{1}).sid);
+                this.subjectData_.aufbauSubjectPath(d, S.(sub{1}));
+            end
+        end
+    end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end
