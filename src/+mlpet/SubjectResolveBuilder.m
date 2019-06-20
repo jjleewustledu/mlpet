@@ -65,6 +65,9 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
     
     methods (Access = private)
         function this = configureSessions__(this)
+            %% explores the sessions within the subject-path,
+            %  aligns images within each session, 
+            %  and initializes this.collectionRB_ with the last discovered session data.
             
             import mlsystem.DirTool
             if isempty(this.subjectData_)
@@ -77,8 +80,9 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
                 pwd1 = pushd(ses{1});
                 dt1 = DirTool('*_DT*.000000-Converted-AC');
                 if ~isempty(dt1.dns) 
-                    sd = SessionData( ...
+                    sd = mlraichle.SessionData( ...
                         'studyData', this.studyData_, ...
+                        'projectData', mlraichle.ProjectData('sessionStr', ses{1}), ...
                         'subjectData', this.subjectData_, ...
                         'sessionFolder', ses{1}, ...
                         'tracer', this.studyData_.referenceTracer, ...
@@ -98,6 +102,9 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             popd(pwd0)
         end
         function this = configureSubjectPath__(this)
+            %% iterates through this.subjectData_.subjectsJson
+            %  and initializes the subject path using this.subjectData_.aufbauSubjectPath.
+            
             if isempty(this.subjectData_)
                 return
             end
