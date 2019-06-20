@@ -242,15 +242,16 @@ classdef (Abstract) StudyResolveBuilder
         end
         function tf       = isfinished(this)
             import mlsystem.DirTool
-            pwd0 = pushd(fullfile(this.collectionRB_.sessionData.sessionPath));
+            pwd0 = pushd(fullfile(this.collectionRB_.sessionData.subjectPath, ...
+                                  this.collectionRB_.sessionData.sessionFolder, ''));
             dt_FDG = DirTool('FDG_DT*.000000-Converted-AC');
             dt_HO  = DirTool('HO_DT*.000000-Converted-AC');
             dt_OO  = DirTool('OO_DT*.000000-Converted-AC');
             dt_OC  = DirTool('OC_DT*.000000-Converted-AC');
-            dt_fdg = DirTool('fdg*_op_fdg_on_op_fdg_avgtr1.4dfp.img');
-            dt_ho  = DirTool('ho*_op_ho*_avgtr1_on_op_fdg_avgr1.4dfp.img');
-            dt_oo  = DirTool('oo*_op_oo*_avgtr1_on_op_fdg_avgr1.4dfp.img');
-            dt_oc  = DirTool(sprintf('oc*_op_oc*_on_op_fdg*_frames1to%i_avgtr1', this.N_FRAMES_FOR_BOLUS));
+            dt_fdg = DirTool('fdg*_op_fdg_on_op_fdg_avgr1.4dfp.img');
+            dt_ho  = DirTool('ho*_op_ho*_on_op_fdg_avgr1.4dfp.img');
+            dt_oo  = DirTool('oo*_op_oo*_on_op_fdg_avgr1.4dfp.img');
+            dt_oc  = DirTool(sprintf('oc*_op_oc*_on_op_fdg*_frames1to%i_avgtr1.4dfp.img', this.N_FRAMES_FOR_BOLUS));
             popd(pwd0)
             
             tf = ~isempty(dt_FDG.fqdns) && ~isempty(dt_fdg.fqfns) && ...
