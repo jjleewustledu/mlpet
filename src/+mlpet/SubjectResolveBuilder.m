@@ -34,13 +34,14 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             addOptional(ip, 'suffix', '', @ischar);
             parse(ip, varargin{:});         
             
+            prefixes = {};
             dt = mlsystem.DirTool('ses-E*');
             for ses = dt.dns
                 try
                     files = this.collectionRB_.lns_with_datetime( ...
                         fullfile(ses{1}, ...
                         sprintf('%s.4dfp.*', this.finalTracerGlob(ip.Results.tracer))));
-                    prefixes = this.collectionRB_.uniqueFileprefixes(files);
+                    prefixes = [prefixes this.collectionRB_.uniqueFileprefixes(files)]; %#ok<AGROW>
                 catch ME
                     handwarning(ME)
                 end
@@ -56,6 +57,9 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
  			%  @param .
             
             this = this@mlpet.StudyResolveBuilder(varargin{:});
+            this.collectionRB_ = mlfourdfp.CollectionResolveBuilder( ...
+                'sessionData', this.sessionData_, ...
+                'workpath', fullfile(this.sessionData_.subjectPath, ''));
             this = this.configureSubjectPath__;
             this = this.configureSessions__;
  		end

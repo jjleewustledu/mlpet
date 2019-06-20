@@ -44,12 +44,19 @@ classdef SessionResolveBuilder < mlpet.StudyResolveBuilder
                 handwarning(ME)
             end
         end    
+        function this     = t4imgDynamicImages(this, varargin)
+            this.collectionRB_ = this.collectionRB_.t4imgDynamicImages( ...
+                varargin{:}, 'staging_handle', @this.stageSessionScans);
+        end
                 
  		function this = SessionResolveBuilder(varargin)
  			%% SESSIONRESOLVEBUILDER
  			%  @param sessionData is an mlpipeline.ISessionData.
             
             this = this@mlpet.StudyResolveBuilder(varargin{:});
+            this.collectionRB_ = mlfourdfp.CollectionResolveBuilder( ...
+                'sessionData', this.sessionData_, ...
+                'workpath', fullfile(this.sessionData_.subjectPath, this.sessionData_.sessionFolder, ''));
  		end
     end 
 

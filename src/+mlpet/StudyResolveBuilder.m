@@ -280,10 +280,6 @@ classdef (Abstract) StudyResolveBuilder
         function this     = t4imgc(this, varargin)
             this.collectionRB_ = this.collectionRB_.t4imgc(varargin{:});
         end
-        function this     = t4imgDynamicImages(this, varargin)
-            this.collectionRB_ = this.collectionRB_.t4imgDynamicImages( ...
-                varargin{:}, 'staging_handle', @this.stageSessionScans);
-        end
         function            teardownIntermediates(this)
             this.collectionRB_.teardownIntermediates();
         end
@@ -306,9 +302,6 @@ classdef (Abstract) StudyResolveBuilder
             this.studyData_ = ipr.studyData;
             this.subjectData_ = ipr.subjectData;
             this.sessionData_ = ipr.sessionData;
-            this.collectionRB_ = mlfourdfp.CollectionResolveBuilder( ...
-                'sessionData', this.sessionData_, ...
-                'workpath', fullfile(this.sessionData_.subjectPath, this.sessionData_.sessionFolder, ''));
             if isempty(this.studyData_) && isa(this.sessionData_.studyData, 'mlpipeline.IStudyData')
                 this.studyData_ = this.sessionData_.studyData;
             end
