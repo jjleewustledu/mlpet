@@ -299,9 +299,10 @@ classdef (Abstract) StudyResolveBuilder
             ip.KeepUnmatched = true;
             addParameter(ip, 'studyData', [])
             addParameter(ip, 'subjectData', [])
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'))
-            parse(ip, varargin{:});
+            addParameter(ip, 'sessionData', [])
+            parse(ip, varargin{:});            
             ipr = ip.Results;
+            assert(isa(ipr.sessionData, 'mlpipeline.ISessionData'))
             this.studyData_ = ipr.studyData;
             this.subjectData_ = ipr.subjectData;
             this.sessionData_ = ipr.sessionData;
