@@ -187,23 +187,37 @@ classdef (Abstract) StudyResolveBuilder
             this.collectionRB_.constructTracerRevisionToReferenceT4(varargin{:})
         end
         function fqfp     = finalFdg(this, dt)
-            fqfp = fullfile(this.collectionRB_.sessionData.sessionPath, ...
-                sprintf('fdg%s_op_fdg_on_op_fdg_avgtr1', this.ensureDtFormat(dt)));
+            fqfp = fullfile(this.collectionRB_.workpath, ...
+                sprintf('fdg%s_op_fdg_on_op_fdg_avgr1', this.ensureDtFormat(dt)));
         end
-        function fqfp     = finalHo(this, dt, dt0)
-            fqfp = fullfile(this.collectionRB_.sessionData.sessionPath, ...
-                sprintf('ho%s_op_ho%s_avgtr1_on_op_fdg_avgr1', this.ensureDtFormat(dt), this.ensureDtFormat(dt0)));
+        function fqfp     = finalHo(this, dt, dt0, varargin)
+            ip = inputParser;
+            addOptional(ip, 'suffix', '_avgtr1', @ischar)
+            parse(ip, varargin{:})
+            fqfp = fullfile(this.collectionRB_.workpath, ...
+                sprintf('ho%s_op_ho%s%s_on_op_fdg_avgr1', ...
+                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.suffix));
+            if ~isfile([fqfp '.4dfp.img'])
+                fqfp = this.finalHo(dt, dt0, '');
+            end
         end
-        function fqfp     = finalOo(this, dt, dt0)
-            fqfp = fullfile(this.collectionRB_.sessionData.sessionPath, ...
-                sprintf('oo%s_op_oo%s_avgtr1_on_op_fdg_avgr1', this.ensureDtFormat(dt), this.ensureDtFormat(dt0)));
+        function fqfp     = finalOo(this, dt, dt0, varargin)
+            ip = inputParser;
+            addOptional(ip, 'suffix', '_avgtr1', @ischar)
+            parse(ip, varargin{:})
+            fqfp = fullfile(this.collectionRB_.workpath, ...
+                sprintf('oo%s_op_oo%s%s_on_op_fdg_avgr1', ...
+                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.suffix));
+            if ~isfile([fqfp '.4dfp.img'])
+                fqfp = this.finalOo(dt, dt0, '');
+            end
         end
         function fqfp     = finalOc(this, dt, dt0, dtfdg, varargin)
             ip = inputParser;
             addOptional(ip, 'avgstr', '', @ischar)
             parse(ip, varargin{:})
             
-            fqfp = fullfile(this.collectionRB_.sessionData.sessionPath, ...
+            fqfp = fullfile(this.collectionRB_.workpath, ...
                 sprintf('oc%s_op_oc%s%s_on_op_fdg%s_frames1to%i_avgtr1', ...
                 this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.avgstr, this.ensureDtFormat(dtfdg), this.N_FRAMES_FOR_BOLUS));
             if ~isfile([fqfp '.4dfp.img'])
