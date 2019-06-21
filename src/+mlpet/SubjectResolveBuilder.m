@@ -56,9 +56,10 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             dt = mlsystem.DirTool('ses-E*');
             for ses = dt.dns
                 try
+                    glob = sprintf('%s.4dfp.hdr', this.finalTracerGlob(ip.Results.tracer));
+                    glob = basename(glob);
                     files = this.collectionRB_.lns_with_datetime( ...
-                        fullfile(ses{1}, ...
-                        sprintf('%s.4dfp.*', this.finalTracerGlob(ip.Results.tracer))));
+                        fullfile(ses{1}, glob));
                     prefixes = [prefixes this.collectionRB_.uniqueFileprefixes(files)]; %#ok<AGROW>
                 catch ME
                     handwarning(ME)
@@ -75,9 +76,6 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
  			%  @param .
             
             this = this@mlpet.StudyResolveBuilder(varargin{:});
-            this.collectionRB_ = mlfourdfp.CollectionResolveBuilder( ...
-                'sessionData', this.sessionData_, ...
-                'workpath', fullfile(this.sessionData_.subjectPath, ''));
             this = this.configureSubjectPath__;
             this = this.configureSessions__;
  		end
@@ -117,7 +115,7 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
                     % for this object
                     this.collectionRB_ = mlfourdfp.CollectionResolveBuilder( ...
                         'sessionData', sd, ...
-                        'workpath', fullfile(sd.subjectPath, sd.sessionFolder, ''));
+                        'workpath', fullfile(sd.subjectPath, ''));
                 end
                 popd(pwd1)
             end
