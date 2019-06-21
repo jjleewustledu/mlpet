@@ -240,25 +240,6 @@ classdef (Abstract) StudyResolveBuilder
                     error('mlpet:RuntimeError', 'StudyResolveBuilder.finalTracer')
             end
         end
-        function tf       = isfinished(this)
-            import mlsystem.DirTool
-            pwd0 = pushd(fullfile(this.collectionRB_.sessionData.subjectPath, ...
-                                  this.collectionRB_.sessionData.sessionFolder, ''));
-            dt_FDG = DirTool('FDG_DT*.000000-Converted-AC');
-            dt_HO  = DirTool('HO_DT*.000000-Converted-AC');
-            dt_OO  = DirTool('OO_DT*.000000-Converted-AC');
-            dt_OC  = DirTool('OC_DT*.000000-Converted-AC');
-            dt_fdg = DirTool('fdg*_op_fdg_on_op_fdg_avgr1.4dfp.img');
-            dt_ho  = DirTool('ho*_op_ho*_on_op_fdg_avgr1.4dfp.img');
-            dt_oo  = DirTool('oo*_op_oo*_on_op_fdg_avgr1.4dfp.img');
-            dt_oc  = DirTool(sprintf('oc*_op_oc*_on_op_fdg*_frames1to%i_avgtr1.4dfp.img', this.N_FRAMES_FOR_BOLUS));
-            popd(pwd0)
-            
-            tf = ~isempty(dt_FDG.fqdns) && ~isempty(dt_fdg.fqfns) && ...
-                 ~isempty(dt_HO.fqdns)  && ~isempty(dt_ho.fqfns) && ...
-                 ~isempty(dt_OO.fqdns)  && ~isempty(dt_oo.fqfns) && ...
-                 ~isempty(dt_OC.fqdns)  && ~isempty(dt_oc.fqfns);
-        end
         function this     = productAverage(this, varargin)
             this.collectionRB_ = this.collectionRB_.productAverage(varargin{:});
         end
