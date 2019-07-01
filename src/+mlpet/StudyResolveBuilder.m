@@ -189,14 +189,13 @@ classdef (Abstract) StudyResolveBuilder
         function            constructTracerRevisionToReferenceT4(this, varargin)
             this.collectionRB_.constructTracerRevisionToReferenceT4(varargin{:})
         end
-        function fqfp     = finalFdg(this, dt)
         function fqfp     = finalFdg(this, dt, varargin)            
             ip = inputParser;
             addOptional(ip, 'suffix', '', @ischar)
             parse(ip, varargin{:})
             
             fqfp = fullfile(this.collectionRB_.workpath, ...
-                sprintf('fdg%s_op_fdg_on_op_fdg_avgr1', this.ensureDtFormat(dt)));
+                sprintf('fdg%s_op_fdg%s_on_op_fdg_avgr1', this.ensureDtFormat(dt)));
         end
         function fqfp     = finalHo(this, dt, dt0, varargin)
             ip = inputParser;
