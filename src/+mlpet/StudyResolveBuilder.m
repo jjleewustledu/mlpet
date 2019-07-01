@@ -27,6 +27,9 @@ classdef (Abstract) StudyResolveBuilder
                 dt = datestr(dt, 'yyyymmddHHMMSS');
             end
             assert(ischar(dt));
+            if strcmp(dt, '*')
+                return
+            end
             if ~strncmp(dt, 'dt', 2)
                 dt = ['dt' dt];
             end
@@ -187,13 +190,19 @@ classdef (Abstract) StudyResolveBuilder
             this.collectionRB_.constructTracerRevisionToReferenceT4(varargin{:})
         end
         function fqfp     = finalFdg(this, dt)
+        function fqfp     = finalFdg(this, dt, varargin)            
+            ip = inputParser;
+            addOptional(ip, 'suffix', '', @ischar)
+            parse(ip, varargin{:})
+            
             fqfp = fullfile(this.collectionRB_.workpath, ...
                 sprintf('fdg%s_op_fdg_on_op_fdg_avgr1', this.ensureDtFormat(dt)));
         end
         function fqfp     = finalHo(this, dt, dt0, varargin)
             ip = inputParser;
-            addOptional(ip, 'suffix', '_avgtr1', @ischar)
+            addOptional(ip, 'suffix', '', @ischar)
             parse(ip, varargin{:})
+            
             fqfp = fullfile(this.collectionRB_.workpath, ...
                 sprintf('ho%s_op_ho%s%s_on_op_fdg_avgr1', ...
                 this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.suffix));
@@ -203,8 +212,9 @@ classdef (Abstract) StudyResolveBuilder
         end
         function fqfp     = finalOo(this, dt, dt0, varargin)
             ip = inputParser;
-            addOptional(ip, 'suffix', '_avgtr1', @ischar)
+            addOptional(ip, 'suffix', '', @ischar)
             parse(ip, varargin{:})
+            
             fqfp = fullfile(this.collectionRB_.workpath, ...
                 sprintf('oo%s_op_oo%s%s_on_op_fdg_avgr1', ...
                 this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.suffix));
@@ -239,17 +249,17 @@ classdef (Abstract) StudyResolveBuilder
                     error('mlpet:RuntimeError', 'StudyResolveBuilder.finalTracer')
             end
         end
-        function fqfp     = finalTracerGlob(this, tr) 
+        function fqfp     = finalTracerGlob(this, tr, varargin) 
             assert(ischar(tr));
             switch lower(tr)
                 case 'fdg'
-                    fqfp = this.finalFdg('*');
+                    fqfp = this.finalFdg('*', varargin);
                 case 'ho'
-                    fqfp = this.finalHo('*', '*');
+                    fqfp = this.finalHo('*', '*', varargin);
                 case 'oo'
-                    fqfp = this.finalOo('*', '*');
+                    fqfp = this.finalOo('*', '*', varargin);
                 case 'oc'
-                    fqfp = this.finalOc('*', '*', '*');
+                    fqfp = this.finalOc('*', '*', '*', varargin);
                 otherwise
                     error('mlpet:RuntimeError', 'StudyResolveBuilder.finalTracer')
             end
