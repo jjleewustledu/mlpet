@@ -717,8 +717,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             this.f2rep = ip.Results.f2rep;
             this.fsrc = ip.Results.fsrc;
             this = this.updateFinished; 
-            assert(isfile(this.sessionData.tracerListmodeJson), ...
-                'mlnipet:AssertionError', 'TracerResolveBuilder.ctor cannot find %s', this.sessionData.tracerListmodeJson);           
+            assert(isfile(this.sessionData.jsonFilename), ...
+                'mlnipet:AssertionError', 'TracerResolveBuilder.ctor cannot find %s', this.sessionData.jsonFilename);           
         end
     end 
     
