@@ -13,15 +13,19 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
 	properties
         ac = true
         fast = false
-        hyglyNN = 'HYGLY09'
+        projf = 'CCIR_00754'
         pwd0
  		registry
-        sessd
+        scanf = 'OO_DT20180509111007.000000-Converted-AC' 
+              % 'HO_DT20180509113941.000000-Converted-AC' % 'FDG_DT20180509130351.000000-Converted-AC'
+        sessionData
+        sessf = 'ses-E248403'
         sessp
         studyd
  		testObj
         tic0
         view = false
+        buildVisitor
  	end
 
 	methods (Test)
@@ -161,7 +165,7 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
         end
         function test_reconstituteFramesAC2(this)
             
-            mlraichle.TracerDirector.prepareFreesurferData('sessionData', this.sessd);  
+            mlraichle.TracerDirector.prepareFreesurferData('sessionData', this.sessionData);  
             
             this.testObj = this.testObj.reconstituteFramesAC;
             this.testObj.sessionData.frame = nan;
@@ -173,17 +177,27 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             ic = this.testObj.sessionData.tracerResolvedFinal('typ', 'mlfourd.ImagingContext');
             ic.view;
         end
+        
+        function test_reconstituteFramesAC3(this)
+            this.testObj.reconstituteFramesAC3
+        end
 	end
 
  	methods (TestClassSetup)
 		function setupTracerResolveBuilder(this)
  			import mlraichle.*;
-            this.studyd = StudyData;
-            this.sessp  = fullfile(this.studyd.subjectsDir, this.hyglyNN, '');
-            this.pwd0 = pushd(this.sessp);
-            this.sessd  = SessionData('studyData', this.studyd, 'sessionPath', this.sessp, 'ac', this.ac);
- 			this.testObj_ = mlpet.TracerResolveBuilder('sessionData', this.sessd, 'NRevisions', 2);
-            
+            this.studyd = StudyRegistry.instance();
+            this.sessp  = fullfile(this.studyd.projectsDir, this.projf, this.sessf, '');
+            this.pwd0   = pushd(this.sessp);
+            this.sessionData  = SessionData( ...
+                'studyData', this.studyd, ...
+                'projectData', ProjectData('sessionStr', this.sessf), ...
+                'subjectData', SubjectData(), ...
+                'sessionFolder', this.sessf, ...
+                'scanFolder', this.scanf, ...
+                'ac', this.ac);
+            this.testObj_ = mlpet.TracerResolveBuilder('sessionData', this.sessionData, 'NRevisions', 2);
+            this.buildVisitor = mlfourdfp.FourdfpVisitor();
  			this.addTeardown(@this.cleanClassFiles);
  		end
 	end
@@ -209,7 +223,6 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
             toc(this.tic0);
  		end
         function verifyTestObjProduct(this)
-            this.verifyClass(this.testObj.product, 'mlfourd.ImagingContext');
             if (this.view)
                 this.testObj.product.view;
             end
