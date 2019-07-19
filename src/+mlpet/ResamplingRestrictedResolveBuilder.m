@@ -12,7 +12,11 @@ classdef ResamplingRestrictedResolveBuilder < mlfourdfp.AbstractSessionBuilder
 
 	methods         
         function this = reconstituteFramesAC3(this)
-            %% TODO:  manage case in which EN has only a single time frame.
+            %% creates motion corrected frames using previously built t4_resolve t4s.
+            %  Creates composition of t4s and creates motion correction with single resampling.
+            %  TODO:  manage case in which: 
+            %  - EN has only a single time frame and no t4s
+            %  - Ei has no frames with significant counts
             
             import mlsystem.DirTool
             pthFdg = this.sessionData.scanPath;
@@ -24,22 +28,28 @@ classdef ResamplingRestrictedResolveBuilder < mlfourdfp.AbstractSessionBuilder
             Nf = mle*ones(1,Ne);
             Nf(end) = length(this.sessionData.times)-(Ne-1)*mle;
             
+            %% within folder for epoch Ei
+            
             for e = 1:Ne
                 pwd1 = pushd(sprintf('E%i', e));
                 for f = 1:Nf(e)
                     try
+                        assert(isfile(this.frame_to_op_frame_t4('epoch', e, 'frame', f, 'r', 1)))
+                        assert(isfile(this.frame_to_op_frame_t4('epoch', e, 'frame', f, 'r', 2)))
                         this.buildVisitor.t4_mul( ...
                             this.frame_to_op_frame_t4('epoch', e, 'frame', f, 'r', 1), ...
                             this.frame_to_op_frame_t4('epoch', e, 'frame', f, 'r', 2), ...
                             this.frame_to_op_frame_t4('epoch', e, 'frame', f, 'r', [1 2]));
                     catch ME %#ok<NASGU>
                         dest_t4 = this.frame_to_op_frame_t4('epoch', e, 'frame', f, 'r', [1 2]);
-                        warning('mlpet:EAFP', 'ignoring %s', dest_t4) 
-                        copyfile(fullfile(getenv('RELEASE'), 'T_t4'), dest_t4)
+                        warning('mlpet:EAFP', 'using trivial %s', dest_t4)
+                        this.buildVisitor.t4_ident(dest_t4)
                     end
                 end 
                 popd(pwd1);
             end
+            
+            %% within folder for epoch E1toN
             
             cd(fullfile(pthFdg, sprintf('E1to%i', Ne), ''));
             for e = 1:Ne
@@ -50,10 +60,13 @@ classdef ResamplingRestrictedResolveBuilder < mlfourdfp.AbstractSessionBuilder
                         this.frame_to_op_frame_t4('epoch', 1:Ne, 'frame', e, 'r', [1 2]));
                 catch ME %#ok<NASGU>
                     dest_t4 = this.frame_to_op_frame_t4('epoch', 1:Ne, 'frame', e, 'r', [1 2]);
-                    warning('mlpet:EAFP', 'ignoring %s', dest_t4) 
-                    copyfile(fullfile(getenv('RELEASE'), 'T_t4'), dest_t4)
+                    warning('mlpet:EAFP', 'using trivial %s', dest_t4)
+                    this.buildVisitor.t4_ident(dest_t4)
                 end
             end 
+            
+            %% work inside pthT4, calling t4_mul and t4img_4dfp 
+            %  to create motion corrections with restricted resampling
             
             cd(pthFdg);
             tra = lower(this.sessionData.tracer);
@@ -77,7 +90,7 @@ classdef ResamplingRestrictedResolveBuilder < mlfourdfp.AbstractSessionBuilder
                                 comp_t4);
                         catch ME %#ok<NASGU>
                             warning('mlpet:EAFP', 'ignoring %s', comp_t4)
-                            copyfile(fullfile(getenv('RELEASE'), 'T_t4'), comp_t4)
+                            this.buildVisitor.t4_ident(comp_t4)
                         end                    
                         this.buildVisitor.extract_frame_4dfp(sprintf('../%sr1', tra), fr);
                         this.buildVisitor.t4img_4dfp( ...
@@ -106,6 +119,21 @@ classdef ResamplingRestrictedResolveBuilder < mlfourdfp.AbstractSessionBuilder
             deleteExisting(sprintf('T1001*_op_%se*_frame*4dfp*', tra))
             
             popd(pwd0) 
+        end
+        function this = resolveToT1001(this)
+            tra = lower(this.sessionData.tracer);
+            resolvedTracer = glob(sprintf('%sr2_op_%sr1_frame*.4dfp.hdr', tra, tra));
+            resolvedTracer = resolvedTracer{1};
+            assert(isfile(resolvedTracer))
+            assert(isfile('T1001.4dfp.hdr'))
+            rb = mlfourdfp.CompositeT4ResolveBuilder( ...
+                'sessionData', this.sessionData, ...                
+                'theImages', {'T1001' resolvedTracer}, ...
+                'blurArg', 2, ...
+                'maskForImages', {'T1001' 'Msktgen'}, ...
+                'NRevisions', 1);
+            rb = rb.resolve;
+            this = this.packageProduct(rb.product);
         end
         
         function fn = composite_4dfp(this, varargin)
