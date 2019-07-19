@@ -7,7 +7,7 @@ classdef SessionResolveBuilder < mlpet.StudyResolveBuilder
  	%% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
    
 	methods
-        function this = alignCommonModal(this, varargin)
+        function this     = alignCommonModal(this, varargin)
             %  @param required tracer is char.
             %  @return resolution of all scans with specified tracer in the session.
             
@@ -56,7 +56,7 @@ classdef SessionResolveBuilder < mlpet.StudyResolveBuilder
             try
                 files = this.collectionRB_.lns_with_DateTime( ...
                     sprintf('%s_DT*.000000-Converted-AC/%s%s.4dfp.*', ...
-                    upper(ip.Results.tracer), lower(ip.Results.tracer), ip.Results.suffix));
+                            upper(ip.Results.tracer), lower(ip.Results.tracer), ip.Results.suffix));
                 prefixes = this.collectionRB_.uniqueFileprefixes(files);
             catch ME
                 handwarning(ME)
