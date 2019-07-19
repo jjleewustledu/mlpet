@@ -295,6 +295,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             this = this.packageProduct(aufbau);
         end	
         function this = reconstituteFramesAC2(this)
+            %% uses previously resampled frames, applied additional t4 as needed
             
             import mlfourdfp.* mlfourd.*;            
             nFrames = this.nFramesAC;
@@ -318,9 +319,11 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             ffp0.img = zeros(size(ffp0));
             ffp0.fqfileprefix = sessdr2.tracerResolved('typ', 'fqfp'); % fdgv1r2_op_fdgv1e1to4r1_frame4
             
+            %% only epochs of length this.maxLengthEpoch
+            
             inz = this.indicesNonzero;
             for e = 1:nEpochs  
-                if (0 == sum(inz((e-1)*this.maxLengthEpoch+1:e*this.maxLengthEpoch)))
+                if (0 == sum(inz((e-1)*this.maxLengthEpoch+1:e*this.maxLengthEpoch))) % skip empty epoch
                     continue
                 end
                 sessde = sessdr2;
@@ -328,7 +331,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 sessde.resolveTag = sprintf('op_%sr1_frame%i', sessde.tracerEpoch('typ','fp'), this.maxLengthEpoch);                
                 pwd1 = pushd(sessde.tracerLocation);              
                 t4 = this.t4ForReconstituteFramesAC2(e, sessdr2e1toN); % /data/nil-bluearc/raichle/PPGdata/jjlee2/HYGLY28/V2/FDG_V2-AC/E1to4/fdgv1e1to4r1r2_frame1_to_op_fdgv1e1to4r1_frame4_t4
-                fp = sessde.tracerResolved('typ', 'fp'); % fdgv1e1r2_op_fdgv1e1r1_frame24
+                fp = sessde.tracerResolved('typ', 'fp'); % fdgv1e1r2_op_fdgv1e1r1_frame24, previously RESAMPLED
                 fpDest = [sessde.tracerRevision('typ','fp') '_' sessdr2e1toN.resolveTag]; % fdgv1e1r2_op_fdgv1e1to4r1_frame4
                 if (lexist(t4, 'file'))
                     this.buildVisitor.t4img_4dfp(t4, fp, 'out', fpDest, 'options', ['-O' fp]);
@@ -341,6 +344,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 ffp0.img(:,:,:,(e-1)*this.maxLengthEpoch+1:e*this.maxLengthEpoch) = ffp.img; % FDG_V1-AC/fdgv1r2_op_fdgv1e1to4r1_frame4.4dfp.hdr
                 popd(pwd1);
             end
+            
+            %% last epoch, length <= this.maxLengthEpoch
             
             e = supEpochs;
             sessde = sessdr2;
@@ -360,11 +365,11 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 return
             end
             
-            % multi-frames remaining
+            % multi-frames remaining, already in space of E1toN last frame
             fp = sprintf('%s_op_%sr1_frame%i', ...
                 sessde.tracerRevision('typ','fp'), ...
                 sessde.tracerEpoch('typ','fp'), ...
-                nFrames - nEpochs*this.maxLengthEpoch); % fdgv1e4r2_op_fdgv1e4r1_frame1
+                nFrames - nEpochs*this.maxLengthEpoch); % fdgv1e4r2_op_fdgv1e4r1_frame1, previously RESAMPLED
             ffp = ImagingFormatContext([fp '.4dfp.hdr']);
             ffp0.img(:,:,:,remainingFrames) = ffp.img;
             popd(pwd1);            
@@ -405,6 +410,33 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             cub = mlfourdfp.CarneyUmapBuilder('sessionData', this.sessionData);
             cub = cub.convertUmapsToE7Format(fps);
             this.product_ = cub.product;
+        end
+        function this = deleteLastEpoch(this)
+            %% is intended for revision of final reconstitution of frames, such as minimizing resampling.
+            %  It deletes from this.sessionData.tracerLocation:  
+            %  EN, E1toN, <tracer>*, output/PET/<tracer>.*, output/PET/<TRACER>.*
+            %  See also constructor parameters.
+            
+            sessd = this.sessionData;
+            EN = sprintf('E%i', sessd.supEpoch);
+            E1toN = sprintf('E1to%i', sessd.supEpoch);
+            
+            pwd0 = pushd(sessd.tracerLocation);
+            deleteExisting([lower(sessd.tracer) '*'])
+            if isfolder(EN)
+                mlbash(sprintf('rm -rf %s', EN))
+            end
+            if isfolder(E1toN)
+                mlbash(sprintf('rm -rf %s', E1toN))
+            end
+            movefileExisting('*.mat0', 'Log')
+            movefileExisting('*.sub', 'Log')
+            popd(pwd0)
+            
+            pwd0 = pushd(fullfile(sessd.tracerLocation, 'output', 'PET', ''));
+            deleteExisting([lower(sessd.tracer) '.*'])
+            deleteExisting([upper(sessd.tracer) '.*'])
+            popd(pwd0)
         end
         function this = deleteWorkFiles(this)
             pwd0 = pushd(this.sessionData.tracerLocation);
@@ -714,6 +746,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  @param named 'resolveBuilder' is an mlfourdfp.T4ResolveBuilder.
             %  @param named 'compositeResolveBuilder' is an mlfourdp.CompositeT4ResolveBuilder.
             %  @param named 'vendorSupport' is, e.g., mlsiemens.MMRBuilder.
+            %  @param named 'reconstructLastEpoch' induces a call to deleteLastEpoch() if attenuation corrected; is logical.
             %  @return instance ready for t4-resolve management of tracer data.  
             
  			this = this@mlpet.TracerBuilder(varargin{:});
@@ -722,12 +755,16 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             ip.KeepUnmatched = true;
             addParameter(ip, 'f2rep', [], @isnumeric);
             addParameter(ip, 'fsrc',  [], @isnumeric);
+            addParameter(ip, 'reconstructLastEpoch', false, @islogical)
             parse(ip, varargin{:});
             this.f2rep = ip.Results.f2rep;
             this.fsrc = ip.Results.fsrc;
             this = this.updateFinished; 
             assert(isfile(this.sessionData.jsonFilename), ...
-                'mlnipet:AssertionError', 'TracerResolveBuilder.ctor cannot find %s', this.sessionData.jsonFilename);           
+                'mlnipet:AssertionError', 'TracerResolveBuilder.ctor cannot find %s', this.sessionData.jsonFilename);
+            if ip.Results.reconstructLastEpoch && this.sessionData.attenuationCorrected
+                this.deleteLastEpoch()
+            end
         end
     end 
     
