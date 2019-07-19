@@ -22,23 +22,42 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             this.tracer = ip.Results.tracer;
         end  
         function tf       = isfinished(this)
+            tf = false;
+            return
+            
             import mlsystem.DirTool
             pwd0 = pushd(fullfile(this.collectionRB_.sessionData.subjectPath, ''));
-            dt_FDG = DirTool('FDG_DT*.000000-Converted-AC');
-            dt_HO  = DirTool('HO_DT*.000000-Converted-AC');
-            dt_OO  = DirTool('OO_DT*.000000-Converted-AC');
-            dt_OC  = DirTool('OC_DT*.000000-Converted-AC');
             dt_fdg = DirTool('fdg*_op_fdg_on_op_fdg_avgr1.4dfp.img');
             dt_ho  = DirTool('ho*_op_ho*_on_op_fdg_avgr1.4dfp.img');
             dt_oo  = DirTool('oo*_op_oo*_on_op_fdg_avgr1.4dfp.img');
             dt_oc  = DirTool(sprintf('oc*_op_oc*_on_op_fdg*_frames1to%i_avgtr1.4dfp.img', this.N_FRAMES_FOR_BOLUS));
             popd(pwd0)
             
-            tf = ~isempty(dt_FDG.fqdns) && ~isempty(dt_fdg.fqfns) && ...
-                 ~isempty(dt_HO.fqdns)  && ~isempty(dt_ho.fqfns) && ...
-                 ~isempty(dt_OO.fqdns)  && ~isempty(dt_oo.fqfns) && ...
-                 ~isempty(dt_OC.fqdns)  && ~isempty(dt_oc.fqfns);
-        end        
+            tf = ~isempty(dt_fdg.fqfns) && ...
+                 ~isempty(dt_ho.fqfns) && ...
+                 ~isempty(dt_oo.fqfns) && ...
+                 ~isempty(dt_oc.fqfns);
+        end
+        function lns_json_all(this)            
+            import mlsystem.DirTool
+            if isempty(this.subjectData_)
+                return
+            end
+            
+            pwd0 = pushd(this.subjectData_.subjectPath);            
+            dt = DirTool('ses-*');
+            for ses = dt.dns
+                prjData = this.subjectData_.createProjectData('sessionStr', ses{1});
+                prj_ses_pth = prjData.projectSessionPath(ses{1});
+                jsons = glob(fullfile(prj_ses_pth, '*_DT*.000000-Converted-AC', 'output', 'PET', '*_DT*.json'));
+                for j = asrow(jsons)
+                    if ~isfile(basename(j{1}))
+                        mlbash(sprintf('ln -s %s', j{1}))
+                    end
+                end
+            end            
+            popd(pwd0)
+        end
         function prefixes = stageSubjectScans(this, varargin)
             %% Creates links to tracer images distributed on the filesystem so that resolve operations may be done in the pwd.
             %  e.g.:  HO_DT(yyyymmddHHMMSS).000000-Converted-AC/ho_avgt.4dfp.hdr -> hodt(yyyymmddHHMMSS)_avgt.4dfp.hdr
@@ -58,8 +77,7 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
                 try
                     glob = sprintf('%s.4dfp.hdr', this.finalTracerGlob(ip.Results.tracer));
                     glob = basename(glob);
-                    files = this.collectionRB_.lns_with_datetime( ...
-                        fullfile(ses{1}, glob));
+                    files = this.collectionRB_.lns_with_datetime(fullfile(ses{1}, glob));
                     prefixes = [prefixes this.collectionRB_.uniqueFileprefixes(files)]; %#ok<AGROW>
                 catch ME
                     handwarning(ME)
@@ -76,7 +94,6 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
  			%  @param .
             
             this = this@mlpet.StudyResolveBuilder(varargin{:});
-            this = this.configureSubjectPath__;
             this = this.configureSessions__;
  		end
  	end 
@@ -120,19 +137,6 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
                 popd(pwd1)
             end
             popd(pwd0)
-        end
-        function this = configureSubjectPath__(this)
-            %% iterates through this.subjectData_.subjectsJson
-            %  and initializes the subject path using this.subjectData_.aufbauSubjectPath.
-            
-            if isempty(this.subjectData_)
-                return
-            end
-            S = this.subjectData_.subjectsJson;
-            for sub = fields(S)'
-                d = this.subjectData_.ensuredirSub(S.(sub{1}).sid);
-                this.subjectData_.aufbauSubjectPath(d, S.(sub{1}));
-            end
         end
     end
 
