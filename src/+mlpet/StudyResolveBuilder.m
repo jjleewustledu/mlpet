@@ -1,5 +1,6 @@
 classdef (Abstract) StudyResolveBuilder 
-	%% STUDYRESOLVEBUILDER delegates properties and methods to mlfourdfp.CollectionResolveBuilder
+	%% STUDYRESOLVEBUILDER delegates properties and methods to mlfourdfp.CollectionResolveBuilder.
+    %  It is the superclass to mlpet.SubjectResolveBuilder and mlpet.SessionResolveBuilder.
 
 	%  $Revision$
  	%  was created 19-Jun-2019 00:19:40 by jjlee,
@@ -13,6 +14,7 @@ classdef (Abstract) StudyResolveBuilder
     properties (Dependent)
         product
         referenceTracer
+        subjectsJson
         tracer
         workpath
     end
@@ -57,6 +59,9 @@ classdef (Abstract) StudyResolveBuilder
         function this = set.referenceTracer(this, s)
             this.collectionRB_.referenceTracer = s;
         end 
+        function g    = get.subjectsJson(this)
+            g = this.subjectsJson_;
+        end
         function g    = get.tracer(this)
             g = this.collectionRB_.tracer;
         end
@@ -205,9 +210,6 @@ classdef (Abstract) StudyResolveBuilder
             fqfp = fullfile(this.collectionRB_.workpath, ...
                 sprintf('ho%s_op_ho%s%s_on_op_fdg_avgr1', ...
                 this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.suffix));
-            if ~isfile([fqfp '.4dfp.img'])
-                fqfp = this.finalHo(dt, dt0, '');
-            end
         end
         function fqfp     = finalOo(this, dt, dt0, varargin)
             ip = inputParser;
@@ -217,9 +219,6 @@ classdef (Abstract) StudyResolveBuilder
             fqfp = fullfile(this.collectionRB_.workpath, ...
                 sprintf('oo%s_op_oo%s%s_on_op_fdg_avgr1', ...
                 this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.suffix));
-            if ~isfile([fqfp '.4dfp.img'])
-                fqfp = this.finalOo(dt, dt0, '');
-            end
         end
         function fqfp     = finalOc(this, dt, dt0, dtfdg, varargin)
             ip = inputParser;
@@ -229,9 +228,6 @@ classdef (Abstract) StudyResolveBuilder
             fqfp = fullfile(this.collectionRB_.workpath, ...
                 sprintf('oc%s_op_oc%s%s_on_op_fdg%s_frames1to%i_avgtr1', ...
                 this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.avgstr, this.ensureDtFormat(dtfdg), this.N_FRAMES_FOR_BOLUS));
-            if ~isfile([fqfp '.4dfp.img'])
-                fqfp = this.finalOc(dt, dt0, dtfdg, 'avgtr1');
-            end
         end
         function fqfp     = finalTracer(this, tr, varargin) 
             assert(ischar(tr));
@@ -252,16 +248,25 @@ classdef (Abstract) StudyResolveBuilder
             assert(ischar(tr));
             switch lower(tr)
                 case 'fdg'
-                    fqfp = this.finalFdg('*', varargin);
+                    fqfp = this.finalFdg('*', varargin{:});
                 case 'ho'
-                    fqfp = this.finalHo('*', '*', varargin);
+                    fqfp = this.finalHo('*', '*', varargin{:});
                 case 'oo'
-                    fqfp = this.finalOo('*', '*', varargin);
+                    fqfp = this.finalOo('*', '*', varargin{:});
                 case 'oc'
-                    fqfp = this.finalOc('*', '*', '*', varargin);
+                    fqfp = this.finalOc('*', '*', '*', varargin{:});
                 otherwise
                     error('mlpet:RuntimeError', 'StudyResolveBuilder.finalTracer')
             end
+        end
+        function            makeClean(this)
+            pwd0 = pushd(this.collectionRB_.workpath);
+            deleteExisting('*.nii.gz')
+            deleteExisting('*.nii')
+            deleteExisting('*.4dfp.*')
+            deleteExisting('*_t4')
+            deleteExisting('*.log')
+            popd(pwd0)
         end
         function this     = productAverage(this, varargin)
             this.collectionRB_ = this.collectionRB_.productAverage(varargin{:});
@@ -284,6 +289,54 @@ classdef (Abstract) StudyResolveBuilder
         end
         function this     = t4imgc(this, varargin)
             this.collectionRB_ = this.collectionRB_.t4imgc(varargin{:});
+        end
+        function t4_obj   = t4mul(this)
+            
+            pwd0 = pushd(this.collectionRB_.workpath);
+            
+            %% FDG
+            
+            t4_obj.fdg = {'fdg_avgr1_to_op_fdg_avgr1_t4'};
+            fdg_glob = this.fdgglob('fdgdt[0-9]+_avgtr1_to_op_fdgdt[0-9]+r1_t4');
+            for f = asrow(fdg_glob)
+                t4 = sprintf('%s_to_op_fdg_avgr1_t4',  this.collectionRB_.frontOfT4(f{1}));
+                mlbash(sprintf('t4mul %s fdg_avgr1_to_op_fdg_avgr1_t4 %s', f{1}, t4))
+                t4_obj.fdg = [t4_obj.fdg t4];
+            end
+            
+            %% HO
+            
+            t4_obj.ho = {};
+            ho_glob = glob('hodt*_avgtr1_to_op_hodt*_avgtr1_t4');
+            for h = asrow(ho_glob)
+                t4 = sprintf('%s_to_op_fdg_avgr1_t4', this.collectionRB_.frontOfT4(h{1}));
+                mlbash(sprintf('t4mul %s ho_avgr1_to_op_fdg_avgr1_t4 %s', h{1}, t4))
+                t4_obj.ho = [t4_obj.ho t4];
+            end
+            
+            %% OO
+            
+            t4_obj.oo = {};
+            oo_glob = glob('oodt*_avgtr1_to_op_oodt*_avgtr1_t4');
+            for o = asrow(oo_glob)
+                t4 = sprintf('%s_to_op_fdg_avgr1_t4', this.collectionRB_.frontOfT4(o{1}));
+                mlbash(sprintf('t4mul %s oo_avgr1_to_op_fdg_avgr1_t4 %s', o{1}, t4))
+                t4_obj.oo = [t4_obj.oo t4];
+            end
+            
+            %% OC
+            
+            t4_obj.oc = {};
+            oc_glob = glob('ocdt*_avgtr1_to_op_ocdt*_avgtr1_t4');
+            oc_to_op_fdg_t4 = glob('oc_avg_sqrtr1_to_op_fdgdt*_frames1to[1-9]_avgtr1_t4');
+            for c = asrow(oc_glob)
+                t4 = sprintf('%s_to_op_fdg_avgr1_t4', this.collectionRB_.frontOfT4(c{1}));
+                mlbash(sprintf('t4mul %s %s %s', c{1}, oc_to_op_fdg_t4{1}, t4))
+                t4_obj.oc = [t4_obj.oc t4];
+            end
+            
+            save('t4_obj.mat', 't4_obj')            
+            popd(pwd0)
         end
         function            teardownIntermediates(this)
             this.collectionRB_.teardownIntermediates();
@@ -313,16 +366,92 @@ classdef (Abstract) StudyResolveBuilder
             if isempty(this.subjectData_) && isa(this.sessionData_.subjectData, 'mlpipeline.ISubjectData')
                 this.subjectData_ = this.sessionData_.subjectData;
             end
+            this = this.configureSubjectPath__;
+            this = this.configureCT__;
  		end
  	end 
     
     %% PROTECTED
     
     properties (Access = protected)
+        collectionRB_ % always nontrivial
+        sessionData_ % always nontrivial
         studyData_
         subjectData_
-        sessionData_ % always nontrivial
-        collectionRB_ % always nontrivial
+        subjectsJson_
+    end
+    
+    methods (Access = protected)
+        function this = configureCalibrations__(this)
+            %% explores the sessions within the subject-path and
+            %  sym-links calibration FDG orphaned to separate sessions.
+            
+            import mlsystem.DirTool
+            import mlfourdfp.CollectionResolveBuilder.*
+            if isempty(this.subjectData_)
+                return
+            end    
+            pwd0 = pushd(this.subjectData_.subjectPath);
+            dt = DirTool('ses-*');
+            for ses = dt.dns
+
+                pwd1 = pushd(ses{1});
+                srcpth = fullfile(this.sessionData_.projectPath, ses{1}, '');
+                dt1 = DirTool(fullfile(srcpth, '*_DT*.000000-Converted-AC'));
+                if 1 == length(dt1.fqdns) && strncmp(dt1.dns{1}, 'FDG', 3)
+                    lns_with_datetime(fullfile(srcpth, 'FDG_DT*.000000-Converted-AC/fdg*.4dfp.*'))
+                end
+                popd(pwd1)
+            end
+            popd(pwd0)
+        end
+        function this = configureCT__(this)
+            %% explores the sessions within the subject-path and
+            %  sym-links ct.
+            
+            import mlsystem.DirTool
+            if isempty(this.subjectData_)
+                return
+            end    
+            pwd0 = pushd(this.subjectData_.subjectPath);
+            dt = DirTool('ses-*');
+            for ses = dt.dns
+
+                pwd1 = pushd(ses{1});
+                srcpth = fullfile(this.sessionData_.projectPath, ses{1}, '');
+                if isfile(fullfile(srcpth, 'ct.4dfp.hdr')) && ~isfile('ct.4dfp.hdr')
+                    mlfourdfp.FourdfpVisitor.lns_4dfp(fullfile(srcpth, 'ct'))
+                end
+                popd(pwd1)
+            end
+            popd(pwd0)
+        end
+        function this = configureSubjectPath__(this)
+            %% iterates through this.subjectData_.subjectsJson,
+            %  finds the initialized this.subjectData_.subjectFolder
+            %  and initializes the subject path using this.subjectData_.aufbauSessionPath.
+            
+            if isempty(this.subjectData_)
+                return
+            end
+            this.subjectsJson_ = this.subjectData_.subjectsJson;
+            S = this.subjectsJson_;
+            for sub = fields(S)'
+                d = this.subjectData_.ensuredirSub(S.(sub{1}).sid);
+                if strcmp(mybasename(d), this.subjectData_.subjectFolder)
+                    this.subjectData_.aufbauSessionPath(d, S.(sub{1}));
+                end
+            end
+        end        
+        function globbed = fdgglob(~)
+            globbed = {};
+            globbed0 = glob('fdgdt*_avgtr1_to_op_fdgdt*r1_t4');
+            for g = asrow(globbed0)
+                if ~lstrfind(g{1}, '_frames1to')
+                    globbed = [globbed g{1}]; %#ok<AGROW>
+                end
+            end            
+        end
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
