@@ -6,6 +6,10 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
  	
+    properties (Constant)
+        IS_FINISHED = true
+    end
+    
 	methods
         function this = alignCommonModal(this, varargin)
             %  @param required tracer is char.
@@ -21,8 +25,8 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             end
             this.tracer = ip.Results.tracer;
         end  
-        function tf       = isfinished(this)
-            tf = false;
+        function tf   = isfinished(this)
+            tf = this.IS_FINISHED;
             return
             
             import mlsystem.DirTool
