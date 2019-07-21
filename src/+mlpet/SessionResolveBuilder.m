@@ -77,6 +77,16 @@ classdef SessionResolveBuilder < mlpet.StudyResolveBuilder
                 'workpath', fullfile(this.sessionData_.subjectPath, this.sessionData_.sessionFolder, ''));
  		end
     end 
+    
+    methods (Access = private)
+        function this     = stageT1001FromReferenceTracer(this)
+            pwd0 = pushd(this.workpath);
+            globbed = glob([this.ReferenceTracer '_DT*.000000-Converted-AC']);
+            assert(~isempty(globbed))
+            mlfourdfp.FourdfpVisitor.lns_4dfp(fullfile(globbed{1}, 'T1001'));
+            popd(pwd0)
+        end
+    end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end
