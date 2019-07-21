@@ -137,8 +137,14 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
     %% PRIVATE
     
     methods (Access = private)
+        function this = stageT1001FromReferenceTracer(this)
+            pwd0 = pushd(this.workpath);
+            for ses = asrow(glob('ses-E*'))
+                if this.containsReferenceTracer(ses{1})                    
+                    mlfourdfp.FourdfpVisitor.lns_4dfp(fullfile(ses{1}, 'T1001'));
+                    assert(isfile('T1001.4dfp.hdr'))
+                    return
                 end
-                popd(pwd1)
             end
             popd(pwd0)
         end
