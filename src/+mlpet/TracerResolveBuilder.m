@@ -434,14 +434,15 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             popd(pwd0)
             
             pwd0 = pushd(fullfile(sessd.tracerLocation, 'output', 'PET', ''));
-            if this.singleFrameFolderIsReady()
+            if this.singleFrameFolderIsReady('FDG')
                 deleteExisting([lower(sessd.tracer) '.*'])
                 deleteExisting([upper(sessd.tracer) '.*'])
             end
             popd(pwd0)
         end
-        function tf   = singleFrameFolderIsReady(this)
-            if strcmpi(this.sessionData.tracer, 'FDG') && ...
+        function tf   = singleFrameFolderIsReady(this, tra)
+            if strcmpi(this.sessionData.tracer, tra) && ...
+                    ~isempty(glob([tra '_DT*.json'])) && ...
                     ~isempty(ls('single-frame'))
                 tf = true;
                 return
