@@ -131,6 +131,9 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
  			%  @param .
             
             this = this@mlpet.StudyResolveBuilder(varargin{:});
+            this.collectionRB_ = mlfourdfp.CollectionResolveBuilder( ...
+                'sessionData', this.sessionData_, ...
+                'workpath', fullfile(this.sessionData_.subjectPath, ''));
  		end
  	end 
     
