@@ -14,6 +14,7 @@ classdef (Abstract) StudyResolveBuilder
     properties (Dependent)
         product
         referenceTracer
+        ReferenceTracer
         subjectsJson
         tracer
         workpath
@@ -37,6 +38,33 @@ classdef (Abstract) StudyResolveBuilder
             end
             dt = strtok(dt, '.');
         end
+        function      makeClean()
+            ensuredir('Tmp')
+            movefileExisting('ct.4dfp.*', 'Tmp')
+            movefileExisting('T1001.4dfp.*', 'Tmp')
+            deleteExisting('*.nii.gz')
+            deleteExisting('*.nii')
+            deleteExisting('*.4dfp.*')
+            deleteExisting('*_t4')
+            deleteExisting('*.log')
+            deleteExisting('*.mat0')
+            deleteExisting('*.sub')
+            movefileExisting('Tmp/ct.4dfp.*')
+            movefileExisting('Tmp/T1001.4dfp.*')
+        end
+        function tf = validTracerSession(varargin)
+            %% not ct, calibration or defective session
+            %  @param  ipr is a struct with field 'tracerPattern' understandable to glob;
+            %  default ipr.tracerPattern->'FDG_DT*.000000-Converted-AC'
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'ipr', struct('tracerPattern', 'FDG_DT*.000000-Converted-AC'), @isstruct)
+            parse(ip, varargin{:})
+            ipr = ip.Results.ipr;
+            assert(ischar(ipr.tracerPattern))
+            tf = ~isempty(glob(ipr.tracerPattern));
+        end
     end
     
     methods (Abstract)
@@ -59,6 +87,9 @@ classdef (Abstract) StudyResolveBuilder
         function this = set.referenceTracer(this, s)
             this.collectionRB_.referenceTracer = s;
         end 
+        function g    = get.ReferenceTracer(this)
+            g = this.collectionRB_.ReferenceTracer;
+        end
         function g    = get.subjectsJson(this)
             g = this.subjectsJson_;
         end
@@ -259,15 +290,6 @@ classdef (Abstract) StudyResolveBuilder
                     error('mlpet:RuntimeError', 'StudyResolveBuilder.finalTracer')
             end
         end
-        function            makeClean(this)
-            pwd0 = pushd(this.collectionRB_.workpath);
-            deleteExisting('*.nii.gz')
-            deleteExisting('*.nii')
-            deleteExisting('*.4dfp.*')
-            deleteExisting('*_t4')
-            deleteExisting('*.log')
-            popd(pwd0)
-        end
         function this     = productAverage(this, varargin)
             this.collectionRB_ = this.collectionRB_.productAverage(varargin{:});
         end
@@ -290,53 +312,108 @@ classdef (Abstract) StudyResolveBuilder
         function this     = t4imgc(this, varargin)
             this.collectionRB_ = this.collectionRB_.t4imgc(varargin{:});
         end
-        function t4_obj   = t4mul(this)
+        function t4_obj   = t4_mul(this)
             
+            fv = mlfourdfp.FourdfpVisitor;
             pwd0 = pushd(this.collectionRB_.workpath);
             
             %% FDG
             
-            t4_obj.fdg = {'fdg_avgr1_to_op_fdg_avgr1_t4'};
-            fdg_glob = this.fdgglob('fdgdt[0-9]+_avgtr1_to_op_fdgdt[0-9]+r1_t4');
+            t4_obj.fdg = {};
+            fdg_glob = this.fdgglob(); %('fdgdt[0-9]+_avgtr1_to_op_fdgdt[0-9]+r1_t4');
+            fdg_to_op_fdg_t4 = 'fdg_avgr1_to_op_fdg_avgr1_t4';
             for f = asrow(fdg_glob)
                 t4 = sprintf('%s_to_op_fdg_avgr1_t4',  this.collectionRB_.frontOfT4(f{1}));
-                mlbash(sprintf('t4mul %s fdg_avgr1_to_op_fdg_avgr1_t4 %s', f{1}, t4))
+                mlbash(sprintf('t4_mul %s %s %s', f{1}, fdg_to_op_fdg_t4, t4))
                 t4_obj.fdg = [t4_obj.fdg t4];
+            end
+            if isempty(t4_obj.fdg)
+                if ~isfile('fdg_avgr1_to_op_fdg_avgr1_t4')
+                    fv.t4_ident('fdg_avgr1_to_op_fdg_avgr1_t4')
+                end
+                t4_obj.fdg = {'fdg_avgr1_to_op_fdg_avgr1_t4'};
             end
             
             %% HO
             
             t4_obj.ho = {};
-            ho_glob = glob('hodt*_avgtr1_to_op_hodt*_avgtr1_t4');
+            ho_glob = this.hoglob();
+            ho_to_op_fdg_t4 = 'ho_avgr1_to_op_fdg_avgr1_t4';
             for h = asrow(ho_glob)
                 t4 = sprintf('%s_to_op_fdg_avgr1_t4', this.collectionRB_.frontOfT4(h{1}));
-                mlbash(sprintf('t4mul %s ho_avgr1_to_op_fdg_avgr1_t4 %s', h{1}, t4))
+                mlbash(sprintf('t4_mul %s %s %s', h{1}, ho_to_op_fdg_t4, t4))
                 t4_obj.ho = [t4_obj.ho t4];
+            end
+            if isempty(t4_obj.ho)
+                if ~isfile('ho_avgr1_to_op_ho_avgr1_t4')
+                    fv.t4_ident('ho_avgr1_to_op_ho_avgr1_t4')
+                end
+                t4_obj.ho = {'ho_avgr1_to_op_ho_avgr1_t4'};
             end
             
             %% OO
             
             t4_obj.oo = {};
-            oo_glob = glob('oodt*_avgtr1_to_op_oodt*_avgtr1_t4');
+            oo_glob = this.ooglob();
+            oo_to_op_fdg_t4 = 'oo_avgr1_to_op_fdg_avgr1_t4';
             for o = asrow(oo_glob)
                 t4 = sprintf('%s_to_op_fdg_avgr1_t4', this.collectionRB_.frontOfT4(o{1}));
-                mlbash(sprintf('t4mul %s oo_avgr1_to_op_fdg_avgr1_t4 %s', o{1}, t4))
+                mlbash(sprintf('t4_mul %s %s %s', o{1}, oo_to_op_fdg_t4, t4))
                 t4_obj.oo = [t4_obj.oo t4];
+            end
+            if isempty(t4_obj.oo)
+                if ~isfile('oo_avgr1_to_op_oo_avgr1_t4')
+                    fv.t4_ident('oo_avgr1_to_op_oo_avgr1_t4')
+                end
+                t4_obj.oo = {'oo_avgr1_to_op_oo_avgr1_t4'};
             end
             
             %% OC
             
             t4_obj.oc = {};
-            oc_glob = glob('ocdt*_avgtr1_to_op_ocdt*_avgtr1_t4');
+            oc_glob = this.ocglob();
             oc_to_op_fdg_t4 = glob('oc_avg_sqrtr1_to_op_fdgdt*_frames1to[1-9]_avgtr1_t4');
             for c = asrow(oc_glob)
                 t4 = sprintf('%s_to_op_fdg_avgr1_t4', this.collectionRB_.frontOfT4(c{1}));
-                mlbash(sprintf('t4mul %s %s %s', c{1}, oc_to_op_fdg_t4{1}, t4))
+                mlbash(sprintf('t4_mul %s %s %s', c{1}, oc_to_op_fdg_t4{1}, t4))
                 t4_obj.oc = [t4_obj.oc t4];
+            end
+            if isempty(t4_obj.oc)
+                if ~isfile('oc_avgr1_to_op_oc_avgr1_t4')
+                    fv.t4_ident('oc_avgr1_to_op_oc_avgr1_t4')
+                end
+                t4_obj.oc = {'oc_avgr1_to_op_oc_avgr1_t4'};
             end
             
             save('t4_obj.mat', 't4_obj')            
             popd(pwd0)
+        end
+        function globbed  = fdgglob(~)
+            globbed = {};
+            globbed0 = glob('fdgdt*_avgtr1_to_op_fdgdt*r1_t4');
+            for g = asrow(globbed0)
+                if ~lstrfind(g{1}, '_frames1to')
+                    globbed = [globbed g{1}]; %#ok<AGROW>
+                end
+            end            
+        end
+        function globbed  = hoglob(~)
+            globbed = glob('hodt*_avgtr1_to_op_hodt*_avgtr1_t4');
+            if isempty(globbed)
+                globbed = glob('hodt*_avgtr1_to_op_hodt*_t4');
+            end
+        end
+        function globbed  = ooglob(~)
+            globbed = glob('oodt*_avgtr1_to_op_oodt*_avgtr1_t4');
+            if isempty(globbed)
+                globbed = glob('oodt*_avgtr1_to_op_oodt*_t4');
+            end
+        end
+        function globbed  = ocglob(~)
+            globbed = glob('ocdt*_avgtr1_to_op_ocdt*_avgtr1_t4');
+            if isempty(globbed)
+                globbed = glob('ocdt*_avgtr1_to_op_ocdt*_t4');
+            end
         end
         function            teardownIntermediates(this)
             this.collectionRB_.teardownIntermediates();
@@ -366,8 +443,9 @@ classdef (Abstract) StudyResolveBuilder
             if isempty(this.subjectData_) && isa(this.sessionData_.subjectData, 'mlpipeline.ISubjectData')
                 this.subjectData_ = this.sessionData_.subjectData;
             end
-            this = this.configureSubjectPath__;
-            this = this.configureCT__;
+            
+            this = this.configureSubjectData__();
+            this = this.configureCT__();
  		end
  	end 
     
@@ -426,7 +504,7 @@ classdef (Abstract) StudyResolveBuilder
             end
             popd(pwd0)
         end
-        function this = configureSubjectPath__(this)
+        function this = configureSubjectData__(this)
             %% iterates through this.subjectData_.subjectsJson,
             %  finds the initialized this.subjectData_.subjectFolder
             %  and initializes the subject path using this.subjectData_.aufbauSessionPath.
@@ -443,15 +521,6 @@ classdef (Abstract) StudyResolveBuilder
                 end
             end
         end        
-        function globbed = fdgglob(~)
-            globbed = {};
-            globbed0 = glob('fdgdt*_avgtr1_to_op_fdgdt*r1_t4');
-            for g = asrow(globbed0)
-                if ~lstrfind(g{1}, '_frames1to')
-                    globbed = [globbed g{1}]; %#ok<AGROW>
-                end
-            end            
-        end
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
