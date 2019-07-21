@@ -75,7 +75,7 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
                  ~isempty(dt_oo.fqfns) && ...
                  ~isempty(dt_oc.fqfns);
         end
-        function lns_json_all(this)            
+        function        lns_json_all(this)            
             import mlsystem.DirTool
             if isempty(this.subjectData_)
                 return
@@ -120,12 +120,12 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
                     handwarning(ME)
                 end
             end
-        end 
+        end   
         function this     = t4imgDynamicImages(this, varargin)
             this.collectionRB_ = this.collectionRB_.t4imgDynamicImages( ...
                 varargin{:}, 'staging_handle', @this.stageSubjectScans);
         end
-		  
+        
  		function this = SubjectResolveBuilder(varargin)
  			%% SUBJECTRESOLVEBUILDER
  			%  @param .
@@ -140,6 +140,9 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
     %% PRIVATE
     
     methods (Access = private)
+        function tf   = containsReferenceTracer(this, pth)
+            tf = ~isempty(glob(fullfile(pth, [this.ReferenceTracer '_DT*.000000-Converted-AC'])));
+        end        
         function this = stageT1001FromReferenceTracer(this)
             pwd0 = pushd(this.workpath);
             for ses = asrow(glob('ses-E*'))
@@ -151,6 +154,7 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             end
             popd(pwd0)
         end
+
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
