@@ -25,6 +25,39 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             end
             this.tracer = ip.Results.tracer;
         end  
+        function this = configureSessions(this)
+            %% explores the sessions within the subject-path,
+            %  aligns images within each session, 
+            %  and initializes this.collectionRB_ with the last discovered session data.
+            
+            import mlsystem.DirTool
+            if isempty(this.subjectData_)
+                return
+            end    
+            pwd0 = pushd(this.subjectData_.subjectPath);
+            dt = DirTool('ses-*');
+            for ses = dt.dns
+
+                pwd1 = pushd(ses{1});
+                if this.validTracerSession()
+                    sd = mlraichle.SessionData( ...
+                        'studyData', this.studyData_, ...
+                        'projectData', mlraichle.ProjectData('sessionStr', ses{1}), ...
+                        'subjectData', this.subjectData_, ...
+                        'sessionFolder', ses{1}, ...
+                        'tracer', this.studyData_.referenceTracer, ...
+                        'ac', true); % referenceTracer   
+                    %mlpet.SessionResolveBuilder.makeClean()
+                    srb = mlpet.SessionResolveBuilder('sessionData', sd);
+                    if ~srb.isfinished
+                        srb.align
+                    end
+                    srb.t4_mul
+                end
+                popd(pwd1)
+            end
+            popd(pwd0)
+        end
         function tf   = isfinished(this)
             tf = this.IS_FINISHED;
             return
@@ -98,45 +131,12 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
  			%  @param .
             
             this = this@mlpet.StudyResolveBuilder(varargin{:});
-            this = this.configureSessions__;
  		end
  	end 
     
     %% PRIVATE
     
     methods (Access = private)
-        function this = configureSessions__(this)
-            %% explores the sessions within the subject-path,
-            %  aligns images within each session, 
-            %  and initializes this.collectionRB_ with the last discovered session data.
-            
-            import mlsystem.DirTool
-            if isempty(this.subjectData_)
-                return
-            end    
-            pwd0 = pushd(this.subjectData_.subjectPath);
-            dt = DirTool('ses-*');
-            for ses = dt.dns
-
-                pwd1 = pushd(ses{1});
-                dt1 = DirTool('*_DT*.000000-Converted-AC');
-                if ~isempty(dt1.dns) 
-                    sd = mlraichle.SessionData( ...
-                        'studyData', this.studyData_, ...
-                        'projectData', mlraichle.ProjectData('sessionStr', ses{1}), ...
-                        'subjectData', this.subjectData_, ...
-                        'sessionFolder', ses{1}, ...
-                        'tracer', this.studyData_.referenceTracer, ...
-                        'ac', true); % referenceTracer
-                    srb = mlpet.SessionResolveBuilder('sessionData', sd);
-                    if ~srb.isfinished
-                        srb.align;
-                    end
-                    
-                    % for this object
-                    this.collectionRB_ = mlfourdfp.CollectionResolveBuilder( ...
-                        'sessionData', sd, ...
-                        'workpath', fullfile(sd.subjectPath, ''));
                 end
                 popd(pwd1)
             end
