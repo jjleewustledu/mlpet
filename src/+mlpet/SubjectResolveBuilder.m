@@ -7,7 +7,7 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
  	%% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
  	
     properties (Constant)
-        IS_FINISHED = true
+        IS_FINISHED = false
     end
     
 	methods
@@ -124,7 +124,7 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
         function this     = t4imgDynamicImages(this, varargin)
             this.collectionRB_ = this.collectionRB_.t4imgDynamicImages( ...
                 varargin{:}, 'staging_handle', @this.stageSubjectScans);
-        end
+        end        
         
  		function this = SubjectResolveBuilder(varargin)
  			%% SUBJECTRESOLVEBUILDER

@@ -233,7 +233,6 @@ classdef ResamplingRestrictedResolveBuilder < mlfourdfp.AbstractSessionBuilder
             end
             de = '';
         end
-
         function df = dest_frame(this, ipr)
             assert(isstruct(ipr))
             assert(isfield(ipr, 'epoch'))
@@ -252,7 +251,6 @@ classdef ResamplingRestrictedResolveBuilder < mlfourdfp.AbstractSessionBuilder
             end
             df = this.sessionData.times;
         end
-
         function rl = r_label(~, ipr)
             assert(isstruct(ipr))
             assert(isfield(ipr, 'r'))
