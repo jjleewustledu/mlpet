@@ -113,7 +113,7 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
                 end
             end
         end        
-        function [sesfold,t4] = find_sesfold_and_t4ses__(sub_t4, sub_struct, tra)
+        function [sesfold,t4] = find_sesfold_and_t4ses(sub_t4, sub_struct, tra)
             %% @return sesfolder and t4 filename
             
             import mlpet.SubjectResolveBuilder.*
@@ -122,12 +122,19 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
                 assert(~isempty(sub_struct.ses_struct.(ses{1}).tra_struct.(tra)), ...
                     'mfiles:RuntimeError', 'compose_t4s.find_sesfold_and_t4ses() received empty tracer list')
                 for tdt = asrow(sub_struct.ses_struct.(ses{1}).tra_struct.(tra))
-                    if issingleton(sub_struct.ses_struct.(ses{1}).tra_struct.(tra)) && ...
-                            lstrfind(tracerpref(sub_t4), singletondt(tra, ses{1})) % found matching
+                    if strcmpi(tra, 'fdg') && lstrfind(tracerpref(sub_t4), fdgdt(ses{1})) % fdg is privileged as reference
                         sesfold = strrep(ses{1}, '_', '-');
-                        t4 = sub_struct.ses_struct.(ses{1}).tra_struct.(tra){1}; % t4 ~ 'tracer_avgr1_to_op_tracer_avgr1_t4'
+                        t4 = sub_struct.ses_struct.(ses{1}).tra_struct.fdg{1};
                         return
-                    end
+                    end                    
+%% BUG - breaks t4_resolve results                    
+%                     if issingleton(sub_struct.ses_struct.(ses{1}).tra_struct.(tra)) && ...
+%                             lstrfind(tracerpref(sub_t4), singletondt(tra, ses{1})) % other singleton tracers
+%                         sesfold = strrep(ses{1}, '_', '-');
+%                         t4 = sub_struct.ses_struct.(ses{1}).tra_struct.(tra){1}; % t4 ~ 'tracer_avgr1_to_op_tracer_avgr1_t4'
+%                         return
+%                     end
+%%
                     if strcmp(tracerpref(sub_t4), tracerpref(tdt{1})) % found matching
                         sesfold = strrep(ses{1}, '_', '-');
                         t4 = tdt{1};
@@ -163,13 +170,14 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
                 end
             end
         end
-        function [sesfold,t4] = find_sesfold_and_t4ses(sub_t4, sub_struct, tra)
+        function [sesfold,t4] = find_sesfold_and_t4ses__(sub_t4, sub_struct, tra)
+            %% verified to work on subjects/sub-S63372, but the sub-S63372 folder becomes corrupted unexpectedly
             
             import mlpet.SubjectResolveBuilder.*
             
             for ses = asrow(fields(sub_struct.ses_struct))
                 for tdt = asrow(sub_struct.ses_struct.(ses{1}).tra_struct.(tra)) % special for fdg
-                    if strcmpi(tra, 'fdg') && lstrfind(tracerpref(sub_t4), singletondt('fdg', ses{1}))
+                    if strcmpi(tra, 'fdg') && lstrfind(tracerpref(sub_t4), fdgdt(ses{1}))
                         sesfold = strrep(ses{1}, '_', '-');
                         t4 = sub_struct.ses_struct.(ses{1}).tra_struct.fdg{1};
                         return
