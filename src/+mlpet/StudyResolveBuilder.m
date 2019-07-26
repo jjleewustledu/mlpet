@@ -9,6 +9,7 @@ classdef (Abstract) StudyResolveBuilder
  	
     properties (Constant)
         N_FRAMES_FOR_BOLUS = 8
+        SURFER_OBJS = {'brain' 'wmparc'};
     end
     
     properties (Dependent)
@@ -21,6 +22,23 @@ classdef (Abstract) StudyResolveBuilder
     end
     
     methods (Static)       
+        function      copySurfer(targPath)
+            fold = basename(pwd);
+            assert(strcmp(fold(1:5), 'sub-S'))
+            dt = mlsystem.DirTool('ses-E*');
+            for s = mlpet.StudyResolveBuilder.SURFER_OBJS
+                fqfp = fullfile(dt.fqdns{end}, s{1});
+                if ~isfile([fqfp '.nii'])
+                    pwd_ = pushd(fileparts(fqfp));
+                    mlbash(sprintf('mri_convert mri/%s.mgz %s.nii', basename(fqfp), basename(fqfp)))
+                    mlbash(sprintf('nifti_4dfp -4 %s.nii %s.4dfp.hdr', basename(fqfp), basename(fqfp)))
+                    popd(pwd_)
+                end
+                for x = {'.nii' '.4dfp.hdr' '.4dfp.img' '.4dfp.ifh' '.4dfp.img.rec'}
+                    copyfile([fqfp x{1}], targPath, 'f')
+                end
+            end
+        end
         function dt = ensureDtFormat(dt)
             if isempty(dt)
                 dt = '';
@@ -52,6 +70,30 @@ classdef (Abstract) StudyResolveBuilder
             movefileExisting('Tmp/ct.4dfp.*')
             movefileExisting('Tmp/T1001.4dfp.*')
         end
+        function      t4img_4dfp_on_T1001(varargin)
+            
+            ip = inputParser;
+            addRequired(ip, 'targPth', @isfolder)
+            addParameter(ip, 'viewer', '', @ischar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            fold = basename(pwd);
+            assert(strcmp(fold(1:5), 'sub-S'))
+            pwd0 = pushd(ipr.targPth);
+            for t4s = asrow(glob('*dt*_to_T1001_t4'))
+                src = strsplit(t4s{1}, '_');
+                mlbash(sprintf('t4img_4dfp %s %s_avgt %s_avgt_on_T1001 -OT1001', t4s{1}, src{1}, src{1}));
+            end
+            if ~isempty(ipr.viewer)
+                try
+                    mlbash(sprintf('%s *dt*_on_T1001.4dfp.img T1001.4dfp.img', ipr.viewer));
+                catch ME
+                    dispexcept(ME)
+                end
+            end
+            popd(pwd0)
+        end
         function tf = validTracerSession(varargin)
             %% not ct, calibration or defective session
             %  @param  ipr is a struct with field 'tracerPattern' understandable to glob;
@@ -59,7 +101,7 @@ classdef (Abstract) StudyResolveBuilder
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'ipr', struct('tracerPattern', 'FDG_DT*.000000-Converted-AC'), @isstruct)
+            addOptional(ip, 'ipr', struct('tracerPattern', 'FDG_DT*.000000-Converted-AC'), @isstruct)
             parse(ip, varargin{:})
             ipr = ip.Results.ipr;
             assert(ischar(ipr.tracerPattern))
@@ -219,6 +261,7 @@ classdef (Abstract) StudyResolveBuilder
             this = this.collectionRB_.constructFramesSubset(tracer, frames, varargin{:});
             popd(pwd0);
         end
+        
         function            constructReferenceTracerToT1001T4(this)
             this.collectionRB_.constructReferenceTracerToT1001T4();
         end
