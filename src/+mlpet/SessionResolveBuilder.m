@@ -5,7 +5,7 @@ classdef SessionResolveBuilder < mlpet.StudyResolveBuilder
  	%  was created 07-May-2019 01:16:53 by jjlee,
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
-   
+       
 	methods
         function this     = alignCommonModal(this, varargin)
             %  @param required tracer is char.
@@ -65,7 +65,7 @@ classdef SessionResolveBuilder < mlpet.StudyResolveBuilder
         function this     = t4imgDynamicImages(this, varargin)
             this.collectionRB_ = this.collectionRB_.t4imgDynamicImages( ...
                 varargin{:}, 'staging_handle', @this.stageSessionScans);
-        end
+        end       
                 
  		function this = SessionResolveBuilder(varargin)
  			%% SESSIONRESOLVEBUILDER

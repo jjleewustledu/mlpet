@@ -428,6 +428,7 @@ classdef (Abstract) StudyResolveBuilder
                 t4_obj.oc = {'oc_avgr1_to_op_oc_avgr1_t4'};
             end
             
+            deleteExisting('t4_ojb.mat')
             save('t4_obj.mat', 't4_obj')            
             popd(pwd0)
         end
@@ -468,7 +469,7 @@ classdef (Abstract) StudyResolveBuilder
  		function this = StudyResolveBuilder(varargin)
  			%% STUDYRESOLVEBUILDER
  			%  @param sessionData is an mlpipeline.ISessionData and must be well-defined.
-
+            
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'studyData', [])
