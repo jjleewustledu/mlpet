@@ -12,7 +12,6 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
     
     methods (Static)
         function lns_resampling_restricted()
-            
             ensuredir('resampling_restricted')
             pwdsub = pwd;
             fv = mlfourdfp.FourdfpVisitor();
@@ -27,15 +26,15 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
                 catch ME
                     handwarning(ME)
                 end
-            end
-            
-            for t4 = asrow(glob('*dt*_to_op_fdg_avgr1_t4'))
-                prefix = strsplit(t4{1}, '_');
-                prefix = prefix{1};
-                fv.t4_mul(t4{1}, 'fdg_avgr1_to_T1001r1_t4', ...
-                    fullfile('resampling_restricted', [prefix '_to_T1001_t4']));
-            end
-            
+            end            
+%% BUG! 
+%             for t4 = asrow(glob('*dt*_to_op_fdg_avgr1_t4'))
+%                 prefix = strsplit(t4{1}, '_');
+%                 prefix = prefix{1};
+%                 fv.t4_mul(t4{1}, 'fdg_avgr1_to_T1001r1_t4', ...
+%                     fullfile('resampling_restricted', [prefix '_to_T1001_t4']));
+%             end
+%%            
             for ses = asrow(glob('ses-E*'))
                 for hdr = asrow(glob(fullfile(ses{1}, '*dt*.4dfp.hdr')))
                     re = regexp(mybasename(hdr{1}), '^(?<prefix>(fdg|ho|oo|oc)dt(\d+|\d+_avgt))$', 'names');
@@ -53,11 +52,63 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
                 end
                 
             end
-        end
-        
-        function sub_struct = compose_t4s()
-            %% COMPOSE_T4S
+        end        
+        function sub_struct = compose_t4s(varargin)
+            ip = inputParser;
+            addParameter(ip, 'compositionTarget', '', @ischar)
+            parse(ip, varargin{:});
             
+            import mlpet.SubjectResolveBuilder.*
+            
+            switch ip.Results.compositionTarget
+                case 'subjectT1001'
+                    compose_t4s_to_subjectT1001();
+                    sub_struct = [];
+                otherwise
+                    sub_struct = compose_t4s_to_subjectTracers();
+            end
+        end
+        function              compose_t4s_to_subjectT1001()
+            %% COMPOSE_T4S simply globs('ses-E*') without looking in study json files.
+            
+            import mlpet.SubjectResolveBuilder.*
+            dirpref = strsplit(mybasename(pwd), '-');
+            assert(strcmp(dirpref{1}, 'sub'))
+            fv = mlfourdfp.FourdfpVisitor;
+            
+            % compose t4s:  tracer -> session -> subject T1001
+            for ses = asrowdirs(glob('ses-E*'))
+                seslbl = strsplit(ses{1}, '-');
+                seslbl = seslbl{2};
+                try
+                    lns_4dfp(fullfile(ses{1}, 'T1001'), ['T1001_' seslbl]);
+                    mlbash(sprintf('mpr2atl1_4dfp T1001_%s -TT1001', seslbl));
+                    mlbash(sprintf('t4img_4dfp T1001_%s_to_T1001_t4 T1001_%s T1001_%s_on_T1001 -OT1001', seslbl, seslbl, seslbl));
+                    %mlbash(sprintf('fsleyes T1001.4dfp.img T1001_%s_on_T1001.4dfp.img', seslbl))                       
+                    
+                    load(fullfile(ses{1}, 't4_obj.mat'), 't4_obj')
+                    tracers = {'fdg' 'ho' 'oo' 'oc'};
+                    for tra = tracers
+                        for itra = 1:length(t4_obj.(tra{1}))
+                            tdt = tracerdt(t4_obj.(tra{1}){itra}, ses{1});
+                            t4_tmp = [tempname '_to_temp_t4'];
+                            fv.t4_mul(fullfile(ses{1}, t4_obj.(tra{1}){itra}), ...
+                                      fullfile(ses{1}, 'fdg_avgr1_to_T1001r1_t4'), ...
+                                      t4_tmp);
+                            fv.t4_mul(t4_tmp, ...
+                                      sprintf('T1001_%s_to_T1001_t4', seslbl), ...
+                                      fullfile('resampling_restricted', [tdt '_to_T1001_t4']));
+                        end
+                    end
+                catch ME
+                    handwarning(ME)
+                end
+            end            
+            ensuredir('resampling_restricted');
+            copyfile('*.json', 'resampling_restricted', 'f');
+        end
+        function sub_struct = compose_t4s_to_subjectTracers()
+            %% COMPOSE_T4S simply globs('ses-E*') without looking in study json files.
             % build sub_struct := {
             %   "tra_struct" = {
             %     "fdg" = { "fdgdt<datetime>_to_op_fdg_avgr1_t4" },
@@ -79,6 +130,7 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             %     }
             %   }
             % }
+            %%
             
             import mlpet.SubjectResolveBuilder.*
             
@@ -104,12 +156,20 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             copyfile('*.json', 'resampling_restricted', 'f');
             tracers = {'fdg' 'ho' 'oo' 'oc'};
             for tra = tracers
-                for itra = 1:length(sub_struct.tra_struct.(tra{1}))
+                for itra = 1:length(sub_struct.tra_struct.(tra{1}))                    
                     t4sub = sub_struct.tra_struct.(tra{1}){itra};
-                    [sesfold,t4ses] = find_sesfold_and_t4ses(t4sub, sub_struct, tra{1});
+                    try
+                        [sesfold,t4ses] = find_sesfold_and_t4ses(t4sub, sub_struct, tra{1});
+                    catch ME
+                        disp(t4sub)
+                        disp(sub_struct.ses_struct)
+                        disp(tra{1})
+                        handexcept(ME, 'mlpet:RuntimeWarning', 'SubjectResolveBuilder.compose_t4s()')
+                    end
+                    deleteExisting(t4_ses2sub(t4sub)) % paranoia
                     fv.t4_mul(fullfile(sesfold, t4ses), t4sub, t4_ses2sub(t4sub));
                     fv.t4_mul(t4_ses2sub(t4sub), 'fdg_avgr1_to_T1001r1_t4', ...
-                        fullfile('resampling_restricted', [tracerdt(t4sub) '_to_T1001_t4']));
+                              fullfile('resampling_restricted', [tracerdt(t4sub, sesfold) '_to_T1001_t4']));
                 end
             end
         end        
@@ -122,21 +182,28 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
                 assert(~isempty(sub_struct.ses_struct.(ses{1}).tra_struct.(tra)), ...
                     'mfiles:RuntimeError', 'compose_t4s.find_sesfold_and_t4ses() received empty tracer list')
                 for tdt = asrow(sub_struct.ses_struct.(ses{1}).tra_struct.(tra))
+                    sesfold = strrep(ses{1}, '_', '-');
                     if strcmpi(tra, 'fdg') && lstrfind(tracerpref(sub_t4), fdgdt(ses{1})) % fdg is privileged as reference
-                        sesfold = strrep(ses{1}, '_', '-');
                         t4 = sub_struct.ses_struct.(ses{1}).tra_struct.fdg{1};
                         return
-                    end                    
-%% BUG - breaks t4_resolve results                    
-%                     if issingleton(sub_struct.ses_struct.(ses{1}).tra_struct.(tra)) && ...
-%                             lstrfind(tracerpref(sub_t4), singletondt(tra, ses{1})) % other singleton tracers
-%                         sesfold = strrep(ses{1}, '_', '-');
-%                         t4 = sub_struct.ses_struct.(ses{1}).tra_struct.(tra){1}; % t4 ~ 'tracer_avgr1_to_op_tracer_avgr1_t4'
-%                         return
-%                     end
-%%
+                    end
+                    if issingleton(sub_struct.ses_struct.(ses{1}).tra_struct.(tra)) && ...
+                            strcmpi(tra, 'oc') && lstrfind(tracerpref(sub_t4), ocdt(ses{1})) % oc has t4_resolve to fdgdt<datetime>_frames1to8_avgtr1
+                        % sub_struct.ses_struct.(ses{1}).tra_struct.oc{1} ~ oc_avgr1_to_op_oc_avgr1_t4 ~ identity
+                        t4s = glob(fullfile(sesfold, 'oc_avg_sqrtr1_to_op_fdgdt*_frames1to*_avgtr1_t4'));
+                        assert(1 == length(t4s))
+                        t4  = mybasename(t4s);
+                        return
+                    end
+                    if issingleton(sub_struct.ses_struct.(ses{1}).tra_struct.(tra)) && ...
+                            lstrfind(tracerpref(sub_t4), singletondt(tra, ses{1})) % singleton t4s for ho, oo
+                        % sub_struct.ses_struct.(ses{1}).tra_struct.(tra) ~ tra_avgr1_to_op_tra_avgr1_t4 ~ identity
+                        t4s = glob(fullfile(sesfold, [tra '*_to_op_fdg*_t4']));
+                        assert(1 == length(t4s))
+                        t4  = mybasename(t4s);
+                        return
+                    end
                     if strcmp(tracerpref(sub_t4), tracerpref(tdt{1})) % found matching
-                        sesfold = strrep(ses{1}, '_', '-');
                         t4 = tdt{1};
                         return
                     end
@@ -151,21 +218,19 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             for ses = asrow(fields(sub_struct.ses_struct))
                 assert(~isempty(sub_struct.ses_struct.(ses{1}).tra_struct.(tra)), ...
                     'mfiles:RuntimeError', 'compose_t4s.find_sesfold_and_t4ses() received empty tracer list')
-                if issingleton(sub_struct.ses_struct.(ses{1}).tra_struct.(tra))
-                    % special case for singleton sub_struct.ses_struct.(ses{1}).tra_struct.(tra)
-                    
-                    if lstrfind(tracerpref(sub_t4), singletondt(tra, ses{1})) % found matching
+                for tdt = asrow(sub_struct.ses_struct.(ses{1}).tra_struct.(tra))
+                    if strcmpi(tra, 'oc') && lstrfind(tracerpref(sub_t4), ocdt(ses{1})) % oc has t4_resolve to fdgdt<datetime>_frames1to8_avgtr1
                         sesfold = strrep(ses{1}, '_', '-');
-                        t4 = sub_struct.ses_struct.(ses{1}).tra_struct.(tra){1}; % t4 ~ 'tracer_avgr1_to_op_tracer_avgr1_t4'
+                        % sub_struct.ses_struct.(ses{1}).tra_struct.oc{1} ~ oc_avgr1_to_op_oc_avgr1_t4 ~ identity
+                        t4s = glob(fullfile(sesfold, 'oc_avg_sqrtr1_to_op_fdgdt*_frames1to*_avgtr1_t4'));
+                        assert(1 == length(t4s))
+                        t4  = mybasename(t4s);
                         return
                     end
-                else
-                    for tdt = asrow(sub_struct.ses_struct.(ses{1}).tra_struct.(tra))
-                        if strcmp(tracerpref(sub_t4), tracerpref(tdt{1})) % found matching
-                            sesfold = strrep(ses{1}, '_', '-');
-                            t4 = tdt{1};
-                            return
-                        end
+                    if strcmp(tracerpref(sub_t4), tracerpref(tdt{1})) % found matching
+                        sesfold = strrep(ses{1}, '_', '-');
+                        t4 = tdt{1};
+                        return
                     end
                 end
             end
@@ -204,6 +269,17 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
         function tf = issingleton(tra_list)
             tf = length(tra_list) == 1;
         end
+        function tdt = ocdt(ses1)
+            %% @returns first ocdt12345678 object found in ses1
+            sesfold = strrep(ses1, '_', '-');
+            for g = glob(fullfile(sesfold, 'ocdt*.4dfp.hdr'))
+                tdt = mybasename(g{1});
+                if ~isempty(regexp(tdt, '^ocdt\d+$', 'once'))
+                    return
+                end
+            end
+            error('mfiles:RuntimeError', 'compose_t4s.fdgdt.sesfold is missing fdg')
+        end
         function tdt = singletondt(tra, ses1)
             %% @returns first tracerdt12345678 object found in ses1
             sesfold = strrep(ses1, '_', '-');
@@ -215,10 +291,14 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             end
             error('mfiles:RuntimeError', 'compose_t4s.singletondt.sesfold is missing %s', tra)
         end
-        function tdt = tracerdt(t4)
+        function tdt = tracerdt(t4, varargin)
             %% @returns tracerdt12345678 from some tracerdt12345678_to<...>_t4
             
             import mlpet.SubjectResolveBuilder.*
+            
+            ip = inputParser;
+            addOptional(ip, 'sesfold', '', @ischar)
+            parse(ip, varargin{:})
             
             t4fp = tracerpref(t4);
             if regexp(t4fp, '^[a-z]+dt\d+$', 'once')
@@ -227,9 +307,14 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             end
             
             % find associated datetime
-            g = glob([t4fp 'dt*.4dfp.*']);
-            tdt = strsplit(g{1}, '.');
-            tdt = tdt{1};
+            try
+                g = glob([t4fp 'dt*.4dfp.*']);
+                tdt = strsplit(g{1}, '.');
+                tdt = tdt{1};
+            catch ME
+                handwarning(ME)
+                tdt = singletondt(t4fp, ip.Results.sesfold);
+            end
         end
         function tdt = tracerpref(t4)
             %% @returns tracerdt12345678 from some tracerdt12345678_to<...>_t4
@@ -249,12 +334,12 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             ip = inputParser;
             addRequired(ip, 'tracer', @ischar);
             parse(ip, varargin{:});
+            this.tracer = ip.Results.tracer;
             
             prefixes = this.stageSubjectScans(ip.Results.tracer, '_avgt');
             if ~isempty(prefixes)
                 this = this.resolve(prefixes, varargin{2:end});
             end
-            this.tracer = ip.Results.tracer;
         end  
         function this = configureSessions(this)
             %% explores the sessions within the subject-path,
@@ -385,7 +470,6 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             end
             popd(pwd0)
         end
-
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
