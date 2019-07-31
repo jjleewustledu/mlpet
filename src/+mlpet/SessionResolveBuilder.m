@@ -14,12 +14,12 @@ classdef SessionResolveBuilder < mlpet.StudyResolveBuilder
             ip = inputParser;
             addRequired(ip, 'tracer', @ischar);
             parse(ip, varargin{:});
+            this.tracer = ip.Results.tracer;
             
             prefixes = this.stageSessionScans(ip.Results.tracer, '_avgt');
             if ~isempty(prefixes)
                 this = this.resolve(prefixes, varargin{2:end});
             end
-            this.tracer = ip.Results.tracer;
         end  
         function tf       = isfinished(this)
             import mlsystem.DirTool
