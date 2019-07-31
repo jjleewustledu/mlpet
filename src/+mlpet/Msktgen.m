@@ -69,7 +69,7 @@ classdef Msktgen < mlfourdfp.AbstractSessionBuilder
             this.doConstructResolved = ip.Results.doConstructResolved;
             this.NRevisions          = ip.Results.NRevisions;
             
-            this.sessionData_.resolveTag = sprintf('op_%sr%i', ip.Results.source, this.sessionData_.rnumber);
+            this.sessionData_.resolveTag = sprintf('op_%sr%i', mybasename(ip.Results.source), this.sessionData_.rnumber);
             
             if (this.doConstructResolved)
                 this = this.constructResolvedMask;
@@ -119,7 +119,6 @@ classdef Msktgen < mlfourdfp.AbstractSessionBuilder
     methods (Access = private)
         function this = constructResolvedMask(this)
             
-            res = mlpipeline.ResourcesRegistry.instance();
             this.sessionData_.rnumber = 1;            
             theImages = [{this.source.fqfileprefix} this.intermediaryForMask.fqfileprefix];
             t4err = [];
