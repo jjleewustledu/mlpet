@@ -475,6 +475,7 @@ classdef (Abstract) StudyResolveBuilder
             addParameter(ip, 'studyData', [])
             addParameter(ip, 'subjectData', [])
             addParameter(ip, 'sessionData', [])
+            addParameter(ip, 'makeClean', true, @islogical)
             parse(ip, varargin{:});            
             ipr = ip.Results;
             assert(isa(ipr.sessionData, 'mlpipeline.ISessionData'))
@@ -487,6 +488,10 @@ classdef (Abstract) StudyResolveBuilder
             if isempty(this.subjectData_) && isa(this.sessionData_.subjectData, 'mlpipeline.ISubjectData')
                 this.subjectData_ = this.sessionData_.subjectData;
             end
+            this.makeClean_ = ipr.makeClean;
+            if this.makeClean_
+                this.makeClean()
+            end
             
             this = this.configureSubjectData__();
             this = this.configureCT__();
@@ -497,6 +502,7 @@ classdef (Abstract) StudyResolveBuilder
     
     properties (Access = protected)
         collectionRB_ % always nontrivial
+        makeClean_
         sessionData_ % always nontrivial
         studyData_
         subjectData_
@@ -560,7 +566,8 @@ classdef (Abstract) StudyResolveBuilder
             S = this.subjectsJson_;
             for sub = fields(S)'
                 d = this.subjectData_.ensuredirSub(S.(sub{1}).sid);
-                if strcmp(mybasename(d), this.subjectData_.subjectFolder)
+                if this.makeClean_ && ...
+                        strcmp(mybasename(d), this.subjectData_.subjectFolder)
                     this.subjectData_.aufbauSessionPath(d, S.(sub{1}));
                 end
             end
