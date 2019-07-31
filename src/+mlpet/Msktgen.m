@@ -69,6 +69,8 @@ classdef Msktgen < mlfourdfp.AbstractSessionBuilder
             this.doConstructResolved = ip.Results.doConstructResolved;
             this.NRevisions          = ip.Results.NRevisions;
             
+            this.sessionData_.resolveTag = sprintf('op_%sr%i', ip.Results.source, this.sessionData_.rnumber);
+            
             if (this.doConstructResolved)
                 this = this.constructResolvedMask;
             end
@@ -131,7 +133,7 @@ classdef Msktgen < mlfourdfp.AbstractSessionBuilder
                     'maskForImages', {'none' 'T1001'}, ...
                     'NRevisions', this.NRevisions);                        
                 cRB_.ignoreFinishMark = true;
-                cRB_.neverMarkFinished = res.neverMarkFinished;
+                cRB_.neverMarkFinished = true;
                 cRB_ = cRB_.resolve;            
                 t4err = mean(cRB_.t4_resolve_err, 'omitnan');
                 if (any(t4err > this.blurForMask))
