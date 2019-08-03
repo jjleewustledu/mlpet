@@ -12,13 +12,17 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
     
     methods (Static)
         function lns_resampling_restricted()
+            
+            import mlpet.SubjectResolveBuilder
+            
+            try
+                mlbash('rm -rf resampling_restricted')
+            catch ME
+                handwarning(ME)
+            end
             ensuredir('resampling_restricted')
             pwdsub = pwd;
-            fv = mlfourdfp.FourdfpVisitor();
-            exts = {'.4dfp.hdr' '.4dfp.ifh' '.4dfp.img' '.4dfp.img.rec'};
-            
-            %cRB = mlfourdfp.CompositeT4ResolveBuilder();
-            
+            exts = {'.4dfp.hdr' '.4dfp.ifh' '.4dfp.img' '.4dfp.img.rec'};            
             for e = exts
                 try
                     mlbash(sprintf('ln -s %s/T1001%s %s/resampling_restricted/T1001%s', ...
@@ -36,6 +40,9 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
 %             end
 %%            
             for ses = asrow(glob('ses-E*'))
+                
+                finalize(fullfile(pwdsub, ses{1}, ''));
+                
                 for hdr = asrow(glob(fullfile(ses{1}, '*dt*.4dfp.hdr')))
                     re = regexp(mybasename(hdr{1}), '^(?<prefix>(fdg|ho|oo|oc)dt(\d+|\d+_avgt))$', 'names');
                     if ~isempty(re)
@@ -49,10 +56,22 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
                             end
                         end
                     end
-                end
-                
+                end                
             end
-        end        
+            
+            finalize(fullfile(pwdsub, ''));
+                
+        end
+        function finalize(pth)
+            pwd0 = pushd(pth);
+            deleteExisting('*dt*_avgtr1.4dfp.*')
+            deleteExisting('*dt*_avgtr1_b*.4dfp.*')            
+            deleteExisting('T1001_b*.4dfp.*')
+            deleteExisting('*_mskt.4dfp.*')
+            deleteExisting('*dt*_avgtr1_op_*dt*_avgtr1.4dfp.*')
+            deleteExisting('T1001r1_op_*dt*_avgtr1.4dfp.*')
+            popd(pwd0);
+        end
         function sub_struct = compose_t4s(varargin)
             ip = inputParser;
             addParameter(ip, 'compositionTarget', '', @ischar)
@@ -266,7 +285,7 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             end
             error('mfiles:RuntimeError', 'compose_t4s.fdgdt.sesfold is missing fdg')
         end
-        function tf = issingleton(tra_list)
+        function tf  = issingleton(tra_list)
             tf = length(tra_list) == 1;
         end
         function tdt = ocdt(ses1)
@@ -321,7 +340,7 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             tdt = strsplit(t4, '_');
             tdt = tdt{1};
         end
-        function t4 = t4_ses2sub(t4_)
+        function t4  = t4_ses2sub(t4_)
             t4 = sprintf('%s_ses2sub_t4', t4_(1:end-3));
         end
     end
