@@ -69,6 +69,8 @@ classdef (Abstract) StudyResolveBuilder
             deleteExisting('*.sub')
             movefileExisting('Tmp/ct.4dfp.*')
             movefileExisting('Tmp/T1001.4dfp.*')
+            deleteDeadLink('*.4dfp.*')
+            deleteExisting('t4_obj.mat')
         end
         function      t4img_4dfp_on_T1001(varargin)
             
@@ -197,7 +199,7 @@ classdef (Abstract) StudyResolveBuilder
         end
         function this = alignCrossModalSubset(this)
             pwd0     = pushd(this.workpath);                     
-            theFdg   = this.alignFramesSubset('FDG', 1:8);
+            theFdg   = this.alignFramesSubset('FDG', 1:this.N_FRAMES_FOR_BOLUS);
             theOc    = this.alignCommonModal('OC'); 
             theOc    = theOc.productAverage('OC');
             theOc    = theOc.sqrt;            
