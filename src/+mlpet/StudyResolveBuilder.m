@@ -417,7 +417,7 @@ classdef (Abstract) StudyResolveBuilder
             
             t4_obj.oc = {};
             oc_glob = this.ocglob();
-            oc_to_op_fdg_t4 = glob('oc_avg_sqrtr1_to_op_fdgdt*_frames1to[1-9]_avgtr1_t4');
+            oc_to_op_fdg_t4 = glob('oc_avg_sqrtr1_to_op_fdgdt*_frames1to*_avgtr1_t4');
             for c = asrow(oc_glob)
                 t4 = sprintf('%s_to_op_fdg_avgr1_t4', this.collectionRB_.frontOfT4(c{1}));
                 mlbash(sprintf('t4_mul %s %s %s', c{1}, oc_to_op_fdg_t4{1}, t4))
@@ -438,27 +438,40 @@ classdef (Abstract) StudyResolveBuilder
             globbed = {};
             globbed0 = glob('fdgdt*_avgtr1_to_op_fdgdt*r1_t4');
             for g = asrow(globbed0)
-                if ~lstrfind(g{1}, '_frames1to')
+                re = regexp(g{1}, '^fdgdt\d+_avgtr1_to_op_fdgdt\d+r1_t4$', 'once');
+                if ~isempty(re)
                     globbed = [globbed g{1}]; %#ok<AGROW>
                 end
             end            
         end
         function globbed  = hoglob(~)
-            globbed = glob('hodt*_avgtr1_to_op_hodt*_avgtr1_t4');
-            if isempty(globbed)
-                globbed = glob('hodt*_avgtr1_to_op_hodt*_t4');
-            end
+            globbed = {};
+            globbed0 = glob('hodt*_avgtr1_to_op_hodt*_t4');
+            for g = asrow(globbed0)
+                re = regexp(g{1}, '^hodt\d+_avgtr1_to_op_hodt\d+r1_t4$', 'once');
+                if ~isempty(re)
+                    globbed = [globbed g{1}]; %#ok<AGROW>
+                end
+            end 
         end
         function globbed  = ooglob(~)
-            globbed = glob('oodt*_avgtr1_to_op_oodt*_avgtr1_t4');
-            if isempty(globbed)
-                globbed = glob('oodt*_avgtr1_to_op_oodt*_t4');
-            end
+            globbed = {};
+            globbed0 = glob('oodt*_avgtr1_to_op_oodt*_t4');
+            for g = asrow(globbed0)
+                re = regexp(g{1}, '^oodt\d+_avgtr1_to_op_oodt\d+r1_t4$', 'once');
+                if ~isempty(re)
+                    globbed = [globbed g{1}]; %#ok<AGROW>
+                end
+            end 
         end
         function globbed  = ocglob(~)
-            globbed = glob('ocdt*_avgtr1_to_op_ocdt*_avgtr1_t4');
-            if isempty(globbed)
-                globbed = glob('ocdt*_avgtr1_to_op_ocdt*_t4');
+            globbed = {};
+            globbed0 = glob('ocdt*_avgtr1_to_op_ocdt*_t4');
+            for g = asrow(globbed0)
+                re = regexp(g{1}, '^ocdt\d+_avgtr1_to_op_ocdt\d+r1_t4$', 'once');
+                if ~isempty(re)
+                    globbed = [globbed g{1}]; %#ok<AGROW>
+                end
             end
         end
         function            teardownIntermediates(this)
