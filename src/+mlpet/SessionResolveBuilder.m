@@ -16,7 +16,7 @@ classdef SessionResolveBuilder < mlpet.StudyResolveBuilder
             parse(ip, varargin{:});
             this.tracer = ip.Results.tracer;
             
-            prefixes = this.stageSessionScans(ip.Results.tracer, '_avgt');
+            prefixes = this.stageSessionScans(ip.Results.tracer);
             if ~isempty(prefixes)
                 this = this.resolve(prefixes, varargin{2:end});
             end
@@ -42,6 +42,7 @@ classdef SessionResolveBuilder < mlpet.StudyResolveBuilder
         end        
         function prefixes = stageSessionScans(this, varargin)
             %% Creates links to tracer images distributed on the filesystem so that resolve operations may be done in the pwd.
+            %  Builds *_avgt.4dfp de novo.  
             %  e.g.:  HO_DT(yyyymmddHHMMSS).000000-Converted-AC/ho_avgt.4dfp.hdr -> hodt(yyyymmddHHMMSS)_avgt.4dfp.hdr
             %  @param required tracer is char.
             %  @param optional suffix is char, e.g., _avgt.
@@ -58,14 +59,23 @@ classdef SessionResolveBuilder < mlpet.StudyResolveBuilder
                     sprintf('%s_DT*.000000-Converted-AC/%s%s.4dfp.*', ...
                             upper(ip.Results.tracer), lower(ip.Results.tracer), ip.Results.suffix));
                 prefixes = this.collectionRB_.uniqueFileprefixes(files);
+                prefixes = this.refreshTracerAvgt(prefixes);
             catch ME
                 handwarning(ME)
             end
         end    
+        function prefixes = refreshTracerAvgt(~, prefixes)
+            for p = asrow(prefixes)
+                deleteExisting([p{1} '_avgt.4dfp.*'])
+                ic2 = mlfourd.ImagingContext2([p{1} '.4dfp.hdr']);
+                ic2 = ic2.timeAveraged;
+                ic2.save;
+            end
+        end
         function this     = t4imgDynamicImages(this, varargin)
             this.collectionRB_ = this.collectionRB_.t4imgDynamicImages( ...
                 varargin{:}, 'staging_handle', @this.stageSessionScans);
-        end       
+        end  
                 
  		function this = SessionResolveBuilder(varargin)
  			%% SESSIONRESOLVEBUILDER
