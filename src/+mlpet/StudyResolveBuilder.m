@@ -22,22 +22,33 @@ classdef (Abstract) StudyResolveBuilder
     end
     
     methods (Static)       
-        function      copySurfer(targPath)
-            fold = basename(pwd);
-            assert(strcmp(fold(1:5), 'sub-S'))
-            dt = mlsystem.DirTool('ses-E*');
-            for s = mlpet.StudyResolveBuilder.SURFER_OBJS
-                fqfp = fullfile(dt.fqdns{end}, s{1});
-                if ~isfile([fqfp '.nii'])
-                    pwd_ = pushd(fileparts(fqfp));
-                    mlbash(sprintf('mri_convert mri/%s.mgz %s.nii', basename(fqfp), basename(fqfp)))
-                    mlbash(sprintf('nifti_4dfp -4 %s.nii %s.4dfp.hdr', basename(fqfp), basename(fqfp)))
-                    popd(pwd_)
-                end
-                for x = {'.nii' '.4dfp.hdr' '.4dfp.img' '.4dfp.ifh' '.4dfp.img.rec'}
-                    copyfile([fqfp x{1}], targPath, 'f')
+        function      copySurfer(subPath, destPath)
+            import mlpet.StudyResolveBuilder
+            assert(strncmp(basename(subPath), 'sub-S', 5), 'mlpet:RuntimeError', 'StudyResolveBuilder.copySurfer')
+            
+            globbed = asrow(glob(fullfile(subPath, 'ses-E*')));
+            for ig = length(globbed):-1:1
+                if isfile(fullfile(globbed{ig}, 'T1001.4dfp.hdr'))
+                    for s = StudyResolveBuilder.SURFER_OBJS
+                        fqfp = fullfile(globbed{ig}, s{1});
+                        if ~isfile([fqfp '.nii']) || ~isfile([fqfp '.4dfp.hdr'])
+                            % stage SURFER_OBJS in g{1}
+                            pwd_ = pushd(globbed{ig});
+                            mlbash(sprintf('mri_convert mri/%s.mgz %s.nii', basename(fqfp), basename(fqfp)));
+                            mlbash(sprintf('nifti_4dfp -4 %s.nii %s.4dfp.hdr', basename(fqfp), basename(fqfp)));
+                            popd(pwd_);
+                        end
+                        for x = {'.nii' '.4dfp.hdr' '.4dfp.img' '.4dfp.ifh' '.4dfp.img.rec'}
+                            copyfile([fqfp x{1}], destPath, 'f');
+                        end
+                    end
+                    
+                    return
+                    
                 end
             end
+            error('mlpet:RuntimeError', 'StudyResolveBuilder.copySurfer could not create files %s/{%s}', ...
+                subPath, cell2str(StudyResolveBuilder.SURFER_OBJS))
         end
         function dt = ensureDtFormat(dt)
             if isempty(dt)
