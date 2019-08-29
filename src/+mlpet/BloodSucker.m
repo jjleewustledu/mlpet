@@ -68,6 +68,8 @@ classdef BloodSucker < mlpet.AbstractAifData
             this.counts_ = dc.decayActivities(this.times);
             assert(length(this.counts) == length(this.taus), 'mlpet:arraySizeMismatch', 'Twilite.ctor');
             this.specificActivity_ = this.invEfficiency*this.counts./this.taus./this.visibleVolume;
+            
+            this = this.updateDecayCorrection;
         end
         
         function save(~)
@@ -79,7 +81,6 @@ classdef BloodSucker < mlpet.AbstractAifData
             assert(isnumeric(Dt));
             if (Dt == 0); return; end
             [this.times,this.counts_] = shiftVector(this.times, this.counts_, Dt);
-            %this.scannerData_ = this.scannerData.shiftTimes(Dt);
         end
         function wc   = wellCountInterpolants(this, varargin)
             wc = this.countInterpolants(varargin{:});
