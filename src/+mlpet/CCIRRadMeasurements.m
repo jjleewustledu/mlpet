@@ -214,6 +214,32 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                     error('mlpet:ValueError', 'CCIRRadMeasurements.catheterInfo');
             end
         end
+        function tbl  = correctDates2(this, tbl, varargin)
+            %% CORRECTDATES2 overrides mlio.AbstractXlsxIO
+            
+            vars = tbl.Properties.VariableNames;
+            for v = 1:length(vars)
+                col = tbl.(vars{v});
+                if (this.hasTimings(vars{v}))
+                    if (any(isnumeric(col)))                        
+                        lrows = logical(~isnan(col) & ~isempty(col));
+                        dt_   = this.datetimeConvertFromExcel2(tbl{lrows,v});
+                        col   = NaT(size(col));
+                        col.TimeZone = dt_.TimeZone;
+                        col(lrows) = dt_;
+                    end
+                    if (any(isdatetime(col)))
+                        col.TimeZone = this.preferredTimeZone;
+                        lrows = logical(~isnat(col));
+                        col(lrows) = this.correctDateToSessionDate(col(lrows));
+                        if (~this.isTrueTiming(vars{v}))
+                            col(lrows) = col(lrows) - this.adjustClock4(vars{v}, varargin{:});
+                        end
+                    end
+                end
+                tbl.(vars{v}) = col;
+            end
+        end 
         function dt   = datetime(this)
             %% DATETIME for all the measurements as determined from internal mlpet.Session or readtables.
             
@@ -245,8 +271,8 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
         end
         function dt   = datetimeTracerAdmin(this, varargin)
             %% DATETIMETRACERADMIN is the datetime recorded in table tracerAdmin for a tracer and snumber.
-            %  @param earliest is logical; default := true.
-            %  @param tracer is char.
+            %  @param earliest is logical; default := false.
+            %  @param tracer is char:  'fdg', 'oc', 'oo', 'ho', 'cal'.  'cal' specifies datetime of calibration mMR.
             %  @param snumber is numeric.
             
             ip = inputParser;
@@ -255,6 +281,10 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             addParameter(ip, 'snumber', 1, @isnumeric);
             parse(ip, varargin{:});
             
+            if strncmpi(ip.Results.tracer, 'cal', 3)
+                dt = this.mMR.scanStartTime_Hh_mm_ss('ROI1');
+                return
+            end            
             trueAdminTime = this.tracerTrueAdminDatetime;
             if (ip.Results.earliest)
                 dt = min(trueAdminTime);
@@ -380,37 +410,6 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             warning('on', 'MATLAB:table:ModifiedDimnames');
         end          
     end 
-    
-    %% PROTECTED
-    
-    methods (Access = protected)        
-        function tbl  = correctDates2(this, tbl, varargin)
-            %% CORRECTDATES2 overrides mlio.AbstractXlsxIO
-            
-            vars = tbl.Properties.VariableNames;
-            for v = 1:length(vars)
-                col = tbl.(vars{v});
-                if (this.hasTimings(vars{v}))
-                    if (any(isnumeric(col)))                        
-                        lrows = logical(~isnan(col) & ~isempty(col));
-                        dt_   = this.datetimeConvertFromExcel2(tbl{lrows,v});
-                        col   = NaT(size(col));
-                        col.TimeZone = dt_.TimeZone;
-                        col(lrows) = dt_;
-                    end
-                    if (any(isdatetime(col)))
-                        col.TimeZone = this.preferredTimeZone;
-                        lrows = logical(~isnat(col));
-                        col(lrows) = this.correctDateToSessionDate(col(lrows));
-                        if (~this.isTrueTiming(vars{v}))
-                            col(lrows) = col(lrows) - this.adjustClock4(vars{v}, varargin{:});
-                        end
-                    end
-                end
-                tbl.(vars{v}) = col;
-            end
-        end 
-    end
     
     %% PRIVATE
     
