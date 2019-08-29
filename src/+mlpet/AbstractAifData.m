@@ -15,16 +15,22 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
     end
     
 	properties (Dependent)
-        activity % in Bq := specificActivity*voxelVolume
-        counts   % in Bq/mL := specificActivity without efficiency adjustments; native to scanner
-        decays   % in Bq*s := specificActivity*voxelVolume*tau
-        doseAdminDatetime % see also mlswisstrace.AbstractTwilite.updateTimmingData
+        activity          % in Bq := specificActivity*voxelVolume
+        counts            % in Bq/mL := specificActivity without efficiency adjustments; native to scanner
+        decayCorrection
+        decays            % in Bq*s := specificActivity*voxelVolume*tau
+        doseAdminDatetime
         isDecayCorrected
-        isotope    
-        specificActivity % activity/volume in Bq/mL
-        specificDecays   % decays/volume in Bq*s/mL := specificActivity*tau
+        isotope  
+        scannerData
+        sessionData  
+        specificActivity  % activity/volume in Bq/mL
+        specificDecays    % decays/volume in Bq*s/mL := specificActivity*tau
+        tracer
+        W                 % legacy notation from Videen
         
-        % IAifData        
+        %% IAifData
+        
         times
         taus
         time0
@@ -34,11 +40,6 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         index0
         indexF
  		dt
-        
-        decayCorrection
-        sessionData
-        tracer
-        W % legacy notation from Videen
     end
     
     methods (Static)        
@@ -69,6 +70,9 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             assert(length(s) == length(this.times));
             s(s < 0) = 0;
             this.counts_ = s;            
+        end
+        function g    = get.decayCorrection(this)
+            g = this.decayCorrection_;
         end
         function g    = get.decays(this)
             g = this.specificActivity.*this.taus*this.visibleVolume;
@@ -118,6 +122,12 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             end
             g = '';
         end
+        function g    = get.scannerData(this)
+            g = this.scannerData_;
+        end
+        function g    = get.sessionData(this)
+            g = this.sessionData_;
+        end
         function g    = get.specificActivity(this)
             g = this.specificActivity_;
         end
@@ -133,7 +143,16 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             assert(isnumeric(s));
             s(s < 0) = 0;
             this.specificActivity_ = s./this.taus;
-        end     
+        end        
+        function g    = get.tracer(this)
+            g = this.sessionData.tracer;
+        end
+        function g    = get.W(this)
+            g = this.invEfficiency;
+        end  
+        function this = set.W(this, s)
+            this.invEfficiency = s;
+        end  
         
         function g    = get.times(this)
             g = this.timingData_.times;
@@ -187,23 +206,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         function this = set.dt(this, s)
             assert(s > 0);
             this.timingData_.dt = s;
-        end
-        
-        function g    = get.decayCorrection(this)
-            g = this.decayCorrection_;
-        end
-        function g    = get.sessionData(this)
-            g = this.sessionData_;
-        end
-        function g    = get.tracer(this)
-            g = this.sessionData.tracer;
-        end
-        function g    = get.W(this)
-            g = this.invEfficiency;
-        end  
-        function this = set.W(this, s)
-            this.invEfficiency = s;
-        end   
+        end 
         
         %% 
                 
@@ -217,7 +220,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             if (~isempty(varargin))
                 b = b(varargin{:}); end
         end
-        function this     = buildCalibrated(this)
+        function this     = calibrated(this)
         end
         function this     = correctedActivities(this, tzero)
             if (~isempty(this.counts_))
@@ -265,8 +268,6 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             
             this = this.correctedActivities(t0c);
             this = this.uncorrectedActivities(t0uc); % Anzatz
-            %this = this.shiftTimes(Dt);
-            %this = this.uncorrectedActivities(ip.Results.tzero);
         end
         function bi       = specificActivityIntegral(this)
             idx0 = this.index0;
@@ -299,9 +300,6 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
                     this.specificActivity_, tzero);
             end
         end
-        function this     = updatePropertyDecayCorrection(this)
-            this.decayCorrection_ = mlpet.DecayCorrection.factoryFor(this);            
-        end
         function v        = visibleVolume(~)
             v = nan;
         end
@@ -327,45 +325,50 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         scannerData_
     end  
     
-    methods (Access = protected)            
+    methods (Access = protected)
+        function this = updateDecayCorrection(this)
+            %% for adding more data by constructors of subclasses of AbstractAifData.
+            
+            this.decayCorrection_ = mlpet.DecayCorrection.factoryFor(this);
+        end
+        
  		function this = AbstractAifData(varargin)
-            %  @param named fqfilename of crv file.
-            %  @param named sessionData.
-            %  @param named manualData is mldata.IManualMeasurements.
-            %  @param named isotope is char supported by mlpet.Radionuclides.
-            %  @param named doseAdminDatetime is a datetime; default == NaT.
-            %  See also mlswisstrace.AbstractTwilite.updateTimmingData.
-            %  @param named scannerData is mlpet.IScannerData || mlfourd.INIfTIdecorator || empty.
+            %  @param fqfilename of crv file.
+            %  @param sessionData.
+            %  @param manualData.
+            %  @param scannerData.
+            %  @param doseAdminDatetime is a datetime; default == NaT.
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'fqfilename', '',  @(x) lexist(x, 'file'));
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
-            addParameter(ip, 'manualData', [],  @(x) isa(x, 'mldata.IManualMeasurements'));
-            addParameter(ip, 'isotope', [], @ischar);
-            addParameter(ip, 'doseAdminDatetime', NaT, @isdatetime);
-            addParameter(ip, 'scannerData', [], @(x) isa(x, 'mlpet.IScannerData') || isa(x, 'mlfourd.INIfTIdecorator') || isempty(x));
-            parse(ip, varargin{:});            
-            this.fqfilename         = ip.Results.fqfilename;            
-            if (~lexist(this.fqfilename, 'file'))
+            addParameter(ip, 'fqfilename', '', @isfile)
+            addParameter(ip, 'sessionData', [])
+            addParameter(ip, 'manualData', [])
+            addParameter(ip, 'scannerData', [])
+            addParameter(ip, 'isotope', '', @ischar)
+            addParameter(ip, 'doseAdminDatetime', NaT, @isdatetime)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            this.fqfilename = ipr.fqfilename;            
+            if ~isfile(this.fqfilename)
                 error('mlpet:fileNotFound', 'AbstractAifData.ctor');
             end
-            this.sessionData_       = ip.Results.sessionData;
-            this.manualData_        = ip.Results.manualData;
-            this.doseAdminDatetime_ = ip.Results.doseAdminDatetime;
-            this.scannerData        = ip.Results.scannerData;
-            if (~isempty(ip.Results.isotope))
-                this.isotope_ = ip.Results.isotope;
-            else
+            
+            this.sessionData_ = ipr.sessionData;
+            this.manualData_  = ipr.manualData;
+            this.scannerData_ = ipr.scannerData;
+            this.isotope_     = ipr.isotope;
+            if isempty(this.isotope_) && ~isempty(this.sessionData_)
                 this.isotope_ = this.sessionData_.isotope;
             end
+            if strncmpi(this.isotope_, 'cal', 3)
+                this.isotope_ = 'FDG';
+            end
+            this.doseAdminDatetime_ = ipr.doseAdminDatetime;
+            
+            this.decayCorrection_ = mlpet.DecayCorrection.factoryFor(this);  
         end
-    end
-    
-    %% HIDDEN, @deprecated
-    
-    properties (Hidden)
-        scannerData
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
