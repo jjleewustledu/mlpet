@@ -6,6 +6,10 @@ classdef MultiBolusData < handle & mldata.TimingData
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.3.0.713579 (R2017b) for MACI64.  Copyright 2018 John Joowon Lee.
  	
+    properties (Constant)
+        MIN_DELTA_BOLUS = 60
+    end
+    
 	properties (Dependent)
         activity % used to identify boluses
         activityHalflife
@@ -45,8 +49,10 @@ classdef MultiBolusData < handle & mldata.TimingData
             addParameter(ip, 'expectedBaseline', this.expectedBaseline, @isnumeric);
             addParameter(ip, 'doMeasureBaseline', this.doMeasureBaseline, @islogical);
             parse(ip, varargin{:});
-            this.expectedBaseline_ = ip.Results.expectedBaseline;
-            this.doMeasureBaseline_ = ip.Results.doMeasureBaseline;
+            ipr = ip.Results;
+            
+            this.expectedBaseline_ = ipr.expectedBaseline;
+            this.doMeasureBaseline_ = ipr.doMeasureBaseline;
             if (~this.doMeasureBaseline_)
                 m = this.expectedBaseline_;
                 s = sqrt(m);
@@ -54,13 +60,11 @@ classdef MultiBolusData < handle & mldata.TimingData
             end
             
             [m,s] = this.baselineTimeForward(varargin{:});
-            if (m > 2*ip.Results.expectedBaseline + 5*s)
-                [m_,s_] = this.baselineTimeReversed;
-                if (m_ < 2*ip.Results.expectedBaseline + 5*s_)
-                    m = m_;
-                    s = s_;
-                end
+            if (m > 2*ipr.expectedBaseline + 5*s)
+                [m,s] = this.baselineTimeReversed;
             end
+            assert(m < 2*ipr.expectedBaseline + 5*s, ...
+                'mlpet:RuntimeError', 'MultiBolusData.baseline could not find a baseline')
         end
         function [m,s] = baselineTimeForward(this, varargin)
             ip = inputParser;
@@ -84,9 +88,11 @@ classdef MultiBolusData < handle & mldata.TimingData
             parse(ip, varargin{:});  
             [m,s] = this.baselineTimeForward(flip(ip.Results.activity));
         end
-        function bols  = boluses(this)
+        function [bols,base]  = boluses(this)
             %% BOLUSES 
             %  @return bols have m := this.baseline removed.
+            %  @return bols is composite of mlpet.MultiBolusData.
+            %  @return base is baseline that was remvoed.
             
             NSTD  = 10; % heuristic
             HWHH  = 6;  % 
@@ -98,7 +104,7 @@ classdef MultiBolusData < handle & mldata.TimingData
                 [~,bstart] = max(a > NSTD*s);
                 [~,deltab] = max(a(bstart:end) < -s); % duration for return to baseline
                 deltab     = this.ensurePlausibleDeltab( ...
-                    deltab, length(a(bstart:end))-1); % manage common deltab pathologies
+                             deltab, length(a(bstart:end))-1); % manage common deltab pathologies
                 bols(b)    = mlpet.MultiBolusData( ...
                     'activity', a(bstart:bstart+deltab), ...
                     'times',    t(bstart:bstart+deltab), ...
@@ -107,12 +113,15 @@ classdef MultiBolusData < handle & mldata.TimingData
                 t = t(bstart+deltab+HWHH:end);
                 b = b + 1;
             end
+            base = m;
         end
-        function bol   = findBolusFrom(this, doseAdminDatetime)
+        function [bol,base] = findBolusFrom(this, doseAdminDatetime)
             %% FINDBOLUSFROM boluses have m := this.baseline removed.
             %  @param doseAdminDatetime determines the bolus to find, which begins at or later than doseAdminDatetime.
+            %  @return bol is mlpet.MultiBolusData.
+            %  @return base is baseline that was remvoed.
             
-            bols = this.boluses;
+            [bols,base] = this.boluses;
             b = 1;
             while (b <= length(bols))
                 if (doseAdminDatetime <= bols(b).datetime0)
@@ -125,13 +134,32 @@ classdef MultiBolusData < handle & mldata.TimingData
                     bol = mlpet.MultiBolusData( ...
                         'activity',  a(idx0:idxF), ...
                         'times',     t(idx0:idxF), ...
-                        'datetime0', doseAdminDatetime, ...
+                        'datetimeMeasured', doseAdminDatetime, ...
                         'dt',        bol.dt); 
                     return
                 end
                 b = b + 1;
             end
             bol = bols(b-1);
+        end
+        function [cal,base] = findCalibrationFrom(this, scanStart)
+            %% @scanStart is the datetime at which the calibration emission scan starts.
+            %  @return cal is mlpet.MultiBolusData.
+            %  @return base is baseline that was remvoed.
+            
+            [m,s] = this.baseline;
+            a     = this.activity - m;
+            t     = this.datetime;
+            [~,bstart] = max(t >= scanStart);
+            [~,deltab] = max(a(bstart:end) < a(bstart)/2); % duration for return to 1/2 initial emissions
+            deltab     = this.ensurePlausibleDeltab( ...
+                         deltab, length(a(bstart:end))-1); % manage common deltab pathologies            
+            cal = mlpet.MultiBolusData( ...
+                'activity', a(bstart:bstart+deltab), ...
+                'times',    t(bstart:bstart+deltab), ...
+                'datetimeMeasured', scanStart, ...
+                'dt',       this.dt);
+            base = m;
         end
         function         plot(this, varargin)
             figure;
@@ -152,10 +180,12 @@ classdef MultiBolusData < handle & mldata.TimingData
             addParameter(ip, 'expectedBaseline', 90, @isnumeric);
             addParameter(ip, 'doMeasureBaseline', true, @islogical);
             addParameter(ip, 'radionuclides', @(x) isa(x, 'mlpet.Radionuclides'))
-            parse(ip, varargin{:});            
-            this.activity_ = ip.Results.activity;
-            this.expectedBaseline_ = ip.Results.expectedBaseline;
-            this.doMeasureBaseline_ = ip.Results.doMeasureBaseline;
+            parse(ip, varargin{:});
+            ipr = ip.Results;
+            
+            this.activity_ = ipr.activity;
+            this.expectedBaseline_ = ipr.expectedBaseline;
+            this.doMeasureBaseline_ = ipr.doMeasureBaseline;
             
             if (isempty(this.activity_))
                 this.activity_ = nan(size(this.times_));
@@ -163,7 +193,7 @@ classdef MultiBolusData < handle & mldata.TimingData
             if (isempty(this.times))
                 this.times = 0:this.dt:this.dt*(length(this.activity_)-1); % empty for empty activity_
             end
-            this.radionuclides_ = ip.Results.radionuclides;
+            this.radionuclides_ = ipr.radionuclides;
  		end
  	end 
 
@@ -188,14 +218,12 @@ classdef MultiBolusData < handle & mldata.TimingData
                 db = bestGuess;
                 return
             end
-%             if (db < this.activityHalflife/this.dt)
-%                 db = minBestGuess;
-%                 return
-%             end
             if (db > life)
                 db = minBestGuess;
                 return
             end
+            assert(db > this.MIN_DELTA_BOLUS, ...
+                'mlpet:RuntimeError', 'MultiBolusData.ensurePlausibleDeltab found bolus of duration %g sec', db)
         end
     end
 
