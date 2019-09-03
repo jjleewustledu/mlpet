@@ -107,22 +107,6 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
 
         %%
         
-        function this = locallyStageBrainmasks(this)
-            
-            sd = this.sessionData;
-            if (~lexist_4dfp(                  sd.brainmask('typ', 'fp')))
-                this.sessionData.mri_convert(  sd.brainmask.fqfilename, [sd.brainmask('typ', 'fp') '.nii']);
-                this.buildVisitor.nifti_4dfp_4(sd.brainmask('typ', 'fp'));
-            end
-            if (~lexist_4dfp(                  sd.aparcAseg('typ', 'fp')))
-                sd.mri_convert(                sd.aparcAseg.fqfilename, [sd.aparcAseg('typ', 'fp') '.nii']);
-                this.buildVisitor.nifti_4dfp_4(sd.aparcAseg('typ', 'fp'));
-            end
-            if (~lexist_4dfp(                  sd.wmparc('typ', 'fp')))
-                sd.mri_convert(                sd.wmparc.fqfilename,    [sd.wmparc('typ', 'fp') '.nii']);
-                this.buildVisitor.nifti_4dfp_4(sd.wmparc('typ', 'fp'));
-            end
-        end
         function this = locallyStageModalities(this, varargin)
             %% LOCALLYSTAGEMODALITIES
             %  @param existing T1, t2, tof (if existing), umapSynth on the filesystem as specified by this.sessionData.
