@@ -703,6 +703,19 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 unco1(u,1:length(multi)) = multi;
             end
         end    
+        function cRB  = reconcileUmapFilenames(~, cRB, varargin)
+            %  @param  cRB has preferred umap packaged as its product{ele}. 
+            %  @param  ele is the preferred element location in product; default := length(product)-1.
+            %  @return cRB with legacy umap on the filesystem and packaged as its product.
+            
+            ip = inputParser;
+            addOptional(ip, 'ele', length(cRB.product), @isnumeric);
+            parse(ip, varargin{:});
+            
+            ic = mlfourd.ImagingContext2(cRB.product{ip.Results.ele});
+            ic.saveas(cRB.sessionData.umapSynth);
+            cRB = cRB.packageProduct(ic);
+        end   
         function this = replaceMonolithFrames(this)
             %% REPLACEMONOLITHFRAMES manages pathological frames by replacing them with a reasonable substitute.
             %  @param this.f2rep, the frames to replace, is not empty and numeric.
@@ -1040,81 +1053,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             e  = floor(nacFrame/this.maxLengthEpoch) + 1;
             e1 = mod(  nacFrame,this.maxLengthEpoch) + 1;  
         end
-        function ffp    = confirmAufbau4dfp(~, ffp)
-            %% avoids empty ffp.img when rerunning this builder on previously built intermediate products.
-            
-            assert(isa(ffp, 'mlfourd.ImagingFormatContext'));
-            if (isempty(ffp.img))
-                warning('mlpet:ValueWarning', ...
-                    'TracerResolveBuilder.confirmAufbau4dfp received %s; attempting to reconstruct', ...
-                    evalc('disp(ffp)'));
-                ffp = mlfourd.ImagingFormatContext([ffp.fqfileprefix '.4dfp.hdr']);
-            end
-        end
-        function  unco  = motionUncorrectBetweenLevels(this, varargin)
-            %% MOTIONUNCORRECTBETWEENLEVELS maps congruent motion-corrected objects of a level back to the native 
-            %  uncorrected objects of the adjacent hierarchical level.  It operates breadth-first.
-            %  @param required source is congruent to motion-corrected objects and is mlfourd.ImagingContext2.
-            %  @param required idx identifies the motion-corrected object and is numeric.         
-
-            ip = inputParser;
-            addRequired(ip, 'source', @(x) isa(x, 'mlfourd.ImagingContext2'));
-            addRequired(ip, 'idx', @isnumeric);
-            addRequired(ip, 'uncorrected', @(x) isa(x, 'mlfourd.ImagingContext2'));
-            parse(ip, varargin{:});
-            src  = ip.Results.source;
-            idx  = ip.Results.idx;
-            unco = ip.Results.uncorrected;
-            
-            t4RB                  = this.resolveBuilder_; % from antecedent motion-correction operations
-            t4RB.rnumber          = 1;
-            t4RB.indexOfReference = idx;
-            t4RB.resolveTag       = t4RB.resolveTagFrame(idx, 'reset', true); % op_fdgv1${e}r1_frame${idx};
-            t4RB                  = t4RB.updateFinished('tag', ...
-                                    sprintf('_motionUncorrectBetweenLevels_%s_%i_%s', ...
-                                            src.fileprefix, idx, unco(idx).fileprefix));
-            t4RB.skipT4imgAll     = true;
-            t4RB                  = t4RB.resolve; % t4RB.product->${E}/fdgv1${e}r2_op_fdgv1${e}r1_frame${idx}
-            t4RB.skipT4imgAll     = false;      
-            t4_ = ip.Results.parentToChildT4(t4RB.resolveTag);
-            if (t4RB.indicesLogical(idx))
-                t4RB = t4RB.t4img_4dfp( ...
-                       t4_, ...
-                       src.fqfileprefix, ...
-                       'out', t4RB.umapTagged(t4RB.resolveTag, 'typ', 'fp'), ...
-                       'options', ['-O' this.sessionData.tracerResolved('typ','fp')]);
-                        % e.g., a := 8, E := E${a}, F := E1to9, e := e${a}, f := e1to9
-                        %
-                        % isempty(ip.Results.builders):
-                        % t4     := ${F}/fdgv1${f}r0_frame${a}_to_op_fdgv1${f}r${a}_frame${idx}_t4 
-                        % source := ${F}/umapSynth_op_fdgv1${f}r1_frame${a}
-                        % out    :=      umapSynth_op_fdgv1${f}r1_frame${idx}
-                        %
-                        % else:
-                        % t4     := ${E}/fdgv1${e}r0_frame${a}_to_op_fdgv1${e}r${a}_frame${idx}_t4 
-                        % source := ${F}/umapSynth_op_fdgv1${f}r1_frame${a}
-                        % out    :=      umapSynth_op_fdgv1${e+}r1_frame${idx}
-            else
-                t4RB.buildVisitor.copyfile_4dfp( ...
-                    src.fqfileprefix, ...
-                    t4RB.umapTagged(t4RB.resolveTag, 'typ', 'fp'));
-            end                
-            t4RB.theImages = t4RB.tracerRevision('typ', 'fqfp');   
-            t4RB.epoch     = idx;
-
-            %% update uncorrected(idx).{resolveBuilder_,sessionData_,product_}
-
-            unco(idx).resolveBuilder_ = t4RB; 
-            unco(idx).sessionData_    = t4RB.sessionData;                                    
-            unco(idx).product_        = mlfourd.ImagingContext2( ...
-                                        this.resolveBuilder_.umapTagged(t4RB.resolveTag)); % ~ t4RB.product;  
-
-            fprintf('motionUncorrectBetweenLevels:\n');
-            fprintf('source.fqfileprefix->\n    %s\n', src.fqfileprefix); 
-                % E1to9/umapSynth_op_fdgv1e1to9r1_frame${e}; 
-            fprintf('this(%i).product->\n    %s\n\n', idx, char(unco(idx).product)); 
-                %  E${idxRef}/umapSynth_op_fdgv1e1to9r1_frame${idxRef}; 
-        end
         function ffp    = reconstituteFrame_e7(this, varargin)
             %  @param named sessionData is an mlpipeline.SessionData.
             %  @param this.sessionData.tracerListmodeMhdr exists.
@@ -1164,19 +1102,6 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             sd.epoch = [];
             fqfp0 = ip.Results.fqfp;
             ffp = mlfourd.ImagingFormatContext([fqfp0 '.4dfp.hdr']);
-        end
-        function cRB    = reconcileUmapFilenames(~, cRB, varargin)
-            %  @param  cRB has preferred umap packaged as its product{ele}. 
-            %  @param  ele is the preferred element location in product; default := length(product)-1.
-            %  @return cRB with legacy umap on the filesystem and packaged as its product.
-            
-            ip = inputParser;
-            addOptional(ip, 'ele', length(cRB.product), @isnumeric);
-            parse(ip, varargin{:});
-            
-            ic = mlfourd.ImagingContext2(cRB.product{ip.Results.ele});
-            ic.saveas(cRB.sessionData.umapSynth);
-            cRB = cRB.packageProduct(ic);
         end
         function sess   = recallOtherTracerResolvedFinalAvgt(this, varargin)
             ip = inputParser;
