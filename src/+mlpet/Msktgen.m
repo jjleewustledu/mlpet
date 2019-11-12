@@ -10,7 +10,7 @@ classdef Msktgen < mlfourdfp.AbstractSessionBuilder
  		source
         intermediaryForMask
         sourceOfMask
-        blurForMask = 33
+        blurForMask = 40
         blurArg % this.sessionData_.compositeT4ResolveBuilderBlurArg
         threshp = 0
         doConstructResolved

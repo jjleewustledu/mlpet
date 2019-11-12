@@ -35,7 +35,7 @@ classdef (Abstract) StudyResolveBuilder
                             % stage SURFER_OBJS in g{1}
                             pwd_ = pushd(globbed{ig});
                             mlbash(sprintf('mri_convert mri/%s.mgz %s.nii', basename(fqfp), basename(fqfp)));
-                            mlbash(sprintf('nifti_4dfp -4 %s.nii %s.4dfp.hdr', basename(fqfp), basename(fqfp)));
+                            mlbash(sprintf('nifti_4dfp -4 -N %s.nii %s.4dfp.hdr', basename(fqfp), basename(fqfp)));
                             popd(pwd_);
                         end
                         for x = {'.nii' '.4dfp.hdr' '.4dfp.img' '.4dfp.ifh' '.4dfp.img.rec'}
