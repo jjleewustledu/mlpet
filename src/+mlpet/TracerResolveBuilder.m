@@ -536,14 +536,18 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             assert(isa(multiEpochOfSummed, 'mlpet.TracerResolveBuilder'));
             import mlfourd.*;
             
-            if (lastEpoch)
-                NRef = this.nFramesModMaxLengthEpoch;
-                if (NRef <= 1)
-                    unco = this;
-                    return
-                end
-            else 
+            if ~lastEpoch
                 NRef = this.maxLengthEpoch;
+            else
+                switch this.nFramesModMaxLengthEpoch
+                    case 0
+                        NRef = this.maxLengthEpoch;
+                    case 1
+                        unco = this;
+                        return
+                    otherwise
+                        NRef = this.nFramesModMaxLengthEpoch;
+                end
             end
             for idxRef = 1:NRef % uncorrect source to each frame as a separate reference frame
                 
@@ -640,9 +644,9 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 ensuredir(loc);
                 pwd0 = pushd(loc); % E1to9;    
                 unco(idxRef) = this; %#ok<*AGROW>       
-                if (idxRef == this.resolveBuilder_.indexOfReference)
-                    continue
-                end  
+%                if (idxRef == this.resolveBuilder_.indexOfReference)
+%                    continue
+%                end  
                 try
                     childT4RB                  = this.resolveBuilder_;
                     childT4RB.rnumber          = 1;
@@ -677,9 +681,9 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     fprintf('this(%i).product->\n    %s\n\n', idxRef, char(unco(idxRef).product)); 
                         %  E${idxRef}/umapSynth_op_fdgv1e1to9r1_frame${idxRef}; 
                 catch ME
-                    dispexcept(ME, 'mlpet:RuntimeError', ...
-                        'TracerResolveBuilder.motionUncorrectEpoch1ToN failed resolve or t4img_4dfp on %s', ...
-                        source.fqfilename); 
+                    dispwarning(ME, 'mlpet:RuntimeWarning', ...
+                        'TracerResolveBuilder.motionUncorrectEpoch1ToN failed resolve or t4img_4dfp on %s; using %s', ...
+                        source.fqfilename, this.product.fqfilename); 
                     % E1to9 && idxRef->9 will fail with 
                     % Warning: The value of 'tracerSif' is invalid. It must satisfy the function: lexist_4dfp.
                     % Cf. mlfourdfp.ImageFrames lines 154, 173.  TODO.
@@ -702,7 +706,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     unco(u).product, multiEpochOfSummed(u), u == length(unco));
                 unco1(u,1:length(multi)) = multi;
             end
-        end    
+        end  
         function cRB  = reconcileUmapFilenames(~, cRB, varargin)
             %  @param  cRB has preferred umap packaged as its product{ele}. 
             %  @param  ele is the preferred element location in product; default := length(product)-1.
@@ -822,26 +826,41 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             umapSz = umapFfp.size;
             umapFfp.img = zeros(umapSz(1),umapSz(2),umapSz(3),tracerSz(4));
             for ep = 1:nEpoch
-                if (ep == nEpoch && 1 == this.nFramesModMaxLengthEpoch)                    
-                    % umapSynth_op_T1001_b43r1_op_fdgv1e1to9r1_frame9.4dfp.hdr
-                    sessd_ = sessd;
-                    sessd_.epoch = 1:ep; % E1to9
-                    sessd_.resolveTag = sessd_.resolveTagFrame(ep, 'reset', true);
-                    frame_ = ImagingFormatContext(sessd_.umapTagged(['op_T1001_b43r1_' sessd_.resolveTag]));
-                    umapFfp.img(:,:,:,this.maxLengthEpoch*(ep-1)+1) = frame_.img;
-                    break
-                end
-                if (ep == nEpoch)
-                    Nfr = this.nFramesModMaxLengthEpoch;
-                else
-                    Nfr = this.maxLengthEpoch;
-                end
-                for fr = 1:Nfr
-                    sessd_ = sessd;
-                    sessd_.epoch = ep;
-                    sessd_.resolveTag = sessd_.resolveTagFrame(fr, 'reset', true);
-                    frame_ = ImagingFormatContext(sessd_.umapTagged(sessd_.resolveTag));
-                    umapFfp.img(:,:,:,this.maxLengthEpoch*(ep-1)+fr) = frame_.img;
+                if ep ~= nEpoch
+                    for fr = 1:this.maxLengthEpoch
+                        sessd_ = sessd;
+                        sessd_.epoch = ep;
+                        sessd_.resolveTag = sessd_.resolveTagFrame(fr, 'reset', true);
+                        frame_ = ImagingFormatContext(sessd_.umapTagged(sessd_.resolveTag));
+                        umapFfp.img(:,:,:,this.maxLengthEpoch*(ep-1)+fr) = frame_.img;
+                    end
+                else                    
+                    % final epoch with variable number of frames
+                    switch this.nFramesModMaxLengthEpoch 
+                        case 0
+                            for fr = 1:this.maxLengthEpoch
+                                sessd_ = sessd;
+                                sessd_.epoch = ep;
+                                sessd_.resolveTag = sessd_.resolveTagFrame(fr, 'reset', true);
+                                frame_ = ImagingFormatContext(sessd_.umapTagged(sessd_.resolveTag));
+                                umapFfp.img(:,:,:,this.maxLengthEpoch*(ep-1)+fr) = frame_.img;
+                            end                    
+                        case 1
+                            sessd_ = sessd;
+                            sessd_.epoch = 1:ep; % E1to9
+                            sessd_.resolveTag = sessd_.resolveTagFrame(ep, 'reset', true);
+                            frame_ = ImagingFormatContext(sessd_.umapTagged(['op_T1001_b43r1_' sessd_.resolveTag]));
+                            umapFfp.img(:,:,:,this.maxLengthEpoch*(ep-1)+1) = frame_.img;  
+                            % e.g., umapSynth_op_T1001_b43r1_op_fdgv1e1to9r1_frame9.4dfp.hdr                      
+                        otherwise
+                            for fr = 1:this.nFramesModMaxLengthEpoch
+                                sessd_ = sessd;
+                                sessd_.epoch = ep;
+                                sessd_.resolveTag = sessd_.resolveTagFrame(fr, 'reset', true);
+                                frame_ = ImagingFormatContext(sessd_.umapTagged(sessd_.resolveTag));
+                                umapFfp.img(:,:,:,this.maxLengthEpoch*(ep-1)+fr) = frame_.img;
+                            end
+                    end
                 end
             end
             this = this.packageProduct(umapFfp);
@@ -890,7 +909,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 return
             end
             efr = (e-1)*this.maxLengthEpoch+1:e*this.maxLengthEpoch; % partition of frames
-        end   
+        end  
         function this = reconstituteComposites(this, those)
             %% RECONSTITUTECOMPOSITES contracts a composite of TracerResolveBuilder to a singlet.  It reconstitutes
             %  time resolution for this by union with time-dependent objects in those.
