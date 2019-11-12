@@ -390,8 +390,9 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         %% Utilities
         
         function this = avgtProduct(this)
-            AVGT = mlfourd.DynamicsTool.AVGT_SUFFIX;
             assert(isa(this.product_, 'mlfourd.ImagingContext2'));
+            assert(isfile(this.product_.fqfilename))
+            AVGT = mlfourd.DynamicsTool.AVGT_SUFFIX;
             if (this.buildVisitor.lexist_4dfp([this.product_.fqfp AVGT]))
                 this.product_ = mlfourd.ImagingContext2([this.product_.fqfp AVGT '.4dfp.hdr']);
                 return
@@ -516,8 +517,10 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             t4rB_                = t4rB_.resolve;
             this.resolveBuilder_ = t4rB_;
             this.sessionData_    = t4rB_.sessionData; 
-            this.product_        = t4rB_.product;
-            averaged             = this.avgtProduct;
+            if isfile(t4rB_.product.fqfilename) % if t4rB_ fails, keep the original product
+                this.product_ = t4rB_.product;
+            end
+            averaged = this.avgtProduct;
             popd(pwd0);
         end
         function unco = motionUncorrectEpoch(this, source, multiEpochOfSummed, lastEpoch)
@@ -771,8 +774,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             this.f2rep = ip.Results.f2rep;
             this.fsrc = ip.Results.fsrc;
             this = this.updateFinished; 
-            assert(isfile(this.sessionData.jsonFilename), ...
-                'mlnipet:AssertionError', 'TracerResolveBuilder.ctor cannot find %s', this.sessionData.jsonFilename);
+            %assert(isfile(this.sessionData.jsonFilename), ...
+            %    'mlnipet:AssertionError', 'TracerResolveBuilder.ctor cannot find %s', this.sessionData.jsonFilename);
             if ip.Results.reconstructLastEpoch && this.sessionData.attenuationCorrected
                 this.deleteLastEpoch()
             end
