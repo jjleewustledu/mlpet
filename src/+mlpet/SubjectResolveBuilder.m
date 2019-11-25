@@ -101,7 +101,7 @@ classdef SubjectResolveBuilder < mlpet.StudyResolveBuilder
             fv = mlfourdfp.FourdfpVisitor;
             
             % compose t4s:  tracer -> session -> subject T1001
-            for ses = asrowdirs(glob('ses-E*'))
+            for ses = globT('ses-E*')
                 seslbl = strsplit(ses{1}, '-');
                 seslbl = seslbl{2};
                 try
