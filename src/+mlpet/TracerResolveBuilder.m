@@ -264,7 +264,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             assert(4 == length(aufbau.size) && aufbau.size(4) > 0);
             innerf = size(aufbau, 4);
             this.sessionData_.frame = 1;
-            while (isdir(this.sessionData_.tracerConvertedLocation))
+            while (isfolder(this.sessionData_.tracerConvertedLocation))
 
                 pwd0 = pushd(this.sessionData_.tracerLocation);
                 fprintf('mlpet.TracerResolveBuilder.reconstituteFramesAC.this.sessionData_.tracerConvertedLocation -> \n%s\n', ...
