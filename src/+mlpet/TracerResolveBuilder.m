@@ -929,16 +929,22 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                     ffp = ImagingFormatContext(those(e).tracerResolvedAvgt(typ{:})); % fdgv1e*r2_sumt                    
                 else
                     % append last remaining frames, which may be singleton without time-sum, to aufbau4dfp
+                    this_r1 = those(e);
+                    this_r1.rnumber = 1;
                     if (lexist_4dfp(               those(e).tracerResolvedAvgt(typ{:})))
-                        ffp = ImagingFormatContext(those(e).tracerResolvedAvgt(typ{:})); % fdgv1e*r2_sumt
+                        ffp = ImagingFormatContext(those(e).tracerResolvedAvgt(typ{:})); % fdgv1e*r2_avgt
+                    elseif (lexist_4dfp(            this_r1.tracerResolvedAvgt(typ{:})))
+                        ffp = ImagingFormatContext(those(e).tracerResolvedAvgt(typ{:})); % fdgv1e*r1_avgt
                     elseif (lexist_4dfp(           those(e).tracerRevision(typ{:})))
                         ffp = ImagingFormatContext(those(e).tracerRevision(typ{:})); % fdgv1e*r2
+                    elseif (lexist_4dfp(            this_r1.tracerRevision(typ{:})))
+                        ffp = ImagingFormatContext( this_r1.tracerRevision(typ{:})); % fdgv1e*r1
+                    else
+                        error('mlpet:runtimeError', ...
+                            ['TracerResolveBuilder.reconstituteComposites failed to reconstitute %s;\n' ...
+                            'if indicesNonzero have been all false, the imaging frames may be empty'], ffp.fqfilename)
                     end                    
                 end
-                assert(lexist(ffp.fqfilename), ...
-                    'mlpet:runtimeError', ...
-                    ['TracerResolveBuilder.reconstituteComposites failed to reconstitute %s;\n' ...
-                     'if indicesNonzero have been all false, the imaging frames may be empty'], ffp.fqfilename);
                 aufbau4dfp.img(:,:,:,e) = ffp.img;
             end
             
