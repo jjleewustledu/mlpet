@@ -228,7 +228,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 if (this.hasTimings(vars{v}))
                     if (any(isnumeric(col)))                        
                         lrows = logical(~isnan(col) & ~isempty(col));
-                        dt_   = this.datetimeConvertFromExcel2(tbl{lrows,v});
+                        dt_   = this.datetimeConvertFromExcel(tbl{lrows,v});
                         col   = NaT(size(col));
                         col.TimeZone = dt_.TimeZone;
                         col(lrows) = dt_;
@@ -252,7 +252,10 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             dt2 = this.datetimeTracerAdmin('earliest', true);
             dt  = NaT;
             if (~isnat(dt1) && ~isnat(dt2))
-                assert(this.equivDates(dt1, dt2), 'mlpet:ValueError', 'internally inconsistent datetime');
+                if ~this.equivDates(dt1, dt2)
+                    warning('mlpet:ValueWarning', ...
+                        'CCIRRadMeasurements.datetime().dt1->%s but dt2->%s; using dt1 for session', dt1, dt2)
+                end
                 dt = dt1;
                 return
             end
@@ -533,7 +536,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
         function dt   = tracerTrueAdminDatetime(this)
             if (isempty(this.tracerTrueAdminDatetime_))
                 this.tracerTrueAdminDatetime_ = ...
-                    this.datetimeConvertFromExcel2(this.tracerAdmin.ADMINistrationTime_Hh_mm_ss) - ...
+                    this.datetimeConvertFromExcel(this.tracerAdmin.ADMINistrationTime_Hh_mm_ss) - ...
                     seconds(this.clocks{'hand timers', 'TimeOffsetWrtNTS____s'});
             end
             dt = this.tracerTrueAdminDatetime_;
