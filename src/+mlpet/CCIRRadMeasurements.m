@@ -125,6 +125,25 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
     % 
     % Calibration Window                 70.036073271028                      55.1810333333333                0.24               336.47           NaN   
     
+    % fromPamStone
+    % this.fromPamStone -> 12x1 table
+    %                        Var1      
+    %                   _______________
+    % 
+    % Row1              {'measurement'}
+    % Hct               {'39.8'       }
+    % glc Baseline      {'102'        }
+    % glc OC1           {'113'        }
+    % glc OO1           {'112'        }
+    % glc HO1           {'107'        }
+    % glc OC2           {'101'        }
+    % glc OO2           {'97'         }
+    % glc HO2           {'100'        }
+    % glc FDG 0 min     {'104'        }
+    % glc FDG 30 min    {'104'        }
+    % glc FDG 60 min    {'101'        }
+    
+    
     %  $Revision$
  	%  was created 21-Oct-2018 23:44:15 by jjlee,
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
@@ -176,7 +195,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             
             assert(isdatetime(aDate));
             CRMD = getenv('CCIR_RAD_MEASUREMENTS_DIR');
-            assert(isdir(CRMD), ...
+            assert(isfolder(CRMD), ...
                 'mlpet:ValueError', ...
                 'environment variable CCIR_RAD_MEASUREMENTS_DIR->%s must be a dir', CRMD);
             mon = lower(month(aDate, 'shortname'));
@@ -473,7 +492,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             dt.Year     = sessdt.Year;
             dt.Month    = sessdt.Month;
             dt.Day      = sessdt.Day;
-            dt.TimeZone = sessdt.TimeZone;
+            dt.TimeZone = this.preferredTimeZone;
         end
         function c    = convertClocks2sec(this, c)
             if (ismember('TimeOffsetWrtNTS____s', c.Properties.VariableNames))
