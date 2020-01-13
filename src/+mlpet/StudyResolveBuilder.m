@@ -1,4 +1,4 @@
-classdef (Abstract) StudyResolveBuilder 
+classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
 	%% STUDYRESOLVEBUILDER delegates properties and methods to mlfourdfp.CollectionResolveBuilder.
     %  It is the superclass to mlpet.SubjectResolveBuilder and mlpet.SessionResolveBuilder.
 
@@ -9,7 +9,7 @@ classdef (Abstract) StudyResolveBuilder
  	
     properties (Constant)
         SURFER_OBJS = {'brain' 'wmparc'};
-    end
+    end    
     
     properties (Dependent)
         sessionData
@@ -576,6 +576,12 @@ classdef (Abstract) StudyResolveBuilder
                     this.subjectData.aufbauSessionPath(d, S.(sub{1}));
                 end
             end
+        end
+        function that = copyElement(this)
+            %%  See also web(fullfile(docroot, 'matlab/ref/matlab.mixin.copyable-class.html'))
+            
+            that = copyElement@matlab.mixin.Copyable(this);
+            % N.B.:  that.object_ = copy(this.object_);
         end
     end
 
