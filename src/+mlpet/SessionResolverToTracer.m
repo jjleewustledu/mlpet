@@ -87,16 +87,17 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
             addParameter(ip, 'commonRef', [], @(x) isa(x, 'mlpet.ResolverToTracerStrategy'));
             addParameter(ip, 'crossRef',  [], @(x) isa(x, 'mlpet.ResolverToTracerStrategy'));
             parse(ip, varargin{:});
-            comm  = ip.Results.commonRef;
-            cross = ip.Results.crossRef;
+            ipr = ip.Results;
+            comm  = copy(ipr.commonRef);
+            cross = copy(ipr.crossRef);
             
             pwd0 = pushd(this.workpath); 
             
-            comm = comm.t4imgDynamicImages(comm.tracer); % comm.product := dynamic aligned to time-summed comm.product{1}
+            comm.t4imgDynamicImages(comm.tracer); % comm.product := dynamic aligned to time-summed comm.product{1}
             comm_to_cross_t4 = cross.selectT4s('sourceTracer', lower(comm.tracer)); % construct t4s{r} for comm.product to cross.product{1}    
-            cross = cross.t4imgc(comm_to_cross_t4, comm.product);
+            cross.t4imgc(comm_to_cross_t4, comm.product);
             cross.teardownIntermediates;
-            this = this.packageProduct(cross.product);
+            this.packageProduct(cross.product);
             
             popd(pwd0);
         end

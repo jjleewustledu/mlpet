@@ -20,29 +20,29 @@ classdef SessionResolverToHO < handle & mlpet.SessionResolverToTracer
             pwd0     = pushd(this.workpath);   
             
             theOo    = copy(this.alignCommonModal('OO'));
-            theOo    = copy(theOo.productAverage('OO')); 
-            
+                       theOo.productAverage('OO');            
             theOc    = copy(this.alignCommonModal('OC'));
-            theOc    = copy(theOc.productAverage('OC'));
-            
+                       theOc.productAverage('OC');            
             theHo    = copy(this.alignCommonModal('HO'));
-            theHo    = copy(theHo.productAverage('HO'));  
-            this     = copy(theHo);
-            
+                       theHo.productAverage('HO');
+                                 
             prefixes = { theHo.product{1}.fileprefix ...
                          theOo.product{1}.fileprefix ...
                          theOc.product{1}.fileprefix };
-            this = this.resolve(prefixes, ...
+            this = copy(theHo);  
+            this.resolve(prefixes, ...
                 'compAlignMethod', 'align_crossModal', ...
                 'NRevisions', 1, ...
                 'maskForImages', 'Msktgen', ...
                 'client', 'alignCrossModal_this');
-            this.alignDynamicImages('commonRef', theOo, 'crossRef', this);
-            this.alignDynamicImages('commonRef', theOc, 'crossRef', this);
-            this.alignDynamicImages('commonRef', theHo, 'crossRef', this);
+            
+            that = copy(this);
+            that.alignDynamicImages('commonRef', theOo, 'crossRef', this);
+            that.alignDynamicImages('commonRef', theOc, 'crossRef', this);
+            that.alignDynamicImages('commonRef', theHo, 'crossRef', this);
             
             popd(pwd0);
-            this.packageProduct(this.product);
+            this.packageProduct(that.product);
         end
         function t4_obj   = t4_mul(this)
             
@@ -50,7 +50,7 @@ classdef SessionResolverToHO < handle & mlpet.SessionResolverToTracer
             pwd0 = pushd(this.workpath);
             ref = lower(this.client_.sessionData.referenceTracer);
             
-            %% FDG
+            %% HO
             
             t4_obj.ho = {};
             ho_glob = this.hoglob(); %('hodt[0-9]+_avgtr1_to_op_hodt[0-9]+r1_t4');

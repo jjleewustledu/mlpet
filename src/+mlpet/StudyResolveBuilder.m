@@ -47,22 +47,26 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
             error('mlpet:RuntimeError', 'StudyResolveBuilder.copySurfer could not create files %s/{%s}', ...
                 subPath, cell2str(StudyResolveBuilder.SURFER_OBJS))
         end
-        function dt = ensureDtFormat(dt)
-            if isempty(dt)
-                dt = '';
-                return
+        function      finalize(pth)
+            pwd0 = pushd(pth);
+            
+            tracerList = {'oc' 'oo' 'ho' 'fdg'};
+            for t = tracerList
+                deleteExisting(sprintf('%s*.4dfp.*', t{1}))
+                for ses = asrow(glob('ses-E*'))
+                    deleteExisting(fullfile(ses{1}, [t{1} '*_op_*.4dfp.*']))
+                    deleteExisting(fullfile(ses{1}, [t{1} '_avg*.4dfp.*']))
+                end
             end
-            if isdatetime(dt)
-                dt = datestr(dt, 'yyyymmddHHMMSS');
-            end
-            assert(ischar(dt));
-            if strcmp(dt, '*')
-                return
-            end
-            if ~strncmp(dt, 'dt', 2)
-                dt = ['dt' dt];
-            end
-            dt = strtok(dt, '.');
+            
+            deleteExisting('*dt*_avgtr1.4dfp.*')
+            deleteExisting('*dt*_avgtr1_b*.4dfp.*')            
+            deleteExisting('T1001_b*.4dfp.*')
+            deleteExisting('*_mskt.4dfp.*')
+            deleteExisting('*dt*_avgtr1_op_*dt*_avgtr1.4dfp.*')
+            deleteExisting('T1001r1_op_*dt*_avgtr1.4dfp.*')
+            
+            popd(pwd0);
         end
         function      makeClean()
             ensuredir('Tmp')
@@ -105,17 +109,24 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
             popd(pwd0)
         end
         function tf = validTracerSession(varargin)
-            %% not ct, calibration or defective session
-            %  @param  ipr is a struct with field 'tracerPattern' understandable to glob;
-            %  default ipr.tracerPattern->'FDG_DT*.000000-Converted-AC'
+            %% avoids sessions for only ct, only calibration or defective sessions
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addOptional(ip, 'ipr', struct('tracerPattern', 'FDG_DT*.000000-Converted-AC'), @isstruct)
+            addOptional(ip, 'pth', pwd, @isfolder)
             parse(ip, varargin{:})
-            ipr = ip.Results.ipr;
-            assert(ischar(ipr.tracerPattern))
-            tf = ~isempty(glob(ipr.tracerPattern));
+            
+            if isempty(globFolders(fullfile(ip.Results.pth, '*')))
+                tf = true;
+                return
+            end 
+            if lstrfind(ip.Results.pth, 'subjects_00993') % KLUDGE
+                tf = true;
+                return
+            end
+            pwd0 = pushd(ip.Results.pth);
+            tf = ~isempty(globFolders('*-Converted-AC'));
+            popd(pwd0)
         end
     end
 
@@ -186,7 +197,7 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
             t4_obj = this.resolverStrategy_.t4_mul;
         end
         function            view(this)
-            mlfourdfp.Viewer.view(this.product);
+            mlfourdfp.Viewer.view(this.resolverStrategy_.collectionRB.product);
         end
 		  
  		function this = StudyResolveBuilder(varargin)
