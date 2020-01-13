@@ -8,16 +8,13 @@ classdef (Abstract) StudyResolveBuilder
  	%% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
  	
     properties (Constant)
-        N_FRAMES_FOR_BOLUS = 8
         SURFER_OBJS = {'brain' 'wmparc'};
     end
     
     properties (Dependent)
-        product
-        referenceTracer
-        ReferenceTracer
+        sessionData
+        subjectData
         subjectsJson
-        tracer
         workpath
     end
     
@@ -130,33 +127,17 @@ classdef (Abstract) StudyResolveBuilder
         
         %% GET/SET
         
-        function g    = get.product(this)
-            g = this.collectionRB_.product;
+        function g    = get.sessionData(this)
+            g = this.sessionData_;
         end
-        function this = set.product(this, s)
-            this.collectionRB_.product = s;
-        end
-        function g    = get.referenceTracer(this)
-            g = this.collectionRB_.referenceTracer;
-        end
-        function this = set.referenceTracer(this, s)
-            this.collectionRB_.referenceTracer = s;
-        end 
-        function g    = get.ReferenceTracer(this)
-            g = this.collectionRB_.ReferenceTracer;
+        function g    = get.subjectData(this)
+            g = this.sessionData.subjectData;
         end
         function g    = get.subjectsJson(this)
             g = this.subjectsJson_;
         end
-        function g    = get.tracer(this)
-            g = this.collectionRB_.tracer;
-        end
-        function this = set.tracer(this, s)
-            assert(ischar(s));
-            this.collectionRB_.tracer = upper(s) ;
-        end
         function g    = get.workpath(this)
-            g = this.collectionRB_.workpath;
+            g = this.resolverStrategy_.collectionRB.workpath;
         end
         
         %%
@@ -500,25 +481,24 @@ classdef (Abstract) StudyResolveBuilder
             ip.KeepUnmatched = true;
             addParameter(ip, 'studyData', [])
             addParameter(ip, 'subjectData', [])
-            addParameter(ip, 'sessionData', [])
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'))
             addParameter(ip, 'makeClean', true, @islogical)
             parse(ip, varargin{:});            
             ipr = ip.Results;
-            assert(isa(ipr.sessionData, 'mlpipeline.ISessionData'))
-            this.studyData_ = ipr.studyData;
-            this.subjectData_ = ipr.subjectData;
-            this.sessionData_ = ipr.sessionData;
-            if isempty(this.studyData_) && isa(this.sessionData_.studyData, 'mlpipeline.IStudyData')
-                this.studyData_ = this.sessionData_.studyData;
-            end
-            if isempty(this.subjectData_) && isa(this.sessionData_.subjectData, 'mlpipeline.ISubjectData')
-                this.subjectData_ = this.sessionData_.subjectData;
-            end
+            
             this.makeClean_ = ipr.makeClean;
             if this.makeClean_
                 this.makeClean()
             end
-            
+            this.sessionData_ = ipr.sessionData;
+            if ~isempty(ipr.studyData)
+                ipr.sessionData.studyData = ipr.studyData;
+            end
+            if ~isempty(ipr.subjectData)
+                ipr.sessionData.subjectData = ipr.subjectData;
+            end
+            this.sessionData_ = ipr.sessionData;
+            this.resolverStrategy_ = mlpet.ResolverToTracerStrategy.CreateResolver(this);            
             this = this.configureSubjectData__();
             this = this.configureCT__();
  		end
@@ -529,9 +509,8 @@ classdef (Abstract) StudyResolveBuilder
     properties (Access = protected)
         collectionRB_ % always nontrivial
         makeClean_
-        sessionData_ % always nontrivial
-        studyData_
-        subjectData_
+        resolverStrategy_
+        sessionData_
         subjectsJson_
     end
     
@@ -542,15 +521,15 @@ classdef (Abstract) StudyResolveBuilder
             
             import mlsystem.DirTool
             import mlfourdfp.CollectionResolveBuilder.*
-            if isempty(this.subjectData_)
+            if isempty(this.subjectData)
                 return
             end    
-            pwd0 = pushd(this.subjectData_.subjectPath);
+            pwd0 = pushd(this.subjectData.subjectPath);
             dt = DirTool('ses-*');
             for ses = dt.dns
 
                 pwd1 = pushd(ses{1});
-                srcpth = fullfile(this.sessionData_.projectPath, ses{1}, '');
+                srcpth = fullfile(this.sessionData.projectPath, ses{1}, '');
                 dt1 = DirTool(fullfile(srcpth, '*_DT*.000000-Converted-AC'));
                 if 1 == length(dt1.fqdns) && strncmp(dt1.dns{1}, 'FDG', 3)
                     lns_with_datetime(fullfile(srcpth, 'FDG_DT*.000000-Converted-AC/fdg*.4dfp.*'))
@@ -560,19 +539,19 @@ classdef (Abstract) StudyResolveBuilder
             popd(pwd0)
         end
         function this = configureCT__(this)
-            %% explores the sessions within the subject-path and
-            %  sym-links ct.
+            %% explores the sessions within the subject-path, searches project/session and
+            %  sym-links discovered ct.
             
             import mlsystem.DirTool
-            if isempty(this.subjectData_)
+            if isempty(this.subjectData)
                 return
             end    
-            pwd0 = pushd(this.subjectData_.subjectPath);
+            pwd0 = pushd(this.subjectData.subjectPath);
             dt = DirTool('ses-*');
             for ses = dt.dns
 
                 pwd1 = pushd(ses{1});
-                srcpth = fullfile(this.sessionData_.projectPath, ses{1}, '');
+                srcpth = fullfile(this.sessionData.projectPath, ses{1}, '');
                 if isfile(fullfile(srcpth, 'ct.4dfp.hdr')) && ~isfile('ct.4dfp.hdr')
                     mlfourdfp.FourdfpVisitor.lns_4dfp(fullfile(srcpth, 'ct'))
                 end
@@ -581,23 +560,23 @@ classdef (Abstract) StudyResolveBuilder
             popd(pwd0)
         end
         function this = configureSubjectData__(this)
-            %% iterates through this.subjectData_.subjectsJson,
-            %  finds the initialized this.subjectData_.subjectFolder
-            %  and initializes the subject path using this.subjectData_.aufbauSessionPath.
+            %% iterates through this.subjectData.subjectsJson,
+            %  finds the initialized this.subjectData.subjectFolder
+            %  and initializes the subject path using this.subjectData.aufbauSessionPath.
             
-            if isempty(this.subjectData_)
+            if isempty(this.subjectData)
                 return
             end
-            this.subjectsJson_ = this.subjectData_.subjectsJson;
+            this.subjectsJson_ = this.subjectData.subjectsJson;
             S = this.subjectsJson_;
             for sub = fields(S)'
-                d = this.subjectData_.ensuredirSub(S.(sub{1}).sid);
+                d = this.subjectData.ensuredirSub(S.(sub{1}).sid);
                 if this.makeClean_ && ...
-                        strcmp(mybasename(d), this.subjectData_.subjectFolder)
-                    this.subjectData_.aufbauSessionPath(d, S.(sub{1}));
+                        strcmp(mybasename(d), this.subjectData.subjectFolder)
+                    this.subjectData.aufbauSessionPath(d, S.(sub{1}));
                 end
             end
-        end        
+        end
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
