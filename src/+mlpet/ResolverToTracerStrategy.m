@@ -37,6 +37,8 @@ classdef (Abstract) ResolverToTracerStrategy < handle & matlab.mixin.Copyable
             switch upper(client.sessionData.referenceTracer)
                 case 'FDG'
                     this = mlpet.SubjectResolverToFDG('client', client);
+                case 'HO'
+                    this = mlpet.SubjectResolverToHO('client', client);
                 otherwise
                     error('mlpet:NotImplementedError', 'ResolverToTracerStrategy.CreateSubjectResolver')
             end
@@ -116,6 +118,26 @@ classdef (Abstract) ResolverToTracerStrategy < handle & matlab.mixin.Copyable
             that = copyElement@matlab.mixin.Copyable(this);
             % N.B.:  that.object_ = copy(this.object_);
         end
+        function this = resolve(this, varargin)
+            this.collectionRB = this.collectionRB.setLogPath(fullfile(this.workpath, 'Log', ''));
+            this.collectionRB = this.collectionRB.resolve(varargin{:});
+        end
+        function ts   = selectT4s(this, varargin)
+            ts = this.collectionRB.selectT4s(varargin{:});
+        end
+        function this = sqrt(this, varargin)
+            this.collectionRB = this.collectionRB.sqrt(varargin{:});
+        end
+        function this = t4imgc(this, varargin)
+            this.collectionRB = this.collectionRB.t4imgc(varargin{:});
+        end
+        function this = t4imgDynamicImages(this, varargin)
+            this.collectionRB = this.collectionRB.t4imgDynamicImages( ...
+                varargin{:}, 'staging_handle', @this.linkAndSimplifyScans);
+        end 
+        function        teardownIntermediates(this)
+            this.collectionRB.teardownIntermediates();
+        end        
         
         function this = ResolverToTracerStrategy(varargin)
             %% forces creation by factory methods CreateFrom*
@@ -124,8 +146,7 @@ classdef (Abstract) ResolverToTracerStrategy < handle & matlab.mixin.Copyable
             ip.KeepUnmatched = true;
             addParameter(ip, 'client', [], @(x) isa(x, 'mlpet.StudyResolveBuilder'))
             parse(ip, varargin{:})
-            ipr = ip.Results;            
-            this.client_ = ipr.client;
+            this.client_ = ip.Results.client;
         end
     end
 
