@@ -5,11 +5,7 @@ classdef SessionResolverToHO < handle & mlpet.SessionResolverToTracer
  	%  was created 08-Jan-2020 22:26:43 by jjlee,
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.7.0.1261785 (R2019b) Update 3 for MACI64.  Copyright 2020 John Joowon Lee.
- 	
-	properties
- 		
- 	end
-
+ 	    
 	methods        
         function this = alignCrossModal(this)
             %% ALIGNCROSSMODAL
@@ -44,7 +40,22 @@ classdef SessionResolverToHO < handle & mlpet.SessionResolverToTracer
             popd(pwd0);
             this.packageProduct(that.product);
         end
-        function t4_obj   = t4_mul(this)
+        function tf   = isfinished(this)
+            tf = false;
+            return
+            
+            import mlsystem.DirTool
+            pwd0 = pushd(fullfile(this.sessionData.subjectPath, ''));
+            dt_ho  = DirTool('ho*_op_ho*_on_op_ho_avgr1.4dfp.img');
+            dt_oo  = DirTool('oo*_op_oo*_on_op_ho_avgr1.4dfp.img');
+            dt_oo  = DirTool('oc*_op_oc*_on_op_ho_avgr1.4dfp.img');
+            popd(pwd0)
+            
+            tf = ~isempty(dt_ho.fqfns) && ...
+                 ~isempty(dt_oo.fqfns) && ...
+                 ~isempty(dt_oc.fqfns);
+        end
+        function t4_obj = t4_mul(this)
             
             fv = mlfourdfp.FourdfpVisitor;
             pwd0 = pushd(this.workpath);
