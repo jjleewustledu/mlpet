@@ -7,10 +7,6 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
  	
-    properties (Constant)
-        SURFER_OBJS = {'brain' 'wmparc'};
-    end    
-    
     properties (Dependent)
         sessionData
         subjectData
@@ -19,55 +15,6 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
     end
     
     methods (Static)       
-        function      copySurfer(subPath, destPath)
-            import mlpet.StudyResolveBuilder
-            assert(strncmp(basename(subPath), 'sub-S', 5), 'mlpet:RuntimeError', 'StudyResolveBuilder.copySurfer')
-            
-            globbed = asrow(glob(fullfile(subPath, 'ses-E*')));
-            for ig = length(globbed):-1:1
-                if isfile(fullfile(globbed{ig}, 'T1001.4dfp.hdr'))
-                    for s = StudyResolveBuilder.SURFER_OBJS
-                        fqfp = fullfile(globbed{ig}, s{1});
-                        if ~isfile([fqfp '.nii']) || ~isfile([fqfp '.4dfp.hdr'])
-                            % stage SURFER_OBJS in g{1}
-                            pwd_ = pushd(globbed{ig});
-                            mlbash(sprintf('mri_convert mri/%s.mgz %s.nii', basename(fqfp), basename(fqfp)));
-                            mlbash(sprintf('nifti_4dfp -4 -N %s.nii %s.4dfp.hdr', basename(fqfp), basename(fqfp)));
-                            popd(pwd_);
-                        end
-                        for x = {'.nii' '.4dfp.hdr' '.4dfp.img' '.4dfp.ifh' '.4dfp.img.rec'}
-                            copyfile([fqfp x{1}], destPath, 'f');
-                        end
-                    end
-                    
-                    return
-                    
-                end
-            end
-            error('mlpet:RuntimeError', 'StudyResolveBuilder.copySurfer could not create files %s/{%s}', ...
-                subPath, cell2str(StudyResolveBuilder.SURFER_OBJS))
-        end
-        function      finalize(pth)
-            pwd0 = pushd(pth);
-            
-            tracerList = {'oc' 'oo' 'ho' 'fdg'};
-            for t = tracerList
-                deleteExisting(sprintf('%s*.4dfp.*', t{1}))
-                for ses = asrow(glob('ses-E*'))
-                    deleteExisting(fullfile(ses{1}, [t{1} '*_op_*.4dfp.*']))
-                    deleteExisting(fullfile(ses{1}, [t{1} '_avg*.4dfp.*']))
-                end
-            end
-            
-            deleteExisting('*dt*_avgtr1.4dfp.*')
-            deleteExisting('*dt*_avgtr1_b*.4dfp.*')            
-            deleteExisting('T1001_b*.4dfp.*')
-            deleteExisting('*_mskt.4dfp.*')
-            deleteExisting('*dt*_avgtr1_op_*dt*_avgtr1.4dfp.*')
-            deleteExisting('T1001r1_op_*dt*_avgtr1.4dfp.*')
-            
-            popd(pwd0);
-        end
         function      makeClean()
             ensuredir('Tmp')
             movefileExisting('ct.4dfp.*', 'Tmp')
@@ -83,30 +30,6 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
             movefileExisting('Tmp/T1001.4dfp.*')
             deleteDeadLink('*.4dfp.*')
             deleteExisting('t4_obj.mat')
-        end
-        function      t4img_4dfp_on_T1001(varargin)
-            
-            ip = inputParser;
-            addRequired(ip, 'targPth', @isfolder)
-            addParameter(ip, 'viewer', '', @ischar)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            
-            fold = basename(pwd);
-            assert(strcmp(fold(1:5), 'sub-S'))
-            pwd0 = pushd(ipr.targPth);
-            for t4s = asrow(glob('*dt*_to_T1001_t4'))
-                src = strsplit(t4s{1}, '_');
-                mlbash(sprintf('t4img_4dfp %s %s_avgt %s_avgt_on_T1001 -OT1001', t4s{1}, src{1}, src{1}));
-            end
-            if ~isempty(ipr.viewer)
-                try
-                    mlbash(sprintf('%s *dt*_on_T1001.4dfp.img T1001.4dfp.img', ipr.viewer));
-                catch ME
-                    dispexcept(ME)
-                end
-            end
-            popd(pwd0)
         end
         function tf = validTracerSession(varargin)
             %% avoids sessions for only ct, only calibration or defective sessions
