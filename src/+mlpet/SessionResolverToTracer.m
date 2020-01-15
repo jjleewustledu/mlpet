@@ -8,7 +8,10 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
 	
     properties (Constant)
         IS_FINISHED = false
-        SURFER_OBJS = {'brain' 'wmparc'};
+    end
+    
+    properties (Dependent)
+        client
     end
     
     methods (Static)        
@@ -32,6 +35,10 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
     end
 
 	methods
+        function g = get.client(this)
+            g = this.client_;
+        end
+        
         function this     = alignCommonModal(this, varargin)
             %  @param required tracer is char.
             %  @return resolution of all scans with specified tracer in the session.
@@ -51,28 +58,32 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
             %% align source to early frames (N_FRAMES_OF_BOLUS) of target
             
             ip = inputParser;
-            addParameter(ip, 'source', 'OC')
-            addParameter(ip, 'target', 'FDG')
-            addParameter(ip, 'framesOfTarget', 1:8, @isnumeric)
+            addParameter(ip, 'source', 'OC', @ischar)
+            addParameter(ip, 'target', 'FDG', @ischar)
+            addParameter(ip, 'framesOfTarget', this.framesOfSubsetTarget_, @isnumeric)
             parse(ip, varargin{:})
             ipr = ip.Results;
             this.framesOfSubsetTarget_ = ipr.framesOfTarget;
             
-            pwd0     = pushd(this.workpath);                     
-            target   = copy(this.alignFramesSubset(ipr.target, this.framesOfSubsetTarget_));
+            pwd0     = pushd(this.workpath); 
             
+            target   = copy(this.alignFramesSubset(ipr.target, this.framesOfSubsetTarget_));            
             source   = copy(this.alignCommonModal(ipr.source));
-            source   = source.productAverage(ipr.source);
-            source   = source.sqrt;
+                       source.productAverage(ipr.source);
+                       source.sqrt;
             
             prefixes = { target.product{1}.fileprefix ...
-                         source.product{1}.fileprefix};
-            this = this.resolve(prefixes, ...
+                         source.product{1}.fileprefix};            
+            this = copy(target);
+            this.resolve(prefixes, ...
                 'compAlignMethod', 'align_crossModal', ...
                 'NRevisions', 1, ...
                 'maskForImages', 'none', ...
                 'client', 'alignCrossModalSubset_this');
-            this.alignDynamicImages('commonRef', source,  'crossRef', this);
+            
+            that = copy(this);
+            that.alignDynamicImages('commonRef', source,  'crossRef', this);
+            
             popd(pwd0);
         end   
         function this     = alignDynamicImages(this, varargin)
@@ -108,6 +119,30 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
             this.collectionRB = this.collectionRB.constructFramesSubset(tracer, frames, varargin{:});
             popd(pwd0);
         end
+        function fqfp     = finalTracerGlob(this, tr, varargin) 
+            assert(ischar(tr));
+            switch lower(tr)
+                case 'fdg'
+                    fqfp = this.finalFdg('*', varargin{:});
+                case 'ho'
+                    fqfp = this.finalHo('*', '*', varargin{:});
+                case 'oo'
+                    fqfp = this.finalOo('*', '*', varargin{:});
+                case 'oc'
+                    switch lower(this.client_.sessionData.referenceTracer)
+                        case 'fdg'
+                            fqfp = this.finalOc_FDG('*', '*', '*', varargin{:});
+                        case 'ho'
+                            fqfp = this.finalOc_HO('*', '*', varargin{:});
+                        otherwise
+                            error('mlpet:ValueError', ...
+                                'SessionResolveToTracer.finalTracerGlob() does not support %s', ...
+                                lower(this.client_.sessionData.referenceTracer))
+                    end
+                otherwise
+                    error('mlpet:RuntimeError', 'SessionResolverToTracer.finalTracerGlob')
+            end
+        end
         function prefixes = linkAndSimplifyScans(this, varargin)
             %% Creates links to tracer images distributed on the filesystem so that resolve operations may be done in the pwd.
             %  Builds *_avgt.4dfp de novo.  
@@ -133,26 +168,14 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
                 handwarning(ME)
             end
         end
-        function this     = resolve(this, varargin)
-            this.collectionRB = this.collectionRB.setLogPath(fullfile(this.workpath, 'Log', ''));
-            this.collectionRB = this.collectionRB.resolve(varargin{:});
+        function prefixes = refreshTracerAvgt(~, prefixes)
+            for p = asrow(prefixes)
+                deleteExisting([p{1} '_avgt.4dfp.*'])
+                ic2 = mlfourd.ImagingContext2([p{1} '.4dfp.hdr']);
+                ic2 = ic2.timeAveraged;
+                ic2.save;
+            end
         end
-        function ts       = selectT4s(this, varargin)
-            ts = this.collectionRB.selectT4s(varargin{:});
-        end
-        function this     = sqrt(this, varargin)
-            this.collectionRB = this.collectionRB.sqrt(varargin{:});
-        end
-        function this     = t4imgc(this, varargin)
-            this.collectionRB = this.collectionRB.t4imgc(varargin{:});
-        end
-        function this     = t4imgDynamicImages(this, varargin)
-            this.collectionRB = this.collectionRB.t4imgDynamicImages( ...
-                varargin{:}, 'staging_handle', @this.linkAndSimplifyScans);
-        end 
-        function            teardownIntermediates(this)
-            this.collectionRB.teardownIntermediates();
-        end 
 		  
  		function this = SessionResolverToTracer(varargin)
  			%% SESSIONRESOLVERTOTRACER
@@ -168,11 +191,11 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
     %% PROTECTED
     
     properties (Access = protected)
-        framesOfSubsetTarget_
+        framesOfSubsetTarget_ = 1:8
     end
     
     methods (Access = protected)
-        function globbed  = fdgglob(~)
+        function globbed = fdgglob(~)
             globbed = {};
             globbed0 = glob('fdgdt*_avgtr1_to_op_fdgdt*r1_t4');
             for g = asrow(globbed0)
@@ -182,7 +205,7 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
                 end
             end            
         end
-        function globbed  = hoglob(~)
+        function globbed = hoglob(~)
             globbed = {};
             globbed0 = glob('hodt*_avgtr1_to_op_hodt*_t4');
             for g = asrow(globbed0)
@@ -192,7 +215,7 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
                 end
             end 
         end
-        function globbed  = ooglob(~)
+        function globbed = ooglob(~)
             globbed = {};
             globbed0 = glob('oodt*_avgtr1_to_op_oodt*_t4');
             for g = asrow(globbed0)
@@ -202,7 +225,7 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
                 end
             end 
         end
-        function globbed  = ocglob(~)
+        function globbed = ocglob(~)
             globbed = {};
             globbed0 = glob('ocdt*_avgtr1_to_op_ocdt*_t4');
             for g = asrow(globbed0)
@@ -211,15 +234,56 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
                     globbed = [globbed g{1}]; %#ok<AGROW>
                 end
             end
+        end    
+        
+        function fqfp = finalFdg(this, dt, varargin)
+            ip = inputParser;
+            addOptional(ip, 'suffix', '', @ischar)
+            parse(ip, varargin{:})
+            
+            ref  = lower(this.client_.sessionData.referenceTracer);
+            fqfp = fullfile(this.workpath, ...
+                sprintf('fdg%s_op_fdg%s_on_op_%s_avgr1', this.ensureDtFormat(dt), ip.Results.suffix), ref);
         end
-        function prefixes = refreshTracerAvgt(~, prefixes)
-            for p = asrow(prefixes)
-                deleteExisting([p{1} '_avgt.4dfp.*'])
-                ic2 = mlfourd.ImagingContext2([p{1} '.4dfp.hdr']);
-                ic2 = ic2.timeAveraged;
-                ic2.save;
-            end
+        function fqfp = finalHo(this, dt, dt0, varargin)
+            ip = inputParser;
+            addOptional(ip, 'suffix', '', @ischar)
+            parse(ip, varargin{:})
+            
+            ref  = lower(this.client_.sessionData.referenceTracer);
+            fqfp = fullfile(this.workpath, ...
+                sprintf('ho%s_op_ho%s%s_on_op_%s_avgr1', ...
+                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.suffix), ref);
         end
+        function fqfp = finalOo(this, dt, dt0, varargin)
+            ip = inputParser;
+            addOptional(ip, 'suffix', '', @ischar)
+            parse(ip, varargin{:})
+            
+            ref  = lower(this.client_.sessionData.referenceTracer);
+            fqfp = fullfile(this.workpath, ...
+                sprintf('oo%s_op_oo%s%s_on_op_%s_avgr1', ...
+                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.suffix), ref);
+        end
+        function fqfp = finalOc_HO(this, dt, dt0, varargin)
+            ip = inputParser;
+            addOptional(ip, 'suffix', '', @ischar)
+            parse(ip, varargin{:})
+            
+            ref  = lower(this.client_.sessionData.referenceTracer);
+            fqfp = fullfile(this.workpath, ...
+                sprintf('oc%s_op_oc%s%s_on_op_%s_avgr1', ...
+                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.suffix), ref);
+        end  
+        function fqfp = finalOc_FDG(this, dt, dt0, dtfdg, varargin)
+            ip = inputParser;
+            addOptional(ip, 'avgstr', '', @ischar)
+            parse(ip, varargin{:})
+            
+            fqfp = fullfile(this.workpath, ...
+                sprintf('oc%s_op_oc%s%s_on_op_fdg%s_frames1to%i_avgtr1', ...
+                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.avgstr, this.ensureDtFormat(dtfdg), this.framesForTargetFDG));
+        end      
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
