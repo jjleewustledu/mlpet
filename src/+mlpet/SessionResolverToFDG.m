@@ -6,10 +6,6 @@ classdef SessionResolverToFDG < handle & mlpet.SessionResolverToTracer
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.7.0.1261785 (R2019b) Update 3 for MACI64.  Copyright 2020 John Joowon Lee.
  	
-	properties
- 		
- 	end
-
 	methods 
         function this = alignCommonModal(this, varargin)
             %  @param required tracer is char.
@@ -34,32 +30,33 @@ classdef SessionResolverToFDG < handle & mlpet.SessionResolverToTracer
             pwd0     = pushd(this.workpath);  
             
             theHo    = copy(this.alignCommonModal('HO'));
-            theHo    = theHo.productAverage('HO');      
+                       theHo.productAverage('HO');      
             
             theOo    = copy(this.alignCommonModal('OO'));
-            theOo    = theOo.productAverage('OO'); 
+                       theOo.productAverage('OO'); 
             
             theFdg   = copy(this.alignCommonModal('FDG'));
-            theFdg   = theFdg.productAverage('FDG');
-            this     = theFdg;
+                       theFdg.productAverage('FDG');
             
             prefixes = {theFdg.product{1}.fileprefix ...
                         theHo.product{1}.fileprefix ...
                         theOo.product{1}.fileprefix}; 
+            this = copy(theFdg);
             this = this.resolve(prefixes, ...
                 'compAlignMethod', 'align_crossModal', ...
                 'NRevisions', 1, ...
                 'maskForImages', 'Msktgen', ...
                 'client', 'alignCrossModal_this');
-
-            this.alignDynamicImages('commonRef', theHo,  'crossRef', this);
-            this.alignDynamicImages('commonRef', theOo,  'crossRef', this);
-            theFdg = this.alignDynamicImages('commonRef', theFdg, 'crossRef', this);
+            
+            that = copy(this);
+            that.alignDynamicImages('commonRef', theHo,  'crossRef', this);
+            that.alignDynamicImages('commonRef', theOo,  'crossRef', this);
+            theFdg = copy(that.alignDynamicImages('commonRef', theFdg, 'crossRef', this)); % TO DO:  remove redundancy
             
             popd(pwd0);    
 
-            theOc = theFdg.alignCrossModalSubset;
-            this.packageProduct([this.product theOc.product]);
+            theOc = copy(theFdg.alignCrossModalSubset);
+            this.packageProduct([that.product theOc.product]);
         end
         function tf   = isfinished(this)
             import mlsystem.DirTool
@@ -80,7 +77,7 @@ classdef SessionResolverToFDG < handle & mlpet.SessionResolverToTracer
                  ~isempty(dt_OO.fqdns)  && ~isempty(dt_oo.fqfns) && ...
                  ~isempty(dt_OC.fqdns)  && ~isempty(dt_oc.fqfns);
         end
-        function t4_obj   = t4_mul(this)
+        function t4_obj = t4_mul(this)
             
             fv = mlfourdfp.FourdfpVisitor;
             pwd0 = pushd(this.workpath);
