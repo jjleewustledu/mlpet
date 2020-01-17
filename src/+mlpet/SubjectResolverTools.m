@@ -7,7 +7,8 @@ classdef SubjectResolverTools < handle & matlab.mixin.Copyable
  	%% It was developed on Matlab 9.7.0.1261785 (R2019b) Update 3 for MACI64.  Copyright 2020 John Joowon Lee.
  	
     properties (Constant)        
-        SURFER_OBJS = {'brain' 'wmparc'};
+        SURFER_OBJS = {'brain' 'wmparc'}
+        DO_FINALIZE = false
     end
     
     properties (Dependent)
@@ -34,11 +35,9 @@ classdef SubjectResolverTools < handle & matlab.mixin.Copyable
         end
         function g = get.resamplingRestrictedPath(this)
             g = fullfile(this.subjectPath, 'resampling_restricted', '');
-            assert(isfolder(g))
         end
         function g = get.subjectPath(this)
             g = this.resolver_.client.sessionData.subjectData.subjectPath;
-            assert(isfolder(g))
         end
         function g = get.tracers(this)
             g = this.resolver_.client.sessionData.tracers;
@@ -58,7 +57,9 @@ classdef SubjectResolverTools < handle & matlab.mixin.Copyable
             this.t4img_4dfp_on_T1001(this.resamplingRestrictedPath);
             this.copySurfer(this.subjectPath, this.resamplingRestrictedPath);
             copyfile('*.json', this.resamplingRestrictedPath, 'f')
-            this.finalize()
+            if this.DO_FINALIZE
+                this.finalize()
+            end
         end
         function fps  = linkAndSimplifyScans(this, varargin)
             %% Creates links to tracer images distributed on the filesystem so that resolve operations may be done in the pwd.
@@ -77,9 +78,9 @@ classdef SubjectResolverTools < handle & matlab.mixin.Copyable
                 fullfile(this.subjectPath, 'ses-E*'));
             for ses = dt.fqdns
                 try
-                    glob = sprintf('%s.4dfp.hdr', this.resolver_.finalTracerGlob(ip.Results.tracer));
-                    glob = basename(glob);
-                    files = this.resolver_.collectionRB.lns_with_datetime(fullfile(ses{1}, glob));
+                    toglob = sprintf('%s.4dfp.hdr', this.resolver_.finalTracerGlob(ip.Results.tracer, 'path', ses{1}));
+                    toglob = basename(toglob);
+                    files = this.resolver_.collectionRB.lns_with_datetime(fullfile(ses{1}, toglob));
                     fps = [fps this.resolver_.collectionRB.uniqueFileprefixes(files)]; %#ok<AGROW>
                 catch ME
                     handwarning(ME)
@@ -311,17 +312,25 @@ classdef SubjectResolverTools < handle & matlab.mixin.Copyable
                                       t4_tmp);
                             fv.t4_mul(t4_tmp, ...
                                       sprintf('T1001_%s_to_T1001_t4', seslbl), ...
-                                      fullfile('resampling_restricted', [tdt '_to_T1001_t4']));
+                                      fullfile(this.resamplingRestrictedPath, [tdt '_to_T1001_t4']));
                         end
                     end
                 catch ME
                     handwarning(ME)
                 end
             end            
-            ensuredir('resampling_restricted');
-            copyfile('*.json', 'resampling_restricted', 'f');
+            ensuredir(this.resamplingRestrictedPath);
+            copyfile('*.json', this.resamplingRestrictedPath, 'f');
         end
         function sub_struct = compose_t4s_to_subjectTracers(this)
+            import mlpet.SubjectResolverTools.*
+            
+            pwd0 = pushd(this.subjectPath);            
+            assert(isfile('t4_obj.mat'))
+            sub_struct = this.compose_t4s_to_subjectTracers_tree();
+            popd(pwd0)
+        end
+        function sub_struct = compose_t4s_to_subjectTracers_tree(this)
             %% COMPOSE_T4S simply globs('ses-E*') without looking in study json files.
             %  @param tracers := {'fdg' 'ho' 'oo' 'oc'}, default.  1st tracer will be reference for t4_resolve.
             %  @return sub_struct := {
@@ -348,8 +357,6 @@ classdef SubjectResolverTools < handle & matlab.mixin.Copyable
             %%
             
             import mlpet.SubjectResolverTools.*
-            
-            pwd0 = pushd(this.subjectPath);
             
             load('t4_obj.mat', 't4_obj')
             sub_struct = struct('tra_struct', t4_obj);
@@ -386,10 +393,76 @@ classdef SubjectResolverTools < handle & matlab.mixin.Copyable
                     deleteExisting(ses2sub_t4(sub_t4)) % paranoia
                     fv.t4_mul(fullfile(sesfold, ses_t4), sub_t4, ses2sub_t4(sub_t4));
                     fv.t4_mul(ses2sub_t4(sub_t4), to_T1001_t4, ...
-                              fullfile('resampling_restricted', [tracerdt(sub_t4, sesfold) '_to_T1001_t4']));
+                              fullfile(this.resamplingRestrictedPath, [tracerdt(sub_t4, sesfold) '_to_T1001_t4']));
                 end
             end
+        end
+        function sub_struct = compose_t4s_to_subjectTracers_trunk(this)
+            %% COMPOSE_T4S simply globs('ses-E*') without looking in study json files.
+            %  @param tracers := {'fdg' 'ho' 'oo' 'oc'}, default.  1st tracer will be reference for t4_resolve.
+            %  @return sub_struct := {
+            %   "tra_struct" = {
+            %     "fdg" = { "fdgdt<datetime>_to_op_fdg_avgr1_t4" },
+            %     "ho"  = { "hodt<datetime>_to_op_fdg_avgr_t4", ... },
+            %     "oc"  = { "ocdt<datetime>_to_op_fdg_avgr1_t4", ... }, ...
+            %   },
+            %   "ses_struct" = {
+            %     "ses-E00001" = {
+            %       "tra_struct" = {
+            %         "fdg" = { "fdg_avgr1_to_op_fdg_avgr1_t4" },
+            %         "ho"  = { "hodt<datetime>_to_op_fdg_avgr_t4", ... },
+            %         "oc"  = { "ocdt<datetime>_to_op_fdg_avgr1_t4", ... }, ...
+            %   },
+            %     "ses-E00002" = {
+            %       "tra_struct" = {
+            %         "fdg" = { "fdgdt<datetime>_to_op_fdg_avgr1_t4" },
+            %         "ho"  = { "hodt<datetime>_to_op_fdg_avgr_t4", ... },
+            %         "oc"  = { "oc_avgr1_to_op_oc_avgr1_t4" }, ...
+            %     }
+            %   }
+            % }
+            %%
             
+            import mlpet.SubjectResolverTools.*
+              
+            ses = globT('ses-E*');
+            assert(1 == length(ses))
+            load(fullfile(ses{1}, 't4_obj.mat'), 't4_obj');
+            sub_struct = struct('tra_struct', t4_obj);
+            ses_field = strrep(strrep(ses{1}, '/', ''), '-', '_');
+            sub_struct.ses_struct.(ses_field).tra_struct = t4_obj;
+            
+            % compose t4s:  tracer -> session -> subject -> T1001
+            
+            fv = mlfourdfp.FourdfpVisitor;
+            %if ~isempty(glob('resampling_restricted/*'))
+            %    system('rm -f resampling_restricted/*');
+            %end
+            ensuredir(this.resamplingRestrictedPath);
+            copyfile('*.json', this.resamplingRestrictedPath, 'f');
+            
+            pwd0 = pushd(ses{1});
+            to_T1001_t4 = tracerToT1001([this.tracers{1} '_avg']); % e.g., 'fdg_avg_to_T1001_t4'
+            
+            error('mlpet:NotImplementedError', 'SubjectResolverTools.compose_t4s_to_subjectTracers_trunk')
+            
+            for tra = this.tracers
+                for itra = 1:length(sub_struct.tra_struct.(tra{1}))                    
+                    sub_t4 = sub_struct.tra_struct.(tra{1}){itra};
+                    try
+                        [sesfold,ses_t4] = this.find_sesfold_and_t4ses(sub_t4, sub_struct, tra{1});
+                    catch ME
+                        disp(sub_t4)
+                        disp(sub_struct.ses_struct)
+                        disp(tra{1})
+                        handexcept(ME, 'mlpet:RuntimeWarning', 'SubjectResolveBuilder.compose_t4s()')
+                    end
+                    deleteExisting(ses2sub_t4(sub_t4)) % paranoia
+                    fv.t4_mul(fullfile(sesfold, ses_t4), sub_t4, ses2sub_t4(sub_t4));
+                    fv.t4_mul(ses2sub_t4(sub_t4), to_T1001_t4, ...
+                              fullfile(this.resamplingRestrictedPath, [tracerdt(sub_t4, sesfold) '_to_T1001_t4']));
+                end
+            end
             popd(pwd0)
         end
         function              copySurfer(this, sourcePath, destPath)
@@ -442,7 +515,7 @@ classdef SubjectResolverTools < handle & matlab.mixin.Copyable
             deleteExisting('T1001r1_op_*dt*_avgtr1.4dfp.*')
             
             popd(pwd0);
-        end        
+        end                 
         function [sesfold,ses_t4] = find_sesfold_and_t4ses(this, varargin)
             switch class(this.resolver_)
                 case 'mlpet.SubjectResolverToFDG'

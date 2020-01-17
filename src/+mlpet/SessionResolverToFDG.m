@@ -7,20 +7,6 @@ classdef SessionResolverToFDG < handle & mlpet.SessionResolverToTracer
  	%% It was developed on Matlab 9.7.0.1261785 (R2019b) Update 3 for MACI64.  Copyright 2020 John Joowon Lee.
  	
 	methods 
-        function this = alignCommonModal(this, varargin)
-            %  @param required tracer is char.
-            %  @return resolution of all scans with specified tracer in the session.
-            
-            ip = inputParser;
-            addRequired(ip, 'tracer', @ischar);
-            parse(ip, varargin{:});
-            this.tracer = ip.Results.tracer;
-            
-            prefixes = this.linkAndSimplifyScans(this.tracer, '_avgt');
-            if ~isempty(prefixes)
-                this.resolve(prefixes, varargin{2:end});
-            end
-        end
         function this = alignCrossModal(this)
             %% ALIGNCROSSMODAL
             %  theFdg,theHo,theOo,theOc

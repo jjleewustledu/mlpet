@@ -11,43 +11,73 @@ classdef Test_TracerSuvrBuilder < matlab.unittest.TestCase
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2018 John Joowon Lee.
  	
 	properties
-        hyglyNN = 'HYGLY30'
+        fqfn = '/scratch/jjlee/Singularity/subjects_00993/sub-S00001/resampling_restricted/hodt20190326112129.4dfp.hdr';
  		registry
-        sessd
+        sessData
+        sessFold = 'ses-E00054'
+        subjFold = 'sub-S00001'
+        suvrCon
  		testObj
+        tracer = 'HO'
         viewer
         vnumber = 1
  	end
 
 	methods (Test)
-		function test_afun(this)
- 			import mlpet.*;
- 			this.assumeEqual(1,1);
- 			this.verifyEqual(1,1);
- 			this.assertEqual(1,1);
+        function test_SuvrContext(this)
+            disp(this.suvrCon)
+            disp(this.testObj)
+        end
+        function test_averageProduct(this)
+            this.testObj = this.testObj.buildCbf;    
+            avgCbf = this.testObj.averageProduct(this.testObj.product);
+            disp(avgCbf)
+            disp(avgCbf.sessionData)
+            disp(avgCbf.imagingContext)
+            avgCbf.fsleyes
+        end
+        function test_mask(this)
+           mask = this.testObj.constructMaskContext(); 
+           mask.fsleyes
         end
         function test_buildAll(this)
-            p = this.testObj.buildAll;
-            this.viewer.view(p)
+            this.testObj = this.testObj.buildAll;
+            this.testObj.product{5}.fsleyes
         end
-        function test_buildTimeContraction(this)
-            tracers = {'FDG' 'OC' 'OO' 'HO'};
-            for tr = 1:length(tracers)
-                this.testObj.tracer = tracers{tr};
-                [this.testObj,tw] = this.testObj.buildTimeContraction;
-                plot(tw);
-                xlabel('frame indices'); ylabel(sprintf('\\Sigma_{x} activity(%s(x)) in Bq', tracers{tr}));
-                title('time-windowed volume contraction');
-                this.viewer.view(this.testObj.product);
-            end
+        function test_buildCbf(this)
+            this.testObj = this.testObj.buildCbf;
+            this.testObj.product{1}.fsleyes;
         end
-        function test_buildOnAtl(this)
-            tracers = {'FDG' 'OC' 'OO' 'HO'};
-            for tr = 1:length(tracers)
-                this.testObj.tracer = tracers{tr};
-                this.testObj = this.testObj.buildOnAtl; 
-                this.viewer.view(this.testObj.atlas, this.testObj.product);
-            end
+        function test_buildCbv(this)
+            this.testObj = this.testObj.buildCbv;
+            this.testObj.product{1}.fsleyes;
+        end
+        function test_buildY(this)
+            this.testObj = this.testObj.buildY;
+            this.testObj.product{1}.fsleyes;
+        end
+        function test_buildBetas(this)
+            that = this.testObj;
+            
+            theCbf = that.averageProduct(that.buildCbf.product);
+            theCbv = that.averageProduct(that.buildCbv.product);
+            theY   = that.averageProduct(that.buildY.product);
+            [that,mdl] = that.buildBetas(theCbf, theCbv, theY);
+            cmro2 = that.product{1};
+            cmro2.fsleyes
+            oef = that.product{2};
+            oef.fsleyes
+            %msk = that.product{3};            
+            %this.verifyEqual(mdl.Coefficients{1,'Estimate'}, 0.85312, 'RelTol', 0.01);
+            %this.verifyEqual(mdl.Coefficients{2,'Estimate'}, 0.13157, 'RelTol', 0.01);
+            plotResiduals(   mdl);
+            plotDiagnostics( mdl, 'cookd');
+            plotSlice(       mdl);
+            %this.viewer.view(msk.imagingContext, cmro2.imagingContext, oef.imagingContext)
+            %volAver = cmro2.volumeAveraged(msk);
+            %this.verifyEqual(double(volAver.img), 0.8684285283, 'RelTol', 0.01)
+            %volAver = oef.volumeAveraged(msk);
+            %this.verifyEqual(double(volAver.img), 1.0403, 'RelTol', 0.01)
         end
         function test_buildTracer(this)
             tracers = {'FDG' 'OC' 'OO' 'HO'};
@@ -61,24 +91,11 @@ classdef Test_TracerSuvrBuilder < matlab.unittest.TestCase
                 this.verifyTrue(lexist_4dfp(p.fqfileprefix));
             end
         end
-        function test_buildBetas(this)
-            [this.testObj,cmro2,oef,msk,mdl] = this.testObj.buildBetas;
-            this.verifyEqual(mdl.Coefficients{1,'Estimate'}, 0.85312, 'RelTol', 0.01);
-            this.verifyEqual(mdl.Coefficients{2,'Estimate'}, 0.13157, 'RelTol', 0.01);
-            plotResiduals(   mdl);
-            plotDiagnostics( mdl, 'cookd');
-            plotSlice(       mdl);
-            this.viewer.view(this.testObj.atlas, cmro2, oef)
-            volAver = cmro2.volumeAveraged(msk);
-            this.verifyEqual(double(volAver.img), 0.8684285283, 'RelTol', 0.01)
-            volAver = oef.volumeAveraged(msk);
-            this.verifyEqual(double(volAver.img), 1.0403, 'RelTol', 0.01)
-        end
         function test_buildGlcMetab(this)
             [this.testObj,ogi] = this.testObj.buildGlcMetab;
             this.viewer.view(this.testObj.atlas, ogi)
         end
-        function test_buildTracerSuvrAveraged(this)  
+        function test_buildTracerSuvrAveraged(this)
             for tr = 2:length(this.testObj.SUPPORTED_TRACERS)      
                 tracers_ = {};
                 for sc = 1:3
@@ -108,14 +125,20 @@ classdef Test_TracerSuvrBuilder < matlab.unittest.TestCase
 
  	methods (TestClassSetup)
 		function setupTracerSuvrBuilder(this)
- 			import mlpet.*;
-            studyd        = mlraichle.StudyData;
-            sessp         = fullfile(studyd.subjectsDir, this.hyglyNN, '');
-            this.sessd    = mlraichle.SessionData( ...
-                'studyData', studyd, 'sessionPath', sessp, 'vnumber', this.vnumber, 'ac', true);
- 			this.testObj_ = TracerSuvrBuilder('sessionData', this.sessd);
+            studyData     = mlan.StudyData();
+            projData      = mlan.ProjectData('sessionStr', this.sessFold);
+            subjData      = mlan.SubjectData('subjectFolder', this.subjFold);
+            this.sessData = mlan.SessionData( ...
+                'studyData', studyData, ...
+                'projectData', projData, ...
+                'subjectData', subjData, ...
+                'sessionFolder', this.sessFold, ...
+                'tracer', this.tracer, ...
+                'ac', true);
+            this.suvrCon = mlpet.SuvrContext('sessionData', this.sessData, 'filename', this.fqfn);
+ 			this.testObj_ = mlan.TracerSuvrBuilder('sessionData', this.sessData);
             this.testObj_.rebuild = false;
-            this.viewer   = mlfourdfp.Viewer('freeview');
+            this.viewer = mlfourdfp.Viewer('fsleyes');
  		end
 	end
 

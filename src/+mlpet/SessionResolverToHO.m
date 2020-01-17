@@ -102,7 +102,7 @@ classdef SessionResolverToHO < handle & mlpet.SessionResolverToTracer
             oc_to_op_ref_t4 = sprintf('oc_avgr1_to_op_%s_avgr1_t4', ref);
             for c = asrow(oc_glob)
                 t4 = sprintf('%s_to_op_%s_avgr1_t4', this.collectionRB.frontOfT4(c{1}), ref);
-                mlbash(sprintf('t4_mul %s %s %s', c{1}, oc_to_op_ref_t4{1}, t4))
+                mlbash(sprintf('t4_mul %s %s %s', c{1}, oc_to_op_ref_t4, t4))
                 t4_obj.oc = [t4_obj.oc t4];
             end
             if isempty(t4_obj.oc)

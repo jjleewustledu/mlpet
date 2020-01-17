@@ -129,8 +129,6 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'studyData', [])
-            addParameter(ip, 'subjectData', [])
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'))
             addParameter(ip, 'makeClean', true, @islogical)
             parse(ip, varargin{:});            
@@ -139,13 +137,6 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
             this.makeClean_ = ipr.makeClean;
             if this.makeClean_
                 this.makeClean()
-            end
-            this.sessionData_ = ipr.sessionData;
-            if ~isempty(ipr.studyData)
-                ipr.sessionData.studyData = ipr.studyData;
-            end
-            if ~isempty(ipr.subjectData)
-                ipr.sessionData.subjectData = ipr.subjectData;
             end
             this.sessionData_ = ipr.sessionData;
             this.resolverStrategy_ = mlpet.ResolverToTracerStrategy.CreateResolver(this);            

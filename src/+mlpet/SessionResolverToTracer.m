@@ -124,7 +124,7 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
             switch lower(tr)
                 case 'fdg'
                     fqfp = this.finalFdg('*', varargin{:});
-                case 'ho'
+                case 'ho'                    
                     fqfp = this.finalHo('*', '*', varargin{:});
                 case 'oo'
                     fqfp = this.finalOo('*', '*', varargin{:});
@@ -238,52 +238,62 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
         
         function fqfp = finalFdg(this, dt, varargin)
             ip = inputParser;
-            addOptional(ip, 'suffix', '', @ischar)
+            addParameter(ip, 'suffix', '', @ischar)
+            addParameter(ip, 'path', this.workpath, @isfolder)
             parse(ip, varargin{:})
+            ipr = ip.Results;
             
             ref  = lower(this.client_.sessionData.referenceTracer);
-            fqfp = fullfile(this.workpath, ...
-                sprintf('fdg%s_op_fdg%s_on_op_%s_avgr1', this.ensureDtFormat(dt), ip.Results.suffix), ref);
+            fqfp = fullfile(ipr.path, ...
+                sprintf('fdg%s_op_fdg%s_on_op_%s_avgr1', this.ensureDtFormat(dt), ipr.suffix, ref));
         end
         function fqfp = finalHo(this, dt, dt0, varargin)
             ip = inputParser;
-            addOptional(ip, 'suffix', '', @ischar)
+            addParameter(ip, 'suffix', '', @ischar)
+            addParameter(ip, 'path', this.workpath, @isfolder)
             parse(ip, varargin{:})
+            ipr = ip.Results;
             
             ref  = lower(this.client_.sessionData.referenceTracer);
-            fqfp = fullfile(this.workpath, ...
+            fqfp = fullfile(ipr.path, ...
                 sprintf('ho%s_op_ho%s%s_on_op_%s_avgr1', ...
-                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.suffix), ref);
+                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ipr.suffix, ref));
         end
         function fqfp = finalOo(this, dt, dt0, varargin)
             ip = inputParser;
-            addOptional(ip, 'suffix', '', @ischar)
+            addParameter(ip, 'suffix', '', @ischar)
+            addParameter(ip, 'path', this.workpath, @isfolder)
             parse(ip, varargin{:})
+            ipr = ip.Results;
             
             ref  = lower(this.client_.sessionData.referenceTracer);
-            fqfp = fullfile(this.workpath, ...
+            fqfp = fullfile(ipr.path, ...
                 sprintf('oo%s_op_oo%s%s_on_op_%s_avgr1', ...
-                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.suffix), ref);
+                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ipr.suffix, ref));
+        end
+        function fqfp = finalOc_FDG(this, dt, dt0, dtfdg, varargin)
+            ip = inputParser;
+            addParameter(ip, 'avgstr', '', @ischar)
+            addParameter(ip, 'path', this.workpath, @isfolder)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            fqfp = fullfile(ipr.path, ...
+                sprintf('oc%s_op_oc%s%s_on_op_fdg%s_frames1to%i_avgtr1', ...
+                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ipr.avgstr, this.ensureDtFormat(dtfdg), this.framesForTargetFDG));
         end
         function fqfp = finalOc_HO(this, dt, dt0, varargin)
             ip = inputParser;
-            addOptional(ip, 'suffix', '', @ischar)
+            addParameter(ip, 'suffix', '', @ischar)
+            addParameter(ip, 'path', this.workpath, @isfolder)
             parse(ip, varargin{:})
+            ipr = ip.Results;
             
             ref  = lower(this.client_.sessionData.referenceTracer);
-            fqfp = fullfile(this.workpath, ...
+            fqfp = fullfile(ipr.path, ...
                 sprintf('oc%s_op_oc%s%s_on_op_%s_avgr1', ...
-                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.suffix), ref);
-        end  
-        function fqfp = finalOc_FDG(this, dt, dt0, dtfdg, varargin)
-            ip = inputParser;
-            addOptional(ip, 'avgstr', '', @ischar)
-            parse(ip, varargin{:})
-            
-            fqfp = fullfile(this.workpath, ...
-                sprintf('oc%s_op_oc%s%s_on_op_fdg%s_frames1to%i_avgtr1', ...
-                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ip.Results.avgstr, this.ensureDtFormat(dtfdg), this.framesForTargetFDG));
-        end      
+                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ipr.suffix, ref));
+        end        
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
