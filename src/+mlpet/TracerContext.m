@@ -47,6 +47,9 @@ classdef TracerContext
         function g = get.filesuffix(this)
             g = this.imagingContext_.filesuffix;
         end
+        function this = set.filesuffix(this, s)
+            this.imagingContext_.filesuffix = s;
+        end
         function g = get.fqfilename(this)
             g = fullfile(this.filepath, this.filename);
         end
@@ -107,6 +110,16 @@ classdef TracerContext
         end
         function this = scrubNanInf(this)
             this.imagingContext_ = this.imagingContext_.scrubNanInf();
+        end
+        function this = scrubGt(this, val)
+            fdfp = this.imagingContext_.fourdfp;
+            fdfp.img(fdfp.img > val) = 0;
+            this.imagingContext_ = mlfourd.ImagingContext2(fdfp);
+        end
+        function this = scrubLt(this, val)
+            fdfp = this.imagingContext_.fourdfp;
+            fdfp.img(fdfp.img < val) = 0;
+            this.imagingContext_ = mlfourd.ImagingContext2(fdfp);
         end
         function this = scrubNegative(this)
             fdfp = this.imagingContext_.fourdfp;
