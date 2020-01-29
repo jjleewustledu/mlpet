@@ -396,9 +396,13 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
         function this = readtables(this, fqfn)
             fprintf('mlpet.CCIRRadMeasurements.readtables:  reading %s\n', fqfn);
             for t = 1:length(this.tableNames)
-                this.addgetprop( ...
-                    this.tableNames{t}, ...
-                    this.readtable(fqfn, this.sheetNames{t}, this.hasVarNames(t), this.hasRowNames(t), this.datetimeTypes{t}));
+                try
+                    this.addgetprop( ...
+                        this.tableNames{t}, ...
+                        this.readtable(fqfn, this.sheetNames{t}, this.hasVarNames(t), this.hasRowNames(t), this.datetimeTypes{t}));
+                catch ME
+                    handwarning(ME)
+                end
             end
             
             this.clocks = this.convertClocks2sec(this.clocks); % needed for dependencies

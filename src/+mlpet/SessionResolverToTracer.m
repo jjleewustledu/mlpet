@@ -182,6 +182,7 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
  			%  @param .
 
  			this = this@mlpet.ResolverToTracerStrategy(varargin{:});
+            ensuredir(fullfile(this.client_.sessionData.subjectPath, this.client_.sessionData.sessionFolder, ''))
             this.collectionRB_ = mlfourdfp.CollectionResolveBuilder( ...
                 'sessionData', this.client_.sessionData, ...
                 'workpath', fullfile(this.client_.sessionData.subjectPath, this.client_.sessionData.sessionFolder, ''));
