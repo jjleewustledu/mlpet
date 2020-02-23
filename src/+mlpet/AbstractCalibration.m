@@ -8,13 +8,15 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous
  	 	
 	properties (Constant)
         WATER_DENSITY = 0.9982 % pure water at 20 C := 0.9982 mL/g; tap := 0.99823
+        BLOOD_DENSITY = 1.06 % https://hypertextbook.com/facts/2004/MichaelShmukler.shtml; human whole blood 37 C
+        BRAIN_DENSITY = 1.05 % Torack et al., 1976
     end
     
     properties (Dependent)
-        alpha
-        trainedModelInvEff
+        alpha % for significance
+        trainedModelInvEff % from regressionLearner
         trainedModelInvEff_mat % mat-filename
-        wellCounter
+        wellCounter 
     end
 
 	methods 
@@ -25,10 +27,10 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous
             g = mlpipeline.ResourcesRegistry.instance().alpha;
         end
         function g = get.trainedModelInvEff(this)
-            g = this.getTrainedModelInvEff__;
+            g = this.getTrainedModelInvEff__();
         end
         function g = get.trainedModelInvEff_mat(this)
-            g = this.getTrainedModelInvEff_mat__;
+            g = this.getTrainedModelInvEff_mat__();
         end
         function g = get.wellCounter(this)
             g = this.radMeasurements_.wellCounter;
@@ -79,7 +81,7 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous
             end
             
             load(this.trainedModelInvEff_mat, 'trainedModel');
-            assert(isstruct(trainedModel)); %#ok<NODEF>
+            assert(isstruct(trainedModel)); 
             assert(isa(trainedModel.predictFcn, 'function_handle'));
             assert(strcmp(trainedModel.About, ...
                 'This struct is a trained model exported from Regression Learner R2018a.'));
