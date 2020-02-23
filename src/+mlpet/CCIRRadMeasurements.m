@@ -285,6 +285,27 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 dt = dt2;
             end
         end
+        function trac = datetime2tracer(this, dt)
+            assert(isdatetime(dt));
+            trac = this.tracerAdmin.Properties.RowNames( ...
+                abs(this.tracerAdmin.TrueAdmin_Time_Hh_mm_ss - dt) < minutes(10));
+            trac = trac{1};
+            trac = strrep(trac, '[15', '');
+            trac = strrep(trac, '[18', '');            
+            trac = strrep(trac, ']', '');
+            trac = strrep(trac, '_1', '');
+        end
+        function iso  = datetime2isotope(this, dt)
+            trac = this.datetime2tracer(dt);
+            switch upper(trac)
+                case {'CO' 'OO' 'HO'}
+                    iso = '15O';
+                case 'FDG'
+                    iso = '18F';
+                otherwise
+                    error('mlpet:NotImplementedError', 'CCIRRadMeasurements.datetime2isotope for tracer %s', trac)
+            end
+        end
         function dt   = datetimeCapracHeader(this)
             assert(strcmp(this.capracHeader{1,1}, 'DATE:'));
             dt = this.datetimeConvertFromExcel(str2double(this.capracHeader{1,2}));

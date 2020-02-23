@@ -286,7 +286,7 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
             di = trapz(this.times(idx0:idxF), this.specificDecays(idx0:idxF));
         end   
         function [t,this] = timeInterpolants(this, varargin)
-            [t,this] = this.timingData_.timeInterpolants(varargin{:});
+            t = this.timingData_.timeInterpolants(varargin{:});
         end
         function this     = uncorrectedActivities(this, tzero)
             if (~isempty(this.counts_))
