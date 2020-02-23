@@ -1,4 +1,4 @@
-classdef BloodSuckerDevice < mlpet.Instrument
+classdef BloodSuckerDevice < mlpet.Device
 	%% BLOODSUCKERDEVICE  
 
 	%  $Revision$
@@ -16,7 +16,7 @@ classdef BloodSuckerDevice < mlpet.Instrument
  			%% BLOODSUCKERDEVICE
  			%  @param .
 
- 			this = this@mlpet.Instrument(varargin{:});
+ 			this = this@mlpet.Device(varargin{:});
  		end
  	end 
 

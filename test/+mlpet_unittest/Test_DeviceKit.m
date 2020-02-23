@@ -1,8 +1,8 @@
-classdef Test_InstrumentKit < matlab.unittest.TestCase
+classdef Test_DeviceKit < matlab.unittest.TestCase
 	%% TEST_INSTRUMENTKIT 
 
-	%  Usage:  >> results = run(mlpet_unittest.Test_InstrumentKit)
- 	%          >> result  = run(mlpet_unittest.Test_InstrumentKit, 'test_dt')
+	%  Usage:  >> results = run(mlpet_unittest.Test_DeviceKit)
+ 	%          >> result  = run(mlpet_unittest.Test_DeviceKit, 'test_dt')
  	%  See also:  file:///Applications/Developer/MATLAB_R2014b.app/help/matlab/matlab-unit-test-framework.html
 
 	%  $Revision$
@@ -24,19 +24,19 @@ classdef Test_InstrumentKit < matlab.unittest.TestCase
  			this.assertEqual(1,1);
         end
         function test_prepareCapracDevice(this)
-            caprac = mlpet.InstrumentKit.prepareCapracDevice('session', this.session);
+            caprac = mlpet.DeviceKit.prepareCapracDevice('session', this.session);
             d = caprac.makeMeasurements(this.scan);
             this.verifyClass(d, 'mlcapintec.CapracData');
             %this.verifyEqual(d, );
         end
         function test_prepareTwiliteDevice(this)
-            twilite = mlpet.InstrumentKit.prepareTwiliteDevice('session', this.session);
+            twilite = mlpet.DeviceKit.prepareTwiliteDevice('session', this.session);
             d = twilite.makeMeasurements(this.scan);
             this.verifyClass(d, 'mlswisstrace.TwiliteData');
             %this.verifyEqual(d, );
         end
         function test_prepareBiographMMRDevice(this)
-            mmr = mlpet.InstrumentKit.prepareBiographMMRDevice('session', this.session);
+            mmr = mlpet.DeviceKit.prepareBiographMMRDevice('session', this.session);
             d = mmr.makeMeasurements(this.scan);
             this.verifyClass(d, 'mlsiemens.BiographMMRData');
             %this.verifyEqual(d, );
@@ -44,12 +44,12 @@ classdef Test_InstrumentKit < matlab.unittest.TestCase
 	end
 
  	methods (TestClassSetup)
-		function setupInstrumentKit(this)            
+		function setupDeviceKit(this)            
  		end
 	end
 
  	methods (TestMethodSetup)
-		function setupInstrumentKitTest(this)
+		function setupDeviceKitTest(this)
  			import mlraichle.*;
             this.session = MockSession( ...
                 'project', 'CCIR_00559', 'subject', 'NP995-24', 'session', 'NP995-24_V1');

@@ -1,8 +1,8 @@
-classdef (Abstract) InstrumentKit < handle
+classdef (Abstract) DeviceKit < handle
 	%% INSTRUMENTKIT is the AbstractFactory in an abstract factory pattern.
     %  For concrete factory subclasses see also:  
-    %      mlpowers.InstrumentKit, mlarbelaez.InstrumentKit, mlraichle.InstrumentKit.  
-    %  InstrumentKit's abstract products are mlpet.Instrument.  For concrete products see also:  
+    %      mlpowers.DeviceKit, mlarbelaez.DeviceKit, mlraichle.DeviceKit.  
+    %  DeviceKit's abstract products are mlpet.Device.  For concrete products see also:  
     %      {mlpowers, mlarbelaez, mlraichle, ....}.{BloodSuckerDevice, CapracDevice, TwiliteDevice, 
     %      BiographMMRDevice, EcatExactHRPlusDevice}.
 
@@ -23,7 +23,7 @@ classdef (Abstract) InstrumentKit < handle
         function this = instance()
             persistent uniqueInstance
             if isempty(uniqueInstance)
-                this = mlpet.InstrumentKit();
+                this = mlpet.DeviceKit();
                 uniqueInstance = this;
             else
                 this = uniqueInstance;
@@ -46,7 +46,7 @@ classdef (Abstract) InstrumentKit < handle
             %  @return mlpet.ReferenceSource.
             
             import mlpet.ReferenceSource;
-            import mlpet.InstrumentKit;
+            import mlpet.DeviceKit;
             
             ip = inputParser;
             addParameter(ip, 'session', [], @(x) isa(x, 'mlraichle.Session'));
@@ -81,11 +81,11 @@ classdef (Abstract) InstrumentKit < handle
             end
         end
         function obj = prepareCapracDevice(varargin)
- 			%% PREPARECAPRACDEVICE instantiates the InstrumentKit with the device then calibrates the device.
+ 			%% PREPARECAPRACDEVICE instantiates the DeviceKit with the device then calibrates the device.
  			%  @param session is mlraichle.Scan.
             
             import mlraichle.*;
-            this = InstrumentKit(varargin{:});
+            this = DeviceKit(varargin{:});
             obj  = CapracDevice( ...
                 'radMeasurements',  this.createRadMeasurements( 'session', this.sessionData_), ...
                 'referenceSources', this.createReferenceSources('session', this.sessionData_));
@@ -94,31 +94,31 @@ classdef (Abstract) InstrumentKit < handle
             catch ME
                 handexcept(ME, ...
                     'mlraichle:RunTimeError', ...
-                    'InstrumentKit.prepareCapracDevice could not calibrate the device');
+                    'DeviceKit.prepareCapracDevice could not calibrate the device');
             end
         end
         function obj = prepareTwiliteDevice(varargin)
             import mlraichle.*;
-            this = InstrumentKit(varargin{:});
+            this = DeviceKit(varargin{:});
             obj  = TwiliteDevice('radMeasurements', this.createRadMeasurements('session', this.sessionData_));
             try
                 obj = obj.calibrateDevice(this.twiliteCalMeasurements);
             catch ME
                 handexcept(ME, ...
                     'mlraichle:RunTimeError', ...
-                    'InstrumentKit.prepareTwiliteDevice could not calibrate the device');
+                    'DeviceKit.prepareTwiliteDevice could not calibrate the device');
             end
         end
         function obj = prepareBiographMMRDevice(varargin)
             import mlraichle.*;
-            this = InstrumentKit(varargin{:});
+            this = DeviceKit(varargin{:});
             obj  = BiographMMRDevice('radRadMeasurements', this.createRadMeasurements('session', this.sessionData_));
             try
                 obj = obj.calibrateDevice(this.biographMMRCalMeasurements);
             catch ME
                 handexcept(ME, ...
                     'mlraichle:RunTimeError', ...
-                    'InstrumentKit.prepareBiographMMRDevice could not calibrate the device');
+                    'DeviceKit.prepareBiographMMRDevice could not calibrate the device');
             end
         end
         function obj = prepareBloodSuckerDevice(varargin)
@@ -156,7 +156,7 @@ classdef (Abstract) InstrumentKit < handle
     end
     
     methods (Access = private) 		
- 		function this = InstrumentKit(varargin)
+ 		function this = DeviceKit(varargin)
  			%% INSTRUMENTKIT
  			%  @param session is mlraichle.Session.
             

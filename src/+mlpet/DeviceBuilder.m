@@ -1,4 +1,4 @@
-classdef InstrumentBuilder < handle & mlpipeline.AbstractHandleSessionBuilder
+classdef DeviceBuilder < handle & mlpipeline.AbstractHandleSessionBuilder
 	%% INSTRUMENTBUILDER  
 
 	%  $Revision$
@@ -24,7 +24,7 @@ classdef InstrumentBuilder < handle & mlpipeline.AbstractHandleSessionBuilder
         
         %% 
         
-        function this = InstrumentBuilder(varargin)
+        function this = DeviceBuilder(varargin)
             this = this@mlpipeline.AbstractHandleSessionBuilder(varargin{:});
         end
 		  
@@ -41,7 +41,6 @@ classdef InstrumentBuilder < handle & mlpipeline.AbstractHandleSessionBuilder
             g = this.calibration_;
         end
         function setCalibration__(this, s)
-            assert(isa(s, 'mlpet.AbstractCalibration'));
             this.calibration_ = s;
         end
     end    

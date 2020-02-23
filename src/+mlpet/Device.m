@@ -1,4 +1,4 @@
-classdef (Abstract) Instrument < handle
+classdef (Abstract) Device < handle
 	%% INSTRUMENT is the AbstractProduct in an abstract factory pattern.
     %  For concrete products see also:  {mlpowers, mlarbelaez, mlraichle, ....}.{BloodSuckerDevice, CapracDevice, 
     %  TwiliteDevice, BiographMMRDevice, EcatExactHRPlusDevice}.
@@ -24,17 +24,17 @@ classdef (Abstract) Instrument < handle
             %  @param required ie is numeric.
             %  @throws mlpet:ValueError.
             
-            import mlpet.Instrument;
+            import mlpet.Device;
             assert(isnumeric(ie), ...
                 'mlpet:ValueError', ...
-                'Instrument.checkRangeInvEfficiency.ie has unsupported typeclass %s', class(ie));
+                'Device.checkRangeInvEfficiency.ie has unsupported typeclass %s', class(ie));
             assert(~isempty(ie), ...
                 'mlpet:ValueError', ...
-                ['Instrument.checkRangeInvEfficiency.ie was empty.  ' ...
+                ['Device.checkRangeInvEfficiency.ie was empty.  ' ...
                  'Call calibrateDevice before calling calibrateMeasurement or invEfficiency.']);
-            assert(all(1 - Instrument.alpha < ie) && all(ie < 1 + Instrument.alpha), ...
+            assert(all(1 - Device.alpha < ie) && all(ie < 1 + Device.alpha), ...
                 'mlpet:ValueError', ...
-                'Instrument.checkRangeInvEfficiency.ie->%s', mat2str(ie));
+                'Device.checkRangeInvEfficiency.ie->%s', mat2str(ie));
         end
     end
     
@@ -77,7 +77,7 @@ classdef (Abstract) Instrument < handle
             this.checkRangeInvEfficiency(ie);
         end
         
-        function this = Instrument(varargin)
+        function this = Device(varargin)
             %% INSTRUMENT for positron emission measurements.
             %  @param radMeasurements is mlpet.RadMeasurements.
             %  @param alpha is numeric.
