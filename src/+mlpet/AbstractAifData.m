@@ -16,7 +16,8 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
     
 	properties (Dependent)
         activity          % in Bq := specificActivity*voxelVolume
-        counts            % in Bq/mL := specificActivity without efficiency adjustments; native to scanner
+        activityDensity   % in Bq/mL
+        counts            % in cps := activity with unknown efficiency; native to instrument
         decayCorrection
         decays            % in Bq*s := specificActivity*voxelVolume*tau
         doseAdminDatetime
@@ -318,11 +319,10 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         doseAdminDatetime_
         isDecayCorrected_
         isotope_
-        sessionData_
-        specificActivity_
-        
         manualData_
         scannerData_
+        sessionData_
+        specificActivity_        
     end  
     
     methods (Access = protected)

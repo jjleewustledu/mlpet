@@ -11,6 +11,7 @@ classdef Radionuclides
     end
     
 	properties (Dependent)
+        branchingRatio % true_activity := measured_activity / branching_ratio
         decayConstant % legacy synonym for decayRate
         decayRate % \alpha = log(2)/\tau_{1/2}
         halflife
@@ -19,7 +20,31 @@ classdef Radionuclides
         nuclide % legacy synonym for isotope
     end
  		
-    methods %% GET
+    methods 
+        
+        %% GET
+        
+        function g = get.branchingRatio(this)
+            % http://www.turkupetcentre.net/petanalysis/branching_ratio.html
+            switch (this.isotope)
+                case '11C'
+                    g = 0.998;
+                case '13N'
+                    g = 0.998;
+                case '15O'
+                    g = 0.999;
+                case '18F'
+                    g = 0.967;
+                case '22Na'
+                    g = 0.9;
+                case '68Ga'
+                    g = 0.891;
+                case '68Ge'
+                    g = 0.891;
+                otherwise
+                    g = nan;
+            end
+        end
         function g = get.decayConstant(this)
             g = this.decayRate;
         end

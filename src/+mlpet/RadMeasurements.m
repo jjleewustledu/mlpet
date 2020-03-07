@@ -1,4 +1,4 @@
-classdef (Abstract) RadMeasurements < handle
+classdef (Abstract) RadMeasurements < handle & matlab.mixin.Heterogeneous
 	%% RADMEASUREMENTS  
 
 	%  $Revision$
@@ -29,8 +29,7 @@ classdef (Abstract) RadMeasurements < handle
         end
     end
         
-	methods 
-		  
+	methods 		  
  		function this = RadMeasurements(varargin)
  			%% RADMEASUREMENTS
  			%  @param .

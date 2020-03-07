@@ -270,7 +270,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             dt1 = datetime(this.session_); 
             dt2 = this.datetimeTracerAdmin('earliest', true);
             dt  = NaT;
-            if (~isnat(dt1) && ~isnat(dt2))
+            if ~isnat(dt1) && ~isnat(dt2)
                 if ~this.equivDates(dt1, dt2)
                     warning('mlpet:ValueWarning', ...
                         'CCIRRadMeasurements.datetime().dt1->%s but dt2->%s; using dt1 for session', dt1, dt2)
@@ -278,11 +278,20 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 dt = dt1;
                 return
             end
-            if (~isnat(dt1))
+            if ~isnat(dt1)
                 dt = dt1;
             end
-            if (~isnat(dt2))
+            if ~isnat(dt2)
                 dt = dt2;
+            end
+            if isnat(dt)
+                re = regexp(this.fileprefix, 'CCIRRadMeasurements (?<dt>\d{4}\w{3}\d+)', 'names');
+                if ~isempty(re)
+                    dt = datetime(re.dt, 'InputFormat', 'yyyyMMMdd');
+                end
+            end
+            if isempty(dt.TimeZone)
+                dt.TimeZone = this.preferredTimeZone;
             end
         end
         function trac = datetime2tracer(this, dt)
@@ -400,6 +409,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
  			
  			this = this@mldata.Xlsx(varargin{:});
             ip = inputParser;
+            ip.KeepUnmatched = true;
             addParameter(ip, 'session', mlxnat.Session, @(x) isa(x, 'mlxnat.Session') || isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'alwaysUseSessionDate', true, @islogical);
             parse(ip, varargin{:});

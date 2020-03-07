@@ -1,4 +1,4 @@
-classdef (Abstract) Decay < handle & mlpet.IDecaying
+classdef Decay < handle & mlpet.IDecaying
 	%% DECAY  
 
 	%  $Revision$
@@ -17,9 +17,9 @@ classdef (Abstract) Decay < handle & mlpet.IDecaying
         zerodatetime
  	end
     
-    methods (Abstract, Static)
-        this = CreateFromScanId(varargin)
-    end
+%    methods (Abstract, Static)
+%        this = CreateFromScanId(varargin)
+%    end
     
 	methods 
         
