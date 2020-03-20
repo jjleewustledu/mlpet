@@ -113,7 +113,7 @@ classdef Test_CCIRRadMeasurements < matlab.unittest.TestCase
             %setenv('CCIR_RAD_MEASUREMENTS_DIR', this.home);
             this.aDate = datetime(2018,10,5);
             warning('off', 'mlraichle:ValueWarning');   
- 			this.testObj = mlraichle.CCIRRadMeasurements.createByDate(this.aDate);
+ 			this.testObj = mlraichle.CCIRRadMeasurements.createFromDate(this.aDate);
             warning('on', 'mlraichle:ValueWarning');   
  			this.addTeardown(@this.cleanFiles);
  		end

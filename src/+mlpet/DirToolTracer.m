@@ -30,7 +30,7 @@ classdef DirToolTracer
                 cs = strsplit(s, '.');
                 s = cs{1};
             end
-            dt = datetime([s(1:8) 'T' s(9:end)]);
+            dt = datetime([s(1:8) 'T' s(9:end)], 'TimeZone', mlpipeline.ResourcesRegistry.instance().preferredTimeZone);
         end
         function tr = folder2tracer(s)
             assert(ischar(s));            

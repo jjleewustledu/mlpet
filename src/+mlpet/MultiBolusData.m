@@ -1,4 +1,4 @@
-classdef MultiBolusData < handle & mldata.TimingData
+classdef MultiBolusData < handle & mldata.ITiming & mldata.TimingData
 	%% TWILITETIMINGDATA  
 
 	%  $Revision$
@@ -14,7 +14,7 @@ classdef MultiBolusData < handle & mldata.TimingData
         activity % used to identify boluses
         activityHalflife
         activityLifetime
-        doMeasureBaseline
+        measuredBaseline
         expectedBaseline
     end
 
@@ -31,8 +31,8 @@ classdef MultiBolusData < handle & mldata.TimingData
         function g = get.activityLifetime(this)
             g = this.radionuclides_.lifetime;
         end
-        function g = get.doMeasureBaseline(this)
-            g = this.doMeasureBaseline_;
+        function g = get.measuredBaseline(this)
+            g = this.measuredBaseline_;
         end
         function g = get.expectedBaseline(this)
             g = this.expectedBaseline_;
@@ -47,13 +47,13 @@ classdef MultiBolusData < handle & mldata.TimingData
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'expectedBaseline', this.expectedBaseline, @isnumeric);
-            addParameter(ip, 'doMeasureBaseline', this.doMeasureBaseline, @islogical);
+            addParameter(ip, 'measuredBaseline', this.measuredBaseline, @islogical);
             parse(ip, varargin{:});
             ipr = ip.Results;
             
             this.expectedBaseline_ = ipr.expectedBaseline;
-            this.doMeasureBaseline_ = ipr.doMeasureBaseline;
-            if (~this.doMeasureBaseline_)
+            this.measuredBaseline_ = ipr.measuredBaseline;
+            if (~this.measuredBaseline_)
                 m = this.expectedBaseline_;
                 s = sqrt(m);
                 return
@@ -88,7 +88,7 @@ classdef MultiBolusData < handle & mldata.TimingData
             parse(ip, varargin{:});  
             [m,s] = this.baselineTimeForward(flip(ip.Results.activity));
         end
-        function [bols,base]  = boluses(this)
+        function [bols,base] = boluses(this)
             %% BOLUSES 
             %  @return bols have m := this.baseline removed.
             %  @return bols is composite of mlpet.MultiBolusData.
@@ -149,21 +149,21 @@ classdef MultiBolusData < handle & mldata.TimingData
             %  @return cal is mlpet.MultiBolusData.
             %  @return base is baseline that was remvoed.
             
-            [m,s] = this.baseline;
-            a     = this.activity - m;
-            t     = this.datetime;
+            m          = this.baseline;
+            a          = this.activity - m;
+            t          = this.datetime;
             [~,bstart] = max(t >= scanStart);
             [~,deltab] = max(a(bstart:end) < a(bstart)/2); % duration for return to 1/2 initial emissions
             deltab     = this.ensurePlausibleDeltab( ...
                          deltab, length(a(bstart:end))-1); % manage common deltab pathologies            
-            cal = mlpet.MultiBolusData( ...
+            cal        = mlpet.MultiBolusData( ...
                 'activity', a(bstart:bstart+deltab), ...
                 'times',    t(bstart:bstart+deltab), ...
                 'datetimeMeasured', scanStart, ...
                 'dt',       this.dt);
-            base = m;
+            base       = m;
         end
-        function         plot(this, varargin)
+        function plot(this, varargin)
             figure;
             plot(this.datetime, this.activity, varargin{:});
             xlabel('this.datetime');
@@ -180,14 +180,14 @@ classdef MultiBolusData < handle & mldata.TimingData
             ip.KeepUnmatched = true;
             addParameter(ip, 'activity', [], @isnumeric);
             addParameter(ip, 'expectedBaseline', 90, @isnumeric);
-            addParameter(ip, 'doMeasureBaseline', true, @islogical);
+            addParameter(ip, 'measuredBaseline', true, @islogical);
             addParameter(ip, 'radionuclides', @(x) isa(x, 'mlpet.Radionuclides'))
             parse(ip, varargin{:});
             ipr = ip.Results;
             
             this.activity_ = ipr.activity;
             this.expectedBaseline_ = ipr.expectedBaseline;
-            this.doMeasureBaseline_ = ipr.doMeasureBaseline;
+            this.measuredBaseline_ = ipr.measuredBaseline;
             
             if (isempty(this.activity_))
                 this.activity_ = nan(size(this.times_));
@@ -203,8 +203,8 @@ classdef MultiBolusData < handle & mldata.TimingData
     
     properties (Access = private)
         activity_
-        doMeasureBaseline_
         expectedBaseline_
+        measuredBaseline_
         radionuclides_
     end
     

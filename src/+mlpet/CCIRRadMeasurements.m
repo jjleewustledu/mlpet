@@ -206,15 +206,15 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 'mlpet:FileNotFoundError', ...
                 'file %s must be accessible', fqfn)
         end
-        function this = createByDate(aDate, varargin)
+        function this = createFromDate(aDate, varargin)
             import mlpet.CCIRRadMeasurements.*;
-            this = createByFilename(date2filename(aDate), varargin{:});
+            this = createFromFilename(date2filename(aDate), varargin{:});
         end
-        function this = createByFilename(fqfn, varargin)
+        function this = createFromFilename(fqfn, varargin)
             this = mlpet.CCIRRadMeasurements(varargin{:});
             this = this.readtables(fqfn);
         end
-        function this = createBySession(sess, varargin)
+        function this = createFromSession(sess, varargin)
             this = mlpet.CCIRRadMeasurements('session', sess, varargin{:});
         end
     end

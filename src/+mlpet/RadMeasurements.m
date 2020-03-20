@@ -18,13 +18,13 @@ classdef (Abstract) RadMeasurements < handle & matlab.mixin.Heterogeneous
     end
 
     methods (Static)
-        function this = createByDate(varargin)
+        function this = createFromDate(varargin)
             this = [];
         end
-        function this = createByFilename(varargin)
+        function this = createFromFilename(varargin)
             this = [];
         end
-        function this = createBySession(varargin)
+        function this = createFromSession(varargin)
             this = [];
         end
     end

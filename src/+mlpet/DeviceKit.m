@@ -2,7 +2,7 @@ classdef (Abstract) DeviceKit < handle
 	%% INSTRUMENTKIT is the AbstractFactory in an abstract factory pattern.
     %  For concrete factory subclasses see also:  
     %      mlpowers.DeviceKit, mlarbelaez.DeviceKit, mlraichle.DeviceKit.  
-    %  DeviceKit's abstract products are mlpet.Device.  For concrete products see also:  
+    %  DeviceKit's abstract products are mlpet.AbstractDevice.  For concrete products see also:  
     %      {mlpowers, mlarbelaez, mlraichle, ....}.{BloodSuckerDevice, CapracDevice, TwiliteDevice, 
     %      BiographMMRDevice, EcatExactHRPlusDevice}.
 
@@ -38,7 +38,7 @@ classdef (Abstract) DeviceKit < handle
             ip = inputParser;
             addParameter(ip, 'session', [], @(x) isa(x, 'mlraichle.Session'));
             parse(ip, varargin{:});
-            rm = mlraichle.CCIRRadMeasurements.createBySession(ip.Results.session);
+            rm = mlraichle.CCIRRadMeasurements.createFromSession(ip.Results.session);
         end
         function rs  = createReferenceSources(varargin)
             %% CREATEREFERENCESOURCES
@@ -164,7 +164,7 @@ classdef (Abstract) DeviceKit < handle
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             this.sessionData_ = ip.Results.sessionData;
-            this.radMeasurements_ = mlraichle.CCIRRadMeasurements.createBySession(this.sessionData_);
+            this.radMeasurements_ = mlraichle.CCIRRadMeasurements.createFromSession(this.sessionData_);
  		end	 
     end 
 
