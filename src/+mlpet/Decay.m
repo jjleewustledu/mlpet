@@ -1,5 +1,5 @@
 classdef Decay < handle & mlpet.IDecaying
-	%% DECAY  
+	%% DECAY is DEPRECATED 
 
 	%  $Revision$
  	%  was created 14-Oct-2018 19:12:22 by jjlee,

@@ -1,5 +1,5 @@
 classdef (Abstract) IDecaying < handle
-	%% IDECAYING  
+	%% IDECAYING is DEPRECATED
 
 	%  $Revision$
  	%  was created 14-Oct-2018 19:29:47 by jjlee,

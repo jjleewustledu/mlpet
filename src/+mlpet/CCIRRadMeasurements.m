@@ -421,8 +421,12 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                     'ctor:  CCIRRadMeasurements.session contains no datetime.');
                 return
             end
-            this = this.readtables( ...
-                this.date2filename(datetime(this.session_)));
+            try
+                this = this.readtables(this.date2filename(datetime(this.session_)));
+            catch ME
+                handwarning(ME)
+                this = [];
+            end
  		end
         function this = readtables(this, fqfn)
             fprintf('mlpet.CCIRRadMeasurements.readtables:  reading %s\n', fqfn);

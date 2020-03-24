@@ -1,5 +1,5 @@
 classdef AbstractAifBuilder 
-	%% ABSTRACTAIFBUILDER  
+	%% ABSTRACTAIFBUILDER is DEPRECATED 
 
 	%  $Revision$
  	%  was created 09-Jan-2018 16:29:21 by jjlee,

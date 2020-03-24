@@ -49,7 +49,7 @@ classdef (Abstract) DeviceKit < handle
             import mlpet.DeviceKit;
             
             ip = inputParser;
-            addParameter(ip, 'session', [], @(x) isa(x, 'mlraichle.Session'));
+            addParameter(ip, 'session', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             
             tz = mlpipeline.ResourcesRegistry.instance().preferredTimeZone;
