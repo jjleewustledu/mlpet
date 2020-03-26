@@ -417,8 +417,6 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             this.alwaysUseSessionDate_ = ip.Results.alwaysUseSessionDate;
             
             if (isnat(datetime(this.session_)))
-                warning('mlpet:ValueWarning', ...
-                    'ctor:  CCIRRadMeasurements.session contains no datetime.');
                 return
             end
             try
