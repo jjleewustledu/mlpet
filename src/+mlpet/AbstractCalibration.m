@@ -7,13 +7,13 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
  	%% It was developed on Matlab 9.7.0.1296695 (R2019b) Update 4 for MACI64.  Copyright 2020 John Joowon Lee.
  	
 	properties (Abstract)
+        calibrationAvailable % logical scalar
         invEfficiency
  	end
 
 	methods (Abstract, Static)
         buildCalibration()
-        createBySession()
-        createByRadMeasurements()
+        createFromSession()
         invEfficiencyf()
     end 
     
@@ -25,11 +25,94 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
     end
     
     properties (Dependent)
+        branchingRatio
         radionuclide
         radMeasurements
     end
     
     methods (Static)
+        function [prj,ses] = findProximalExperiment(sesd0, ordinal)
+            %% FINDPROXIMALEXPERIMENT finds alternative, temporally proximal session information that is separated by the
+            %  requested ordinality.
+            %  @param sesd0 is an mlpipeline.ISessionData.
+            %  @param ordinal is numeric, specifying the separation.
+            %  @return prj is a project name (char).
+            %  @return ses is a session name (char).
+            
+            dt0 = datetime(sesd0);
+            J = sesd0.studyData.subjectsJson;
+            dts = [];
+            prjs = {};
+            sess = {};
+            
+            % traverse, e.g., J.HYGLY50
+            for sid = asrow(fields(J))
+                sid1 = sid{1};
+                prj1 = J.(sid1).project;
+            
+                % traverse, e.g., J.HYGLY50.dates
+                for experiment = asrow(fields(J.(sid1).dates))
+                    experiment1 = experiment{1};
+                    [~,remain] = strtok(experiment1, 'E');
+                    ses1 = ['ses-' remain];                    
+                    dt1 = datetime(J.(sid1).dates.(experiment1), 'InputFormat', 'yyyyMMdd', 'TimeZone', dt0.TimeZone);
+                    dts = [dts; dt1]; %#ok<AGROW>
+                    prjs = [prjs; prj1]; %#ok<AGROW>
+                    sess = [sess; ses1]; %#ok<AGROW>
+                end
+
+                % traverse. e.g., J.HYGLY50.aliases.NP995_25
+                if isfield(J.(sid1), 'aliases')
+                    for alias = asrow(fields(J.(sid1).aliases))
+                        alias1 = alias{1};
+                        prj1 = J.(sid1).aliases.(alias1).project;
+
+                        % traverse, e.g., J.HYGLY50.aliases.NP995_25.dates
+                        for aliasExperiment = asrow(fields(J.(sid1).aliases.(alias1).dates))
+                            aliasExperiment1 = aliasExperiment{1};
+                            [~,remain] = strtok(aliasExperiment1, 'E');
+                            ses1 = ['ses-' remain];
+                            dt1 = datetime(J.(sid1).aliases.(alias1).dates.(aliasExperiment1), 'InputFormat', 'yyyyMMdd', 'TimeZone', dt0.TimeZone);
+                            dts = [dts; dt1]; %#ok<AGROW>
+                            prjs = [prjs; prj1]; %#ok<AGROW>
+                            sess = [sess; ses1]; %#ok<AGROW>
+                        end
+                    end
+                end
+            end
+            
+            % sort and select ordinal separated
+            dtsep = abs(dts - dt0);
+            T = table(dtsep, prjs, sess);
+            T = sortrows(T, 1);
+            prj = T{1+ordinal, 2}; prj = prj{1};
+            ses = T{1+ordinal, 3}; ses = ses{1};
+        end
+        function sesd = findProximalSession(sesd0, varargin)
+            %% FINDPROXIMALSESSION finds alternative, temporally proximal session data that is separated by the
+            %  requested ordinality.  Ordinality increases recursively until valid session data is found.
+            %  @param required sesd0 is an mlpipeline.ISessionData.
+            %  @param optional ordinal is numeric, specifying the separation.  Default := 1.
+            %  @return sesd is an alternative mlpipeline.ISessionData that is temporally proximal.
+            
+            ip = inputParser;
+            addRequired(ip, 'sesd0', @(x) isa(x, 'mlpipeline.ISessionData'))
+            addOptional(ip, 'ordinal', 1, @isnumeric)
+            parse(ip, sesd0, varargin{:})
+            ipr = ip.Results;
+            
+            home = getenv('SINGULARITY_HOME');
+            [prj,ses] = mlpet.AbstractCalibration.findProximalExperiment(sesd0, ipr.ordinal);
+            tra = globFolders(fullfile(home, prj, ses, 'FDG_DT*-Converted-AC'));
+            try
+                sesd = sesd0.create(fullfile(prj, ses, basename(tra{end})));
+            catch ME
+                handwarning(ME)
+                warning('mlpet:RuntimeWarning', ...
+                    'AbstractCalibration.findProximalSession:  recursing with ordinal->%g', ipr.ordinal+1)
+                sesd = mlpet.AbstractCalibration.findProximalSession(sesd0, ipr.ordinal+1);
+            end
+        end
         function arr = shiftWorldLines(arr, shift, halflife)
             %% SHIFTWORLDLINES 
             %  @param arr is numeric, undergoing radiodecay
@@ -49,6 +132,9 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
         
         %% GET
         
+        function g = get.branchingRatio(this)
+            g = this.radionuclide.branchingRatio;
+        end
         function g = get.radionuclide(this)
             g = this.radionuclide_;
         end
@@ -64,18 +150,6 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
             validationRMSE = [];
         end
         
- 		function this = AbstractCalibration(varargin)
- 			%% ABSTRACTCALIBRATION
-            %  @param required radMeas is mlpet.RadMeasurements.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addRequired(ip, 'radMeas', @(x) isa(x, 'mlpet.RadMeasurements'));
-            addParameter(ip, 'isotope', '18F', @(x) ismember(x, mlpet.Radionuclides.SUPPORTED_ISOTOPES));
-            parse(ip, varargin{:});            
-            this.radMeasurements_ = ip.Results.radMeas;
-            this.radionuclide_ = mlpet.Radionuclides(ip.Results.isotope);
- 		end
     end
     
     %% PROTECTED
@@ -86,10 +160,27 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
     end
     
     methods (Access = protected)
+ 		function this = AbstractCalibration(varargin)
+ 			%% ABSTRACTCALIBRATION
+            %  @param required radMeas is mlpet.RadMeasurements.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'radMeas', [], @(x) isa(x, 'mlpet.RadMeasurements') || isempty(x));
+            addParameter(ip, 'isotope', '18F', @(x) ismember(x, mlpet.Radionuclides.SUPPORTED_ISOTOPES));
+            parse(ip, varargin{:});            
+            this.radMeasurements_ = ip.Results.radMeas;
+            this.radionuclide_ = mlpet.Radionuclides(ip.Results.isotope);
+        end
+        
         function that = copyElement(this)
             %%  See also web(fullfile(docroot, 'matlab/ref/matlab.mixin.copyable-class.html'))
             
             that = copyElement@matlab.mixin.Copyable(this);
+        end
+        function tf = isotopeSelection(this)
+            rm = this.radMeasurements;
+            tf = logical(cell2mat(strfind(rm.wellCounter.TRACER, this.radionuclide.isotope)));
         end
     end
 

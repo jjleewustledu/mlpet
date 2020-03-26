@@ -1,4 +1,5 @@
-classdef (Abstract) AbstractTracerData < handle & mlpet.ITracerDosing & mlpet.IDecaying & mlkinetics.ITiming
+classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable & ...
+                                         mldata.ITiming & mlpet.ITracerData
 	%% ABSTRACTTRACERDATA is an AbstractProduct in an abstract factory pattern.
     %  For concrete subclasses see also:  mlcapintec.CapracData, mlswisstrace.TwiliteData, mlpet.BloodSuckerData, 
     %  mlsiemens.BiographMMRData, mlsiemens.EcatExactHRPlusData, and similarly named classes for project packages such
@@ -8,114 +9,284 @@ classdef (Abstract) AbstractTracerData < handle & mlpet.ITracerDosing & mlpet.ID
  	%  was created 17-Oct-2018 15:54:07 by jjlee,
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
- 	
-	properties (Dependent)
- 		
-        %% mlpet.ITracerDosing
-        
- 		sessionIdentifier % unambiguously identifies the measurement session
-        tracer
-        dose
-        doseUnits
-        doseAdminDatetime % synchronized to an NTS
-        comments
-        
-        %% mlpet.IDecaying
-        
-        activities
-        activityUnits
- 		isdecaying
+    
+	properties (Dependent) 
+        branchingRatio
+        datetimeForDecayCorrection  
+        decayCorrected
         halflife
         isotope
-        zerotime
-        zerodatetime 
+        timeForDecayCorrection
+        tracer
         
-        %% mlkinetics.ITiming
+        %% mldata.ITiming, mldata.TimingData
         
-        taus          % frame durations,    length() == length(times)  
-        times         % frame starts
-        time0         % selects time window; >= this.time(1)                
-        timeF         % selects time window; <= this.times(end)
+        datetime0
+        datetimeF
+        datetimeInterpolants
+        datetimeMeasured
+        datetimeWindow
+        datetimes
+        dt
+        index0
+        indexF
+        indices
+        taus
+        time0
+        timeF
         timeInterpolants
-        indices       % of times
-        index0        % index of time0
-        indexF        % index of timeF
-        datetime0     % datetime of this.time0
-        datetimeF     % datetime of this.timeF
-        dt            % for timeInterpolants; <= min(taus)/2 
-        
-        %% 
-        
-        activityInterpolants
-        activityMidpointInterpolants
-    end
-    
-    methods (Abstract, Static)
-        this = CreateFromScanId(varargin)
+        times
+        timeWindow
     end
 
 	methods 
         
-        %% GET
+        %% GET, SET
         
-        
+        function g = get.branchingRatio(this)
+            g = this.radionuclides_.branchingRatio;
+        end
+        function g = get.datetime0(this)
+            g = this.timingData_.datetime0;
+        end
+        function     set.datetime0(this, s)
+            this.timingData_.datetime0 = s;
+        end
+        function g = get.datetimeF(this)
+            g = this.timingData_.datetimeF;
+        end
+        function     set.datetimeF(this, s)
+            this.timingData_.datetimeF = s;
+        end
+        function g = get.datetimeForDecayCorrection(this)
+            g = this.datetimeMeasured + seconds(this.timeForDecayCorrection);
+        end
+        function     set.datetimeForDecayCorrection(this, s)
+            assert(isdatetime(s) && ~isnat(s))
+            this.timeForDecayCorrection = this.timing2num(s - this.datetimeMeasured);
+        end
+        function g = get.datetimeInterpolants(this)
+            g = this.timingData_.datetimeInterpolants;
+        end
+        function g = get.datetimeMeasured(this)
+            g = this.timingData_.datetimeMeasured;
+        end
+        function     set.datetimeMeasured(this, s)
+            this.timingData_.datetimeMeasured = s;
+        end
+        function g = get.datetimes(this)
+            g = this.timingData_.datetimes;
+        end
+        function g = get.datetimeWindow(this)
+            g = this.timingData_.datetimeWindow;
+        end
+        function     set.datetimeWindow(this, s)
+            this.timingData_.datetimeWindow = s;
+        end
+        function g = get.decayCorrected(this)
+            g = this.decayCorrected_;
+        end
+        function g = get.dt(this)
+            g = this.timingData_.dt;
+        end
+        function     set.dt(this, s)
+            this.timingData_.dt = s;
+        end
+        function g = get.halflife(this)
+            g = this.radionuclides_.halflife;
+        end
+        function g = get.index0(this)
+            g = this.timingData_.index0;
+        end
+        function     set.index0(this, s)
+            this.timingData_.index0 = s;
+        end
+        function g = get.indexF(this)
+            g = this.timingData_.indexF;
+        end
+        function     set.indexF(this, s)
+            this.timingData_.indexF = s;
+        end
+        function g = get.indices(this)
+            g = this.timingData_.indices;
+        end
+        function g = get.isotope(this)
+            g = this.radionuclides_.isotope;
+        end
+        function g = get.taus(this)
+            g = this.timingData_.taus;
+        end  
+        function     set.taus(this, s)
+            this.timingData_.taus = s;
+        end
+        function g = get.time0(this)
+            g = this.timingData_.time0;
+        end
+        function     set.time0(this, s)
+            this.timingData_.time0 = s;
+        end
+        function g = get.timeF(this)
+            g = this.timingData_.timeF;
+        end
+        function     set.timeF(this, s)
+            this.timingData_.timeF = s;
+        end
+        function g = get.timeForDecayCorrection(this)
+            if isnan(this.timeForDecayCorrection_) || ~isnumeric(this.timeForDecayCorrection_) || isempty(this.timeForDecayCorrection_)
+                g = this.timingData_.time0;
+                return
+            end
+            g = this.timeForDecayCorrection_;
+        end
+        function     set.timeForDecayCorrection(this, s)
+            assert(~isnan(s) && isnumeric(s) && ~isempty(s))
+            this.timeForDecayCorrection_ = s;
+        end
+        function g = get.timeInterpolants(this)
+            %% GET.TIMEINTERPOLANTS are uniformly separated by this.dt
+            %  @returns interpolants this.times(1):this.dt:this.times(end)
+            
+            g = this.timingData_.timeInterpolants;
+        end
+        function g = get.times(this)
+            g = this.timingData_.times;
+        end
+        function     set.times(this, s)
+            this.timingData_.times = s;
+        end
+        function g = get.timeWindow(this)
+            g = this.timingData_.timeWindow;
+        end
+        function     set.timeWindow(this, s)
+            this.timingData_.timeWindow = s;
+        end  
+        function g = get.tracer(this)
+            g = this.tracer_;
+        end
         
         %% 
         
-        function a = activityIntegral(this, varargin)
-            error('mlpet:NotImplementedError');
-        end
         function d = datetime(this)
-            error('mlpet:NotImplementedError');
+            d = this.timingData_.datetime();
         end
-        function d = duration(this) % timeF  - time0, in sec
-            d = seconds(this.timeF - this.time0);
+        function d = duration(this)
+            %% timeF  - time0, in sec            
+            
+            d = this.timingData_.duration();
         end
-        function i = indexOfInflow(this)
-            error('mlpet:NotImplementedError');
-        end
-        function i = indexOfOutflow(this)
-            error('mlpet:NotImplementedError');
-        end
-        function l = length(this)   % indexF - index0 + 1
+        function l = length(this)
+            %% indexF - index0 + 1
+            
             l = this.indexF - this.index0 + 1;
         end
-        function h = plot(this)
-            error('mlpet:NotImplementedError');
-        end
-        function     shiftWorldline(this)
-            error('mlpet:NotImplementedError');
-        end
-		  
- 		function this = AbstractTracerData(varargin)
- 			%% ABSTRACTTRACERDATA
- 			%  @param .
+        function h = plot(this, varargin)
+            %% PLOT
+            %  @param optional abscissa in {'datetime', 'times', 'indices'}
+            %  @param optional ordinate in {'countRate', 'activity', 'actvityDensity'}.
             
             ip = inputParser;
-            addRequired(ip, 'scid', @(x) isa(x, 'mlpet.IScanIdentifier'));
-            parse(ip, varargin{:});
-            import mlpet.*;
+            addOptional(ip, 'abscissa', 'this.datetime', @ischar)
+            addOptional(ip, 'ordinate', 'this.activityDensity', @ischar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            if length(eval(ipr.abscissa)) < 100
+                marks = ':o';
+            else
+                marks = '.';                
+            end
             
-%% Move to concrete TracerData.
-%             this.tracerDosing_ = TracerDosing.CreateFromScanId(varargin{:});
-%             this.timing_ = Timing.CreateFromScanId(varargin{:});
-%             this.decay_ = Decay.CreateFromScanId(varargin{:});
-
- 		end
+            h = figure;
+            plot(eval(ipr.abscissa), eval(ipr.ordinate), marks);
+            switch strtok(ipr.abscissa, '(')
+                case 'this.times'
+                    xlabel('time / s')
+                otherwise
+            end
+            switch strtok(ipr.ordinate, '(')
+                case 'this.countRate'
+                    ylabel('count rate / cps')
+                case 'this.activity'
+                    ylabel('activity / Bq')
+                case 'this.activityDensity'
+                    ylabel('activity density / (Bq/mL)')
+                otherwise
+            end
+            title(sprintf('%s.plot(%s)', class(this), this.tracer))
+        end
+        function     resetTimeLimits(this)
+            this.timingData_.resetTimeLimits();
+        end
+        function n = timing2num(this, t)
+            %% TIMING2NUM
+            %  @param t is datetime | duration | arg of double.
+            %  @returns n is numeric in sec.
+            
+            n = this.timingData_.timing2num(t);
+        end
     end 
     
     %% PROTECTED
     
     properties (Access = protected)
-        tracerDosing_
-        timing_
-        decay_
-        
-        activitiesCache_
-        activityInterpolantsCache_
-        datetimeCache_
-        timeInterpolantsCache_
-        timesCache_
+        decayCorrected_
+        radionuclides_
+        timeForDecayCorrection_
+        timingData_
+        tracer_
+    end
+    
+    methods (Access = protected)		  
+ 		function this = AbstractTracerData(varargin)
+ 			%% ABSTRACTTRACERDATA
+            %  @param isotope in mlpet.Radionuclides.SUPPORTED_ISOTOPES.  MANDATORY.
+            %  @param tracer.
+            %  @param datetimeMeasured is the measured datetime for times(1).
+ 			%  @param datetimeForDecayCorrection.
+            %  @param dt is numeric and must satisfy Nyquist requirements of the client.
+ 			%  @param taus  are frame durations.
+ 			%  @param time0 >= this.times(1).
+ 			%  @param timeF <= this.times(end).
+ 			%  @param times are frame starts.
+            
+            import mldata.TimingData
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'isotope', '', @(x) ismember(x, mlpet.Radionuclides.SUPPORTED_ISOTOPES))
+            addParameter(ip, 'tracer', '', @ischar)
+            addParameter(ip, 'datetimeMeasured', NaT, @isdatetime);
+            addParameter(ip, 'datetimeForDecayCorrection', NaT, @isdatetime)
+            addParameter(ip, 'dt', 1, @isnumeric);
+            addParameter(ip, 'taus', [], @TimingData.isniceDur);
+            addParameter(ip, 'time0', -inf, @isnumeric); % time0 > times(1) drops early times
+            addParameter(ip, 'timeF', inf, @isnumeric);  % timeF < times(end) drops late times
+            addParameter(ip, 'times', [], @TimingData.isniceDat);
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            this.radionuclides_ = mlpet.Radionuclides(ipr.isotope);
+            this.tracer_ = ipr.tracer;
+            this.constructTimingData(ipr)
+            this.timingData_.datetimeMeasured = ipr.datetimeMeasured;
+            if isnat(ipr.datetimeForDecayCorrection) || ~isdatetime(ipr.datetimeForDecayCorrection)
+                ipr.datetimeForDecayCorrection = ipr.datetimeMeasured;
+            end
+            this.timeForDecayCorrection_ = this.timing2num(ipr.datetimeForDecayCorrection - ipr.datetimeMeasured);
+ 		end
+        function constructTimingData(this, ipr)
+            this.timingData_ = mldata.TimingData( ...
+                'taus', ipr.taus, ...
+                'times', ipr.times, ...
+                'time0', ipr.time0, ...
+                'timeF', ipr.timeF, ...
+                'datetimeMeasured', ipr.datetimeMeasured, ...
+                'dt', ipr.dt);
+        end
+        function that = copyElement(this)
+            %%  See also web(fullfile(docroot, 'matlab/ref/matlab.mixin.copyable-class.html'))
+            
+            that = copyElement@matlab.mixin.Copyable(this);
+        end
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
