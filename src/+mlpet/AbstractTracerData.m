@@ -207,6 +207,8 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
                     ylabel('count rate / cps')
                 case 'this.activity'
                     ylabel('activity / Bq')
+                case 'this.activity_kdpm'
+                    ylabel('activity / kdpm')
                 case 'this.activityDensity'
                     ylabel('activity density / (Bq/mL)')
                 otherwise
@@ -286,6 +288,7 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
             %%  See also web(fullfile(docroot, 'matlab/ref/matlab.mixin.copyable-class.html'))
             
             that = copyElement@matlab.mixin.Copyable(this);
+            that.timingData_ = copy(this.timingData_);
         end
     end
 
