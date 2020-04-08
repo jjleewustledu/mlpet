@@ -281,7 +281,7 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
             
             fqfp = fullfile(ipr.path, ...
                 sprintf('oc%s_op_oc%s%s_on_op_fdg%s_frames1to%i_avgtr1', ...
-                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ipr.avgstr, this.ensureDtFormat(dtfdg), this.framesForTargetFDG));
+                this.ensureDtFormat(dt), this.ensureDtFormat(dt0), ipr.avgstr, this.ensureDtFormat(dtfdg), this.framesOfSubsetTarget_(end)));
         end
         function fqfp = finalOc_HO(this, dt, dt0, varargin)
             ip = inputParser;

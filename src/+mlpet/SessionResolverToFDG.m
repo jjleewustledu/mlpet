@@ -75,12 +75,12 @@ classdef SessionResolverToFDG < handle & mlpet.SessionResolverToTracer
             fdg_to_op_fdg_t4 = 'fdg_avgr1_to_op_fdg_avgr1_t4';
             for f = asrow(fdg_glob)
                 t4 = sprintf('%s_to_op_fdg_avgr1_t4',  this.collectionRB.frontOfT4(f{1}));
-                mlbash(sprintf('t4_mul %s %s %s', f{1}, fdg_to_op_fdg_t4, t4))
+                mlbash(sprintf('t4_mul %s %s %s', f{1}, fdg_to_op_fdg_t4, t4));
                 t4_obj.fdg = [t4_obj.fdg t4];
             end
             if isempty(t4_obj.fdg)
                 if ~isfile('fdg_avgr1_to_op_fdg_avgr1_t4')
-                    fv.t4_ident('fdg_avgr1_to_op_fdg_avgr1_t4')
+                    fv.t4_ident('fdg_avgr1_to_op_fdg_avgr1_t4');
                 end
                 t4_obj.fdg = {'fdg_avgr1_to_op_fdg_avgr1_t4'};
             end
@@ -92,12 +92,12 @@ classdef SessionResolverToFDG < handle & mlpet.SessionResolverToTracer
             ho_to_op_fdg_t4 = 'ho_avgr1_to_op_fdg_avgr1_t4';
             for h = asrow(ho_glob)
                 t4 = sprintf('%s_to_op_fdg_avgr1_t4', this.collectionRB.frontOfT4(h{1}));
-                mlbash(sprintf('t4_mul %s %s %s', h{1}, ho_to_op_fdg_t4, t4))
+                mlbash(sprintf('t4_mul %s %s %s', h{1}, ho_to_op_fdg_t4, t4));
                 t4_obj.ho = [t4_obj.ho t4];
             end
             if isempty(t4_obj.ho)
                 if ~isfile('ho_avgr1_to_op_ho_avgr1_t4')
-                    fv.t4_ident('ho_avgr1_to_op_ho_avgr1_t4')
+                    fv.t4_ident('ho_avgr1_to_op_ho_avgr1_t4');
                 end
                 t4_obj.ho = {'ho_avgr1_to_op_ho_avgr1_t4'};
             end
@@ -109,12 +109,12 @@ classdef SessionResolverToFDG < handle & mlpet.SessionResolverToTracer
             oo_to_op_fdg_t4 = 'oo_avgr1_to_op_fdg_avgr1_t4';
             for o = asrow(oo_glob)
                 t4 = sprintf('%s_to_op_fdg_avgr1_t4', this.collectionRB.frontOfT4(o{1}));
-                mlbash(sprintf('t4_mul %s %s %s', o{1}, oo_to_op_fdg_t4, t4))
+                mlbash(sprintf('t4_mul %s %s %s', o{1}, oo_to_op_fdg_t4, t4));
                 t4_obj.oo = [t4_obj.oo t4];
             end
             if isempty(t4_obj.oo)
                 if ~isfile('oo_avgr1_to_op_oo_avgr1_t4')
-                    fv.t4_ident('oo_avgr1_to_op_oo_avgr1_t4')
+                    fv.t4_ident('oo_avgr1_to_op_oo_avgr1_t4');
                 end
                 t4_obj.oo = {'oo_avgr1_to_op_oo_avgr1_t4'};
             end
@@ -126,19 +126,19 @@ classdef SessionResolverToFDG < handle & mlpet.SessionResolverToTracer
             oc_to_op_fdg_t4 = glob('oc_avg_sqrtr1_to_op_fdgdt*_frames1to*_avgtr1_t4');
             for c = asrow(oc_glob)
                 t4 = sprintf('%s_to_op_fdg_avgr1_t4', this.collectionRB.frontOfT4(c{1}));
-                mlbash(sprintf('t4_mul %s %s %s', c{1}, oc_to_op_fdg_t4{1}, t4))
+                mlbash(sprintf('t4_mul %s %s %s', c{1}, oc_to_op_fdg_t4{1}, t4));
                 t4_obj.oc = [t4_obj.oc t4];
             end
             if isempty(t4_obj.oc)
                 if ~isfile('oc_avgr1_to_op_oc_avgr1_t4')
-                    fv.t4_ident('oc_avgr1_to_op_oc_avgr1_t4')
+                    fv.t4_ident('oc_avgr1_to_op_oc_avgr1_t4');
                 end
                 t4_obj.oc = {'oc_avgr1_to_op_oc_avgr1_t4'};
             end
             
-            deleteExisting('t4_ojb.mat')
-            save('t4_obj.mat', 't4_obj')            
-            popd(pwd0)
+            deleteExisting('t4_ojb.mat');
+            save('t4_obj.mat', 't4_obj') ;           
+            popd(pwd0);
         end
 		  
  		function this = SessionResolverToFDG(varargin)

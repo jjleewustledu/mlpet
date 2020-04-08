@@ -110,7 +110,7 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
                 jsons = glob(fullfile(prj_ses_pth, '*_DT*.000000-Converted-AC', 'output', 'PET', '*_DT*.json'));
                 for j = asrow(jsons)
                     if ~isfile(basename(j{1}))
-                        mlbash(sprintf('ln -s %s', j{1}))
+                        mlbash(sprintf('ln -s %s', j{1}));
                     end
                 end
             end            
