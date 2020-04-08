@@ -6,19 +6,27 @@ classdef (Abstract) ScannerKit < handle & mlpet.IDeviceKit
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.7.0.1296695 (R2019b) Update 4 for MACI64.  Copyright 2020 John Joowon Lee.
    
-	properties
- 		
+    methods (Static)
+        function this = createFromSession(sesd)
+            switch class(sesd)
+                case 'mlraichle.SessionData'
+                    this = mlsiemens.BiographMMRKit.createFromSession(sessd);
+                case 'mlvg.SessionData'
+                    switch sesd.scannerKit
+                        case 'mlsiemens.EcatExactHRPlusKit'
+                            this = mlsiemens.EcatExactHRPlusKit.createFromSession(sesd);
+                        case 'mlsiemens.BiographVisionKit'                            
+                            this = mlsiemens.BiographMMRKit.createFromSession(sessd);
+                        otherwise 
+                            error('mlpet:ValueError', 'ScannerKit does not support %s', sesd.scannerKit)
+                    end
+                case 'mlan.SessionData'
+                    this = mlsiemens.BiographMMRKit.createFromSession(sessd);
+                otherwise
+                    error('mlpet:ValueError', 'ScannerKit does not support %s', class(sesd))
+            end
+        end
     end
-    
-	methods 
-		  
- 		function this = ScannerKit(varargin)
- 			%% SCANNERKIT
- 			%  @param .
-
- 			
- 		end
- 	end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end
