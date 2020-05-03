@@ -167,10 +167,18 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'radMeas', [], @(x) isa(x, 'mlpet.RadMeasurements') || isempty(x));
+            addParameter(ip, 'radMeasurements', [], @(x) isa(x, 'mlpet.RadMeasurements') || isempty(x));
             addParameter(ip, 'isotope', '18F', @(x) ismember(x, mlpet.Radionuclides.SUPPORTED_ISOTOPES));
-            parse(ip, varargin{:});            
-            this.radMeasurements_ = ip.Results.radMeas;
-            this.radionuclide_ = mlpet.Radionuclides(ip.Results.isotope);
+            parse(ip, varargin{:});   
+            ipr = ip.Results;
+            
+            if ~isempty(ipr.radMeas)
+                this.radMeasurements_ = ipr.radMeas;
+            end
+            if ~isempty(ipr.radMeasurements)
+                this.radMeasurements_ = ipr.radMeasurements;
+            end 
+            this.radionuclide_ = mlpet.Radionuclides(ipr.isotope);
         end
         
         function that = copyElement(this)
