@@ -10,18 +10,18 @@ classdef (Abstract) ScannerKit < handle & mlpet.IDeviceKit
         function this = createFromSession(sesd)
             switch class(sesd)
                 case 'mlraichle.SessionData'
-                    this = mlsiemens.BiographMMRKit.createFromSession(sessd);
+                    this = mlsiemens.BiographMMRKit.createFromSession(sesd);
                 case 'mlvg.SessionData'
                     switch sesd.scannerKit
                         case 'mlsiemens.EcatExactHRPlusKit'
                             this = mlsiemens.EcatExactHRPlusKit.createFromSession(sesd);
                         case 'mlsiemens.BiographVisionKit'                            
-                            this = mlsiemens.BiographMMRKit.createFromSession(sessd);
+                            this = mlsiemens.BiographMMRKit.createFromSession(sesd);
                         otherwise 
                             error('mlpet:ValueError', 'ScannerKit does not support %s', sesd.scannerKit)
                     end
                 case 'mlan.SessionData'
-                    this = mlsiemens.BiographMMRKit.createFromSession(sessd);
+                    this = mlsiemens.BiographMMRKit.createFromSession(sesd);
                 otherwise
                     error('mlpet:ValueError', 'ScannerKit does not support %s', class(sesd))
             end
