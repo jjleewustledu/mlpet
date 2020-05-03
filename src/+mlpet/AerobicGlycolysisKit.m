@@ -23,6 +23,30 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                     error('mlpet:ValueError', ...
                         'AerobicGlycolysisKit does not support %s', class(study))
             end
+        end        
+        function jitOnT1001(fexp)
+            %  @param fexp is char, e.g., 'subjects/sub-S58163/resampling_restricted/ocdt20190523122016_on_T1001.4dfp.hdr'
+            
+            if ~lstrfind(fexp, '_on_T1001')
+                return
+            end
+            for globFolder = globT(fullfile(getenv('SINGULARITY_HOME'), myfileparts(fexp)))
+                pwd0 = pushd(globFolder{1});
+                ss = strsplit(basename(fexp), '_on_T1001.4dfp');
+                fexpNoT1 = [ss{1} '.4dfp.hdr'];            
+                for globNoT1 = globT(fexpNoT1)
+                    if regexp(globNoT1{1}, '[a-z]{4,5}\d{8,14}\.4dfp\.hdr')
+                        fpNoT1 = myfileprefix(globNoT1{1});
+                        fnOnT1 = [mybasename(fpNoT1) '_on_T1001.4dfp.hdr'];
+                        if ~isfile(fnOnT1)                    
+                            fv = mlfourdfp.FourdfpVisitor();
+                            t4 = [fpNoT1 '_to_T1001_t4'];
+                            fv.t4img_4dfp(t4, fpNoT1, 'options', '-OT1001') 
+                        end
+                    end
+                end
+                popd(pwd0) 
+            end
         end
     end 
     
@@ -36,76 +60,164 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
         
         %%
         
-        function buildAGI(this)
+        function buildAgi(this)
         end
-        function buildCBV(this, varargin)
+        function buildCbv(this, varargin)
             %% BUILDCRV
             %  @param foldersExpr in {'subjects' 'subjects/sub-S12345' 'subjects/sub-S12345/ses-E12345'}
+            %  @param roisExpr in {'brain' 'Desikan' 'Destrieux' 'wm'}; default := 'brain'
             
             ip = inputParser;
-            addRequired(ip, 'foldersExpr', @ischar)
-            addRequired(ip, 'roisExpr', @ischar)
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'filesExpr', '', @ischar)
+            addParameter(ip, 'foldersExpr', '', @ischar)
+            addParameter(ip, 'roisExpr', 'brain', @ischar)
+            addParameter(ip, 'averageVoxels', true, @islogical)
             parse(ip, varargin{:})
             ipr = ip.Results;
             
-            for sesd = this.foldersExpr2sessions(ipr.foldersExpr)
-                devkit = mlpet.ScannerKit.createFromSession(sesd);
-                martin = mloxygen.Martin1987.createFromDeviceKit(devkit);
-                roiset = this.roisExpr2roiSet(ipr.roisExpr);
-                for roi = roiset
-                    martin.buildQC('roi', roi{1});
-                    martin.buildCBV('roi', roi{1});
+            if ~isempty(ipr.filesExpr)                
+                for sesd = this.filesExpr2sessions(ipr.filesExpr)
+                    devkit = mlpet.ScannerKit.createFromSession(sesd{1});
+                    devkit.stageResamplingRestricted()
+                    martin = mloxygen.Martin1987.createFromDeviceKit(devkit);
+                    roiset = this.roisExpr2roiSet(ipr.roisExpr);
+                    for roi = roiset
+                        cbv = martin.buildCbv('roi', roi{1}, varargin{:});
+                        martin.buildQC('roi', roi{1}, 'cbv', cbv, varargin{:});
+                        cbv.save
+                    end                    
+                end                
+            end
+            
+            if ~isempty(ipr.foldersExpr)
+                for sesd = this.foldersExpr2sessions(ipr.foldersExpr)
+                    devkit = mlpet.ScannerKit.createFromSession(sesd{1});
+                    devkit.stageResamplingRestricted()
+                    martin = mloxygen.Martin1987.createFromDeviceKit(devkit);
+                    roiset = this.roisExpr2roiSet(ipr.roisExpr);
+                    for roi = roiset
+                        cbv = martin.buildCbv('roi', roi{1}, varargin{:});
+                        martin.buildQC('roi', roi{1}, 'cbv', cbv, varargin{:});
+                        cbv.save
+                    end
                 end
             end
         end
-        function buildCBF(this)
+        function buildCbf(this)
         end
         function buildCMRglc(this)
         end
         function buildCMRO2(this)
         end
-        function buildKs(this)
+        function buildKs(this, varargin)
+            %% BUILDKS
+            %  @param foldersExpr in {'subjects' 'subjects/sub-S12345' 'subjects/sub-S12345/ses-E12345'}
+            %  @param roisExpr in {'brain' 'Desikan' 'Destrieux' 'wm'}; default := 'brain'
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'filesExpr', '', @ischar)
+            addParameter(ip, 'foldersExpr', '', @ischar)
+            addParameter(ip, 'roisExpr', 'wmparc', @ischar)
+            addParameter(ip, 'cpuIndex', [], @isnumeric)
+            addParameter(ip, 'averageVoxels', false, @islogical)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            for sesd = this.filesExpr2sessions(ipr.filesExpr)
+                pwd0 = pushd(sesd{1}.tracerResolvedOpSubject('typ', 'path'));
+                devkit = mlpet.ScannerKit.createFromSession(sesd{1});
+                devkit.stageResamplingRestricted()
+                cbvg = glob('cbvdt*000000_on_T1001_decayUncorrect0.4dfp.hdr');
+                roiset = this.roisExpr2roiSet(ipr.roisExpr, 'cpuIndex', ipr.cpuIndex);
+                for roi = roiset
+                    huang = mlglucose.ImagingHuang1980.createFromDeviceKit(devkit, 'cbv', cbvg{1}, 'roi', roi{1});
+                    huang = huang.solve();
+                    save(huang.ks)
+                end
+                popd(pwd0)
+            end
         end
-        function buildOEF(this)
+        function buildOef(this)
         end
-        function buildOGI(this)
+        function buildOgi(this)
         end
-        function sesds = foldersExp2sessions(this, fexp)
+        function sesds = filesExpr2sessions(this, fexp)
+            % @param fexp is char, e.g., 'subjects/sub-S58163/resampling_restricted/ocdt20190523122016_on_T1001.4dfp.hdr'
+            % @return instance from this.sessionData_.create()
+            
             assert(ischar(fexp))
             sesds = {};
             ss = strsplit(fexp, filesep);
-            home = getenv('SINGULARITY_HOME');
+            assert(strcmp(ss{1}, 'subjects'))
+            assert(strcmp(ss{3}, 'resampling_restricted'))
+            this.jitOnT1001(fexp)
+
+            pwd0 = pushd(fullfile(getenv('SINGULARITY_HOME'), ss{1}, ss{2}, ''));
+            re = regexp(ss{4}, '(?<tracer>[a-z]{2,3})dt(?<datetime>\d{14})\w+', 'names');            
+            for globTracer = globFoldersT( ...
+                    fullfile('ses-E*', sprintf('%s_DT%s.000000-Converted-AC', upper(re.tracer), re.datetime)))
+                for ccir = {'CCIR_00559' 'CCIR_00754'}
+                    sesf = fullfile(ccir{1}, globTracer{1});
+                    if isfolder(fullfile(getenv('SINGULARITY_HOME'), sesf))
+                        sesds = [sesds {this.sessionData_.create(sesf)}]; %#ok<AGROW>
+                    end
+                end
+            end            
+            popd(pwd0)
+        end
+        function sesds = foldersExpr2sessions(this, fexp)
+            % @param fexp is char
+            % @return *.SessionData
+            
+            assert(ischar(fexp))
+            sesds = {};
+            ss = strsplit(fexp, filesep);
+            pwd0 = pushd(getenv('SINGULARITY_HOME'));
             switch length(ss)
                 case 1
-                    for subpth = globFoldersT(fullfile(home, fexp, 'sub-S*'))
+                    for subpth = globFoldersT(fullfile(fexp, 'sub-S*'))
                         for sespth = globFoldersT(fullfile(subpth{1}, 'ses-E*'))
-                            for trapth = globFoldersT(fullfile(sespth{1}, '*_DT*.*-Converted-AC'))
-                                sesds = [sesds this.sessionData.create(trapth{1})]; %#ok<AGROW>
+                            for trapth = globFoldersT( ...
+                                    fullfile(sespth{1}, sprintf('%s_DT*.*-Converted-AC', upper(this.sessionData.tracer))))
+                                sesds = [sesds {this.sessionData.create(trapth{1})}]; %#ok<AGROW>
                             end
                         end
                     end
                 case 2
-                    for sespth = globFoldersT(fullfile(home, fexp, 'ses-E*'))
-                        for trapth = globFoldersT(fullfile(sespth{1}, '*_DT*.*-Converted-AC'))
-                            sesds = [sesds this.sessionData.create(trapth{1})]; %#ok<AGROW>
+                    for sespth = globFoldersT(fullfile(fexp, 'ses-E*'))
+                        for trapth = globFoldersT( ...
+                                fullfile(sespth{1}, sprintf('%s_DT*.*-Converted-AC', upper(this.sessionData.tracer))))
+                            sesds = [sesds {this.sessionData.create(trapth{1})}]; %#ok<AGROW>
                         end
                     end
                 case 3
-                    for trapth = globFoldersT(fullfile(home, fexp, '*_DT*.*-Converted-AC'))
-                        sesds = [sesds this.sessionData.create(trapth{1})]; %#ok<AGROW>
+                    for trapth = globFoldersT( ...
+                            fullfile(fexp, sprintf('%s_DT*.*-Converted-AC', upper(this.sessionData.tracer))))
+                        sesds = [sesds {this.sessionData.create(trapth{1})}]; %#ok<AGROW>
                     end
+                case 4
+                    trapth = globFoldersT(fullfile(fexp));
+                    sesds = {this.sessionData.create(trapth{1})};
                 otherwise
                     error('mlpet:ValueError', ...
                         'AerobicGlycolysisKit.foldersExp2session(%) is not supported', fexp)
             end
+            popd(pwd0)
         end
-        function roiset = roisExpr2roiSet(this, rexp)
+        function roiset = roisExpr2roiSet(this, rexp, varargin)
             sesd = this.sessionData;
+            rois = mlpet.Rois.createFromSession(sesd);
             switch rexp
                 case {'brain' 'brainmask' 'wholebrain' 'wb'}
+                    roiset = rois.constructBrainSet();
                 case {'Desikan' 'aparc+aseg'}
+                    roiset = rois.constructDesikanSet(varargin{:});
                 case {'Destrieux' 'aparc.a2009s+aseg'}
+                    roiset = rois.constructDestrieuxSet(varargin{:});
                 case {'wm' 'wmparc'}
+                    roiset = rois.constructWmSet(varargin{:});
                 otherwise 
                     error('mlpet:ValueError', ...
                         'AerobicClycolysisKit.roisExpr2roiSet.rexp -> %s', rexp)
