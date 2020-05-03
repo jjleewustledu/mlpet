@@ -32,11 +32,12 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
         timeF
         timeInterpolants
         times
+        timesMid
         timeWindow        
     end    
     
     methods (Static)
-        function sesd = findCalibrationSession(sesd0)
+        function sesd = findCalibrationSession(sesd0, varargin)
             assert(isa(sesd0, 'mlpipeline.ISessionData'))
             scanfold = globFoldersT(fullfile(sesd0.sessionPath, 'FDG_DT*-Converted-AC'));
             sesd = sesd0.create(fullfile(sesd0.projectFolder, sesd0.sessionFolder, mybasename(scanfold{end})));
@@ -80,6 +81,7 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
             g = this.data_.datetimeMeasured;
         end
         function     set.datetimeMeasured(this, s)
+            assert(isdatetime(s))            
             this.data_.datetimeMeasured = s;
         end
         function g = get.datetimes(this)
@@ -141,6 +143,10 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
         end
         function     set.times(this, s)
             this.data_.times = s;
+        end
+        function g = get.timesMid(this)
+            g = this.times;
+            g = g + this.taus/2;
         end
         function g = get.timeWindow(this)
             g = this.data_.timeWindow;
