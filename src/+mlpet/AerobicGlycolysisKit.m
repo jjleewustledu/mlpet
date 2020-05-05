@@ -41,7 +41,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                         if ~isfile(fnOnT1)                    
                             fv = mlfourdfp.FourdfpVisitor();
                             t4 = [fpNoT1 '_to_T1001_t4'];
-                            fv.t4img_4dfp(t4, fpNoT1, 'options', '-OT1001') 
+                            fv.t4img_4dfp(t4, fpNoT1, 'options', '-OT1001')
                         end
                     end
                 end
@@ -124,15 +124,21 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             addParameter(ip, 'averageVoxels', false, @islogical)
             parse(ip, varargin{:})
             ipr = ip.Results;
+            disp(ipr)
             
             for sesd = this.filesExpr2sessions(ipr.filesExpr)
                 pwd0 = pushd(sesd{1}.tracerResolvedOpSubject('typ', 'path'));
+                disp(sesd{1})
                 devkit = mlpet.ScannerKit.createFromSession(sesd{1});
+                disp(devkit)
                 devkit.stageResamplingRestricted()
-                cbvg = glob('cbvdt*000000_on_T1001_decayUncorrect0.4dfp.hdr');
                 roiset = this.roisExpr2roiSet(ipr.roisExpr, 'cpuIndex', ipr.cpuIndex);
                 for roi = roiset
-                    huang = mlglucose.ImagingHuang1980.createFromDeviceKit(devkit, 'cbv', cbvg{1}, 'roi', roi{1});
+                    cbvfn = this.cbvFilename();
+                    roi_ = roi{1};
+                    fprintf('mlpet.AerobicGlycolysisKit.buildKs():  cbvg_->%s\n', cbvfn)
+                    fprintf('mlpet.AerobicGlycolysisKit.buildKs():  roi.fileprefix->%s\n', roi_.fileprefix)
+                    huang = mlglucose.ImagingHuang1980.createFromDeviceKit(devkit, 'cbv', cbvfn, 'roi', roi_);
                     huang = huang.solve();
                     save(huang.ks)
                 end
@@ -142,6 +148,14 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
         function buildOef(this)
         end
         function buildOgi(this)
+        end
+        function roiset = buildRoiset(this, rexp, varargin)
+            roiset = this.roisExpr2roiSet(rexp, varargin{:});
+        end
+        function fn = cbvFilename(this)
+            re = regexp(this.sessionData.scanFolder, '[A-Z]+_DT(?<dt>\d{8})\d{6}.000000\-Converted\-AC', 'names');
+            fn = sprintf('cbvdt%s000000_on_T1001_decayUncorrect0.4dfp.hdr', re.dt);
+            assert(isfile(fn))
         end
         function sesds = filesExpr2sessions(this, fexp)
             % @param fexp is char, e.g., 'subjects/sub-S58163/resampling_restricted/ocdt20190523122016_on_T1001.4dfp.hdr'
