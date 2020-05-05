@@ -8,8 +8,8 @@ classdef Rois
  	
     properties
         excludeLarge
-        voxelTime = 30 % sec
-        wallClockLimit = 3600 % sec
+        voxelTime % from this.registry_
+        wallClockLimit % from this.registry_
     end
     
 	properties (Dependent)
@@ -136,33 +136,31 @@ classdef Rois
             end
             tbl = table(cell2mat(surferIndices2Nvoxels.keys)', ...
                 cell2mat(surferIndices2Nvoxels.values)', ...
-                true(size(surferIndices2Nvoxels.values')), ...
                 zeros(size(surferIndices2Nvoxels.values')), ...
-                'VariableNames', {'surferIndex' 'Nvoxels' 'available' 'cpuIndex'}, ...
+                'VariableNames', {'surferIndex' 'Nvoxels' 'cpuIndex'}, ...
                 'RowNames', cellfun(@num2str, ascol(surferIndices2Nvoxels.keys), 'UniformOutput', false));            
             tbl = tbl(0 < tbl.Nvoxels & tbl.Nvoxels < this.voxelLimit, :);
             tbl = sortrows(tbl, 'Nvoxels', 'descend');
             
-            % construct cpu2selectedIndices
-            
+            % construct cpu2selectedIndices            
             c = 1;
-            for r = 1:length(tbl.Nvoxels)
-                cpu2selectedIndices(c) = [];
+            for r = 1:size(tbl, 1)
+                tbl1 = tbl(tbl.cpuIndex == 0, :);
+                if isempty(tbl1); break; end
                 voxelRoom = this.voxelLimit;
-                tbl1 = tbl;
+                cpu2selectedIndices(c) = [];
                 while 0 < voxelRoom && ~isempty(tbl1)
                     surferIndex = tbl1{1, 'surferIndex'}; % from sorted tbl1
                     cpu2selectedIndices(c) = [cpu2selectedIndices(c) surferIndex];
-                    tbl{num2str(surferIndex), 'cpuIndex'} = c;
-                    tbl{num2str(surferIndex), 'available'} = false;                
+                    tbl{num2str(surferIndex), 'cpuIndex'} = c;              
                     voxelRoom = voxelRoom - tbl1{1, 'Nvoxels'};                
-                    tbl1 = tbl(tbl.Nvoxels < voxelRoom & tbl.available, :); % still sorted           
+                    tbl1 = tbl(tbl.Nvoxels < voxelRoom & tbl.cpuIndex == 0, :); % still sorted           
                 end                
                 c = c + 1;
             end
             
             % save
-            save(matfile, 'cpu2selectedIndices')            
+            save(matfile, 'cpu2selectedIndices', 'surferIndices2Nvoxels', 'tbl')            
             ind = cpu2selectedIndices(ipr.cpuIndex);
         end
     end
@@ -171,10 +169,10 @@ classdef Rois
     
     properties (Access = protected)
         sessionData_
+        registry_
     end
 
-	methods (Access = protected)
-		  
+	methods (Access = protected)		  
  		function this = Rois(varargin)
  			%% ROIS
  			%  @param .
@@ -187,6 +185,10 @@ classdef Rois
             
  			this.sessionData_ = ipr.sessionData;
             this.excludeLarge = ipr.excludeLarge;
+            
+            this.registry_ = mlraichle.StudyRegistry.instance();
+            this.voxelTime = this.registry_.voxelTime;
+            this.wallClockLimit = this.registry_.wallClockLimit;
  		end
  	end 
 

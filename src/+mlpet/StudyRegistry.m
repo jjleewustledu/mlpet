@@ -8,6 +8,8 @@ classdef (Abstract) StudyRegistry < handle & mlpipeline.StudyRegistry
  	
 	properties 		
         referenceTracer
+        voxelTime = 90 % sec
+        wallClockLimit = 168*3600 % sec
     end
     
     properties (Dependent)
