@@ -57,11 +57,15 @@ classdef Rois
         %%
         
         function [set,ifc] = constructBrainSet(this)
-            ic = mlfourd.ImagingContext2(fullfile(this.roisPath, 'brain.4dfp.hdr'));
-            ic = ic.blurred(1);
-            ic = ic.binarized();
-            set = {ic};
-            ifc = ic.fourdfp;
+            existingSet = this.constructExistingSet();
+            brain = mlfourd.ImagingContext2(fullfile(this.roisPath, 'brain.4dfp.hdr'));
+            brain = brain.blurred(1);
+            brain = brain.binarized();
+            brain = brain & ~existingSet{1};
+            brain.fileprefix = 'mlpet.Rois_constructBrainSet_brain';
+            brain.save
+            set = {brain};
+            ifc = brain.fourdfp;
         end
         function [set,ifc] = constructDesikanSet(this, varargin)
             set = {};
@@ -90,9 +94,28 @@ classdef Rois
                     set = [set {mlfourd.ImagingContext2(ifc1)}]; %#ok<AGROW>
                 end
             end
+        end        
+        function [set,existing] = constructExistingSet(this)
+            %  @returns {mlfourd.ImagingContext2() with existing ks}, possibly all false
+            %  @returns mlfourd.ImagingFormatContextf()
+            
+            pwd0 = pushd(this.roisPath);            
+            existing = mlfourd.ImagingFormatContext('T1001.4dfp.hdr');
+            assert(~isempty(existing))
+            existing.img = zeros(size(existing));
+            for g = globT('ks*parc*_on_T1001*.4dfp.hdr') % maps of computed ks
+                ifc = mlfourd.ImagingFormatContext(g{1});
+                existing.img = existing.img + ifc.img;
+            end
+            existing.img = sum(existing.img, 4); % contract over ks
+            existing.img = existing.img > 0;
+            existing.fileprefix = 'mlpet_Rois_constructExistingSet_existing';
+            existing.save
+            set = {mlfourd.ImagingContext2(existing)}; 
+            popd(pwd0)            
         end
         function [set,parc] = constructWmSet(this, varargin)
-            set = {};
+            set = {};            
             parc = mlfourd.ImagingFormatContext(fullfile(this.roisPath, 'wmparc.4dfp.hdr'));
             indices = [2:85 251:255 1000:1035 2000:2035 3000:3035 4000:4035 5001:5002];
             indices = this.selectedIndices(indices, parc, varargin{:}); % selects reasonable voxels
@@ -111,12 +134,15 @@ classdef Rois
         end
         function ind = selectedIndices(this, indices, parcs, varargin)
             %% select indices for load balancing; skip indices with no voxels and indices with too many voxels
+            %  @param indices, numeric, are FreeSurfer parc/seg indices.
+            %  @param parcs, mlfourd.ImagingFormatContext contains FreeSurfer parc/seg.
+            %  @param cpuIndex, integer.
             
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired(ip, 'indices', @isnumeric)
-            addRequired(ip, 'parcs', @(x) isa(x, 'mlfourd.ImagingFormatContext'))
-            addParameter(ip, 'cpuIndex', [], @isnumeric)
+            addRequired(ip, 'parcs', @(x) isa(x, 'mlfourd.ImagingFormatContext') && ~isempty(x))
+            addParameter(ip, 'cpuIndex', [], @(x) isnumeric(x) && ~isempty(x))
             parse(ip, indices, parcs, varargin{:})
             ipr = ip.Results;
             

@@ -113,14 +113,15 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
         function buildKs(this, varargin)
             %% BUILDKS
             %  @param foldersExpr in {'subjects' 'subjects/sub-S12345' 'subjects/sub-S12345/ses-E12345'}
-            %  @param roisExpr in {'brain' 'Desikan' 'Destrieux' 'wm'}; default := 'brain'
+            %  @param roisExpr in {'brain' 'Desikan' 'Destrieux' 'wm'}; default := 'wmparc'
+            %  @param cpuIndex is numeric
             
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'filesExpr', '', @ischar)
             addParameter(ip, 'foldersExpr', '', @ischar)
             addParameter(ip, 'roisExpr', 'wmparc', @ischar)
-            addParameter(ip, 'cpuIndex', [], @isnumeric)
+            addParameter(ip, 'cpuIndex', [], @(x) isnumeric(x) && ~isempty(x))
             addParameter(ip, 'averageVoxels', false, @islogical)
             parse(ip, varargin{:})
             ipr = ip.Results;
