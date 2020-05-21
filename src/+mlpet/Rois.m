@@ -14,8 +14,9 @@ classdef Rois
     
 	properties (Dependent)
         mriPath
+        NVoxelLimit
  		roisPath
-        voxelLimit
+        sessionData        
     end
     
     methods (Static)
@@ -50,21 +51,33 @@ classdef Rois
         function g = get.roisPath(this)
             g = fullfile(this.sessionData_.subjectPath, 'resampling_restricted', '');
         end
-        function g = get.voxelLimit(this)
+        function g = get.sessionData(this)
+            g = this.sessionData_;
+        end
+        function g = get.NVoxelLimit(this)
             g = this.wallClockLimit/this.voxelTime;
         end
         
         %%
         
-        function [set,ifc] = constructBrainSet(this)
-            existingSet = this.constructExistingSet();
-            brain = mlfourd.ImagingContext2(fullfile(this.roisPath, 'brain.4dfp.hdr'));
-            brain = brain.blurred(1);
-            brain = brain.binarized();
-            brain = brain & ~existingSet{1};
-            brain.fileprefix = 'mlpet.Rois_constructBrainSet_brain';
-            brain.save
-            set = {brain};
+        function [set,ifc] = constructBrainSet(this, varargin)
+            %% constructs binary brain masks
+            %  @param cpuIndex is integer.
+            %  @return cell array containing load-balancing mask part(s).
+            %  @return binarized brainOnAtlas as mlfourd.ImagingFormatContext.
+            
+            brainfp = ['mlpet_Rois_constructBrainSet_' this.sessionData.brainOnAtlas('typ', 'fp')];
+            if isfile([brainfp '.4dfp.hdr'])
+                brain = mlfourd.ImagingContext2([brainfp '.4dfp.hdr']);
+            else
+                this.sessionData.jitOn222(this.sessionData.brainOnAtlas());
+                brain = mlfourd.ImagingContext2(this.sessionData.brainOnAtlas());
+                brain = brain.blurred(1); % fill small voxel cavities
+                brain = brain.binarized();
+                brain.fileprefix = brainfp;
+                brain.save;
+            end
+            set = this.selectedMaskParts(brain, 'filestem', 'brain', varargin{:});
             ifc = brain.fourdfp;
         end
         function [set,ifc] = constructDesikanSet(this, varargin)
@@ -134,9 +147,10 @@ classdef Rois
         end
         function ind = selectedIndices(this, indices, parcs, varargin)
             %% select indices for load balancing; skip indices with no voxels and indices with too many voxels
-            %  @param indices, numeric, are FreeSurfer parc/seg indices.
-            %  @param parcs, mlfourd.ImagingFormatContext contains FreeSurfer parc/seg.
-            %  @param cpuIndex, integer.
+            %  @param required indices are numeric, are FreeSurfer parc/seg indices.
+            %  @param required parcs is mlfourd.ImagingFormatContext containing FreeSurfer parc/seg.
+            %  @param cpuIndex is integer.
+            %  @param indices is vector.
             
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -165,7 +179,7 @@ classdef Rois
                 zeros(size(surferIndices2Nvoxels.values')), ...
                 'VariableNames', {'surferIndex' 'Nvoxels' 'cpuIndex'}, ...
                 'RowNames', cellfun(@num2str, ascol(surferIndices2Nvoxels.keys), 'UniformOutput', false));            
-            tbl = tbl(0 < tbl.Nvoxels & tbl.Nvoxels < this.voxelLimit, :);
+            tbl = tbl(0 < tbl.Nvoxels & tbl.Nvoxels < this.NVoxelLimit, :);
             tbl = sortrows(tbl, 'Nvoxels', 'descend');
             
             % construct cpu2selectedIndices            
@@ -173,7 +187,7 @@ classdef Rois
             for r = 1:size(tbl, 1)
                 tbl1 = tbl(tbl.cpuIndex == 0, :);
                 if isempty(tbl1); break; end
-                voxelRoom = this.voxelLimit;
+                voxelRoom = this.NVoxelLimit;
                 cpu2selectedIndices(c) = [];
                 while 0 < voxelRoom && ~isempty(tbl1)
                     surferIndex = tbl1{1, 'surferIndex'}; % from sorted tbl1
@@ -189,6 +203,42 @@ classdef Rois
             save(matfile, 'cpu2selectedIndices', 'surferIndices2Nvoxels', 'tbl')            
             ind = cpu2selectedIndices(ipr.cpuIndex);
         end
+        function ics = selectedMaskParts(this, mask, varargin)
+            %% select parts of mask for load balancing
+            %  @param required mask is binary mlfourd.ImagingFormatContext.
+            %  @param cpuIndex is integer.
+            %  @return cell array of mlfourd.ImagingContext2.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'mask', @(x) isa(x, 'mlfourd.ImagingContext2') && 1 == dipmax(x) && 0 == dipmin(x))
+            addParameter(ip, 'cpuIndex', 0, @isnumeric)
+            addParameter(ip, 'filestem', 'mlpet_Rois_selectedMaskParts', @ischar)
+            parse(ip, mask, varargin{:})
+            ipr = ip.Results;
+            
+            % single cpu without wallclock limit
+            if ipr.cpuIndex < 1 || ~isfinite(ipr.cpuIndex)
+                ics = {ipr.mask};
+                return
+            end
+            
+            % construct cell array of mask parts defined as mlfourd.ImagingContext2
+            Nmasked = dipsum(ipr.mask);
+            sequence = 1:Nmasked;
+            p = ipr.cpuIndex;
+            maskpart = copy(ipr.mask.fourdfp);
+            maskpart.fileprefix = sprintf('%s_part%i', ipr.filestem, p);
+            amin = (p-1)*this.NVoxelLimit + 1;
+            amax = min(Nmasked, p*this.NVoxelLimit);
+            part = amin <= sequence & sequence <= amax;
+            maskpart.img(maskpart.img ~= 0) = part;
+            ics = {mlfourd.ImagingContext2(maskpart)}; 
+            
+            % save as documentation            
+            matfile = sprintf('%s_selectedMaskParts_cpu%i.mat', ipr.mask.fqfileprefix, ipr.cpuIndex);
+            save(matfile, 'ics');
+        end
     end
     
     %% PROTECTED
@@ -201,7 +251,8 @@ classdef Rois
 	methods (Access = protected)		  
  		function this = Rois(varargin)
  			%% ROIS
- 			%  @param .
+ 			%  @param sessionData is mlpipeline.ISessionData.
+            %  @param excludeLarge is logical.
 
             ip = inputParser;
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'))

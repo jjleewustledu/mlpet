@@ -23,30 +23,16 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                     error('mlpet:ValueError', ...
                         'AerobicGlycolysisKit does not support %s', class(study))
             end
-        end        
+        end  
+        function jitOn222(fexp)
+            %  @param fexp is char, e.g., 'subjects/sub-S58163/resampling_restricted/ocdt20190523122016_222.4dfp.hdr'
+            
+            mlnipet.ResolvingSessionData.jitOn222(fexp);
+        end      
         function jitOnT1001(fexp)
             %  @param fexp is char, e.g., 'subjects/sub-S58163/resampling_restricted/ocdt20190523122016_on_T1001.4dfp.hdr'
             
-            if ~lstrfind(fexp, '_on_T1001')
-                return
-            end
-            for globFolder = globT(fullfile(getenv('SINGULARITY_HOME'), myfileparts(fexp)))
-                pwd0 = pushd(globFolder{1});
-                ss = strsplit(basename(fexp), '_on_T1001.4dfp');
-                fexpNoT1 = [ss{1} '.4dfp.hdr'];            
-                for globNoT1 = globT(fexpNoT1)
-                    if regexp(globNoT1{1}, '[a-z]{4,5}\d{8,14}\.4dfp\.hdr')
-                        fpNoT1 = myfileprefix(globNoT1{1});
-                        fnOnT1 = [mybasename(fpNoT1) '_on_T1001.4dfp.hdr'];
-                        if ~isfile(fnOnT1)                    
-                            fv = mlfourdfp.FourdfpVisitor();
-                            t4 = [fpNoT1 '_to_T1001_t4'];
-                            fv.t4img_4dfp(t4, fpNoT1, 'options', '-OT1001')
-                        end
-                    end
-                end
-                popd(pwd0) 
-            end
+            mlnipet.ResolvingSessionData.jitOnT1001(fexp);
         end
     end 
     
@@ -62,10 +48,11 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
         
         function buildAgi(this)
         end
-        function buildCbv(this, varargin)
+        function cbv = buildCbv(this, varargin)
             %% BUILDCRV
             %  @param foldersExpr in {'subjects' 'subjects/sub-S12345' 'subjects/sub-S12345/ses-E12345'}
             %  @param roisExpr in {'brain' 'Desikan' 'Destrieux' 'wm'}; default := 'brain'
+            %  @return mlfourd.ImagingContext2
             
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -76,32 +63,23 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             parse(ip, varargin{:})
             ipr = ip.Results;
             
-            if ~isempty(ipr.filesExpr)                
-                for sesd = this.filesExpr2sessions(ipr.filesExpr)
-                    devkit = mlpet.ScannerKit.createFromSession(sesd{1});
-                    devkit.stageResamplingRestricted()
-                    martin = mloxygen.Martin1987.createFromDeviceKit(devkit);
-                    roiset = this.roisExpr2roiSet(ipr.roisExpr);
-                    for roi = roiset
-                        cbv = martin.buildCbv('roi', roi{1}, varargin{:});
-                        martin.buildQC('roi', roi{1}, 'cbv', cbv, varargin{:});
-                        cbv.save
-                    end                    
-                end                
+            sesdSet = {};
+            if ~isempty(ipr.filesExpr)   
+                sesdSet = this.filesExpr2sessions(ipr.filesExpr);
             end
-            
             if ~isempty(ipr.foldersExpr)
-                for sesd = this.foldersExpr2sessions(ipr.foldersExpr)
-                    devkit = mlpet.ScannerKit.createFromSession(sesd{1});
-                    devkit.stageResamplingRestricted()
-                    martin = mloxygen.Martin1987.createFromDeviceKit(devkit);
-                    roiset = this.roisExpr2roiSet(ipr.roisExpr);
-                    for roi = roiset
-                        cbv = martin.buildCbv('roi', roi{1}, varargin{:});
-                        martin.buildQC('roi', roi{1}, 'cbv', cbv, varargin{:});
-                        cbv.save
-                    end
-                end
+                sesdSet = this.foldersExpr2sessions(ipr.foldersExpr);
+            end
+            for sesd = sesdSet
+                devkit = mlpet.ScannerKit.createFromSession(sesd{1});
+                devkit.stageResamplingRestricted();
+                martin = mloxygen.Martin1987.createFromDeviceKit(devkit);
+                roiset = this.roisExpr2roiSet(ipr.roisExpr);
+                for roi = roiset
+                    cbv = martin.buildCbv('roi', roi{1}, varargin{:});
+                    martin.buildQC('roi', roi{1}, 'cbv', cbv, varargin{:});
+                    cbv.save
+                end                    
             end
         end
         function buildCbf(this)
@@ -135,11 +113,10 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                 devkit.stageResamplingRestricted()
                 roiset = this.roisExpr2roiSet(ipr.roisExpr, 'cpuIndex', ipr.cpuIndex);
                 for roi = roiset
-                    cbvfn = this.cbvFilename();
-                    roi_ = roi{1};
-                    fprintf('mlpet.AerobicGlycolysisKit.buildKs():  cbvg_->%s\n', cbvfn)
-                    fprintf('mlpet.AerobicGlycolysisKit.buildKs():  roi.fileprefix->%s\n', roi_.fileprefix)
-                    huang = mlglucose.ImagingHuang1980.createFromDeviceKit(devkit, 'cbv', cbvfn, 'roi', roi_);
+                    cbvfn = sesd{1}.cbvOnAtlas('typ', 'fn', 'dateonly', true);
+                    fprintf('mlpet.AerobicGlycolysisKit.buildKs():  cbvfn->%s\n', cbvfn)
+                    fprintf('mlpet.AerobicGlycolysisKit.buildKs():  roi{1}.fileprefix->%s\n', roi{1}.fileprefix)
+                    huang = mlglucose.ImagingHuang1980.createFromDeviceKit(devkit, 'cbv', cbvfn, 'roi', roi{1});
                     huang = huang.solve();
                     save(huang.ks)
                 end
@@ -150,13 +127,23 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
         end
         function buildOgi(this)
         end
-        function roiset = buildRoiset(this, rexp, varargin)
-            roiset = this.roisExpr2roiSet(rexp, varargin{:});
+        function [roiset,ifc] = buildRoiset(this, rexp, varargin)
+            %% e.g., this.buildRoiset('brain', 'cpuIndex', 1)
+            
+            [roiset,ifc] = this.roisExpr2roiSet(rexp, varargin{:});
         end
-        function fn = cbvFilename(this)
-            re = regexp(this.sessionData.scanFolder, '[A-Z]+_DT(?<dt>\d{8})\d{6}.000000\-Converted\-AC', 'names');
-            fn = sprintf('cbvdt%s000000_on_T1001_decayUncorrect0.4dfp.hdr', re.dt);
-            assert(isfile(fn))
+        function estimateNumNodes(this, sesinfo, rexp)
+            %  @param sesinfo is char.
+            %  @param rexp in {'brain' 'brainmask' 'wmparc'}
+            
+            [~,ifc] = this.buildRoiset(rexp);
+            registry = this.sessionData.registry;
+            N = ceil(dipsum(ifc.img)/(registry.wallClockLimit/registry.voxelTime));
+            
+            fprintf('##############################################################################################\n')
+            disp(sesinfo)
+            fprintf('mlpet.AerobicGlycolysisKit.estimateNumNodes.N -> %i\n', N)
+            fprintf('##############################################################################################\n')
         end
         function sesds = filesExpr2sessions(this, fexp)
             % @param fexp is char, e.g., 'subjects/sub-S58163/resampling_restricted/ocdt20190523122016_on_T1001.4dfp.hdr'
@@ -221,18 +208,18 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             end
             popd(pwd0)
         end
-        function roiset = roisExpr2roiSet(this, rexp, varargin)
+        function [roiset,ifc] = roisExpr2roiSet(this, rexp, varargin)
             sesd = this.sessionData;
             rois = mlpet.Rois.createFromSession(sesd);
             switch rexp
                 case {'brain' 'brainmask' 'wholebrain' 'wb'}
-                    roiset = rois.constructBrainSet();
+                    [roiset,ifc] = rois.constructBrainSet(varargin{:});
                 case {'Desikan' 'aparc+aseg'}
-                    roiset = rois.constructDesikanSet(varargin{:});
+                    [roiset,ifc] = rois.constructDesikanSet(varargin{:});
                 case {'Destrieux' 'aparc.a2009s+aseg'}
-                    roiset = rois.constructDestrieuxSet(varargin{:});
+                    [roiset,ifc] = rois.constructDestrieuxSet(varargin{:});
                 case {'wm' 'wmparc'}
-                    roiset = rois.constructWmSet(varargin{:});
+                    [roiset,ifc] = rois.constructWmSet(varargin{:});
                 otherwise 
                     error('mlpet:ValueError', ...
                         'AerobicClycolysisKit.roisExpr2roiSet.rexp -> %s', rexp)
