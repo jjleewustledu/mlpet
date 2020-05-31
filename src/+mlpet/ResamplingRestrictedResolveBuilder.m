@@ -6,11 +6,24 @@ classdef ResamplingRestrictedResolveBuilder < mlfourdfp.AbstractSessionBuilder
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.6.0.1135713 (R2019a) Update 3 for MACI64.  Copyright 2019 John Joowon Lee.
  	
-	properties
- 		
+	properties (Dependent)
+ 		Nt
  	end
 
 	methods         
+        
+        %%
+        
+        function g = get.Nt(this)   
+            sesd = this.sessionData;
+            sesd.rnumber = 1;
+            ifh = mlfourdfp.IfhParser.load(sesd.tracerRevision('typ', '.4dfp.ifh'));
+            g = ifh.matrixSize;
+            g = g(4);
+        end
+        
+        %%
+        
         function this = reconstituteFramesAC3(this)
             %% creates motion corrected frames using previously built t4_resolve t4s.
             %  Creates composition of t4s and creates motion correction with single resampling.
@@ -24,9 +37,10 @@ classdef ResamplingRestrictedResolveBuilder < mlfourdfp.AbstractSessionBuilder
             ensuredir(pthT4);
             pwd0 = pushd(pthFdg); 
             mle = this.sessionData.maxLengthEpoch;
-            Ne = this.sessionData.supEpoch;
+            Nt = this.Nt;
+            Ne = ceil(Nt/mle);
             Nf = mle*ones(1,Ne);
-            Nf(end) = length(this.sessionData.times)-(Ne-1)*mle;
+            Nf(end) = Nt-(Ne-1)*mle;
             
             %% within folder for epoch Ei
             
@@ -98,19 +112,27 @@ classdef ResamplingRestrictedResolveBuilder < mlfourdfp.AbstractSessionBuilder
                             warning('mlpet:EAFP', 'ignoring %s', comp_t4)
                             this.buildVisitor.t4_ident(comp_t4)
                         end
-                        if ~isfile(sprintf('../%sr1_frame%i.4dfp.hdr', tra, fr))
-                            this.buildVisitor.extract_frame_4dfp(sprintf('../%sr1', tra), fr);
+                        try
+                            if ~isfile(sprintf('../%sr1_frame%i.4dfp.hdr', tra, fr))
+                                this.buildVisitor.extract_frame_4dfp(sprintf('../%sr1', tra), fr);
+                            end
+                        catch ME
+                            handwarning(ME)
                         end
-                        if ~isfile([comp_4dfp '.4dfp.hdr'])
-                            this.buildVisitor.t4img_4dfp( ...
-                                comp_t4, ...
-                                sprintf('../%sr1_frame%i', tra, fr), ...
-                                'out', comp_4dfp, ...
-                                'options', sprintf('-O../%sr1_frame%i', tra, fr));
+                        try
+                            if ~isfile([comp_4dfp '.4dfp.hdr'])
+                                this.buildVisitor.t4img_4dfp( ...
+                                    comp_t4, ...
+                                    sprintf('../%sr1_frame%i', tra, fr), ...
+                                    'out', comp_4dfp, ...
+                                    'options', sprintf('-O../%sr1_frame%i', tra, fr));
+                            end
+                            ifc_op = mlfourd.ImagingFormatContext([comp_4dfp '.4dfp.hdr']);
+                            ifc.img(:,:,:,fr) = ifc_op.img;
+                            deleteExisting([comp_4dfp '.4dfp.*'])
+                        catch ME
+                            handwarning(ME)
                         end
-                        ifc_op = mlfourd.ImagingFormatContext([comp_4dfp '.4dfp.hdr']);
-                        ifc.img(:,:,:,fr) = ifc_op.img;
-                        deleteExisting([comp_4dfp '.4dfp.*'])
                     catch ME
                         handexcept(ME, ...
                             'mlpet:RuntimeError', ...
