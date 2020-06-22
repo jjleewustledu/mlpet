@@ -145,10 +145,10 @@ classdef Test_Herscovitch1985 < matlab.unittest.TestCase
  	methods (TestClassSetup)
 		function setupHerscovitch1985(this)
             studyd = mlderdeyn.StudyDataSingleton.instance;
-            sessp = '/data/cvl/np755/mm01-007_p7267_2008jun16';
+            sessp = '/Users/jjlee/cvl/np755/mm01-007_p7267_2008jun16';
             this.sessionData = mlderdeyn.SessionData('studyData', studyd, 'sessionPath', sessp, 'tracer', '');
             setenv(upper('Test_Herscovitch1985'), '1');
-            this.mask = mlfourd.ImagingContext('/data/cvl/np755/mm01-007_p7267_2008jun16/fsl/bt1_default_mask_on_ho_meanvol_default.nii.gz');
+            this.mask = mlfourd.ImagingContext('/Users/jjlee/cvl/np755/mm01-007_p7267_2008jun16/fsl/bt1_default_mask_on_ho_meanvol_default.nii.gz');
             this.addTeardown(@this.teardownHerscovitch1985);
  		end
 	end
