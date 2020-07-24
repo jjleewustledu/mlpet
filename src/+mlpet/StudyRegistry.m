@@ -6,7 +6,8 @@ classdef (Abstract) StudyRegistry < handle & mlpipeline.StudyRegistry
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
  	
-	properties 		
+	properties
+        numberNodes
         referenceTracer
         voxelTime = 60 % sec
         wallClockLimit = 168*3600 % sec
