@@ -427,7 +427,10 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             end
  		end
         function this = readtables(this, fqfn)
-            fprintf('mlpet.CCIRRadMeasurements.readtables:  reading %s\n', fqfn);
+            fprintf('mlpet.CCIRRadMeasurements.readtables:  reading %s\n', fqfn);            
+            if ~verLessThan('matlab', '9.8')
+                error('mlpet:RuntimeError', 'CCIRRadMeasurements.readtables does not support\n%s', ver('matlab'))
+            end
             for t = 1:length(this.tableNames)
                 try
                     this.addgetprop( ...
@@ -435,9 +438,6 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                         this.readtable(fqfn, this.sheetNames{t}, this.hasVarNames(t), this.hasRowNames(t), this.datetimeTypes{t}));
                 catch ME
                     handwarning(ME)
-                    if ~verLessThan('matlab', '9.8')
-                        error('mlpet:RuntimeError', 'CCIRRadMeasurements.readtables does not support\n%s', ver('matlab'))
-                    end
                 end
             end
             
