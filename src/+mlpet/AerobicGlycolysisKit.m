@@ -5,7 +5,11 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
  	%  was created 01-Apr-2020 11:09:38 by jjlee,
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.7.0.1319299 (R2019b) Update 5 for MACI64.  Copyright 2020 John Joowon Lee.
- 	
+ 	 	
+    properties (Constant)
+        LC = 0.81
+    end
+    
 	properties (Dependent)
         blurTag
         sessionData
@@ -55,19 +59,42 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
         function chi = ks2chi(ksobj, cbvobj)
             %  @param ksobj
             %  @param cbvobj
-            %  @return 1/s -> 1/min            
+            %  @return chi := K1 k3/(k2 + k3) in 1/s            
             
-            chi = mlfourd.ImagingContext2(ksobj);
-            chi = chi.fourdfp;            
+            ks = mlfourd.ImagingContext2(ksobj);
+            ks = ks.fourdfp;            
             cbv = mlfourd.ImagingContext2(cbvobj);
-            cbv = cbv.fourdfp;
+            cbv = cbv.fourdfp; % ml/hg
             
-            assert(contains(chi.fileprefix, 'ks'))
-            chi.fileprefix = strrep(chi.fileprefix, 'ks', 'chi');
-            img = 0.6*cbv.img.*chi.img(:,:,:,1).*chi.img(:,:,:,3)./(chi.img(:,:,:,2) + chi.img(:,:,:,3));
+            assert(contains(ks.fileprefix, 'ks'))
+            img = 0.0105*cbv.img.*ks.img(:,:,:,1).*ks.img(:,:,:,3)./(ks.img(:,:,:,2) + ks.img(:,:,:,3)); % 1/s
             img(isnan(img)) = 0;
+            chi = copy(ks);            
+            chi.fileprefix = strrep(ks.fileprefix, 'ks', 'chi');
             chi.img = img;
             chi = mlfourd.ImagingContext2(chi);
+        end
+        function cmrglc = ks2cmrglc(ksobj, cbvobj, radmeas)
+            %% @param required ksobj contians ks in R^4.
+            %  @param required cbvobj contains cbv in R^3.
+            %  @param required radmeas is mlpet.CCIRRadMeasurements of numeric (mg/dL).
+            
+            chi = mlpet.AerobicGlycolysisKit.ks2chi(ksobj, cbvobj); % 1/s
+            chifp = chi.fileprefix;
+            chi = chi * 60; % 1/min
+            
+            if isa(radmeas, 'mlpet.CCIRRadMeasurements')
+                fdgglc = cellfun(@str2double, radmeas.fromPamStone.Var1(10:12)); % empty cell -> nan
+                glc = mean(fdgglc, 'omitnan'); % mg/dL
+                glc = (1e3 * 0.0555 * 0.1 * 0.01 * 100 / 1.05) * glc; % [umol/mmol] [(mmol/L) / (mg/dL)] [L/dL] [dL/mL] [g/hg] [mL/g] == [umol/hg]            
+            elseif isnumeric(radmeas)
+                glc = (1e3 * 0.0555 * 0.1 * 0.01 * 100 / 1.05) * radmeas;
+            else
+                error('mlpet:ValueError', 'AerobicGlycolysisKit.ks2cmrglc.radmeas was %s', class(radmeas))
+            end
+            
+            cmrglc = chi*(glc/mlpet.AerobicGlycolysisKit.LC);
+            cmrglc.fileprefix = strrep(chifp, 'chi', 'cmrglc');
         end
     end 
     
@@ -192,10 +219,11 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                 popd(pwd0)
             end
         end
-        function kss = buildKsByParc(this, varargin)
-            %% BUILDKSBYPARC
+        function kss = buildKsByWmparc1(this, varargin)
+            %% BUILDKSBYWMPARC1
             %  @param foldersExpr in {'subjects' 'subjects/sub-S12345' 'subjects/sub-S12345/ses-E12345'}
             %  @param roisExpr in {'brain' 'Desikan' 'Destrieux' 'wm'}; default := 'wmparc'
+            %  @param blur is numeric, default is 4.3.
             %  @return kss as mlfourd.ImagingContext2 or cell array.
             
             indices = [1 2:85 251:255 1000:1035 2000:2035 3000:3035 4000:4035 5001:5002];
@@ -204,6 +232,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             ip.KeepUnmatched = true;
             addParameter(ip, 'filesExpr', '', @ischar)
             addParameter(ip, 'foldersExpr', '', @ischar)
+            addParameter(ip, 'blur', 4.3, @isnumeric)
             parse(ip, varargin{:})
             ipr = ip.Results;
             disp(ipr)
@@ -223,7 +252,9 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
 
                 for idx = indices % parcs
                     
-                    % for parcs, build roibin as logical, roi as single
+                    % for parcs, build roibin as logical, roi as single                    
+                    fprintf('starting mlpet.AerobicGlycolysisKit.buildKsByParc.idx -> %i\n', idx)
+                    tic
                     roi = copy(wmparc1);
                     roibin = wmparc1.img == idx;
                     roi.img = single(roibin);    
@@ -235,6 +266,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                     huang = mlglucose.NumericHuang1980.createFromDeviceKit( ...
                         devkit, 'cbv', mean(cbv.img(roibin)), 'roi', mlfourd.ImagingContext2(roi));
                     huang = huang.solve();
+                    toc
 
                     % insert Huang solutions into ks
                     for ik = 1:4
@@ -243,9 +275,14 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                         rate(roibin) = kscache(ik);
                         ks.img(:,:,:,ik) = rate;
                     end
-                end 
+                end
+                
+                ks = mlfourd.ImagingContext2(ks);
+                if ~isempty(ipr.blur)
+                    ks = ks.blurred(ipr.blur);
+                end
                 ks.save()
-                kss = [kss mlfourd.ImagingContext2(ks)]; %#ok<AGROW>
+                kss = [kss ks]; %#ok<AGROW>
                 popd(pwd0)
             end
         end
