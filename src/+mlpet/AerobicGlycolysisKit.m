@@ -67,6 +67,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             cbv = cbv.fourdfp; % ml/hg
             
             assert(contains(ks.fileprefix, 'ks'))
+            % brain density ~ 1.05
             img = 0.0105*cbv.img.*ks.img(:,:,:,1).*ks.img(:,:,:,3)./(ks.img(:,:,:,2) + ks.img(:,:,:,3)); % 1/s
             img(isnan(img)) = 0;
             chi = copy(ks);            
@@ -86,6 +87,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             if isa(radmeas, 'mlpet.CCIRRadMeasurements')
                 fdgglc = cellfun(@str2double, radmeas.fromPamStone.Var1(10:12)); % empty cell -> nan
                 glc = mean(fdgglc, 'omitnan'); % mg/dL
+                % brain density ~ 1.05
                 glc = (1e3 * 0.0555 * 0.1 * 0.01 * 100 / 1.05) * glc; % [umol/mmol] [(mmol/L) / (mg/dL)] [L/dL] [dL/mL] [g/hg] [mL/g] == [umol/hg]            
             elseif isnumeric(radmeas)
                 glc = (1e3 * 0.0555 * 0.1 * 0.01 * 100 / 1.05) * radmeas;
@@ -224,15 +226,14 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             %  @param foldersExpr in {'subjects' 'subjects/sub-S12345' 'subjects/sub-S12345/ses-E12345'}
             %  @param roisExpr in {'brain' 'Desikan' 'Destrieux' 'wm'}; default := 'wmparc'
             %  @param blur is numeric, default is 4.3.
-            %  @return kss as mlfourd.ImagingContext2 or cell array.
+            %  @return kss as mlfourd.ImagingContext2 or cell array, without saving to filesystems.
             
-            indices = [1 2:85 251:255 1000:1035 2000:2035 3000:3035 4000:4035 5001:5002];
+            indices = [1 1000:1035 2000:2035 3000:3035 4000:4035 5001:5002 2:85 251:255];
             
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'filesExpr', '', @ischar)
             addParameter(ip, 'foldersExpr', '', @ischar)
-            addParameter(ip, 'blur', 4.3, @isnumeric)
             parse(ip, varargin{:})
             ipr = ip.Results;
             disp(ipr)
@@ -278,10 +279,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                 end
                 
                 ks = mlfourd.ImagingContext2(ks);
-                if ~isempty(ipr.blur)
-                    ks = ks.blurred(ipr.blur);
-                end
-                ks.save()
                 kss = [kss ks]; %#ok<AGROW>
                 popd(pwd0)
             end
