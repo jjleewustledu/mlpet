@@ -7,7 +7,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
  	%% It was developed on Matlab 9.7.0.1319299 (R2019b) Update 5 for MACI64.  Copyright 2020 John Joowon Lee.
  	 	
     properties (Constant)
-        LC = 0.81
+        LC = 0.81 % Wu, et al., Molecular Imaging and Biology, 5(1), 32-41, 2003.
     end
     
 	properties (Dependent)
@@ -258,7 +258,8 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                     tic
                     roi = copy(wmparc1);
                     roibin = wmparc1.img == idx;
-                    roi.img = single(roibin);    
+                    roi.img = single(roibin);  
+                    roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, idx);
                     if 0 == dipsum(roi.img)
                         continue
                     end
