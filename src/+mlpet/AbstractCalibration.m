@@ -122,7 +122,9 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
             
             assert(isnumeric(arr)) % activities
             assert(isnumeric(shift)) % time-shift
-            assert(isnumeric(halflife)) 
+            assert(isscalar(halflife)) 
+            arr = asrow(arr);
+            shift = asrow(shift);            
             
             arr = arr .* 2.^(-shift/halflife);
         end
