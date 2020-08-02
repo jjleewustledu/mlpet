@@ -249,7 +249,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                 wmparc1 = wmparc1.fourdfp;
                 ks = copy(wmparc1);
                 ks.fileprefix = [sesd1.ksOnAtlas('typ', 'fp') this.blurTag '_wmparc1'];
-                ks.img = zeros([size(wmparc1) 4]);   
+                ks.img = zeros([size(wmparc1) 5]);   
 
                 for idx = indices % parcs
                     
@@ -270,13 +270,16 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                     huang = huang.solve();
                     toc
 
-                    % insert Huang solutions into ks
+                    % insert Huang solutions on roibin(idx) into ks
                     for ik = 1:4
                         rate = ks.img(:,:,:,ik);
                         kscache = huang.ks();
                         rate(roibin) = kscache(ik);
                         ks.img(:,:,:,ik) = rate;
                     end
+                    rate = ks.img(:,:,:,5);
+                    rate(roibin) = huang.Dt;
+                    ks.img(:,:,:,5) = rate;
                 end
                 
                 ks = mlfourd.ImagingContext2(ks);
@@ -370,6 +373,84 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                         'AerobicGlycolysisKit.foldersExp2session(%) is not supported', fexp)
             end
             popd(pwd0)
+        end        
+        function ic = ksOnAtlasTagged(this, varargin)
+            %% @param lasttag := {'' '_b43'}
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addOptional(ip, 'lastKsTag', '', @ischar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            fqfp = [this.sessionData.ksOnAtlas('typ', 'fqfp') this.blurTag this.regionTag ipr.lastKsTag];
+            
+            % 4dfp exists
+            if isfile([fqfp '.4dfp.hdr'])
+                ic = mlfourd.ImagingContext2([fqfp '.4dfp.hdr']);
+                return
+            end
+            
+            % Luckett-mat exists
+            ifc = mlfourd.ImagingFormatContext(this.sessionData.fdgOnAtlas);
+            ifc.fileprefix = mybasename(fqfp);
+            if isfile([fqfp '.mat'])
+                ks = load([fqfp '.mat'], 'img');
+                ifc.img = reshape(single(ks.img), [128 128 75 4]);
+                ic = mlfourd.ImagingContext2(ifc);
+                ic.save()
+                return
+            end
+            
+            error('mlraichle:RuntimeError', 'AerobicGlycolysis.ksOnAtlas')
+        end
+        function h  = loadImagingHuang(this)
+            %%
+            %  @return mlglucose.ImagingHuang1980
+            
+            devkit = mlpet.ScannerKit.createFromSession(this.sessionData);
+            cbv = mlfourd.ImagingContext2(this.sessionData.cbvOnAtlas('dateonly', true));
+            mask = this.maskOnAtlasTagged();
+            ks = this.ksOnAtlasTagged('_b43');
+            h = mlglucose.ImagingHuang1980.createFromDeviceKit( ...
+                devkit, 'cbv', cbv, 'roi', mask, 'regionTag', this.regionTag);
+            h.ks = ks;
+        end
+        function h  = loadNumericHuang(this, roi)
+            %%
+            %  @param roi is understood by mlfourd.ImagingContext2
+            %  @return mlglucose.NumericHuang1980
+            
+            roi = mlfourd.ImagingContext2(roi);
+            roi = roi.binarized();
+            roibin = logical(roi.fourdfp.img);
+            devkit = mlpet.ScannerKit.createFromSession(this.sessionData);
+            cbv = mlfourd.ImagingContext2(this.sessionData.cbvOnAtlas('dateonly', true));
+            mean_cbv = cbv.fourdfp.img(roibin);            
+            h = mlglucose.NumericHuang1980.createFromDeviceKit( ...
+                devkit, 'cbv', mean_cbv, 'roi', roi);
+        end
+        function ic = maskOnAtlasTagged(this, varargin)
+            fqfp = [this.sessionData.wmparc1OnAtlas('typ', 'fqfp') '_binarized' this.blurTag '_binarized'];
+            
+            % 4dfp exists
+            if isfile([fqfp '.4dfp.hdr'])
+                ic = mlfourd.ImagingContext2([fqfp '.4dfp.hdr']);
+                return
+            end
+            
+            % Luckett-mat exists
+            ifc = mlfourd.ImagingFormatContext(this.sessionData.fdgOnAtlas);
+            ifc.fileprefix = mybasename(fqfp);
+            if isfile([fqfp '.mat'])
+                msk = load([fqfp '.mat'], 'img');
+                ifc.img = reshape(single(msk.img), [128 128 75]);
+                ic = mlfourd.ImagingContext2(ifc);
+                ic.save()
+                return
+            end
+            
+            error('mlraichle:RuntimeError', 'AerobicGlycolysis.maskOnAtlasTagged')
         end
         function [roiset,ifc] = roisExpr2roiSet(this, rexp, varargin)
             sesd = this.sessionData;
