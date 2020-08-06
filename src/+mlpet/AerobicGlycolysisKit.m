@@ -218,8 +218,129 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
         function buildCMRglc(this)
         end
         function buildCMRO2(this)
+        end 
+        function kss = buildKs(this, varargin)
+            kss = this.buildKsByWmparc1(varargin{:});
         end
-        function buildKs(this, varargin)
+        function kss = buildKsByWbrain(this, varargin)
+            %% BUILDKSBYWBRAIN
+            %  @param filesExpr
+            %  @param foldersExpr in {'subjects' 'subjects/sub-S12345' 'subjects/sub-S12345/ses-E12345'}
+            %  @return kss as mlfourd.ImagingContext2 or cell array, without saving to filesystems.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'filesExpr', '', @ischar)
+            addParameter(ip, 'foldersExpr', '', @ischar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            disp(ipr)
+            
+            kss = {};
+            for sesd = this.filesExpr2sessions(ipr.filesExpr)
+                sesd1 = sesd{1};
+                pwd0 = pushd(sesd1.tracerResolvedOpSubject('typ', 'path'));                
+                devkit = mlpet.ScannerKit.createFromSession(sesd1);                
+                cbv = sesd1.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', 'dateonly', true);
+                cbv = cbv.fourdfp;
+                wmparc1 = sesd1.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
+                wmparc1 = wmparc1.fourdfp;
+                ks = copy(wmparc1);
+                ks.fileprefix = sesd1.ksOnAtlas('typ', 'fp', 'tags', [this.blurTag '_wbrain']);
+                ks.img = zeros([size(wmparc1) 5]);   
+                    
+                % for parcs, build roibin as logical, roi as single                    
+                tic
+                roi = copy(wmparc1);
+                roibin = wmparc1.img > 1;
+                roi.img = single(roibin);  
+                roi.fileprefix = sprintf('%s_indexgt1', roi.fileprefix);
+                if 0 == dipsum(roi.img)
+                    return
+                end
+
+                % solve Huang
+                huang = mlglucose.NumericHuang1980.createFromDeviceKit( ...
+                    devkit, 'cbv', mean(cbv.img(roibin)), 'roi', mlfourd.ImagingContext2(roi));
+                huang = huang.solve();
+                toc
+
+                % insert Huang solutions on roibin(idx) into ks
+                kscache = huang.ks();
+                kscache(5) = huang.Dt;
+                for ik = 1:5
+                    rate = ks.img(:,:,:,ik);
+                    rate(roibin) = kscache(ik);
+                    ks.img(:,:,:,ik) = rate;
+                end                
+                ks = mlfourd.ImagingContext2(ks);
+                kss = [kss ks]; %#ok<AGROW>
+                popd(pwd0)
+            end
+        end
+        function kss = buildKsByWmparc1(this, varargin)
+            %% BUILDKSBYWMPARC1
+            %  @param filesExpr
+            %  @param foldersExpr in {'subjects' 'subjects/sub-S12345' 'subjects/sub-S12345/ses-E12345'}
+            %  @return kss as mlfourd.ImagingContext2 or cell array, without saving to filesystems.
+            
+            indices = [1 1000:1035 2000:2035 3000:3035 4000:4035 5001:5002 2:85 251:255];
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'filesExpr', '', @ischar)
+            addParameter(ip, 'foldersExpr', '', @ischar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            disp(ipr)
+            
+            kss = {};
+            for sesd = this.filesExpr2sessions(ipr.filesExpr)
+                sesd1 = sesd{1};
+                pwd0 = pushd(sesd1.tracerResolvedOpSubject('typ', 'path'));                
+                devkit = mlpet.ScannerKit.createFromSession(sesd1);                
+                cbv = sesd1.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', 'dateonly', true);
+                cbv = cbv.fourdfp;
+                wmparc1 = sesd1.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
+                wmparc1 = wmparc1.fourdfp;
+                ks = copy(wmparc1);
+                ks.fileprefix = sesd1.ksOnAtlas('typ', 'fp', 'tags', [this.blurTag '_wmparc1']);
+                ks.img = zeros([size(wmparc1) 5]);   
+
+                for idx = indices % parcs
+                    
+                    % for parcs, build roibin as logical, roi as single                    
+                    fprintf('starting mlpet.AerobicGlycolysisKit.buildKsByWmparc1.idx -> %i\n', idx)
+                    tic
+                    roi = copy(wmparc1);
+                    roibin = wmparc1.img == idx;
+                    roi.img = single(roibin);  
+                    roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, idx);
+                    if 0 == dipsum(roi.img)
+                        continue
+                    end
+
+                    % solve Huang
+                    huang = mlglucose.NumericHuang1980.createFromDeviceKit( ...
+                        devkit, 'cbv', mean(cbv.img(roibin)), 'roi', mlfourd.ImagingContext2(roi));
+                    huang = huang.solve();
+                    toc
+
+                    % insert Huang solutions on roibin(idx) into ks
+                    kscache = huang.ks();
+                    kscache(5) = huang.Dt;
+                    for ik = 1:5
+                        rate = ks.img(:,:,:,ik);
+                        rate(roibin) = kscache(ik);
+                        ks.img(:,:,:,ik) = rate;
+                    end
+                end                
+                ks = mlfourd.ImagingContext2(ks);
+                kss = [kss ks]; %#ok<AGROW>
+                popd(pwd0)
+            end
+        end
+        function buildKsByVoxels(this, varargin)
             %% BUILDKS
             %  @param foldersExpr in {'subjects' 'subjects/sub-S12345' 'subjects/sub-S12345/ses-E12345'}
             %  @param roisExpr in {'brain' 'Desikan' 'Destrieux' 'wm'}; default := 'wmparc'
@@ -283,73 +404,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                 end
                 popd(pwd0)
             end
-        end
-        function kss = buildKsByWmparc1(this, varargin)
-            %% BUILDKSBYWMPARC1
-            %  @param foldersExpr in {'subjects' 'subjects/sub-S12345' 'subjects/sub-S12345/ses-E12345'}
-            %  @param roisExpr in {'brain' 'Desikan' 'Destrieux' 'wm'}; default := 'wmparc'
-            %  @param blur is numeric, default is 4.3.
-            %  @return kss as mlfourd.ImagingContext2 or cell array, without saving to filesystems.
-            
-            indices = [1 1000:1035 2000:2035 3000:3035 4000:4035 5001:5002 2:85 251:255];
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'filesExpr', '', @ischar)
-            addParameter(ip, 'foldersExpr', '', @ischar)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            disp(ipr)
-            
-            kss = {};
-            for sesd = this.filesExpr2sessions(ipr.filesExpr)
-                sesd1 = sesd{1};
-                pwd0 = pushd(sesd1.tracerResolvedOpSubject('typ', 'path'));                
-                devkit = mlpet.ScannerKit.createFromSession(sesd1);                
-                cbv = sesd1.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', 'dateonly', true);
-                cbv = cbv.fourdfp;
-                wmparc1 = sesd1.wmparc1OnAtlas('typ', 'mlfourd.ImagingContext2');
-                wmparc1 = wmparc1.fourdfp;
-                ks = copy(wmparc1);
-                ks.fileprefix = [sesd1.ksOnAtlas('typ', 'fp') this.blurTag '_wmparc1'];
-                ks.img = zeros([size(wmparc1) 5]);   
-
-                for idx = indices % parcs
-                    
-                    % for parcs, build roibin as logical, roi as single                    
-                    fprintf('starting mlpet.AerobicGlycolysisKit.buildKsByParc.idx -> %i\n', idx)
-                    tic
-                    roi = copy(wmparc1);
-                    roibin = wmparc1.img == idx;
-                    roi.img = single(roibin);  
-                    roi.fileprefix = sprintf('%s_index%i', roi.fileprefix, idx);
-                    if 0 == dipsum(roi.img)
-                        continue
-                    end
-
-                    % solve Huang
-                    huang = mlglucose.NumericHuang1980.createFromDeviceKit( ...
-                        devkit, 'cbv', mean(cbv.img(roibin)), 'roi', mlfourd.ImagingContext2(roi));
-                    huang = huang.solve();
-                    toc
-
-                    % insert Huang solutions on roibin(idx) into ks
-                    for ik = 1:4
-                        rate = ks.img(:,:,:,ik);
-                        kscache = huang.ks();
-                        rate(roibin) = kscache(ik);
-                        ks.img(:,:,:,ik) = rate;
-                    end
-                    rate = ks.img(:,:,:,5);
-                    rate(roibin) = huang.Dt;
-                    ks.img(:,:,:,5) = rate;
-                end
-                
-                ks = mlfourd.ImagingContext2(ks);
-                kss = [kss ks]; %#ok<AGROW>
-                popd(pwd0)
-            end
-        end
+        end     
         function buildOef(this)
         end
         function buildOgi(this)
