@@ -46,6 +46,49 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                         'AerobicGlycolysisKit does not support %s', class(study))
             end
         end  
+        function ic = iccrop(ic, toKeep)
+            ifc = ic.fourdfp;
+            ifc.img = ifc.img(:,:,:,toKeep);
+            %ifc.fileprefix = sprintf('%s_iccrop%ito%i', ifc.fileprefix, toKeep(1), toKeep(end));
+            ic = mlfourd.ImagingContext2(ifc);
+        end
+        function matfn = ic2mat(ic)
+            %% @param required ic is mlfourd.ImagingContext2 | cell
+            
+            if isempty(ic) % for unit testing
+                matfn = '';
+                return
+            end
+            
+            if iscell(ic)
+                matfn = {};
+                for anic = ic
+                    matfn = [matfn mlpet.AerobicGlycolysisKit.ic2mat(anic)]; %#ok<AGROW>
+                end
+                return
+            end
+            
+            assert(isa(ic, 'mlfourd.ImagingContext2'))
+            sz = size(ic);
+            assert(length(sz) >= 3)
+            if length(sz) == 3
+                sz = [sz 1];
+            end
+            img = reshape(ic.fourdfp.img, [sz(1)*sz(2)*sz(3) sz(4)]);
+            matfn = [ic.fqfileprefix '.mat'];
+            save(matfn, 'img')
+            
+            deepFolder = '/data/ances/jjlee/DeepNetFCProject/PET/FDG';
+            if isfolder(deepFolder)
+                ss = split(ic.filepath, '/resampling_restricted');
+                ss = split(ss{1}, 'subjects/');
+                subFolder = ss{2};
+                if ~isfolder(fullfile(deepFolder, subFolder))
+                    mkdir(fullfile(deepFolder, subFolder))
+                end
+                save(fullfile(deepFolder, [ic.filprefix '.mat']), 'img')
+            end
+        end   
         function jitOn222(fexp)
             %  @param fexp is char, e.g., 'subjects/sub-S58163/resampling_restricted/ocdt20190523122016_222.4dfp.hdr'
             
@@ -64,6 +107,9 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             ks = mlfourd.ImagingContext2(ksobj);
             ks = ks.fourdfp;            
             cbv = mlfourd.ImagingContext2(cbvobj);
+            if ~contains(cbv.fileprefix, '_b')
+                cbv = cbv.blurred(4.3);
+            end
             cbv = cbv.fourdfp; % ml/hg
             
             assert(contains(ks.fileprefix, 'ks'))
@@ -80,24 +126,41 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             %  @param required cbvobj contains cbv in R^3.
             %  @param required radmeas is mlpet.CCIRRadMeasurements of numeric (mg/dL).
             
+            import mlglucose.Huang1980.*
+            
             chi = mlpet.AerobicGlycolysisKit.ks2chi(ksobj, cbvobj); % 1/s
             chifp = chi.fileprefix;
             chi = chi * 60; % 1/min
             
             if isa(radmeas, 'mlpet.CCIRRadMeasurements')
-                fdgglc = cellfun(@str2double, radmeas.fromPamStone.Var1(10:12)); % empty cell -> nan
-                glc = mean(fdgglc, 'omitnan'); % mg/dL
-                % brain density ~ 1.05
-                glc = (1e3 * 0.0555 * 0.1 * 0.01 * 100 / 1.05) * glc; % [umol/mmol] [(mmol/L) / (mg/dL)] [L/dL] [dL/mL] [g/hg] [mL/g] == [umol/hg]            
+                glc = Huang1980.glcFromRadMeasurements(radmeas);           
             elseif isnumeric(radmeas)
-                glc = (1e3 * 0.0555 * 0.1 * 0.01 * 100 / 1.05) * radmeas;
+                glc = radmeas;
             else
                 error('mlpet:ValueError', 'AerobicGlycolysisKit.ks2cmrglc.radmeas was %s', class(radmeas))
+            end            
+            glc = Huang1980.glcConversion(glc, 'mg/dL', 'umol/hg');
+            cmrglc = chi .* (glc/mlpet.AerobicGlycolysisKit.LC);
+            cmrglc.fileprefix = strrep(chifp, 'chi', 'cmrglc');
+        end         
+        function msk = ks2mask(ic)
+            %% @param required ic is mlfourd.ImagingContext2 | cell
+            
+            if iscell(ic)
+                msk = {};
+                for anic = ic
+                    msk = [msk mlpet.AerobicGlycolysisKit.ks2mask(anic)]; %#ok<AGROW>
+                end
+                return
             end
             
-            cmrglc = chi*(glc/mlpet.AerobicGlycolysisKit.LC);
-            cmrglc.fileprefix = strrep(chifp, 'chi', 'cmrglc');
-        end
+            assert(isa(ic, 'mlfourd.ImagingContext2'))            
+            assert(length(size(ic)) == 4)
+            cache = copy(ic.fourdfp);
+            cache.fileprefix = strrep(ic.fileprefix, 'ks', 'mask');
+            cache.img = single(cache.img(:,:,:,1) > 0);
+            msk = mlfourd.ImagingContext2(cache);
+        end     
     end 
     
     methods
