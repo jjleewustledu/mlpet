@@ -491,17 +491,9 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                         'AerobicGlycolysisKit.foldersExp2session(%) is not supported', fexp)
             end
             popd(pwd0)
-        end        
+        end  
         function ic = ksOnAtlasTagged(this, varargin)
-            %% @param lasttag := {'' '_b43'}
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addOptional(ip, 'lastKsTag', '', @ischar)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            
-            fqfp = [this.sessionData.ksOnAtlas('typ', 'fqfp') this.blurTag this.regionTag ipr.lastKsTag];
+            fqfp = this.sessionData.ksOnAtlas('typ', 'fqfp', 'tags', ['_b43' this.regionTag '_b43']);
             
             % 4dfp exists
             if isfile([fqfp '.4dfp.hdr'])
