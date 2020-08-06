@@ -514,31 +514,31 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             
             error('mlraichle:RuntimeError', 'AerobicGlycolysis.ksOnAtlas')
         end
-        function h  = loadImagingHuang(this)
+        function h  = loadImagingHuang(this, varargin)
             %%
-            %  @return mlglucose.ImagingHuang1980
+            %  @return mlglucose.ImagingHuang1980  
             
-            devkit = mlpet.ScannerKit.createFromSession(this.sessionData);
+            this.devkit_ = mlpet.ScannerKit.createFromSession(this.sessionData);
             cbv = mlfourd.ImagingContext2(this.sessionData.cbvOnAtlas('dateonly', true));
             mask = this.maskOnAtlasTagged();
-            ks = this.ksOnAtlasTagged('_b43');
+            ks = this.ksOnAtlasTagged();
             h = mlglucose.ImagingHuang1980.createFromDeviceKit( ...
-                devkit, 'cbv', cbv, 'roi', mask, 'regionTag', this.regionTag);
+                this.devkit_, 'cbv', cbv, 'roi', mask, 'regionTag', this.regionTag);
             h.ks = ks;
         end
-        function h  = loadNumericHuang(this, roi)
+        function h  = loadNumericHuang(this, roi, varargin)
             %%
-            %  @param roi is understood by mlfourd.ImagingContext2
+            %  @param required roi is understood by mlfourd.ImagingContext2
             %  @return mlglucose.NumericHuang1980
             
             roi = mlfourd.ImagingContext2(roi);
             roi = roi.binarized();
             roibin = logical(roi.fourdfp.img);
-            devkit = mlpet.ScannerKit.createFromSession(this.sessionData);
+            this.devkit_ = mlpet.ScannerKit.createFromSession(this.sessionData);
             cbv = mlfourd.ImagingContext2(this.sessionData.cbvOnAtlas('dateonly', true));
             mean_cbv = cbv.fourdfp.img(roibin);            
             h = mlglucose.NumericHuang1980.createFromDeviceKit( ...
-                devkit, 'cbv', mean_cbv, 'roi', roi);
+                this.devkit_, 'cbv', mean_cbv, 'roi', roi, 'regionTag', this.regionTag);
         end
         function ic = maskOnAtlasTagged(this, varargin)
             fqfp = [this.sessionData.wmparc1OnAtlas('typ', 'fqfp') '_binarized' this.blurTag '_binarized'];
@@ -584,6 +584,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
     %% PROTECTED
     
     properties (Access = protected)
+        devkit_
         sessionData_
     end
     
