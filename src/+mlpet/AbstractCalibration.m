@@ -28,6 +28,7 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
         branchingRatio
         radionuclide
         radMeasurements
+        sessionData
     end
     
     methods (Static)
@@ -37,14 +38,24 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
             %  @param shift is numeric, seconds of shift; 
             %         shift < 0 shifts backward in time; shift > 0 shifts forward in time
             %  @param halflife of radionuclide in seconds
+            %  @return arr with preserved vector shape
+            %  @throws mlpet:ValueError if arr is not vector.
             
             assert(isnumeric(arr)) % activities
             assert(isnumeric(shift)) % time-shift
             assert(isscalar(halflife)) 
-            arr = asrow(arr);
-            shift = asrow(shift);            
             
-            arr = arr .* 2.^(-shift/halflife);
+            if isrow(arr)
+                shift = asrow(shift);
+                arr = arr .* 2.^(-shift/halflife);
+                return
+            end
+            if iscolumn(arr)
+                shift = ascolumn(shift);
+                arr = arr .* 2.^(-shift/halflife);
+                return
+            end
+            error('mlpet:ValueError', 'AbstractCalibration.shiftWorldLines:  size(arr)->%s', mat2str(size(arr)))
         end
     end
         
@@ -60,6 +71,9 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
         end
         function g = get.radMeasurements(this)
             g = this.radMeasurements_;
+        end
+        function g = get.sessionData(this)
+            g = this.radMeasurements.sessionData;
         end
         
         %% 

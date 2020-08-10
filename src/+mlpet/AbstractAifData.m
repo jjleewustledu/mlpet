@@ -267,6 +267,8 @@ classdef (Abstract) AbstractAifData < mlio.AbstractIO & mlpet.IAifData
         function this     = shiftWorldlines(this, t0c, t0uc)
             %% SHIFTWORLDLINES
             
+            warning('mlpet:Deprecated', 'AbstractAifData.shiftWorldLines is DEPRECATED')
+            
             this = this.correctedActivities(t0c);
             this = this.uncorrectedActivities(t0uc); % Anzatz
         end
