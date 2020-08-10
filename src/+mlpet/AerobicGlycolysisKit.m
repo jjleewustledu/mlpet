@@ -126,7 +126,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             %  @param required cbvobj contains cbv in R^3.
             %  @param required radmeas is mlpet.CCIRRadMeasurements of numeric (mg/dL).
             
-            import mlglucose.Huang1980.*
+            import mlglucose.Huang1980
             
             chi = mlpet.AerobicGlycolysisKit.ks2chi(ksobj, cbvobj); % 1/s
             chifp = chi.fileprefix;
@@ -239,6 +239,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             kss = {};
             for sesd = this.filesExpr2sessions(ipr.filesExpr)
                 sesd1 = sesd{1};
+                sesd1.parcellation = 'wbrain';
                 pwd0 = pushd(sesd1.tracerResolvedOpSubject('typ', 'path'));                
                 devkit = mlpet.ScannerKit.createFromSession(sesd1);                
                 cbv = sesd1.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', 'dateonly', true);
@@ -297,6 +298,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             kss = {};
             for sesd = this.filesExpr2sessions(ipr.filesExpr)
                 sesd1 = sesd{1};
+                sesd1.parcellation = 'wmparc1';
                 pwd0 = pushd(sesd1.tracerResolvedOpSubject('typ', 'path'));                
                 devkit = mlpet.ScannerKit.createFromSession(sesd1);                
                 cbv = sesd1.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', 'dateonly', true);
