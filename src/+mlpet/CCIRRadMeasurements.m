@@ -187,6 +187,10 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             'exceldatenum'}
     end
     
+    properties (Dependent)
+        sessionData
+    end
+    
     methods (Static)
         function fqfn = date2filename(aDate)
             %% DATE2FILENAME looks in env var CCIR_RAD_MEASUREMENTS_DIR for a measurements file matching the
@@ -216,37 +220,26 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
         end
         function this = createFromSession(sesd, varargin)
             %  @param required sessionData is an mlpipeline.ISessionData.
-            %  @param offset is numeric & searches for alternative SessionData.
-            %  @param earliestDatetime limits rad measurements that are searched.     
-            %  @param exactMatch is logical; default true.
-            
-            import mlpet.CCIRRadMeasurements
             
             ip = inputParser;
             ip.KeepUnmatched = true;
             addRequired(ip, 'sesd', @(x) isa(x, 'mlpipeline.ISessionData'))
-            addParameter(ip, 'offset', 1, @isnumeric)
-            addParameter(ip, 'earliestDatetime', datetime(2016,7,19, 'TimeZone', 'America/Chicago'), @isdatetime)
-            addParameter(ip, 'exactMatch', true, @islogical)
             parse(ip, sesd, varargin{:})
-            ipr = ip.Results;
-            offset = ipr.offset;
-            
-            try
-                this = CCIRRadMeasurements('session', sesd, varargin{:});
-            catch ME
-                if ipr.exactMatch
-                    handexcept(ME)
-                end
-                handwarning(ME)                
-                [sesd1,offset] = sesd.findProximalSession2(sesd, offset);                
-                varargin1 = [varargin {'offset', offset+1}];
-                this = CCIRRadMeasurements.createFromSession(sesd1, varargin1{:});
-            end
+            ipr = ip.Results;            
+            this = mlpet.CCIRRadMeasurements('session', ipr.sesd, varargin{:});
         end
     end
     
     methods
+        
+        %% GET
+        
+        function g = get.sessionData(this)
+            g = this.session_;
+        end
+        
+        %%
+        
         function cath = catheterInfo(this)
             switch (this.twilite{1,1})
                 case 'Medex REF 536035, 152.4 cm  Ext. W/M/FLL Clamp APV = 1.1 mL'
