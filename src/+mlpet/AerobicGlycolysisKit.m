@@ -494,6 +494,19 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             end
             popd(pwd0)
         end  
+        function Ks = k1_to_K1(~, ks, cbv)
+            %% multiplies k1 by dimensionless v1.
+            %  @param ks is 1/s.
+            %  @param cbv is mL/hg.
+            %  @return Ks is 1/s, with Ks(1) multiplied by dimensionless v1.
+            
+            cbv = mlfourd.ImagingContext2(cbv);
+            ks = mlfourd.ImagingContext2(ks);
+            Ks = copy(ks.fourdfp);
+            Ks.img(:,:,:,1) = 0.0105 * cbv.fourdfp.img .* ks.img(:,:,:,1);
+            Ks.fileprefix = strrep(ks.fileprefix, 'ks', 'Ks');
+            Ks = mlfourd.ImagingContext2(Ks);
+        end
         function ic = ksOnAtlasTagged(this, varargin)
             fqfp = this.sessionData.ksOnAtlas('typ', 'fqfp', 'tags', ['_b43' this.regionTag '_b43']);
             
