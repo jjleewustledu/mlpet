@@ -99,23 +99,16 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             
             mlnipet.ResolvingSessionData.jitOnT1001(fexp);
         end
-        function chi = ks2chi(ksobj, cbvobj)
+        function chi = ks2chi(ksobj)
             %  @param ksobj
-            %  @param cbvobj
-            %  @return chi := K1 k3/(k2 + k3) in 1/s            
+            %  @return chi := k1 k3/(k2 + k3) in 1/s, without v1.
             
             ks = mlfourd.ImagingContext2(ksobj);
             ks = ks.fourdfp;            
-            cbv = mlfourd.ImagingContext2(cbvobj);
-            if ~contains(cbv.fileprefix, '_b')
-                cbv = cbv.blurred(4.3);
-            end
-            cbv = cbv.fourdfp; % ml/hg
-            
             assert(contains(ks.fileprefix, 'ks'))
-            % brain density ~ 1.05
-            img = 0.0105*cbv.img.*ks.img(:,:,:,1).*ks.img(:,:,:,3)./(ks.img(:,:,:,2) + ks.img(:,:,:,3)); % 1/s
+            img = ks.img(:,:,:,1).*ks.img(:,:,:,3)./(ks.img(:,:,:,2) + ks.img(:,:,:,3)); % 1/s
             img(isnan(img)) = 0;
+            
             chi = copy(ks);            
             chi.fileprefix = strrep(ks.fileprefix, 'ks', 'chi');
             chi.img = img;
@@ -128,9 +121,15 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             
             import mlglucose.Huang1980
             
-            chi = mlpet.AerobicGlycolysisKit.ks2chi(ksobj, cbvobj); % 1/s
+            chi = mlpet.AerobicGlycolysisKit.ks2chi(ksobj); % 1/s
             chifp = chi.fileprefix;
             chi = chi * 60; % 1/min
+            
+            v1 = mlfourd.ImagingContext2(cbvobj);
+            v1 = v1 .* 0.0105;
+            if ~contains(v1.fileprefix, '_b')
+                v1 = v1.blurred(4.3);
+            end % mL blood / mL tissue
             
             if isa(radmeas, 'mlpet.CCIRRadMeasurements')
                 glc = Huang1980.glcFromRadMeasurements(radmeas);           
@@ -140,7 +139,8 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
                 error('mlpet:ValueError', 'AerobicGlycolysisKit.ks2cmrglc.radmeas was %s', class(radmeas))
             end            
             glc = Huang1980.glcConversion(glc, 'mg/dL', 'umol/hg');
-            cmrglc = chi .* (glc/mlpet.AerobicGlycolysisKit.LC);
+            
+            cmrglc = v1 .* chi .* (glc/mlpet.AerobicGlycolysisKit.LC);
             cmrglc.fileprefix = strrep(chifp, 'chi', 'cmrglc');
         end         
         function msk = ks2mask(ic)
