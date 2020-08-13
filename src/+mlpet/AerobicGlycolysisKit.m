@@ -77,17 +77,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             img = reshape(ic.fourdfp.img, [sz(1)*sz(2)*sz(3) sz(4)]);
             matfn = [ic.fqfileprefix '.mat'];
             save(matfn, 'img')
-            
-            deepFolder = '/data/ances/jjlee/DeepNetFCProject/PET/FDG';
-            if isfolder(deepFolder)
-                ss = split(ic.filepath, '/resampling_restricted');
-                ss = split(ss{1}, 'subjects/');
-                subFolder = ss{2};
-                if ~isfolder(fullfile(deepFolder, subFolder))
-                    mkdir(fullfile(deepFolder, subFolder))
-                end
-                save(fullfile(deepFolder, [ic.filprefix '.mat']), 'img')
-            end
         end   
         function jitOn222(fexp)
             %  @param fexp is char, e.g., 'subjects/sub-S58163/resampling_restricted/ocdt20190523122016_222.4dfp.hdr'
@@ -503,7 +492,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             cbv = mlfourd.ImagingContext2(cbv);
             ks = mlfourd.ImagingContext2(ks);
             Ks = copy(ks.fourdfp);
-            Ks.img(:,:,:,1) = 0.0105 * cbv.fourdfp.img .* ks.img(:,:,:,1);
+            Ks.img(:,:,:,1) = 0.0105 * cbv.fourdfp.img .* ks.fourdfp.img(:,:,:,1);
             Ks.fileprefix = strrep(ks.fileprefix, 'ks', 'Ks');
             Ks = mlfourd.ImagingContext2(Ks);
         end
