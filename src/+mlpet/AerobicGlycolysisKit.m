@@ -12,6 +12,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
     
 	properties (Dependent)
         blurTag
+        regionTag
         sessionData
  	end
 
@@ -160,6 +161,9 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
            blur = this.sessionData.petPointSpread; 
            g = sprintf('_b%i', round(blur*10));
         end        
+        function g = get.regionTag(this)
+            g = this.sessionData.regionTag;
+        end   
         function g = get.sessionData(this)
             g = this.sessionData_;
         end
@@ -228,7 +232,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             kss = {};
             for sesd = this.filesExpr2sessions(ipr.filesExpr)
                 sesd1 = sesd{1};
-                sesd1.parcellation = 'wbrain';
+                sesd1.region = 'wbrain';
                 pwd0 = pushd(sesd1.tracerResolvedOpSubject('typ', 'path'));                
                 devkit = mlpet.ScannerKit.createFromSession(sesd1);                
                 cbv = sesd1.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', 'dateonly', true);
@@ -287,7 +291,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             kss = {};
             for sesd = this.filesExpr2sessions(ipr.filesExpr)
                 sesd1 = sesd{1};
-                sesd1.parcellation = 'wmparc1';
+                sesd1.region = 'wmparc1';
                 pwd0 = pushd(sesd1.tracerResolvedOpSubject('typ', 'path'));                
                 devkit = mlpet.ScannerKit.createFromSession(sesd1);                
                 cbv = sesd1.cbvOnAtlas('typ', 'mlfourd.ImagingContext2', 'dateonly', true);
@@ -526,8 +530,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             cbv = mlfourd.ImagingContext2(this.sessionData.cbvOnAtlas('dateonly', true));
             mask = this.maskOnAtlasTagged();
             ks = this.ksOnAtlasTagged();
-            h = mlglucose.ImagingHuang1980.createFromDeviceKit( ...
-                this.devkit_, 'cbv', cbv, 'roi', mask, 'regionTag', this.regionTag);
+            h = mlglucose.ImagingHuang1980.createFromDeviceKit(this.devkit_, 'cbv', cbv, 'roi', mask);
             h.ks = ks;
         end
         function h  = loadNumericHuang(this, roi, varargin)
@@ -541,8 +544,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             this.devkit_ = mlpet.ScannerKit.createFromSession(this.sessionData);
             cbv = mlfourd.ImagingContext2(this.sessionData.cbvOnAtlas('dateonly', true));
             mean_cbv = cbv.fourdfp.img(roibin);            
-            h = mlglucose.NumericHuang1980.createFromDeviceKit( ...
-                this.devkit_, 'cbv', mean_cbv, 'roi', roi, 'regionTag', this.regionTag);
+            h = mlglucose.NumericHuang1980.createFromDeviceKit(this.devkit_, 'cbv', mean_cbv, 'roi', roi);
         end
         function ic = maskOnAtlasTagged(this, varargin)
             fqfp = [this.sessionData.wmparc1OnAtlas('typ', 'fqfp') '_binarized' this.blurTag '_binarized'];
