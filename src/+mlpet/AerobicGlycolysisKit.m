@@ -488,7 +488,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
             popd(pwd0)
         end  
         function Ks = k1_to_K1(~, ks, cbv)
-            %% multiplies k1 by dimensionless v1.
+            %% multiplies k1 by dimensionless v1 without blurring.
             %  @param ks is 1/s.
             %  @param cbv is mL/hg.
             %  @return Ks is 1/s, with Ks(1) multiplied by dimensionless v1.
