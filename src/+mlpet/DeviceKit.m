@@ -38,7 +38,7 @@ classdef (Abstract) DeviceKit < handle
             ip = inputParser;
             addParameter(ip, 'session', [], @(x) isa(x, 'mlraichle.Session'));
             parse(ip, varargin{:});
-            rm = mlraichle.CCIRRadMeasurements.createFromSession(ip.Results.session);
+            rm = mlpet.CCIRRadMeasurements.createFromSession(ip.Results.session);
         end
         function rs  = createReferenceSources(varargin)
             %% CREATEREFERENCESOURCES
@@ -164,7 +164,7 @@ classdef (Abstract) DeviceKit < handle
             addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});
             this.sessionData_ = ip.Results.sessionData;
-            this.radMeasurements_ = mlraichle.CCIRRadMeasurements.createFromSession(this.sessionData_);
+            this.radMeasurements_ = mlpet.CCIRRadMeasurements.createFromSession(this.sessionData_);
  		end	 
     end 
 

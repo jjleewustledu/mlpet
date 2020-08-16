@@ -25,7 +25,7 @@ classdef Test_CCIRRadMeasurements < matlab.unittest.TestCase
  			this.assertEqual(1,1);
         end
         function test_loadDate(this)
-            this.verifyClass(this.testObj, 'mlraichle.CCIRRadMeasurements')
+            this.verifyClass(this.testObj, 'mlpet.CCIRRadMeasurements')
         end    
         function test_datetime(this)
             this.verifyEqualDatetime(datetime(this.testObj), ...
@@ -112,9 +112,9 @@ classdef Test_CCIRRadMeasurements < matlab.unittest.TestCase
  			import mlpet.*;
             %setenv('CCIR_RAD_MEASUREMENTS_DIR', this.home);
             this.aDate = datetime(2018,10,5);
-            warning('off', 'mlraichle:ValueWarning');   
- 			this.testObj = mlraichle.CCIRRadMeasurements.createFromDate(this.aDate);
-            warning('on', 'mlraichle:ValueWarning');   
+            warning('off', 'mlpet:ValueWarning');   
+ 			this.testObj = mlpet.CCIRRadMeasurements.createFromDate(this.aDate);
+            warning('on', 'mlpe:ValueWarning');   
  			this.addTeardown(@this.cleanFiles);
  		end
 	end
