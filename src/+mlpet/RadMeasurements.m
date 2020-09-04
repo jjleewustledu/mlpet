@@ -28,14 +28,6 @@ classdef (Abstract) RadMeasurements < handle & matlab.mixin.Heterogeneous
             this = [];
         end
     end
-        
-	methods 		  
- 		function this = RadMeasurements(varargin)
- 			%% RADMEASUREMENTS
- 			%  @param .
-
- 		end
- 	end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end
