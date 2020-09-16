@@ -192,24 +192,6 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
     end
     
     methods (Static)
-        function fqfn = date2filename(aDate)
-            %% DATE2FILENAME looks in env var CCIR_RAD_MEASUREMENTS_DIR for a measurements file matching the
-            %  requested datetime.
-            %  @param aDate is datetime.
-            
-            assert(isdatetime(aDate));
-            CRMD = getenv('CCIR_RAD_MEASUREMENTS_DIR');
-            assert(isfolder(CRMD), ...
-                'mlpet:ValueError', ...
-                'environment variable CCIR_RAD_MEASUREMENTS_DIR->%s must be a dir', CRMD);
-            mon = lower(month(aDate, 'shortname'));
-            fqfn = fullfile( ...
-                getenv('CCIR_RAD_MEASUREMENTS_DIR'), ...
-                sprintf('CCIRRadMeasurements %i%s%i.xlsx', aDate.Year, mon{1}, aDate.Day));
-            assert(lexist(fqfn, 'file'), ...
-                'mlpet:FileNotFoundError', ...
-                'file %s must be accessible', fqfn)
-        end
         function this = createFromDate(aDate, varargin)
             import mlpet.CCIRRadMeasurements.*;
             this = createFromFilename(date2filename(aDate), varargin{:});
@@ -227,6 +209,24 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             parse(ip, sesd, varargin{:})
             ipr = ip.Results;            
             this = mlpet.CCIRRadMeasurements('session', ipr.sesd, varargin{:});
+        end
+        function fqfn = date2filename(aDate)
+            %% DATE2FILENAME looks in env var CCIR_RAD_MEASUREMENTS_DIR for a measurements file matching the
+            %  requested datetime.
+            %  @param aDate is datetime.
+            
+            assert(isdatetime(aDate));
+            CRMD = getenv('CCIR_RAD_MEASUREMENTS_DIR');
+            assert(isfolder(CRMD), ...
+                'mlpet:ValueError', ...
+                'environment variable CCIR_RAD_MEASUREMENTS_DIR->%s must be a dir', CRMD);
+            mon = lower(month(aDate, 'shortname'));
+            fqfn = fullfile( ...
+                getenv('CCIR_RAD_MEASUREMENTS_DIR'), ...
+                sprintf('CCIRRadMeasurements %i%s%i.xlsx', aDate.Year, mon{1}, aDate.Day));
+            assert(lexist(fqfn, 'file'), ...
+                'mlpet:FileNotFoundError', ...
+                'file %s must be accessible', fqfn)
         end
     end
     
@@ -372,6 +372,15 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 this.tracerAdmin.Properties.RowNames, ...
                 this.tracerCode(ip.Results.tracer, ip.Results.snumber)));
         end
+        function        disp(this)
+            disp(this.clocks)
+            disp(this.tracerAdmin)
+            disp(this.countsFdg)
+            disp(this.countsOcOo)
+            disp(this.wellCounter)
+            disp(this.twilite)
+            disp(this.mMR)
+        end
         function wcrs = wellCounterRefSrc(this, varargin)
             %% WELLCOUNTERREFSRC
             %  @param isotope is char, e.g., '[137Cs]', '[22Na]' or '[68Ge]'; default := '' induces a search for available isotopes.
@@ -440,7 +449,14 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 return
             end
             try
-                this = this.readtables(this.date2filename(datetime(this.session_)));
+                fqfn = this.date2filename(datetime(this.session_));
+                matfn = [myfileprefix(fqfn) '.mat'];
+                if isfile(matfn)
+                    load(matfn, 'this')
+                    return
+                end
+                this = this.readtables(fqfn);
+                save(matfn, 'this')
             catch ME
                 handwarning(ME)
                 this = [];

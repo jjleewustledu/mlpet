@@ -1,5 +1,8 @@
 classdef TracerModel 
 	%% TRACERMODEL  
+    %  See also:
+    %  mlswisstrace.{CatheterModel2,Munk2008,TwiliteCatheterCalibration}
+    %  mlswisstrace_unittest.Test_Catheter_DT20190930
 
 	%  $Revision$
  	%  was created 27-Jan-2020 17:57:46 by jjlee,
