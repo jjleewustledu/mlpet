@@ -1,4 +1,4 @@
-classdef (Abstract) TracerKinetics < handle
+classdef (Abstract) TracerKinetics < handle & matlab.mixin.Copyable
 	%% TRACERKINETICS  
 
 	%  $Revision$
@@ -18,6 +18,11 @@ classdef (Abstract) TracerKinetics < handle
         RBC_FACTOR = 0.766           % per Tom Videen, metproc.inc, line 193  
     end
     
+    properties (Dependent)
+        devkit
+        sessionData % defers to nonempty devkit
+    end
+    
     methods (Static)
         function cbf = invsToCbf(f)
             % 1/s -> mL/min/hg
@@ -34,6 +39,48 @@ classdef (Abstract) TracerKinetics < handle
         function mLg = unitlessToLambda(mLmL)
             % mL/mL -> mL/g
             mLg = mLmL/mlpet.TracerKinetics.DENSITY_BRAIN;
+        end
+    end
+    
+    methods
+        
+        %% GET
+        
+        function g = get.devkit(this)
+            g = this.devkit_;
+        end
+        function g = get.sessionData(this)
+            if ~isempty(this.devkit)
+                g = this.devkit.sessionData;
+                return
+            end
+            g = this.sessionData_;
+        end
+    end
+    
+    %% PROTECTED
+    
+    properties (Access = protected)
+        devkit_
+        sessionData_
+    end
+    
+    methods (Access = protected)
+        function this = TracerKinetics(varargin)
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'devkit', [])
+            addParameter(ip, 'sessionData', [])
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            this.devkit_ = ipr.devkit;
+            this.sessionData_ = ipr.sessionData;
+        end
+        function that = copyElement(this)
+            %%  See also web(fullfile(docroot, 'matlab/ref/matlab.mixin.copyable-class.html'))
+            
+            that = copyElement@matlab.mixin.Copyable(this);
         end
     end
 
