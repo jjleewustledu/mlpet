@@ -191,7 +191,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
         end
         function cbf   = buildCbfQuadratic(this)
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData);
-            devkit.stageResamplingRestricted();
             raichle = mloxygen.Raichle1983.createFromDeviceKit(devkit);
             cbf = raichle.buildCbfQuadratic( ...
                 'roi', this.sessionData.wbrain1OnAtlas('typ', 'mlfourd.ImagingContext2'));
@@ -220,7 +219,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
             end
             for sesd = sesdSet
                 devkit = mlpet.ScannerKit.createFromSession(sesd{1});
-                devkit.stageResamplingRestricted();
                 martin = mloxygen.Martin1987.createFromDeviceKit(devkit);
                 roiset = this.roisExpr2roiSet(ipr.roisExpr);
                 for roi = roiset
@@ -471,7 +469,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
                 disp(sesd1)
                 devkit = mlpet.ScannerKit.createFromSession(sesd1);
                 disp(devkit)
-                devkit.stageResamplingRestricted()
                 reg = sesd1.registry;
                 if reg.useParfor
                     roiset = cell(1, reg.numberNodes);
