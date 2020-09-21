@@ -18,7 +18,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
 
 	methods (Static)
         function ic     = constructWmparc1OnAtlas(sesd)
-            import mlfourd.ImagingFormatContext
             import mlfourd.ImagingContext2
             
             if isfile(sesd.wmparc1OnAtlas)
@@ -26,8 +25,8 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
                 return
             end
             
-            wmparc = ImagingFormatContext(sesd.wmparcOnAtlas());
-            wmparc1 = ImagingFormatContext(sesd.brainOnAtlas());
+            wmparc = sesd.wmparcOnAtlas('typ', 'mlfourd.ImagingFormatContext');
+            wmparc1 = sesd.brainOnAtlas('typ', 'mlfourd.ImagingFormatContext');
             wmparc1.fileprefix = sesd.wmparc1OnAtlas('typ', 'fp');
             wmparc1.img(wmparc1.img > 0) = 1;
             wmparc1.img(wmparc.img > 0) = wmparc.img(wmparc.img > 0);
@@ -189,10 +188,10 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
         
         function         buildAgi(this)
         end
-        function cbf   = buildCbfQuadratic(this)
+        function cbf   = buildCbfByQuadModel(this)
             devkit = mlpet.ScannerKit.createFromSession(this.sessionData);
             raichle = mloxygen.Raichle1983.createFromDeviceKit(devkit);
-            cbf = raichle.buildCbfQuadratic( ...
+            cbf = raichle.buildCbfByQuadModel( ...
                 'roi', this.sessionData.wbrain1OnAtlas('typ', 'mlfourd.ImagingContext2'));
         end
         function cbv   = buildCbv(this, varargin)
