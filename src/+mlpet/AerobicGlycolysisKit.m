@@ -9,6 +9,8 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
  	 	
     properties (Constant)
         LC = 0.81 % Wu, et al., Molecular Imaging and Biology, 5(1), 32-41, 2003.
+        E_MIN = 0.7
+        E_MAX = 0.93
     end
     
 	properties (Dependent)
@@ -88,23 +90,48 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
             
             mlnipet.ResolvingSessionData.jitOnT1001(fexp);
         end
-        function cbf    = fs2cbf(fsobj)
-            %% @param required ksobj contians fs in R^3.
+        function E      = metric2E(mobj)
+            %% @param required fsobj contains fs in R^3.
             
             import mloxygen.Raichle1983
+            import mlpet.AerobicGlycolysisKit
+            import mlpet.TracerKinetics.invsToCbf
+            import mlpet.TracerKinetics.unitlessToLambda
             
-            fs = mlfourd.ImagingContext2(fsobj);
-            fs = fs.fourdfp;            
-            assert(contains(fs.fileprefix, 'fs'))
-            img = zeros(size(fs));
+            m = mlfourd.ImagingContext2(mobj);
+            m = m.fourdfp;
+            msk = m.img(:,:,:,1) > 0;
+            img = 1 - exp(-m.img(:,:,:,2) ./ m.img(:,:,:,1));
+            img(isnan(img)) = 0;
+            img(img > AerobicGlycolysisKit.E_MAX) = AerobicGlycolysisKit.E_MAX;
+            img(img < AerobicGlycolysisKit.E_MIN) = AerobicGlycolysisKit.E_MIN;
+            img = img .* msk;
+            
+            E = copy(m);  
+            re = regexp(m.fileprefix, '(?<metric>\w+)dt\d{14}_\S+', 'names');          
+            E.fileprefix = strrep(m.fileprefix, re.metric, [re.metric '_E']);
+            E.img = img;
+            E = mlfourd.ImagingContext2(E);
+        end
+        function cbf    = metric2cbf(mobj)
+            %% @param required fsobj contains fs in R^3.
+            
+            import mloxygen.Raichle1983
+            import mlpet.TracerKinetics.invsToCbf
+            import mlpet.TracerKinetics.unitlessToLambda
+            
+            m = mlfourd.ImagingContext2(mobj);
+            m = m.fourdfp;            
+            img = zeros(size(m));
             for t = 1:2 % f, PS =: mL/min/hg
-                img(:,:,:,t) = this.invsToCbf(fs.img(:,:,:,t));
+                img(:,:,:,t) = invsToCbf(m.img(:,:,:,t));
             end
-            img(:,:,:,3) = this.unitlessToLambda(fs.img(:,:,:,3));
+            img(:,:,:,3) = unitlessToLambda(m.img(:,:,:,3));
             img(isnan(img)) = 0;
             
-            cbf = copy(fs);            
-            cbf.fileprefix = strrep(fs.fileprefix, 'fs', 'cbf');
+            cbf = copy(m);
+            re = regexp(m.fileprefix, '(?<metric>\w+)dt\d{14}_\S+', 'names');
+            cbf.fileprefix = strrep(m.fileprefix, re.metric, [re.metric '_cbf']);
             cbf.img = img;
             cbf = mlfourd.ImagingContext2(cbf);
         end  
@@ -575,8 +602,9 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
             end
             popd(pwd0)
         end  
-        function ic    = fsOnAtlasTagged(this, varargin)
-            fqfp = this.sessionData.fsOnAtlas('typ', 'fqfp', 'tags', ['_b43' this.regionTag '_b43']);
+        function ic    = metricOnAtlasTagged(this, varargin)
+            sesd = this.sessionData;
+            fqfp = sesd.([sesd.metric 'OnAtlas'])('typ', 'fqfp', 'tags', ['_b43' this.regionTag '_b43']);
             
             % 4dfp exists
             if isfile([fqfp '.4dfp.hdr'])
@@ -595,7 +623,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
                 return
             end
             
-            error('mlraichle:RuntimeError', 'AerobicGlycolysis.fsOnAtlas')
+            error('mlraichle:RuntimeError', 'AerobicGlycolysis.metricOnAtlasTagged')
         end
         function Ks    = k1_to_K1(~, ks, cbv)
             %% multiplies k1 by dimensionless v1 without blurring.
@@ -610,28 +638,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
             Ks.fileprefix = strrep(ks.fileprefix, 'ks', 'Ks');
             Ks = mlfourd.ImagingContext2(Ks);
         end
-        function ic    = ksOnAtlasTagged(this, varargin)
-            fqfp = this.sessionData.ksOnAtlas('typ', 'fqfp', 'tags', ['_b43' this.regionTag '_b43']);
-            
-            % 4dfp exists
-            if isfile([fqfp '.4dfp.hdr'])
-                ic = mlfourd.ImagingContext2([fqfp '.4dfp.hdr']);
-                return
-            end
-            
-            % Luckett-mat exists
-            ifc = mlfourd.ImagingFormatContext(this.sessionData.fdgOnAtlas);
-            ifc.fileprefix = mybasename(fqfp);
-            if isfile([fqfp '.mat'])
-                ks = load([fqfp '.mat'], 'img');
-                ifc.img = reshape(single(ks.img), [128 128 75 4]);
-                ic = mlfourd.ImagingContext2(ifc);
-                ic.save()
-                return
-            end
-            
-            error('mlraichle:RuntimeError', 'AerobicGlycolysis.ksOnAtlas')
-        end
         function h     = loadImagingHuang(this, varargin)
             %%
             %  @return mlglucose.ImagingHuang1980  
@@ -639,7 +645,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
             this.devkit_ = mlpet.ScannerKit.createFromSession(this.sessionData);
             cbv = mlfourd.ImagingContext2(this.sessionData.cbvOnAtlas('dateonly', true));
             mask = this.maskOnAtlasTagged();
-            ks = this.ksOnAtlasTagged();
+            ks = this.metricOnAtlasTagged();
             h = mlglucose.ImagingHuang1980.createFromDeviceKit(this.devkit_, 'cbv', cbv, 'roi', mask);
             h.ks = ks;
         end
@@ -649,9 +655,9 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
             
             this.devkit_ = mlpet.ScannerKit.createFromSession(this.sessionData);
             mask = this.maskOnAtlasTagged();
-            fs = this.fsOnAtlasTagged();
+            met = this.metricOnAtlasTagged();
             r = mlglucose.ImagingRaichle1983.createFromDeviceKit(this.devkit_, 'roi', mask);
-            r.fs = fs;
+            r.metric = met;
         end
         function h     = loadNumericHuang(this, roi, varargin)
             %%

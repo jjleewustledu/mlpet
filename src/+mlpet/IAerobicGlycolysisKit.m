@@ -7,14 +7,14 @@ classdef (Abstract) IAerobicGlycolysisKit < handle & matlab.mixin.Heterogeneous 
  	%% It was developed on Matlab 9.7.0.1319299 (R2019b) Update 5 for MACI64.  Copyright 2020 John Joowon Lee.
     
 	methods (Abstract)
-        buildAgi(this)
-        buildCbv(this)
-        buildCbf(this)
-        buildCMRglc(this)
-        buildCMRO2(this)
-        buildKs(this)
-        buildOef(this)
-		buildOgi(this)  
+%         buildAgi(this)
+%         buildCbv(this)
+%         buildCbf(this)
+%         buildCMRglc(this)
+%         buildCMRO2(this)
+%         buildKs(this)
+%         buildOef(this)
+% 		  buildOgi(this)  
         filesExpr2sessions(this)
         foldersExpr2sessions(this)
   	end 
