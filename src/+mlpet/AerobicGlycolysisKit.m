@@ -1,6 +1,5 @@
 classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGlycolysisKit
 	%% AEROBICGLYCOLYSISKIT  
-    %  requires overloaded filesExpr2sessions().
 
 	%  $Revision$
  	%  was created 01-Apr-2020 11:09:38 by jjlee,
@@ -11,10 +10,14 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
         LC = 0.81 % Wu, et al., Molecular Imaging and Biology, 5(1), 32-41, 2003.
         E_MIN = 0.7
         E_MAX = 0.93
+        indices = [1000:1035 2000:2035 3000:3035 4000:4035 5001:5002 6000 1:85 192:255];
+        indicesL = [14:16  1:13 17:20 25:39 21:24 72 73 77 78 80 81 83 85 192 193:196 201:255 1000:1035 3000:3035 5001 6000];
+        indicesR = [14:16 40:71             21:24 72 74 77 79 80 82 84 85 192 197:200 201:255 2000:2035 4000:4035 5002 6000];
     end
     
 	properties (Dependent)
         blurTag
+        indicesToCheck
         regionTag
  	end
 
@@ -95,7 +98,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
             
             import mloxygen.Raichle1983
             import mlpet.AerobicGlycolysisKit
-            import mlpet.TracerKinetics.invsToCbf
             import mlpet.TracerKinetics.unitlessToLambda
             
             m = mlfourd.ImagingContext2(mobj);
@@ -117,14 +119,14 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
             %% @param required fsobj contains fs in R^3.
             
             import mloxygen.Raichle1983
-            import mlpet.TracerKinetics.invsToCbf
+            import mlpet.TracerKinetics.f1ToCbf
             import mlpet.TracerKinetics.unitlessToLambda
             
             m = mlfourd.ImagingContext2(mobj);
             m = m.fourdfp;            
             img = zeros(size(m));
             for t = 1:2 % f, PS =: mL/min/hg
-                img(:,:,:,t) = invsToCbf(m.img(:,:,:,t));
+                img(:,:,:,t) = f1ToCbf(m.img(:,:,:,t));
             end
             img(:,:,:,3) = unitlessToLambda(m.img(:,:,:,3));
             img(isnan(img)) = 0;
@@ -206,7 +208,14 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
         function g = get.blurTag(this)
            blur = this.sessionData.petPointSpread; 
            g = sprintf('_b%i', round(blur*10));
-        end        
+        end   
+        function g = get.indicesToCheck(~)
+            if isdeployed()
+                g = 0;
+            else
+                g = [1 7:13 16:20 24 26:28 1000:1035 3000:3035];
+            end
+        end     
         function g = get.regionTag(this)
             g = this.sessionData.regionTag;
         end   

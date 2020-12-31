@@ -74,11 +74,11 @@ classdef (Abstract) AbstractHerscovitch1985 < mlfourdfp.AbstractSessionBuilder
         function cbf = estimateModelCbf(As, petobs)
             cbf = petobs.^2*As(1) + petobs*As(2);
         end    
-        function cbf = invsToCbf(f)
-            cbf = 6000*f/mlpet.Herscovitch1985.DENSITY_BRAIN;
+        function cbf = f1ToCbf(f1)
+            cbf = 6000*f1/mlpet.Herscovitch1985.DENSITY_BRAIN;
         end
-        function f   = cbfToInvs(cbf)
-            f = cbf*mlpet.Herscovitch1985.DENSITY_BRAIN/6000;
+        function f1  = cbfToF1(cbf)
+            f1 = cbf*mlpet.Herscovitch1985.DENSITY_BRAIN/6000;
         end
     end
     

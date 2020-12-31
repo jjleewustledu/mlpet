@@ -63,7 +63,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  @return this(...) as determined by this.nEpochs_ and this.saveEpoch(this.partitionEpochFrames).
             %  @return mono := struct('sessionData',,'imagingContext',}, which contains the pre-partitioning state  
             %          for later use.
-            %  See also:  mlpipeline.RootBuilder.
+            %  See also:  mlpipeline.CompositeBuilder.
             
             sz = this.sizeTracerRevision;
             if (length(sz) < 4 || 1 == sz(4))

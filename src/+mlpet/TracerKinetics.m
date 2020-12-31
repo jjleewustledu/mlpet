@@ -5,7 +5,7 @@ classdef (Abstract) TracerKinetics < handle & matlab.mixin.Copyable
  	%  was created 10-Sep-2020 17:07:33 by jjlee,
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.7.0.1434023 (R2019b) Update 6 for MACI64.  Copyright 2020 John Joowon Lee.
- 	 	
+    
     properties (Constant)
         BLOOD_DENSITY = 1.06         % https://hypertextbook.com/facts/2004/MichaelShmukler.shtml; human whole blood 37 C
         BRAIN_DENSITY = 1.05         % Torack et al., 1976, g/mL        
@@ -24,27 +24,35 @@ classdef (Abstract) TracerKinetics < handle & matlab.mixin.Copyable
     end
     
     methods (Static)
-        function cbf = invsToCbf(f)
+        function cbf  = f1ToCbf(f1)
             % 1/s -> mL/min/hg
-            cbf = 6000*f/mlpet.TracerKinetics.DENSITY_BRAIN;
+            cbf = 6000*f1/mlpet.TracerKinetics.DENSITY_BRAIN;
         end
-        function f = cbfToInvs(cbf)
+        function f1   = cbfToF1(cbf)
             % mL/min/hg -> 1/s
-            f = cbf*mlpet.TracerKinetics.DENSITY_BRAIN/6000;
+            f1 = cbf*mlpet.TracerKinetics.DENSITY_BRAIN/6000;
+        end
+        function v1   = cbvToV1(cbv)
+            % mL/hg -> unit-less
+            v1 = cbv*mlpet.TracerKinetics.DENSITY_BRAIN/100;
         end
         function mLmL = lambdaToUnitless(mLg)
             % mL/g -> mL/mL            
             mLmL = mLg*mlpet.TracerKinetics.DENSITY_BRAIN;
         end
-        function mLg = unitlessToLambda(mLmL)
+        function mLg  = unitlessToLambda(mLmL)
             % mL/mL -> mL/g
             mLg = mLmL/mlpet.TracerKinetics.DENSITY_BRAIN;
+        end
+        function cbv  = v1ToCbv(v1)
+            % unit-less -> mL/hg            
+            cbv = v1*100/mlpet.TracerKinetics.DENSITY_BRAIN;
         end
     end
     
     methods
         
-        %% GET
+        %% GET        
         
         function g = get.devkit(this)
             g = this.devkit_;
@@ -66,7 +74,10 @@ classdef (Abstract) TracerKinetics < handle & matlab.mixin.Copyable
     end
     
     methods (Access = protected)
-        function this = TracerKinetics(varargin)
+        function this = TracerKinetics(varargin)            
+            %  @param devkit is mlpet.IDeviceKit.            
+            %  @param sessionData is mlpipeline.ISessionData.
+            
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'devkit', [])
@@ -81,6 +92,7 @@ classdef (Abstract) TracerKinetics < handle & matlab.mixin.Copyable
             %%  See also web(fullfile(docroot, 'matlab/ref/matlab.mixin.copyable-class.html'))
             
             that = copyElement@matlab.mixin.Copyable(this);
+            that.devkit_ = copy(this.devkit_);
         end
     end
 
