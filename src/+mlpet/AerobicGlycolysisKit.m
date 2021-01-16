@@ -10,7 +10,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
         LC = 0.81 % Wu, et al., Molecular Imaging and Biology, 5(1), 32-41, 2003.
         E_MIN = 0.7
         E_MAX = 0.93
-        indices = [1000:1035 2000:2035 3000:3035 4000:4035 5001:5002 6000 1:85 192:255];
+        indices = [1:85 192:255 1000:1035 2000:2035 3000:3035 4000:4035 5001:5002 6000];
         indicesL = [14:16  1:13 17:20 25:39 21:24 72 73 77 78 80 81 83 85 192 193:196 201:255 1000:1035 3000:3035 5001 6000];
         indicesR = [14:16 40:71             21:24 72 74 77 79 80 82 84 85 192 197:200 201:255 2000:2035 4000:4035 5002 6000];
     end
@@ -79,7 +79,7 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
             if length(sz) == 3
                 sz = [sz 1];
             end
-            img = reshape(ic.fourdfp.img, [sz(1)*sz(2)*sz(3) sz(4)]);
+            img = reshape(flip(ic.fourdfp.img, 2), [sz(1)*sz(2)*sz(3) sz(4)]);
             matfn = [ic.fqfileprefix '.mat'];
             save(matfn, 'img')
         end   
@@ -209,11 +209,19 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
            blur = this.sessionData.petPointSpread; 
            g = sprintf('_b%i', round(blur*10));
         end   
-        function g = get.indicesToCheck(~)
+        function g = get.indicesToCheck(this)
             if isdeployed()
                 g = 0;
             else
-                g = [1 7:13 16:20 24 26:28 1000:1035 3000:3035];
+                if ~isempty(getenv('NOPLOT'))
+                    g = [];
+                    return
+                end
+                if ~isempty(getenv('DEBUG'))
+                    g = this.indices;
+                    return
+                end
+                g = [1 7:13 16:20 24 26:28 1001 2001 3001 4001 5001 5002 6000];
             end
         end     
         function g = get.regionTag(this)

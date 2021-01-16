@@ -49,7 +49,7 @@ classdef Rois
             g = fullfile(this.sessionData_.sessionPath, 'mri', '');
         end
         function g = get.roisPath(this)
-            g = fullfile(this.sessionData_.subjectPath, 'resampling_restricted', '');
+            g = fullfile(this.sessionData_.dataPath, '');
         end
         function g = get.sessionData(this)
             g = this.sessionData_;

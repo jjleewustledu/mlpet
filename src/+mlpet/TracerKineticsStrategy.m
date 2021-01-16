@@ -15,7 +15,6 @@ classdef TracerKineticsStrategy < handle & mlpet.TracerKinetics
     
 	properties (Dependent) 	
         artery_interpolated
-        averageVoxels % DEPRECATED	
         blurTag
         regionTag
         roi % mlfourd.ImagingContext2
@@ -28,14 +27,7 @@ classdef TracerKineticsStrategy < handle & mlpet.TracerKinetics
         
         function g = get.artery_interpolated(this)
             g = this.strategy_.artery_interpolated;
-        end
-        function g = get.averageVoxels(this)
-            g = this.averageVoxels_;
-        end
-        function     set.averageVoxels(this, s)
-            assert(islogical(s))
-            this.averageVoxels_ = s;
-        end        
+        end    
         function g = get.blurTag(this)
            blur = this.sessionData.petPointSpread; 
            g = sprintf('_b%i', round(blur*10));
@@ -73,7 +65,6 @@ classdef TracerKineticsStrategy < handle & mlpet.TracerKinetics
     %% PROTECTED
     
     properties (Access = protected)
-        averageVoxels_ % DEPRECATED
         roi_
         strategy_ % for solve
     end
@@ -92,19 +83,13 @@ classdef TracerKineticsStrategy < handle & mlpet.TracerKinetics
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'Dt', 0, @isscalar)
-            addParameter(ip, 'model', [])
-            addParameter(ip, 'times_sampled', [], @isnumeric)
-            addParameter(ip, 'artery_interpolated', [], @isnumeric)
-            addParameter(ip, 'averageVoxels', false, @islogical); % DEPRECATED
+            addParameter(ip, 'model', [], @(x) ~isempty(x))
             addParameter(ip, 'roi', [])
             parse(ip, varargin{:});
             ipr = ip.Results;
             
             this.Dt = ipr.Dt;
-            this.model = ipr.model;            
-            this.model = this.model.set_times_sampled(ipr.times_sampled);
-            this.model = this.model.set_artery_interpolated(ipr.artery_interpolated);
-            this.averageVoxels_ = ipr.averageVoxels;
+            this.model = ipr.model;
             if ~isempty(ipr.roi)
                 this.roi_ = mlfourd.ImagingContext2(ipr.roi);
                 this.roi_ = this.roi_.binarized();

@@ -74,8 +74,8 @@ classdef (Abstract) TracerKinetics < handle & matlab.mixin.Copyable
     end
     
     methods (Access = protected)
-        function this = TracerKinetics(varargin)            
-            %  @param devkit is mlpet.IDeviceKit.            
+        function this = TracerKinetics(varargin)
+            %  @param devkit is mlpet.IDeviceKit.
             %  @param sessionData is mlpipeline.ISessionData.
             
             ip = inputParser;

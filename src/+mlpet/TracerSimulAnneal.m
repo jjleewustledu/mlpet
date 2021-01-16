@@ -117,13 +117,13 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             dbs = dbstack;
             title(dbs(1).name)
         end 
-        function        save(this)
+        function save(this)
             save([this.fileprefix '.mat'], this);
         end
-        function        saveas(this, fn)
+        function saveas(this, fn)
             save(fn, this);
         end      
-        function s    = sprintfModel(this)
+        function s = sprintfModel(this)
             s = sprintf('Simulated Annealing:\n');
             %s = [s sprintf('\tE = 1 - exp(-PS/f) = %f\n', 1 - exp(-this.ks(2)/this.ks(1)))];
             for ky = 1:length(this.ks)
