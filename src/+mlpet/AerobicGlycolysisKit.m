@@ -93,50 +93,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
             
             mlnipet.ResolvingSessionData.jitOnT1001(fexp);
         end
-        function E      = metric2E(mobj)
-            %% @param required fsobj contains fs in R^3.
-            
-            import mloxygen.Raichle1983
-            import mlpet.AerobicGlycolysisKit
-            import mlpet.TracerKinetics.unitlessToLambda
-            
-            m = mlfourd.ImagingContext2(mobj);
-            m = m.fourdfp;
-            msk = m.img(:,:,:,1) > 0;
-            img = 1 - exp(-m.img(:,:,:,2) ./ m.img(:,:,:,1));
-            img(isnan(img)) = 0;
-            img(img > AerobicGlycolysisKit.E_MAX) = AerobicGlycolysisKit.E_MAX;
-            img(img < AerobicGlycolysisKit.E_MIN) = AerobicGlycolysisKit.E_MIN;
-            img = img .* msk;
-            
-            E = copy(m);  
-            re = regexp(m.fileprefix, '(?<metric>\w+)dt\d{14}_\S+', 'names');          
-            E.fileprefix = strrep(m.fileprefix, re.metric, [re.metric '_E']);
-            E.img = img;
-            E = mlfourd.ImagingContext2(E);
-        end
-        function cbf    = metric2cbf(mobj)
-            %% @param required fsobj contains fs in R^3.
-            
-            import mloxygen.Raichle1983
-            import mlpet.TracerKinetics.f1ToCbf
-            import mlpet.TracerKinetics.unitlessToLambda
-            
-            m = mlfourd.ImagingContext2(mobj);
-            m = m.fourdfp;            
-            img = zeros(size(m));
-            for t = 1:2 % f, PS =: mL/min/hg
-                img(:,:,:,t) = f1ToCbf(m.img(:,:,:,t));
-            end
-            img(:,:,:,3) = unitlessToLambda(m.img(:,:,:,3));
-            img(isnan(img)) = 0;
-            
-            cbf = copy(m);
-            re = regexp(m.fileprefix, '(?<metric>\w+)dt\d{14}_\S+', 'names');
-            cbf.fileprefix = strrep(m.fileprefix, re.metric, [re.metric '_cbf']);
-            cbf.img = img;
-            cbf = mlfourd.ImagingContext2(cbf);
-        end  
         function chi    = ks2chi(ksobj)
             %  @param ksobj
             %  @return chi := k1 k3/(k2 + k3) in 1/s, without v1.
@@ -198,7 +154,51 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
             cache.fileprefix = strrep(ic.fileprefix, 'ks', 'mask');
             cache.img = single(cache.img(:,:,:,1) > 0);
             msk = mlfourd.ImagingContext2(cache);
-        end     
+        end    
+        function E      = metric2E(mobj)
+            %% @param required fsobj contains fs in R^3.
+            
+            import mloxygen.Raichle1983
+            import mlpet.AerobicGlycolysisKit
+            import mlpet.TracerKinetics.unitlessToLambda
+            
+            m = mlfourd.ImagingContext2(mobj);
+            m = m.fourdfp;
+            msk = m.img(:,:,:,1) > 0;
+            img = 1 - exp(-m.img(:,:,:,2) ./ m.img(:,:,:,1));
+            img(isnan(img)) = 0;
+            img(img > AerobicGlycolysisKit.E_MAX) = AerobicGlycolysisKit.E_MAX;
+            img(img < AerobicGlycolysisKit.E_MIN) = AerobicGlycolysisKit.E_MIN;
+            img = img .* msk;
+            
+            E = copy(m);  
+            re = regexp(m.fileprefix, '(?<metric>\w+)dt\d{14}_\S+', 'names');          
+            E.fileprefix = strrep(m.fileprefix, re.metric, [re.metric '_E']);
+            E.img = img;
+            E = mlfourd.ImagingContext2(E);
+        end
+        function cbf    = metric2cbf(mobj)
+            %% @param required fsobj contains fs in R^3.
+            
+            import mloxygen.Raichle1983
+            import mlpet.TracerKinetics.f1ToCbf
+            import mlpet.TracerKinetics.unitlessToLambda
+            
+            m = mlfourd.ImagingContext2(mobj);
+            m = m.fourdfp;            
+            img = zeros(size(m));
+            for t = 1:2 % f, PS =: mL/min/hg
+                img(:,:,:,t) = f1ToCbf(m.img(:,:,:,t));
+            end
+            img(:,:,:,3) = unitlessToLambda(m.img(:,:,:,3));
+            img(isnan(img)) = 0;
+            
+            cbf = copy(m);
+            re = regexp(m.fileprefix, '(?<metric>\w+)dt\d{14}_\S+', 'names');
+            cbf.fileprefix = strrep(m.fileprefix, re.metric, [re.metric '_cbf']);
+            cbf.img = img;
+            cbf = mlfourd.ImagingContext2(cbf);
+        end   
     end 
     
     methods

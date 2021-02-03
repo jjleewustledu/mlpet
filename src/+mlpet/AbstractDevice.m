@@ -160,6 +160,12 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
         function d = datetime(this, varargin)
             d = this.data_.datetime(varargin{:});
         end        
+        function this = decayCorrect(this)
+            this = decayCorrect(this.data_);
+        end
+        function this = decayUncorrect(this)
+            this = decayUncorrect(this.data_);
+        end
         function d = duration(this, varargin)
             d = this.data_.duration(varargin{:});
         end        
