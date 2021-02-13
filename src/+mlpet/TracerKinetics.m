@@ -1,4 +1,4 @@
-classdef (Abstract) TracerKinetics < handle & matlab.mixin.Copyable
+classdef (Abstract) TracerKinetics < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
 	%% TRACERKINETICS  
 
 	%  $Revision$
@@ -26,27 +26,27 @@ classdef (Abstract) TracerKinetics < handle & matlab.mixin.Copyable
     methods (Static)
         function cbf  = f1ToCbf(f1)
             % 1/s -> mL/min/hg
-            cbf = 6000*f1/mlpet.TracerKinetics.DENSITY_BRAIN;
+            cbf = f1 .* 6000/mlpet.TracerKinetics.DENSITY_BRAIN;
         end
         function f1   = cbfToF1(cbf)
             % mL/min/hg -> 1/s
-            f1 = cbf*mlpet.TracerKinetics.DENSITY_BRAIN/6000;
+            f1 = cbf .* mlpet.TracerKinetics.DENSITY_BRAIN/6000;
         end
         function v1   = cbvToV1(cbv)
             % mL/hg -> unit-less
-            v1 = cbv*mlpet.TracerKinetics.DENSITY_BRAIN/100;
+            v1 = cbv .* mlpet.TracerKinetics.DENSITY_BRAIN/100;
         end
         function mLmL = lambdaToUnitless(mLg)
             % mL/g -> mL/mL            
-            mLmL = mLg*mlpet.TracerKinetics.DENSITY_BRAIN;
+            mLmL = mLg .* mlpet.TracerKinetics.DENSITY_BRAIN;
         end
         function mLg  = unitlessToLambda(mLmL)
             % mL/mL -> mL/g
-            mLg = mLmL/mlpet.TracerKinetics.DENSITY_BRAIN;
+            mLg = mLmL ./ mlpet.TracerKinetics.DENSITY_BRAIN;
         end
         function cbv  = v1ToCbv(v1)
             % unit-less -> mL/hg            
-            cbv = v1*100/mlpet.TracerKinetics.DENSITY_BRAIN;
+            cbv = v1 .* 100/mlpet.TracerKinetics.DENSITY_BRAIN;
         end
     end
     
@@ -80,6 +80,7 @@ classdef (Abstract) TracerKinetics < handle & matlab.mixin.Copyable
             
             ip = inputParser;
             ip.KeepUnmatched = true;
+            ip.PartialMatching = false;
             addParameter(ip, 'devkit', [])
             addParameter(ip, 'sessionData', [])
             parse(ip, varargin{:})
