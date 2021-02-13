@@ -8,7 +8,6 @@ classdef TracerKineticsStrategy < handle & mlpet.TracerKinetics
  	%% It was developed on Matlab 9.9.0.1524771 (R2020b) Update 2 for MACI64.  Copyright 2020 John Joowon Lee.
  	 	   
     properties  
-        Dt          % time-shift for AIF; Dt < 0 shifts backwards in time.
         measurement % expose for performance when used strategies for solve
         model       %
     end
@@ -49,7 +48,7 @@ classdef TracerKineticsStrategy < handle & mlpet.TracerKinetics
         end
         
         %%
-		
+         
         function h = plot(this, varargin)
             h = this.strategy_.plot(varargin{:});
         end
@@ -82,13 +81,11 @@ classdef TracerKineticsStrategy < handle & mlpet.TracerKinetics
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'Dt', 0, @isscalar)
             addParameter(ip, 'model', [], @(x) ~isempty(x))
             addParameter(ip, 'roi', [])
             parse(ip, varargin{:});
             ipr = ip.Results;
             
-            this.Dt = ipr.Dt;
             this.model = ipr.model;
             if ~isempty(ipr.roi)
                 this.roi_ = mlfourd.ImagingContext2(ipr.roi);
