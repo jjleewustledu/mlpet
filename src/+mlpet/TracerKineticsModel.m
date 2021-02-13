@@ -17,6 +17,10 @@ classdef (Abstract) TracerKineticsModel
         simulated(this)
     end
     
+    properties (Constant)
+        T = 30 % sec at the start of artery_interpolated used for model but not described by scanner frames
+    end
+    
 	properties
         artery_interpolated
  		map
@@ -24,7 +28,7 @@ classdef (Abstract) TracerKineticsModel
     end
     
     methods (Static)
-        function q1 = sampleOnScannerFrames(q, times_sampled)
+        function q1 = solutionOnScannerFrames(q, times_sampled)
             %  @param q that is empty resets internal data for times and q1 := [].
             %  @param q is activity that is uniformly sampled in time.
             %  @param times_sampled are the times of the midpoints of scanner frames, all times_sampled > 0.
@@ -62,6 +66,7 @@ classdef (Abstract) TracerKineticsModel
             %  @param artery_interpolated must be uniformly interpolated.
             
             ip = inputParser;
+            ip.PartialMatching = false;
             ip.KeepUnmatched = true;
             addParameter(ip, 'map', this.preferredMap(), @(x) isa(x, 'containers.Map'))
             addParameter(ip, 'times_sampled', [], @isnumeric)
@@ -86,9 +91,10 @@ classdef (Abstract) TracerKineticsModel
             end
             % artery_interpolated may be shorter than scanner times_sampled
             assert(~isempty(this.times_sampled))
-            if length(s)-1 ~= this.times_sampled(end)
+            T_ = this.T;
+            if length(s) ~= this.times_sampled(end) + T_ + 1
                 this.artery_interpolated = ...
-                    makima(0:length(s)-1, s, this.times_sampled(1):this.times_sampled(end));
+                    makima(-T_:length(s)-T_-1, s, -T_:this.times_sampled(end));
             else
                 this.artery_interpolated = s;
             end
