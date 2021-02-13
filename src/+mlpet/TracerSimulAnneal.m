@@ -76,6 +76,18 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             disp(this.results_.output.rngstate)
             disp(this.results_.output.temperature)
         end
+        function aif1 = dispersedAif(this, aif)
+            T = mlpet.TracerKineticsModel.T;
+            n = length(aif);
+            times = 0:n-1;
+            times = times - T;
+            Delta = this.ks(end);
+            
+            auc0 = trapz(aif);
+            aif1 = conv(aif, exp(-Delta*times));
+            aif1 = aif1(1:n);
+            aif1 = aif1*auc0/trapz(aif1);
+        end
         function fprintfModel(this)
             fprintf('Simulated Annealing:\n');            
             for ky = 1:length(this.ks)
