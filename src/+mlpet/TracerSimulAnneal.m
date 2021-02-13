@@ -14,6 +14,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
         quiet = false
         visualize = false
         visualize_anneal = false 		
+        zoom = 1
     end
     
 	properties (Dependent)   
