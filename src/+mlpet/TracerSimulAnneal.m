@@ -13,7 +13,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
         ks_upper
         quiet = false
         visualize = false
-        visualize_anneal = false 		
+        visualize_anneal = false
         zoom = 1
     end
     
@@ -36,7 +36,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
                 return
             end
             if Dt < 0
-                T = length(conc);
+               T = length(conc);
                conc_ = conc(end)*ones(1, length(conc));
                conc_(1:T+Dt) = conc(1-Dt:end);
                conc = conc_;
