@@ -76,33 +76,36 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             disp(this.results_.output.temperature)
         end
         function fprintfModel(this)
-            fprintf('Simulated Annealing:\n');
-            %fprintf('\tE = 1 - exp(-PS/f) = %f\n', 1 - exp(-this.ks(2)/this.ks(1)))
+            fprintf('Simulated Annealing:\n');            
             for ky = 1:length(this.ks)
                 fprintf('\tk%i = %f\n', ky, this.ks(ky));
             end
+            %fprintf('\tE = 1 - exp(-PS/f) = %f\n', 1 - exp(-this.ks(2)/this.ks(1)))
             fprintf('\tsigma0 = %f\n', this.sigma0);
             for ky = this.map.keys
                 fprintf('\tmap(''%s'') => %s\n', ky{1}, struct2str(this.map(ky{1})));
             end
+            fprintf('\tzoom => %g\n', this.zoom);
         end
         function h = plot(this, varargin)
             ip = inputParser;
             addParameter(ip, 'showAif', true, @islogical)
-            addParameter(ip, 'xlim', [-5 500], @isnumeric)            
+            addParameter(ip, 'xlim', [-10 500], @isnumeric)
             addParameter(ip, 'ylim', [], @isnumeric)
             addParameter(ip, 'zoom', 1, @isnumeric)
             parse(ip, varargin{:})
             ipr = ip.Results;
+            this.zoom = ipr.zoom;
             
-            aif = this.artery_interpolated;
+            T = mlpet.TracerKineticsModel.T;
+            aif = this.dispersedAif(this.artery_interpolated);
             h = figure;
             times = this.times_sampled;
             sampled = this.model.sampled(this.ks, aif, times);
             if ipr.showAif
                 plot(times, ipr.zoom*this.Measurement, ':o', ...
                     times(1:length(sampled)), ipr.zoom*sampled, '-', ...
-                    0:length(aif)-1, aif, '--')                
+                    -T:length(aif)-T-1, aif, '--')                
                 legend('measurement', 'estimation', 'aif')
             else
                 plot(times, ipr.zoom*this.Measurement, 'o', ...
@@ -125,14 +128,15 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
         end      
         function s = sprintfModel(this)
             s = sprintf('Simulated Annealing:\n');
-            %s = [s sprintf('\tE = 1 - exp(-PS/f) = %f\n', 1 - exp(-this.ks(2)/this.ks(1)))];
             for ky = 1:length(this.ks)
                 s = [s sprintf('\tk%i = %f\n', ky, this.ks(ky))]; %#ok<AGROW>
             end
+            %s = [s sprintf('\tE = 1 - exp(-PS/f) = %f\n', 1 - exp(-this.ks(2)/this.ks(1)))];
             s = [s sprintf('\tsigma0 = %f\n', this.sigma0)];
             for ky = this.map.keys
                 s = [s sprintf('\tmap(''%s'') => %s\n', ky{1}, struct2str(this.map(ky{1})))]; %#ok<AGROW>
             end
+            s = [s sprintf('\tzoom => %g\n', this.zoom)];
         end
  	end 
     
