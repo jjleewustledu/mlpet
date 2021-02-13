@@ -12,8 +12,11 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
 	properties (Dependent)
         datetimeForDecayCorrection  
         decayCorrected
+        halflife
+        isotope
         radMeasurements
         timeForDecayCorrection
+        threshOfPeak
         
         %% mldata.ITiming, mldata.TimingData
         
@@ -23,6 +26,7 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
         datetimeMeasured
         datetimeWindow
         datetimes
+        datetimesMid
         dt
         index0
         indexF
@@ -51,15 +55,31 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
         function g = get.datetimeForDecayCorrection(this)
             g = this.data_.datetimeForDecayCorrection;
         end
+        function     set.datetimeForDecayCorrection(this, s)
+            this.data_.datetimeForDecayCorrection = s;
+        end
         function g = get.decayCorrected(this)
             g = this.data_.decayCorrected;
+        end
+        function g = get.halflife(this)
+            g = this.data_.halflife;
+        end
+        function g = get.isotope(this)
+            g = this.data_.isotope;
         end
         function g = get.radMeasurements(this)
             g = this.data_.radMeasurements;
         end
         function g = get.timeForDecayCorrection(this)
             g = this.data_.timeForDecayCorrection;
-        end        
+        end    
+        function g = get.threshOfPeak(this)
+            if strcmpi('15O', this.isotope)
+                g = 0.1;
+            else
+                g = 0.1;
+            end
+        end    
         
         
         function g = get.datetime0(this)
@@ -86,6 +106,9 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
         end
         function g = get.datetimes(this)
             g = this.data_.datetimes;
+        end
+        function g = get.datetimesMid(this)
+            g = this.data_.datetimesMid;
         end
         function g = get.datetimeWindow(this)
             g = this.data_.datetimeWindow;
@@ -171,7 +194,7 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
         end        
         function h = plot(this, varargin)
             %% PLOT
-            %  @param optional abscissa in {'datetime', 'times', 'indices'}
+            %  @param optional abscissa in {'datetime', 'datetimesMid', 'times', 'indices'}
             %  @param optional ordinate in {'countRate', 'activity', 'actvityDensity'}.
             
             ip = inputParser;
