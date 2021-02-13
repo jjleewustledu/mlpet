@@ -1,4 +1,4 @@
-classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGlycolysisKit
+classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics
 	%% AEROBICGLYCOLYSISKIT  
 
 	%  $Revision$
@@ -213,12 +213,12 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics & mlpet.IAerobicGl
             if isdeployed()
                 g = 0;
             else
-                if ~isempty(getenv('NOPLOT'))
-                    g = [];
-                    return
-                end
                 if ~isempty(getenv('DEBUG'))
                     g = this.indices;
+                    return
+                end
+                if ~isempty(getenv('NOPLOT'))
+                    g = [];
                     return
                 end
                 g = [1 7:13 16:20 24 26:28 1001 2001 3001 4001 5001 5002 6000];
