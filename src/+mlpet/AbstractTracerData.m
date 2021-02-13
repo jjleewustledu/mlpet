@@ -27,6 +27,7 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
         datetimeMeasured
         datetimeWindow
         datetimes
+        datetimesMid
         dt
         index0
         indexF
@@ -36,6 +37,7 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
         timeF
         timeInterpolants
         times
+        timesMid
         timeWindow
     end
 
@@ -76,6 +78,9 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
         end
         function g = get.datetimes(this)
             g = this.timingData_.datetimes;
+        end
+        function g = get.datetimesMid(this)
+            g = this.timingData_.datetimes + seconds(this.taus/2);
         end
         function g = get.datetimeWindow(this)
             g = this.timingData_.datetimeWindow;
@@ -153,6 +158,10 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
         end
         function     set.times(this, s)
             this.timingData_.times = s;
+        end
+        function g = get.timesMid(this)
+            g = this.times;
+            g = g + this.taus/2;
         end
         function g = get.timeWindow(this)
             g = this.timingData_.timeWindow;
