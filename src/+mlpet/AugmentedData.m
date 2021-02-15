@@ -1,4 +1,4 @@
-classdef AugmentedData < handle
+classdef (Abstract) AugmentedData < handle
 	%% AUGMENTEDDATA  
 
 	%  $Revision$
@@ -7,6 +7,10 @@ classdef AugmentedData < handle
  	%% It was developed on Matlab 9.9.0.1570001 (R2020b) Update 4 for MACI64.  Copyright 2021 John Joowon Lee.
 
     
+    properties (Abstract)
+        Delta
+        Dt
+    end
     
     properties (Dependent)
         tBuffer
@@ -17,20 +21,6 @@ classdef AugmentedData < handle
     end
     
 	methods (Static)
-        function Dt = DTimeToShift(varargin)
-            %% Dt by which to shift arterial to match diff(scanner):  Dt < 0 will shift left; Dt > 0 will shift right.
-            %  Adjusts for ipr.counter.datetime0 ~= ipr.scanner.datetime0.
-            
-            ip = inputParser;
-            addRequired(ip, 'counter')
-            addRequired(ip, 'scanner')
-            parse(ip, varargin{:})
-            ipr = ip.Results;            
-            c = ipr.counter;
-            s = ipr.scanner;
-            
-            Dt = c.Dt;
-        end
         function Dt_ = DTimeToShiftAifs(varargin)
             %% @return Dt by which to shift counter2 to match counter.
             

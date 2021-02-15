@@ -36,9 +36,9 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
                 return
             end
             if Dt < 0
-               T = length(conc);
+               T_ = length(conc);
                conc_ = conc(end)*ones(1, length(conc));
-               conc_(1:T+Dt) = conc(1-Dt:end);
+               conc_(1:T_+Dt) = conc(1-Dt:end);
                conc = conc_;
                return
             end
