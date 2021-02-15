@@ -7,6 +7,11 @@ classdef AugmentedData < handle
  	%% It was developed on Matlab 9.9.0.1570001 (R2020b) Update 4 for MACI64.  Copyright 2021 John Joowon Lee.
 
     
+    
+    properties (Dependent)
+        tBuffer
+    end
+    
     properties
         Dt_aif
     end
@@ -158,73 +163,129 @@ classdef AugmentedData < handle
             
             scan_ = mix(scan, scan2, ipr.fracMixing); % calibrated, decaying
             aif_ = mix(aif, aif2, ipr.fracMixing);
+        function [tac__,timesMid__,aif__,Dt] = mixTacAif(devkit, varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'devkit', @(x) isa(x, 'mlpet.IDeviceKit'))
+            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.AbstractDevice'))
+            addParameter(ip, 'arterial', [], @(x) isa(x, 'mlpet.AbstractDevice'))
+            addParameter(ip, 'roi', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
+            parse(ip, devkit, varargin{:})
+            ipr = ip.Results;
+            
+            % scannerDevs provide calibrations & ROI-volume averaging            
+            s = ipr.scanner.volumeAveraged(ipr.roi);
+            tac = s.activityDensity();
+            tac(tac < 0) = 0;
+            tac__ = tac;
+            timesMid__ = s.timesMid;
+            
+            % arterialDevs calibrate & align arterial times-series to localized scanner time-series            
+            a = ipr.arterial;
+            [a, ~] = devkit.alignArterialToScanner(a, s);
+            aif = a.activityDensity();
+            t = a.times(a.index0:a.indexF) - a.time0 - seconds(s.datetime0 - a.datetime0);            
+            RR = mlraichle.RaichleRegistry.instance();
+            aif = makima([-RR.tBuffer t], [0 aif], -RR.tBuffer:s.timesMid(end));            
+            aif(aif < 0) = 0;                        
+            aif__ = aif;
+            Dt = a.Dt;
         end
-        function [tac_,timesMid_,aif_] = mixTacsAifs(varargin)
+        function [tac__,timesMid__,aif__,Dt] = mixTacsAifs(devkit, devkit2, varargin)
             
             import mlpet.AugmentedData
             import mlpet.AugmentedData.mix
             
             ip = inputParser;
             ip.KeepUnmatched = true;
+            addRequired(ip, 'devkit', @(x) isa(x, 'mlpet.IDeviceKit'))
+            addRequired(ip, 'devkit2', @(x) isa(x, 'mlpet.IDeviceKit'))
             addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.AbstractDevice'))
             addParameter(ip, 'scanner2', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'counter', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'counter2', [], @(x) isa(x, 'mlpet.AbstractDevice'))
+            addParameter(ip, 'arterial', [], @(x) isa(x, 'mlpet.AbstractDevice'))
+            addParameter(ip, 'arterial2', [], @(x) isa(x, 'mlpet.AbstractDevice'))
             addParameter(ip, 'roi', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
             addParameter(ip, 'roi2', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
             addParameter(ip, 'Dt_aif', 0, @isscalar)
-            addParameter(ip, 'fracMixing', 0.5, @isscalar)
-            parse(ip, varargin{:})
+            addParameter(ip, 'fracMixing', 0.9, @isscalar)
+            parse(ip, devkit, devkit2, varargin{:})
             ipr = ip.Results;
-            Dt_aif = ipr.Dt_aif;
             
-            % scanners provide calibrations, ancillary data            
+            % scannerDevs provide calibrations & ROI-volume averaging    
+            s2 = ipr.scanner2.volumeAveraged(ipr.roi2);            
+            tac2 = s2.activityDensity();
             
-            scanner = ipr.scanner.volumeAveraged(ipr.roi);
-            tac = scanner.activityDensity();
-            scanner2 = ipr.scanner2.volumeAveraged(ipr.roi2);            
-            tac2 = scanner2.activityDensity();
+            s = ipr.scanner.volumeAveraged(ipr.roi);
+            tac = s.activityDensity();            
             
-            % counters also have calibrations
-            
-            c = ipr.counter;
-            aif = c.activityDensity();         
-            c2 = ipr.counter2;
-            aif2 = c2.activityDensity();
-            
-            % reconcile timings  
-              
-            if isa(c, 'mlswisstrace.TwiliteDevice')
-                t_c = 0:c.timeWindow;
-            else
-                t_c = c.times;
-            end
-            if isa(c, 'mlswisstrace.TwiliteDevice')
-                t_c2 = 0:c2.timeWindow;
-            else
-                t_c2 = c2.times;
-            end
-            
-            if Dt_aif < 0 % shift aif2, tac2 to left           
-                Dt = AugmentedData.DTimeToShift(c, scanner);
-                aif = makima(t_c + Dt, aif, 0:scanner.times(end));
-                aif2 = makima(t_c2 + Dt_aif, aif2, 0:scanner.times(end));
-                tac2 = makima(scanner2.times + Dt_aif, tac2, scanner.times); 
-                timesMid_ = scanner.timesMid;
-            else % shift aif, tac to left
-                Dt2 = AugmentedData.DTimeToShift(c2, scanner2);
-                aif2 = makima(t_c2 + Dt2, aif2, 0:scanner2.times(end));
-                aif = makima(t_c - Dt_aif, aif, 0:scanner2.times(end));
-                tac = makima(scanner.times - Dt_aif, tac, scanner2.times);  
-                timesMid_ = scanner2.timesMid;
-            end 
-            aif(aif < 0) = 0;
-            tac(tac < 0) = 0;
+            % arterialDevs calibrate & align arterial times-series to localized scanner time-series            
+            a2 = ipr.arterial2;
+            [a2, datetimePeak2] = devkit2.alignArterialToScanner(a2, s2);
+            aif2 = a2.activityDensity();
+            t2 = a2.times(a2.index0:a2.indexF) - a2.time0 - seconds(s2.datetime0 - a2.datetime0);
+            RR = mlraichle.RaichleRegistry.instance();
+            aif2 = makima([-RR.tBuffer t2], [0 aif2], -RR.tBuffer:s.timesMid(end));
             aif2(aif2 < 0) = 0;
+            
+            a = ipr.arterial;
+            [a, datetimePeak] = devkit.alignArterialToScanner(a, s);
+            aif = a.activityDensity();
+            t = a.times(a.index0:a.indexF) - a.time0 - seconds(s.datetime0 - a.datetime0);
+            RR = mlraichle.RaichleRegistry.instance();
+            aif = makima([-RR.tBuffer t], [0 aif], -RR.tBuffer:s.timesMid(end));            
+            aif(aif < 0) = 0;
+            
+            
+            % interpolate tacs            
+            tac2 = makima([-1 s2.timesMid], [0 tac2], s.timesMid(1):s.timesMid(end));
             tac2(tac2 < 0) = 0;
             
-            tac_ = mix(tac, tac2, ipr.fracMixing); % calibrated, decaying
-            aif_ = mix(aif, aif2, ipr.fracMixing);
+            tac = makima([-1 s.timesMid], [0 tac], s.timesMid(1):s.timesMid(end));
+            tac(tac < 0) = 0;
+            
+            % reconcile timings by moving aif2 & tac2, avoiding stray extrapolations
+            tac_offset = round( ...
+                seconds(datetimePeak - s.datetime0) - ...
+                seconds(datetimePeak2 - s2.datetime0) + ...
+                ipr.Dt_aif);
+            if tac_offset > 0 % shift right
+                tac2_ = zeros(size(tac2), 'single');
+                tac2_(1+tac_offset:end) = tac2(1:end-tac_offset);
+                tac2 = tac2_;
+                
+                aif2_ = zeros(size(aif2), 'single');
+                aif2_(1+tac_offset:end) = aif2(1:end-tac_offset);
+                aif2 = aif2_;
+            elseif tac_offset < 0 % shift left
+                tac2_ = ones(size(tac2), 'single')*tac2(end);
+                tac2_(1:end+tac_offset) = tac2(1-tac_offset:end);
+                tac2 = tac2_;
+                
+                aif2_ = ones(size(aif2), 'single')*aif2(end);
+                aif2_(1:end+tac_offset) = aif2(1-tac_offset:end);
+                aif2 = aif2_;
+            end
+            
+%             if Dt_aif < 0 % shift aif2, tac2 to left   
+%                 aif = makima(t + a.Dt, aif, 0:s.times(end));
+%                 aif2 = makima(t2 + a2.Dt + Dt_aif, aif2, 0:s.times(end));
+%                 tac2 = makima(s2.times + Dt_aif, tac2, s.times); 
+%                 timesMid_ = s.timesMid;
+%                 Dt = a.Dt;
+%             else % shift aif, tac to left
+%                 aif2 = makima(t2 + a2.Dt, aif2, 0:s2.times(end));
+%                 aif = makima(t + a.Dt - Dt_aif, aif, 0:s2.times(end));
+%                 tac = makima(s.times - Dt_aif, tac, s2.times);  
+%                 timesMid_ = s2.timesMid;
+%                 Dt = a2.Dt;
+%             end 
+            
+            tac__ = mix(tac, tac2, ipr.fracMixing); % calibrated, decaying
+            tac__ = makima(s.timesMid(1):s.timesMid(end), tac__, s.timesMid);
+            timesMid__ = s.timesMid;
+            aif__ = mix(aif, aif2, ipr.fracMixing);
+            Dt = a.Dt;
         end
         function aif_ = mixAifs(varargin)
             
@@ -285,6 +346,58 @@ classdef AugmentedData < handle
             aif_ = mix(aif, aif2, ipr.fracMixing);
         end
     end 
+    
+    methods 
+        
+        %% GET
+        
+        function g = get.tBuffer(~)
+            RR = mlraichle.RaichleRegistry.instance();
+            g = RR.tBuffer;
+        end
+        
+        %%
+        
+		function a = artery_local(this, varargin)
+            %% ARTERY_LOCAL
+            %  @param typ is understood by imagingType.
+            %  @return a is an imagingType.
+            %  See also ml*.Dispersed*Model.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addParameter(ip, 'typ', 'mlfourd.ImagingContext2', @ischar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            n = length(this.artery_interpolated);
+            times = 0:1:n-1;            
+            auc0 = trapz(this.artery_interpolated);
+            artery_interpolated_ = conv(this.artery_interpolated, exp(-this.Delta*times));
+            if this.Dt < 0 % shift back to right
+                artery_interpolated1 = zeros(1, n);
+                artery_interpolated1(-this.Dt+1:end) = artery_interpolated_(1:n+this.Dt);
+            elseif this.Dt > 0 % shift back to left
+                artery_interpolated1 = artery_interpolated_(this.Dt+1:this.Dt+n);
+            else
+                artery_interpolated1 = artery_interpolated_(1:n);
+            end 
+            artery_interpolated1 = artery_interpolated1*auc0/trapz(artery_interpolated1);
+            artery_interpolated1 = artery_interpolated1(this.tBuffer+1:end);
+            avec = this.model.solutionOnScannerFrames(artery_interpolated1, this.times_sampled);
+            
+            roibin = logical(this.roi);
+            a = copy(this.roi.fourdfp);
+            a.img = zeros([size(this.roi) length(avec)]);
+            for t = 1:length(avec)
+                img = zeros(size(this.roi), 'single');
+                img(roibin) = avec(t);
+                a.img(:,:,:,t) = img;
+            end
+            a.fileprefix = this.sessionData.aifsOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
+            a = imagingType(ipr.typ, a);
+        end 
+    end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
  end

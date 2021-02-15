@@ -77,10 +77,11 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             disp(this.results_.output.temperature)
         end
         function aif1 = dispersedAif(this, aif)
-            T = mlpet.TracerKineticsModel.T;
+            RR = mlraichle.RaichleRegistry.instance();
+            tBuffer = RR.tBuffer;
             n = length(aif);
             times = 0:n-1;
-            times = times - T;
+            times = times - tBuffer;
             Delta = this.ks(end);
             
             auc0 = trapz(aif);
@@ -110,7 +111,8 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             ipr = ip.Results;
             this.zoom = ipr.zoom;
             
-            T = mlpet.TracerKineticsModel.T;
+            RR = mlraichle.RaichleRegistry.instance();
+            tBuffer = RR.tBuffer;
             aif = this.dispersedAif(this.artery_interpolated);
             h = figure;
             times = this.times_sampled;
@@ -118,8 +120,13 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             if ipr.showAif
                 plot(times, ipr.zoom*this.Measurement, ':o', ...
                     times(1:length(sampled)), ipr.zoom*sampled, '-', ...
-                    -T:length(aif)-T-1, aif, '--')                
-                legend('measurement', 'estimation', 'aif')
+                    -tBuffer:length(aif)-tBuffer-1, aif, '--')
+                if ipr.zoom > 1
+                    leg_aif = sprintf('aif x%i', ipr.zoom);
+                else
+                    leg_aif = 'aif';
+                end
+                legend('measurement', 'estimation', leg_aif)
             else
                 plot(times, ipr.zoom*this.Measurement, 'o', ...
                     times(1:length(sampled)), ipr.zoom*sampled, '-')                

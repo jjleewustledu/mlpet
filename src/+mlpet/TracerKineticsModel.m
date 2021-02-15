@@ -17,10 +17,6 @@ classdef (Abstract) TracerKineticsModel
         simulated(this)
     end
     
-    properties (Constant)
-        T = 30 % sec at the start of artery_interpolated used for model but not described by scanner frames
-    end
-    
 	properties
         artery_interpolated
  		map
@@ -91,10 +87,11 @@ classdef (Abstract) TracerKineticsModel
             end
             % artery_interpolated may be shorter than scanner times_sampled
             assert(~isempty(this.times_sampled))
-            T_ = this.T;
-            if length(s) ~= this.times_sampled(end) + T_ + 1
+            RR = mlraichle.RaichleRegistry.instance();
+            tBuffer = RR.tBuffer;
+            if length(s) ~= this.times_sampled(end) + tBuffer + 1
                 this.artery_interpolated = ...
-                    makima(-T_:length(s)-T_-1, s, -T_:this.times_sampled(end));
+                    makima(-tBuffer:(length(s)-tBuffer-1), s, -tBuffer:this.times_sampled(end));
             else
                 this.artery_interpolated = s;
             end
