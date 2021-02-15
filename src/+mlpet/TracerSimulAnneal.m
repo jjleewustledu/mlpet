@@ -99,14 +99,13 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             for ky = this.map.keys
                 fprintf('\tmap(''%s'') => %s\n', ky{1}, struct2str(this.map(ky{1})));
             end
-            fprintf('\tzoom => %g\n', this.zoom);
         end
         function h = plot(this, varargin)
             ip = inputParser;
             addParameter(ip, 'showAif', true, @islogical)
             addParameter(ip, 'xlim', [-10 500], @isnumeric)
             addParameter(ip, 'ylim', [], @isnumeric)
-            addParameter(ip, 'zoom', 1, @isnumeric)
+            addParameter(ip, 'zoom', 2, @isnumeric)
             parse(ip, varargin{:})
             ipr = ip.Results;
             this.zoom = ipr.zoom;
@@ -136,7 +135,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             if ~isempty(ipr.ylim); ylim(ipr.ylim); end
             xlabel('times / s')
             ylabel('activity / (Bq/mL)')
-            annotation('textbox', [.175 .25 .3 .3], 'String', sprintfModel(this), 'FitBoxToText', 'on', 'FontSize', 7, 'LineStyle', 'none')
+            annotation('textbox', [.25 .5 .3 .3], 'String', sprintfModel(this), 'FitBoxToText', 'on', 'FontSize', 7, 'LineStyle', 'none')
             dbs = dbstack;
             title(dbs(1).name)
         end 
@@ -156,7 +155,6 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             for ky = this.map.keys
                 s = [s sprintf('\tmap(''%s'') => %s\n', ky{1}, struct2str(this.map(ky{1})))]; %#ok<AGROW>
             end
-            s = [s sprintf('\tzoom => %g\n', this.zoom)];
         end
  	end 
     
