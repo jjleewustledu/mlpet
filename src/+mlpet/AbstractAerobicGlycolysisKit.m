@@ -158,6 +158,9 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
                 otherwise
             end
         end
+        function initialize()
+            mlraichle.RaichleRegistry.instance('initialize');
+        end
         function chi = ks2chi(ks)
             %% KS2CHI
             %  @param ks is ImagingContext2.
@@ -284,6 +287,36 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
         function resetModelSampler(~)
             mlpet.TracerKineticsModel.solutionOnScannerFrames([], [])
         end 
+        function setScatterFraction(this, scanner, varargin)
+            ip = inputParser;
+            addRequired(ip, 'scanner', @(x) isa(x, 'mlpet.AbstractDevice'))
+            addParameter(ip, 'times', [], @isnumeric)
+            parse(ip, scanner, varargin{:})
+            ipr = ip.Results;
+            
+            g = globT(fullfile(this.sessionData.subjectPath, 'resampling_restricted', 'T1001*222*hdr'));
+            assert(~isempty(g))
+            T1001 = mlfourd.ImagingContext2(g{1});
+            ambientMask = T1001.numlt(1);
+            headMask = T1001.numgt(1);
+            
+            ic = scanner.imagingContext;
+            if ~isempty(ipr.times) 
+                if ipr.times(1) < 0
+                    ipr.times = ipr.times + abs(ipr.times(1)) + 1;
+                end               
+                idxWindow = ipr.times(1) <= scanner.timesMid & scanner.timesMid <= ipr.times(end);
+                ifc = ic.fourdfp;
+                ifc.img = ifc.img(:,:,:,idxWindow);
+                ic = mlfourd.ImagingContext2(ifc);
+            end
+            suv = ic.timeAveraged();
+            scatter = suv.volumeAveraged(ambientMask);
+            prompts = suv.volumeAveraged(headMask);
+            
+            RR = mlraichle.RaichleRegistry.instance();
+            RR.scatterFraction = scatter.fourdfp.img/prompts.fourdfp.img;
+        end
         function obj = vsOnAtlas(this, varargin)
             obj = this.metricOnAtlas('vs', varargin{:});
         end       
