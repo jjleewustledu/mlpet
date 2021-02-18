@@ -77,24 +77,23 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             disp(this.results_.output.temperature)
         end
         function aif1 = dispersedAif(this, aif)
-            RR = mlraichle.RaichleRegistry.instance();
-            tBuffer = RR.tBuffer;
             n = length(aif);
             times = 0:n-1;
-            times = times - tBuffer;
             Delta = this.ks(end);
             
             auc0 = trapz(aif);
             aif1 = conv(aif, exp(-Delta*times));
             aif1 = aif1(1:n);
-            aif1 = aif1*auc0/trapz(aif1);
+            aif1 = aif1*auc0/trapz(aif1);            
+            if any(isnan(aif1))
+                aif1 = aif;
+            end
         end
         function fprintfModel(this)
             fprintf('Simulated Annealing:\n');            
             for ky = 1:length(this.ks)
                 fprintf('\tk%i = %f\n', ky, this.ks(ky));
             end
-            %fprintf('\tE = 1 - exp(-PS/f) = %f\n', 1 - exp(-this.ks(2)/this.ks(1)))
             fprintf('\tsigma0 = %f\n', this.sigma0);
             for ky = this.map.keys
                 fprintf('\tmap(''%s'') => %s\n', ky{1}, struct2str(this.map(ky{1})));
@@ -150,7 +149,6 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             for ky = 1:length(this.ks)
                 s = [s sprintf('\tk%i = %f\n', ky, this.ks(ky))]; %#ok<AGROW>
             end
-            %s = [s sprintf('\tE = 1 - exp(-PS/f) = %f\n', 1 - exp(-this.ks(2)/this.ks(1)))];
             s = [s sprintf('\tsigma0 = %f\n', this.sigma0)];
             for ky = this.map.keys
                 s = [s sprintf('\tmap(''%s'') => %s\n', ky{1}, struct2str(this.map(ky{1})))]; %#ok<AGROW>
