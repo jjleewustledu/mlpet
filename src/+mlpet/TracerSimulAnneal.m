@@ -104,7 +104,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             addParameter(ip, 'showAif', true, @islogical)
             addParameter(ip, 'xlim', [-10 500], @isnumeric)
             addParameter(ip, 'ylim', [], @isnumeric)
-            addParameter(ip, 'zoom', 2, @isnumeric)
+            addParameter(ip, 'zoom', 3, @isnumeric)
             parse(ip, varargin{:})
             ipr = ip.Results;
             this.zoom = ipr.zoom;
