@@ -290,11 +290,8 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
         function setNormalizationFactor(~, scanner)
             assert(isa(scanner, 'mlpet.AbstractDevice'))
             RR = mlraichle.RaichleRegistry.instance();
-            
             if isa(scanner, 'mlsiemens.BiographMMRDevice')
-                if strcmpi('15o', scanner.isotope)
-                    RR.normalizationFactor = 1;
-                end
+                RR.normalizationFactor = 3.8/6.1318; % (Ito mean(cbv)) / (PPG mean(cbv))
             end
         end
         function setScatterFraction(this, scanner, varargin)

@@ -75,12 +75,11 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
         end    
         function g = get.threshOfPeak(this)
             if strcmpi('15O', this.isotope)
-                g = 0.1;
+                g = 0.5;
             else
-                g = 0.1;
+                g = 0.5;
             end
-        end    
-        
+        end
         
         function g = get.datetime0(this)
             g = this.data_.datetime0;
