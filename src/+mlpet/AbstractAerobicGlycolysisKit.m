@@ -287,6 +287,16 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
         function resetModelSampler(~)
             mlpet.TracerKineticsModel.solutionOnScannerFrames([], [])
         end 
+        function setNormalizationFactor(~, scanner)
+            assert(isa(scanner, 'mlpet.AbstractDevice'))
+            RR = mlraichle.RaichleRegistry.instance();
+            
+            if isa(scanner, 'mlsiemens.BiographMMRDevice')
+                if strcmpi('15o', scanner.isotope)
+                    RR.normalizationFactor = 1;
+                end
+            end
+        end
         function setScatterFraction(this, scanner, varargin)
             ip = inputParser;
             addRequired(ip, 'scanner', @(x) isa(x, 'mlpet.AbstractDevice'))
