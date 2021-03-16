@@ -15,8 +15,8 @@ classdef (Abstract) IAerobicGlycolysisKit < handle & matlab.mixin.Heterogeneous 
 %         buildKs(this)
 %         buildOef(this)
 % 		  buildOgi(this)  
-        filesExpr2sessions(this)
-        foldersExpr2sessions(this)
+%        filesExpr2sessions(this)
+%        foldersExpr2sessions(this)
   	end 
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
