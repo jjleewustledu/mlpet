@@ -76,6 +76,9 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
                             theSD(idx) = sesd; %#ok<AGROW>
                             idx = idx + 1;
                         catch ME
+                            if strcmpi('mlnipet:ValueError:getScanFolder', ME.identifier)
+                                continue
+                            end
                             handwarning(ME)
                         end
                     end
@@ -291,7 +294,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             assert(isa(scanner, 'mlpet.AbstractDevice'))
             RR = mlraichle.RaichleRegistry.instance();
             if isa(scanner, 'mlsiemens.BiographMMRDevice')
-                RR.normalizationFactor = 3.8/6.1318; % (Ito mean(cbv)) / (PPG mean(cbv))
+                RR.normalizationFactor = 1; % 3.8/4.0259; % (Ito mean(cbv)) / (PPG mean(cbv))
             end
         end
         function setScatterFraction(this, scanner, varargin)
