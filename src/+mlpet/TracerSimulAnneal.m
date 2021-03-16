@@ -99,6 +99,9 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
                 fprintf('\tmap(''%s'') => %s\n', ky{1}, struct2str(this.map(ky{1})));
             end
         end
+        function Q = loss(this)
+            Q = this.results_.sse;
+        end
         function h = plot(this, varargin)
             ip = inputParser;
             addParameter(ip, 'showAif', true, @islogical)
@@ -115,20 +118,21 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             h = figure;
             times = this.times_sampled;
             sampled = this.model.sampled(this.ks, aif, times);
+            
+            if ipr.zoom > 1
+                leg_meas = sprintf('measurement x%i', ipr.zoom);
+            else
+                leg_meas = 'measurement';
+            end
             if ipr.showAif
                 plot(times, ipr.zoom*this.Measurement, ':o', ...
                     times(1:length(sampled)), ipr.zoom*sampled, '-', ...
                     -tBuffer:length(aif)-tBuffer-1, aif, '--')
-                if ipr.zoom > 1
-                    leg_aif = sprintf('aif x%i', ipr.zoom);
-                else
-                    leg_aif = 'aif';
-                end
-                legend('measurement', 'estimation', leg_aif)
+                legend(leg_meas, 'estimation', 'aif')
             else
                 plot(times, ipr.zoom*this.Measurement, 'o', ...
                     times(1:length(sampled)), ipr.zoom*sampled, '-')                
-                legend('measurement', 'estimation')
+                legend(leg_meas, 'estimation')
             end
             if ~isempty(ipr.xlim); xlim(ipr.xlim); end
             if ~isempty(ipr.ylim); ylim(ipr.ylim); end

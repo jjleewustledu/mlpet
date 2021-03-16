@@ -30,7 +30,7 @@ classdef TracerKineticsStrategy < handle & mlpet.TracerKinetics
         function g = get.blurTag(this)
            blur = this.sessionData.petPointSpread; 
            g = sprintf('_b%i', round(blur*10));
-        end  
+        end 
         function g = get.regionTag(this)
             g = this.devkit_.sessionData.regionTag;
         end
@@ -49,6 +49,9 @@ classdef TracerKineticsStrategy < handle & mlpet.TracerKinetics
         
         %%
          
+        function Q = loss(this)
+            Q = this.strategy_.loss();
+        end
         function h = plot(this, varargin)
             h = this.strategy_.plot(varargin{:});
         end
