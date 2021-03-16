@@ -122,7 +122,7 @@ classdef (Abstract) AugmentedData < handle
             scan_ = mix(scan, scan2, ipr.fracMixing); % calibrated, decaying
             aif_ = mix(aif, aif2, ipr.fracMixing);
         end            
-        function [tac__,timesMid__,aif__,Dt] = mixTacAif(devkit, varargin)
+        function [tac__,timesMid__,aif__,Dt,datetimePeak] = mixTacAif(devkit, varargin)
             
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -144,15 +144,27 @@ classdef (Abstract) AugmentedData < handle
             
             % arterialDevs calibrate & align arterial times-series to localized scanner time-series            
             a0 = ipr.arterial;
-            [a, ~] = devkit.alignArterialToScanner(a0, s, 'sameWorldline', false);
+            [a, datetimePeak] = devkit.alignArterialToScanner(a0, s, 'sameWorldline', false);
             aif = a.activityDensity();
             t = a.times(a.index0:a.indexF) - a.time0 - seconds(s.datetime0 - a.datetime0);
+            
+            % extrapolate aif beyond cliff
+            if isfinite(ipr.arterial.timeCliff)
+                Nt = ceil(timesMid__(end));
+                Na = length(aif);
+                tacint = interp1(timesMid__, tac__, 0:Nt-1);
+                indexCliff = ipr.arterial.timeCliff + 1;
+                fracCliff = aif(indexCliff) / tacint(indexCliff);
+                aif(indexCliff:Na) = fracCliff * tacint(indexCliff:Na);
+                aif(Na+1:Nt) = fracCliff * tacint(Na+1:Nt);
+                t = (0:Nt-1) - seconds(s.datetime0 - a.datetime0);
+            end
             
             % use tBuffer to increase fidelity of kinetic model
             while any(-RR.tBuffer == t)
                 RR.T = RR.T + 1;
             end
-            aif = makima([-RR.tBuffer t], [0 aif], -RR.tBuffer:s.timesMid(end));
+            aif = interp1([-RR.tBuffer t], [0 aif], -RR.tBuffer:s.timesMid(end), 'linear', 0);
             aif(aif < 0) = 0;            
             aif__ = aif;            
             Dt = a.Dt;
@@ -160,6 +172,7 @@ classdef (Abstract) AugmentedData < handle
         function [tac__,timesMid__,aif__,Dt] = mixTacsAifs(devkit, devkit2, varargin)
             
             import mlpet.AugmentedData
+            import mlpet.AugmentedData.mixTacAif
             import mlpet.AugmentedData.mix
             
             ip = inputParser;
@@ -172,85 +185,62 @@ classdef (Abstract) AugmentedData < handle
             addParameter(ip, 'arterial2', [], @(x) isa(x, 'mlpet.AbstractDevice'))
             addParameter(ip, 'roi', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
             addParameter(ip, 'roi2', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
-            addParameter(ip, 'Dt_aif', 0, @isscalar)
+            addParameter(ip, 'Dt_aif', 0, @isscalar) % sec > 0
             addParameter(ip, 'fracMixing', 0.9, @isscalar)
             parse(ip, devkit, devkit2, varargin{:})
             ipr = ip.Results;
-            
-            % scannerDevs provide calibrations & ROI-volume averaging    
-            s2 = ipr.scanner2.volumeAveraged(ipr.roi2);            
-            tac2 = s2.activityDensity();
-            
-            s = ipr.scanner.volumeAveraged(ipr.roi);
-            tac = s.activityDensity();            
-            
-            % arterialDevs calibrate & align arterial times-series to localized scanner time-series            
-            a2 = ipr.arterial2;
-            [a2, datetimePeak2] = devkit2.alignArterialToScanner(a2, s2, 'sameWorldline', false);
-            aif2 = a2.activityDensity();
-            t2 = a2.times(a2.index0:a2.indexF) - a2.time0 - seconds(s2.datetime0 - a2.datetime0);
+            s = ipr.scanner;
+            s2 = ipr.scanner2;
             RR = mlraichle.RaichleRegistry.instance();
-            aif2 = makima([-RR.tBuffer t2], [0 aif2], -RR.tBuffer:s.timesMid(end));
-            aif2(aif2 < 0) = 0;
             
-            a = ipr.arterial;
-            [a, datetimePeak] = devkit.alignArterialToScanner(a, s, 'sameWorldline', false);
-            aif = a.activityDensity();
-            t = a.times(a.index0:a.indexF) - a.time0 - seconds(s.datetime0 - a.datetime0);
-            RR = mlraichle.RaichleRegistry.instance();
-            aif = makima([-RR.tBuffer t], [0 aif], -RR.tBuffer:s.timesMid(end));            
-            aif(aif < 0) = 0;
-            
-            
-            % interpolate tacs            
-            tac2 = makima([-1 s2.timesMid], [0 tac2], s.timesMid(1):s.timesMid(end));
-            tac2(tac2 < 0) = 0;
-            
-            tac = makima([-1 s.timesMid], [0 tac], s.timesMid(1):s.timesMid(end));
-            tac(tac < 0) = 0;
-            
-            % reconcile timings by moving aif2 & tac2, avoiding stray extrapolations
-            tac_offset = round( ...
-                seconds(datetimePeak - s.datetime0) - ...
-                seconds(datetimePeak2 - s2.datetime0) + ...
-                ipr.Dt_aif);
-            if tac_offset > 0 % shift right
-                tac2_ = zeros(size(tac2), 'single');
-                tac2_(1+tac_offset:end) = tac2(1:end-tac_offset);
-                tac2 = tac2_;
-                
-                aif2_ = zeros(size(aif2), 'single');
-                aif2_(1+tac_offset:end) = aif2(1:end-tac_offset);
-                aif2 = aif2_;
-            elseif tac_offset < 0 % shift left
-                tac2_ = ones(size(tac2), 'single')*tac2(end);
-                tac2_(1:end+tac_offset) = tac2(1-tac_offset:end);
-                tac2 = tac2_;
-                
-                aif2_ = ones(size(aif2), 'single')*aif2(end);
-                aif2_(1:end+tac_offset) = aif2(1-tac_offset:end);
-                aif2 = aif2_;
+            % align aif with tac, aif2 with tac2
+            [tac,timesMid,aif,Dt,datetimePeak] = mixTacAif(devkit, ...
+                                                           'scanner', ipr.scanner, ...
+                                                           'arterial', ipr.arterial, ...
+                                                           'roi', ipr.roi);                                                
+            [tac2,timesMid2,aif2,~,datetimePeak2] = mixTacAif(devkit2, ...
+                                                              'scanner', ipr.scanner2, ...
+                                                              'arterial', ipr.arterial2, ...
+                                                              'roi', ipr.roi2);
+            offset = round(seconds(datetimePeak - s.datetime0) - ...
+                           seconds(datetimePeak2 - s2.datetime0) + ...
+                           ipr.Dt_aif);                       
+
+            % extrapolate aifs beyond cliffs
+            if isfinite(ipr.arterial.timeCliff)
+                Nt = ceil(timesMid(end));
+                Na = length(aif);
+                tacint = interp1(timesMid, tac, 0:Nt-1);
+                indexCliff = ipr.arterial.timeCliff + 1;
+                fracCliff = aif(indexCliff) / tacint(indexCliff);
+                aif(indexCliff:Na) = fracCliff * tacint(indexCliff:Na);
+                aif(Na+1:Nt) = fracCliff * tacint(Na+1:Nt);
+            end            
+            if isfinite(ipr.arterial2.timeCliff)
+                Nt2 = ceil(timesMid2(end));
+                Na2 = length(aif2);
+                tacint2 = interp1(timesMid2, tac2, 0:Nt2-1);
+                indexCliff2 = ipr.arterial2.timeCliff + 1;
+                fracCliff2 = aif(indexCliff2) / tacint2(indexCliff2);
+                aif2(indexCliff2:Na2) = fracCliff2 * tacint2(indexCliff2:Na2);
+                aif2(Na2+1:Nt2) = fracCliff2 * tacint2(Na2+1:Nt2);
             end
             
-%             if Dt_aif < 0 % shift aif2, tac2 to left   
-%                 aif = makima(t + a.Dt, aif, 0:s.times(end));
-%                 aif2 = makima(t2 + a2.Dt + Dt_aif, aif2, 0:s.times(end));
-%                 tac2 = makima(s2.times + Dt_aif, tac2, s.times); 
-%                 timesMid_ = s.timesMid;
-%                 Dt = a.Dt;
-%             else % shift aif, tac to left
-%                 aif2 = makima(t2 + a2.Dt, aif2, 0:s2.times(end));
-%                 aif = makima(t + a.Dt - Dt_aif, aif, 0:s2.times(end));
-%                 tac = makima(s.times - Dt_aif, tac, s2.times);  
-%                 timesMid_ = s2.timesMid;
-%                 Dt = a2.Dt;
-%             end 
+            % align tac2 with tac
+            tac = interp1([-1 s.timesMid], [0 tac], s.timesMid(1):s.timesMid(end), 'linear', 0);
+            tac2 = interp1((offset + [-1 s2.timesMid]), [0 tac2], s.timesMid(1):s.timesMid(end), 'linear', 0);
+            tac__ = mix(tac, tac2, ipr.fracMixing); 
+            tac__ = interp1(s.timesMid(1):s.timesMid(end), tac__, s.timesMid, 'linear', 0);
+            tac__(tac__ < 0) = 0;                       
+            tac__ = RR.normalizationFactor*tac__; % empirical normalization
+            timesMid__ = timesMid;
             
-            tac__ = mix(tac, tac2, ipr.fracMixing); % calibrated, decaying
-            tac__ = makima(s.timesMid(1):s.timesMid(end), tac__, s.timesMid);
-            timesMid__ = s.timesMid;
-            aif__ = mix(aif, aif2, ipr.fracMixing);
-            Dt = a.Dt;
+            % align aif2 with aif
+            n = length(aif);
+            n2 = length(aif2);
+            aif2 = interp1(offset + (0:n2-1), aif2, 0:n-1, 'linear', 0);
+            aif__ = mix(aif, aif2, ipr.fracMixing); 
+            aif__(aif__ < 0) = 0;  
         end
         function aif_ = mixAifs(varargin)
             
