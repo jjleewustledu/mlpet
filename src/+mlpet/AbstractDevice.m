@@ -14,9 +14,11 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
         decayCorrected
         halflife
         isotope
+        doNotInterpolate
         radMeasurements
         timeForDecayCorrection
         threshOfPeak
+        tracer
         
         %% mldata.ITiming, mldata.TimingData
         
@@ -61,6 +63,17 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
         function g = get.decayCorrected(this)
             g = this.data_.decayCorrected;
         end
+        function g = get.doNotInterpolate(this)
+            if isempty(this.doNotInterpolate_) 
+                g = false;
+                return
+            end
+            g = this.doNotInterpolate_;
+        end
+        function     set.doNotInterpolate(this, s)
+            assert(islogical(s));
+            this.doNotInterpolate_ = s;
+        end
         function g = get.halflife(this)
             g = this.data_.halflife;
         end
@@ -79,6 +92,9 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
             else
                 g = 0.5;
             end
+        end
+        function g = get.tracer(this)
+            g = this.data_.tracer;
         end
         
         function g = get.datetime0(this)
@@ -240,6 +256,7 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
     
     properties (Access = protected)
         calibration_
+        doNotInterpolate_
         data_
         logger_
     end
