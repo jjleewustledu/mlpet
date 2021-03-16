@@ -90,8 +90,14 @@ classdef (Abstract) TracerKineticsModel
             RR = mlraichle.RaichleRegistry.instance();
             tBuffer = RR.tBuffer;
             if length(s) ~= floor(this.times_sampled(end)) + tBuffer + 1
-                this.artery_interpolated = ...
-                    makima(-tBuffer:(length(s)-tBuffer-1), s, -tBuffer:this.times_sampled(end));
+                if RR.stableToInterpolation
+                    this.artery_interpolated = ...
+                        makima(-tBuffer:(length(s)-tBuffer-1), s, -tBuffer:this.times_sampled(end));
+                else
+                    this.artery_interpolated = ...
+                        interp1(-tBuffer:(length(s)-tBuffer-1), s, -tBuffer:this.times_sampled(end), ...
+                        'linear', 0);
+                end
             else
                 this.artery_interpolated = s;
             end
