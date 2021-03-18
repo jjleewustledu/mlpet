@@ -17,7 +17,7 @@ classdef (Abstract) AugmentedData < handle
     end
     
     properties
-        Dt_aif
+        DtMixing
     end
     
 	methods (Static)
@@ -78,11 +78,11 @@ classdef (Abstract) AugmentedData < handle
             addParameter(ip, 'arterial2', [], @(x) isa(x, 'mlpet.AbstractDevice'))
             addParameter(ip, 'roi', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
             addParameter(ip, 'roi2', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
-            addParameter(ip, 'Dt_aif', 0, @isscalar)
+            addParameter(ip, 'DtMixing', 0, @isscalar)
             addParameter(ip, 'fracMixing', 0.9, @isscalar)
             parse(ip, varargin{:})
             ipr = ip.Results;
-            Dt_aif = ipr.Dt_aif;
+            DtMixing = ipr.DtMixing;
             
             % scanners provide calibrations, ancillary data            
             
@@ -103,15 +103,15 @@ classdef (Abstract) AugmentedData < handle
             t_a = 0:a.timeWindow;
             t_a2 = 0:a2.timeWindow;
             
-            if Dt_aif < 0 % shift aif2, scan2 to left             
+            if DtMixing < 0 % shift aif2, scan2 to left             
                 aif = makima(t_a + a.Dt, aif, 0:scanner.times(end));
-                aif2 = makima(t_a2 + a2.Dt + Dt_aif, aif2, 0:scanner.times(end));
-                scan2 = makima(scanner2.times + Dt_aif, scan2, scanner.times); 
+                aif2 = makima(t_a2 + a2.Dt + DtMixing, aif2, 0:scanner.times(end));
+                scan2 = makima(scanner2.times + DtMixing, scan2, scanner.times); 
                 timesMid_ = scanner.timesMid;
             else % shift aif, scan to left
                 aif2 = makima(t_a2 + a2.Dt, aif2, 0:scanner2.times(end));
-                aif = makima(t_a + a.Dt - Dt_aif, aif, 0:scanner2.times(end));
-                scan = makima(scanner.times - Dt_aif, scan, scanner2.times);  
+                aif = makima(t_a + a.Dt - DtMixing, aif, 0:scanner2.times(end));
+                scan = makima(scanner.times - DtMixing, scan, scanner2.times);  
                 timesMid_ = scanner2.timesMid;
             end 
             aif(aif < 0) = 0;
@@ -194,7 +194,7 @@ classdef (Abstract) AugmentedData < handle
             addParameter(ip, 'arterial2', [], @(x) isa(x, 'mlpet.AbstractDevice'))
             addParameter(ip, 'roi', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
             addParameter(ip, 'roi2', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
-            addParameter(ip, 'Dt_aif', 0, @isscalar) % sec > 0
+            addParameter(ip, 'DtMixing', 0, @isscalar) % sec > 0
             addParameter(ip, 'fracMixing', 0.9, @isscalar)
             parse(ip, devkit, devkit2, varargin{:})
             ipr = ip.Results;
@@ -264,11 +264,11 @@ classdef (Abstract) AugmentedData < handle
             addParameter(ip, 'arterial2', [], @(x) isa(x, 'mlpet.AbstractDevice'))
             addParameter(ip, 'roi', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
             addParameter(ip, 'roi2', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
-            addParameter(ip, 'Dt_aif', 0, @isscalar)
+            addParameter(ip, 'DtMixing', 0, @isscalar)
             addParameter(ip, 'fracMixing', 0.9, @isscalar)
             parse(ip, varargin{:})
             ipr = ip.Results;
-            Dt_aif = ipr.Dt_aif;
+            DtMixing = ipr.DtMixing;
             
             % scanners provide calibrations, ancillary data            
             
@@ -287,12 +287,12 @@ classdef (Abstract) AugmentedData < handle
             t_a = 0:a.timeWindow;
             t_a2 = 0:a2.timeWindow;
               
-            if Dt_aif < 0 % shift aif2 to left              
+            if DtMixing < 0 % shift aif2 to left              
                 aif = makima(t_a + a.Dt, aif, 0:scanner.times(end));
-                aif2 = makima(t_a2 + a2.Dt + Dt_aif, aif2, 0:scanner.times(end));
+                aif2 = makima(t_a2 + a2.Dt + DtMixing, aif2, 0:scanner.times(end));
             else % shift aif to left
                 aif2 = makima(t_a2 + a2.Dt, aif2, 0:scanner2.times(end));
-                aif = makima(t_a + a.Dt - Dt_aif, aif, 0:scanner2.times(end));
+                aif = makima(t_a + a.Dt - DtMixing, aif, 0:scanner2.times(end));
             end 
             aif(aif < 0) = 0;
             aif2(aif2 < 0) = 0;
