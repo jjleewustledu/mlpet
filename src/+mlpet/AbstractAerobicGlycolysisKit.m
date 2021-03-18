@@ -16,7 +16,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
     end
     
 	properties (Constant) 		
-        indices = [1 7:85 251:255 1000:1035 2000:2035 3000:3035 4000:4035 5001:5002 6000 2:6];
+        indices = [6000 1:85 251:255 1000:1035 2000:2035 3000:3035 4000:4035 5001:5002];
         %indicesL = [14:16  1:13 17:20 25:39 21:24 72 73 77 78 80 81 83 85 192 193:196 201:255 1000:1035 3000:3035 5001 6000];
         %indicesR = [14:16 40:71             21:24 72 74 77 79 80 82 84 85 192 197:200 201:255 2000:2035 4000:4035 5002 6000];
     end
@@ -154,10 +154,14 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
                     h = 'g';
                 case {2 7 27 28 41 46 59 60}
                     h = 'w';
-                case num2cell([170:179 7100:7101])
+                case num2cell([170:179 5001:5002 7100:7101])
                     h = 'w';
                 case num2cell([9:13 16 18 48:52 54 101 102 104 105 107 110 111 113 114 116])
-                    h = 's';
+                    h = 's'; % subcortical
+                case {6000}
+                    h = 'v'; % venous
+                case {1 4 5 43 44}
+                    h = 'c'; % csf
                 otherwise
             end
         end
@@ -250,7 +254,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             end
             
             % limited indices for checking
-            g = [1 7:13 16:20 24 26:28 1001 2001 3001 4001 5001 5002 6000];
+            g = [1 7:13 16:20 24 26:28 1000:1009 2000:2009 3000:3009 4000:4009 5001 5002 6000];
         end
         
         %%
