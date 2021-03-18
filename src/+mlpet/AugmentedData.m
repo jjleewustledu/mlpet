@@ -141,24 +141,33 @@ classdef (Abstract) AugmentedData < handle
             tac = RR.normalizationFactor*tac; % empirical normalization
             tac__ = tac;
             timesMid__ = s.timesMid;
+            Nt = ceil(timesMid__(end));
             
             % arterialDevs calibrate & align arterial times-series to localized scanner time-series            
             a0 = ipr.arterial;
             [a, datetimePeak] = devkit.alignArterialToScanner(a0, s, 'sameWorldline', false);
-            aif = a.activityDensity();
-            t = a.times(a.index0:a.indexF) - a.time0 - seconds(s.datetime0 - a.datetime0);
+            aif = a.activityDensity('Nt', Nt);
+            switch class(a)
+                case 'mlswisstrace.TwiliteDevice'
+                    t = (0:Nt-1) - seconds(s.datetime0 - a.datetime0);
+                case 'mlcapintec.CapracDevice'
+                    t = a.times - seconds(s.datetime0 - a.datetime0);
+                otherwise
+                    error('mlpet:ValueError', ...
+                        'class(AugmentedData.mixTacAif.a) = %s', class(a))
+            end
             
             % extrapolate aif beyond cliff
-            if isfinite(ipr.arterial.timeCliff)
-                Nt = ceil(timesMid__(end));
-                Na = length(aif);
-                tacint = interp1(timesMid__, tac__, 0:Nt-1);
-                indexCliff = ipr.arterial.timeCliff + 1;
-                fracCliff = aif(indexCliff) / tacint(indexCliff);
-                aif(indexCliff:Na) = fracCliff * tacint(indexCliff:Na);
-                aif(Na+1:Nt) = fracCliff * tacint(Na+1:Nt);
-                t = (0:Nt-1) - seconds(s.datetime0 - a.datetime0);
-            end
+%             if isfinite(ipr.arterial.timeCliff)
+%                 Nt = ceil(timesMid__(end));
+%                 Na = length(aif);
+%                 tacint = interp1(timesMid__, tac__, 0:Nt-1);
+%                 indexCliff = ipr.arterial.timeCliff + 1;
+%                 fracCliff = aif(indexCliff) / tacint(indexCliff);
+%                 aif(indexCliff:Na) = fracCliff * tacint(indexCliff:Na);
+%                 aif(Na+1:Nt) = fracCliff * tacint(Na+1:Nt);
+%                 t = (0:Nt-1) - seconds(s.datetime0 - a.datetime0);
+%             end
             
             % use tBuffer to increase fidelity of kinetic model
             while any(-RR.tBuffer == t)
@@ -198,33 +207,33 @@ classdef (Abstract) AugmentedData < handle
                                                            'scanner', ipr.scanner, ...
                                                            'arterial', ipr.arterial, ...
                                                            'roi', ipr.roi);                                                
-            [tac2,timesMid2,aif2,~,datetimePeak2] = mixTacAif(devkit2, ...
-                                                              'scanner', ipr.scanner2, ...
-                                                              'arterial', ipr.arterial2, ...
-                                                              'roi', ipr.roi2);
-            offset = round(seconds(datetimePeak - s.datetime0) - ...
-                           seconds(datetimePeak2 - s2.datetime0) + ...
-                           ipr.Dt_aif);                       
+            [tac2,~,aif2,~,datetimePeak2] = mixTacAif(devkit2, ...
+                                                      'scanner', ipr.scanner2, ...
+                                                      'arterial', ipr.arterial2, ...
+                                                      'roi', ipr.roi2);
+            offset = seconds(datetimePeak - s.datetime0) - ...
+                     seconds(datetimePeak2 - s2.datetime0) + ...
+                     ipr.DtMixing;
 
             % extrapolate aifs beyond cliffs
-            if isfinite(ipr.arterial.timeCliff)
-                Nt = ceil(timesMid(end));
-                Na = length(aif);
-                tacint = interp1(timesMid, tac, 0:Nt-1);
-                indexCliff = ipr.arterial.timeCliff + 1;
-                fracCliff = aif(indexCliff) / tacint(indexCliff);
-                aif(indexCliff:Na) = fracCliff * tacint(indexCliff:Na);
-                aif(Na+1:Nt) = fracCliff * tacint(Na+1:Nt);
-            end            
-            if isfinite(ipr.arterial2.timeCliff)
-                Nt2 = ceil(timesMid2(end));
-                Na2 = length(aif2);
-                tacint2 = interp1(timesMid2, tac2, 0:Nt2-1);
-                indexCliff2 = ipr.arterial2.timeCliff + 1;
-                fracCliff2 = aif(indexCliff2) / tacint2(indexCliff2);
-                aif2(indexCliff2:Na2) = fracCliff2 * tacint2(indexCliff2:Na2);
-                aif2(Na2+1:Nt2) = fracCliff2 * tacint2(Na2+1:Nt2);
-            end
+%             if isfinite(ipr.arterial.timeCliff)
+%                 Nt = ceil(timesMid(end));
+%                 Na = length(aif);
+%                 tacint = interp1(timesMid, tac, 0:Nt-1);
+%                 indexCliff = ipr.arterial.timeCliff + 1;
+%                 fracCliff = aif(indexCliff) / tacint(indexCliff);
+%                 aif(indexCliff:Na) = fracCliff * tacint(indexCliff:Na);
+%                 aif(Na+1:Nt) = fracCliff * tacint(Na+1:Nt);
+%             end            
+%             if isfinite(ipr.arterial2.timeCliff)
+%                 Nt2 = ceil(timesMid2(end));
+%                 Na2 = length(aif2);
+%                 tacint2 = interp1(timesMid2, tac2, 0:Nt2-1);
+%                 indexCliff2 = ipr.arterial2.timeCliff + 1;
+%                 fracCliff2 = aif(indexCliff2) / tacint2(indexCliff2);
+%                 aif2(indexCliff2:Na2) = fracCliff2 * tacint2(indexCliff2:Na2);
+%                 aif2(Na2+1:Nt2) = fracCliff2 * tacint2(Na2+1:Nt2);
+%             end
             
             % align tac2 with tac
             tac = interp1([-1 s.timesMid], [0 tac], s.timesMid(1):s.timesMid(end), 'linear', 0);
