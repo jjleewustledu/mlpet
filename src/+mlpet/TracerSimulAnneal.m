@@ -138,7 +138,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             if ~isempty(ipr.ylim); ylim(ipr.ylim); end
             xlabel('times / s')
             ylabel('activity / (Bq/mL)')
-            annotation('textbox', [.25 .5 .3 .3], 'String', sprintfModel(this), 'FitBoxToText', 'on', 'FontSize', 7, 'LineStyle', 'none')
+            annotation('textbox', [.25 .5 .3 .3], 'String', sprintfModel(this), 'FitBoxToText', 'on', 'FontSize', 8, 'LineStyle', 'none')
             dbs = dbstack;
             title(dbs(1).name)
         end 
