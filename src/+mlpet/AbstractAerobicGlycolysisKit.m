@@ -185,7 +185,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             %  @param model is mlglucose.Huang1980Model.
             %  @return cmrglc is ImagingContext2.
             
-            chi = mlraichle.AbstractAerobicGlycolysisKit.ks2chi(ks); % 1/s
+            chi = mlpet.AbstractAerobicGlycolysisKit.ks2chi(ks); % 1/s
             chi = chi * 60; % 1/min
             v1 = cbv * 0.0105;
             glc = mlglucose.Huang1980.glcConversion(model.glc, 'mg/dL', 'umol/hg');
@@ -216,7 +216,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             %  @param model is mlglucose.Huang1980Model.
             %  @return cmro2 is ImagingContext2.
             
-            oef = os2oef(os);
+            oef = mlpet.AbstractAerobicGlycolysisKit.os2oef(os);
             o2content = model.NOMINAL_O2_CONTENT;
             cmro2 = oef .* cbf .* o2content;
             cmro2.fileprefix = strrep(os.fileprefix, 'os', 'cmro2');
