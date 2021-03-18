@@ -327,6 +327,39 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             RR = mlraichle.RaichleRegistry.instance();
             RR.scatterFraction = scatter.fourdfp.img/prompts.fourdfp.img;
         end
+        function savefig(this, varargin)
+            ip = inputParser;
+            addRequired(ip, 'handle', @ishandle) % fig handle
+            addOptional(ip, 'idx', 0, @isscalar)
+            addParameter(ip, 'tags', '', @ischar) % for filenames
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            tags = ipr.tags;
+            if ~isempty(tags)
+                tags_ = ['_' strrep(tags, ' ', '_')];
+            else
+                tags_ = '';
+            end            
+            dbs = dbstack;
+            client = dbs(2).name;
+            client_ = strrep(dbs(2).name, '.', '_');
+            dtStr = datestr(this.sessionData.datetime);
+            title(sprintf('%s.idx == %i\n%s %s', client, ipr.idx, tags, dtStr))
+            try
+                dtTag = lower(this.sessionData.doseAdminDatetimeTag);
+                savefig(ipr.handle, ...
+                    fullfile(this.dataPath, ...
+                    sprintf('%s_idx%i%s_%s.fig', client_, ipr.idx, tags_, dtTag)))
+                figs = get(0, 'children');
+                saveas(figs(1), ...
+                    fullfile(this.dataPath, ...
+                    sprintf('%s_idx%i%s_%s.png', client_, ipr.idx, tags_, dtTag)))
+                close(figs(1))
+            catch ME
+                handwarning(ME)
+            end
+        end
         function obj = vsOnAtlas(this, varargin)
             obj = this.metricOnAtlas('vs', varargin{:});
         end       
