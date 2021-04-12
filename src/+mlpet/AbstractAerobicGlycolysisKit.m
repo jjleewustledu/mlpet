@@ -203,7 +203,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             %  @return oef := k2
             
             os = os.fourdfp;
-            img = os.img(:,:,:,2);
+            img = os.img(:,:,:,1);
             img(isnan(img)) = 0;
             img(img < 0) = 0;
             img(img > 1) = 1;
