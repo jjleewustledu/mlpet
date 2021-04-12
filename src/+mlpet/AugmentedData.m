@@ -21,28 +21,6 @@ classdef (Abstract) AugmentedData < handle
     end
     
 	methods (Static)
-        function Dt_ = DTimeToShiftAifs(varargin)
-            %% @return Dt by which to shift arterial2 to match arterial.
-            
-            ip = inputParser;
-            addRequired(ip, 'arterialDev')
-            addRequired(ip, 'arterialDev2')
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            dev = ipr.arterialDev;
-            dev2 = ipr.arterialDev2;
-            top = dev.threshOfPeak;
-            
-            % match radial-artery bolus to radial-artery bolus
-            t = dev.times(dev.index0:dev.indexF) - dev.time0;
-            t2 = dev2.times(dev2.index0:dev2.indexF) - dev2.time0;            
-            unifTimes = 0:max([t t2]);
-            act = makima(t, dev.activityDensity(), unifTimes);
-            act2 = makima(t2, dev2.activityDensity(), unifTimes);
-            [~,idx] = max(act > top*max(act));
-            [~,idx2] = max(act2 > top*max(act2));               
-            Dt_ = unifTimes(idx) - unifTimes(idx2);
-        end
         function mixed = mix(obj, obj2, f, varargin)
             ip = inputParser;
             addRequired(ip, 'obj')
@@ -250,54 +228,6 @@ classdef (Abstract) AugmentedData < handle
             aif2 = interp1(offset + (0:n2-1), aif2, 0:n-1, 'linear', 0);
             aif__ = mix(aif, aif2, ipr.fracMixing); 
             aif__(aif__ < 0) = 0;  
-        end
-        function aif_ = mixAifs(varargin)
-            
-            import mlpet.AugmentedData            
-            import mlpet.AugmentedData.mix
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'scanner2', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'arterial', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'arterial2', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'roi', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
-            addParameter(ip, 'roi2', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
-            addParameter(ip, 'DtMixing', 0, @isscalar)
-            addParameter(ip, 'fracMixing', 0.9, @isscalar)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            DtMixing = ipr.DtMixing;
-            
-            % scanners provide calibrations, ancillary data            
-            
-            scanner = ipr.scanner.volumeAveraged(ipr.roi);
-            scanner2 = ipr.scanner2.volumeAveraged(ipr.roi2);
-            
-            % arterials also have calibrations
-            
-            a = ipr.arterial;
-            aif = a.activityDensity();         
-            a2 = ipr.arterial2;
-            aif2 = a2.activityDensity();
-            
-            % reconcile timings  
-            
-            t_a = 0:a.timeWindow;
-            t_a2 = 0:a2.timeWindow;
-              
-            if DtMixing < 0 % shift aif2 to left              
-                aif = makima(t_a + a.Dt, aif, 0:scanner.times(end));
-                aif2 = makima(t_a2 + a2.Dt + DtMixing, aif2, 0:scanner.times(end));
-            else % shift aif to left
-                aif2 = makima(t_a2 + a2.Dt, aif2, 0:scanner2.times(end));
-                aif = makima(t_a + a.Dt - DtMixing, aif, 0:scanner2.times(end));
-            end 
-            aif(aif < 0) = 0;
-            aif2(aif2 < 0) = 0;
-            
-            aif_ = mix(aif, aif2, ipr.fracMixing);
         end
     end 
     
