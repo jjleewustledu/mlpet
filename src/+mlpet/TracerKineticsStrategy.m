@@ -27,9 +27,8 @@ classdef TracerKineticsStrategy < handle & mlpet.TracerKinetics
         function g = get.artery_interpolated(this)
             g = this.strategy_.artery_interpolated;
         end    
-        function g = get.blurTag(this)
-           blur = this.sessionData.petPointSpread; 
-           g = sprintf('_b%i', round(blur*10));
+        function g = get.blurTag(~)
+           g = mlraichle.StudyRegistry.instance.blurTag;
         end 
         function g = get.regionTag(this)
             g = this.devkit_.sessionData.regionTag;

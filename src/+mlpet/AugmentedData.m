@@ -8,6 +8,7 @@ classdef (Abstract) AugmentedData < handle
 
     
     properties (Abstract)
+        blurTag
         Delta
         Dt
     end
@@ -243,9 +244,10 @@ classdef (Abstract) AugmentedData < handle
         %%
         
 		function a = artery_local(this, varargin)
-            %% ARTERY_LOCAL
+            %% ARTERY_LOCAL returns artery activities mapped into R^(3+1), space-times,
+            %  shifted by this.Dt and disperses by this.Delta
             %  @param typ is understood by imagingType.
-            %  @return a is an imagingType.
+            %  @return a is an imagingType, the artery activities sampled on scanner space-times.
             %  See also ml*.Dispersed*Model.
             
             ip = inputParser;
