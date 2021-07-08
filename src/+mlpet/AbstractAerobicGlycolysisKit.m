@@ -71,7 +71,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
                             end
                             tracerfn = sesd.([lower(sesd.tracer) 'OnAtlas']);
                             if ~isfile(tracerfn)
-                                sesd.jitOn222(tracerfn)
+                                sesd.jitOn111(tracerfn)
                             end
                             theSD(idx) = sesd; %#ok<AGROW>
                             idx = idx + 1;
@@ -86,7 +86,52 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
                 popd(pwd0);
             end
             popd(pwd1);
-        end        
+        end    
+        function ic = constructWmparc1OnAtlas(sesd)
+            import mlfourd.ImagingFormatContext
+            import mlfourd.ImagingContext2
+            
+            pwd0 = pushd(sesd.wmparc1OnAtlas('typ', 'filepath'));            
+            deleteExisting([sesd.wmparc1OnAtlas('typ', 'fqfileprefix') '.4dfp.*'])
+            
+            % constructWmparcOnAtlas            
+            if ~isfile(sesd.brainOnAtlas)
+                sesd.jitOn111(sesd.brainOnAtlas)
+            end
+            if ~isfile(sesd.wmparcOnAtlas)
+                sesd.jitOn111(sesd.wmparcOnAtlas)
+            end
+            
+            % define CSF; idx := 1
+            wmparc = ImagingFormatContext(sesd.wmparcOnAtlas());
+            wmparc1 = ImagingFormatContext(sesd.brainOnAtlas());
+            wmparc1.fileprefix = sesd.wmparc1OnAtlas('typ', 'fp');
+            wmparc1.img(wmparc1.img > 0) = 1; % co-opting left cerebral exterior
+            wmparc1.img(wmparc.img > 0) = wmparc.img(wmparc.img > 0);
+            
+            % define venous; idx := 40
+            globbed_ven = glob('ocdt*_avgt.4dfp.hdr');
+            assert(~isempty(globbed_ven))
+            venfn = fullfile(pwd, [myfileprefix(globbed_ven{end}) '_111.4dfp.hdr']);
+            sesd.jitOn111(venfn)
+            ven = mlfourd.ImagingContext2(venfn);
+            ven = ven.thresh(dipmax(ven)/2);
+            ven = ven.binarized();
+            ven.fileprefix = 'venous_111';
+            try
+                ven.save();
+            catch ME
+                handwarning(ME)
+            end
+            selected = logical(ven.fourdfp.img) & wmparc1.img < 2;
+            wmparc1.img(selected) = 40; % co-opting right cerebral exterior
+            
+            % construct wmparc1
+            ic = ImagingContext2(wmparc1);
+            ic.save()
+            
+            popd(pwd0)
+        end    
         function cbf = fs2cbf(fs)
             %% FS2CBF
             %  @param fs is ImagingContext2.

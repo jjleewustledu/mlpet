@@ -70,7 +70,7 @@ classdef Rois
             if isfile([brainfp '.4dfp.hdr'])
                 brain = mlfourd.ImagingContext2([brainfp '.4dfp.hdr']);
             else
-                this.sessionData.jitOn222(this.sessionData.brainOnAtlas());
+                this.sessionData.jitOn111(this.sessionData.brainOnAtlas());
                 brain = mlfourd.ImagingContext2(this.sessionData.brainOnAtlas());
                 brain = brain.blurred(1); % fill small voxel cavities
                 brain = brain.binarized();

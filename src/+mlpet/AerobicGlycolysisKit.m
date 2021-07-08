@@ -83,10 +83,10 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics
             matfn = [ic.fqfileprefix '.mat'];
             save(matfn, 'img')
         end   
-        function          jitOn222(fexp)
+        function          jitOn111(fexp)
             %  @param fexp is char, e.g., 'subjects/sub-S58163/resampling_restricted/ocdt20190523122016_222.4dfp.hdr'
             
-            mlnipet.ResolvingSessionData.jitOn222(fexp);
+            mlnipet.ResolvingSessionData.jitOn111(fexp);
         end      
         function          jitOnT1001(fexp)
             %  @param fexp is char, e.g., 'subjects/sub-S58163/resampling_restricted/ocdt20190523122016_on_T1001.4dfp.hdr'
