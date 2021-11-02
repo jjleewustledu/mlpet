@@ -1,5 +1,6 @@
 classdef Herscovitch1985 < mlpet.AbstractHerscovitch1985
-	%% HERSCOVITCH1985  
+	%% HERSCOVITCH1985 is DEPRECATED.  
+    %  Prefer mlsiemens.Herscovitch1895 or mloxygen.QuadraticNumeric.
 
 	%  $Revision$
  	%  was created 28-Jan-2017 12:53:40
