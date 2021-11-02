@@ -12,7 +12,6 @@ classdef Test_CCIRRadMeasurements < matlab.unittest.TestCase
  	
 	properties
         aDate
-        %home = '/Users/jjlee/Documents/private'
  		registry
  		testObj
  	end
@@ -110,7 +109,6 @@ classdef Test_CCIRRadMeasurements < matlab.unittest.TestCase
  	methods (TestMethodSetup)
 		function setupCCIRRadMeasurementsTest(this)
  			import mlpet.*;
-            %setenv('CCIR_RAD_MEASUREMENTS_DIR', this.home);
             this.aDate = datetime(2018,10,5);
             warning('off', 'mlpet:ValueWarning');   
  			this.testObj = mlpet.CCIRRadMeasurements.createFromDate(this.aDate);

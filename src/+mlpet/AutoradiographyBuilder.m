@@ -1,7 +1,7 @@
 classdef (Abstract) AutoradiographyBuilder < mlpet.AbstractPerfusionProblem   
 	%% AUTORADIOGRAPHYBUILDER is the abstract interface for Autoradiography builders
     %  such as PETAutoradiography, DSCAutoradiography.  Empty methods may be
-    %  overridden as needed.
+    %  overridden as needed.  Builders use Bayesian parameter estimation.
 
 	%  $Revision$ 
  	%  was created $Date$ 

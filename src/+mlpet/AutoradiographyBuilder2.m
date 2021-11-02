@@ -1,5 +1,5 @@
 classdef (Abstract) AutoradiographyBuilder2 < mlbayesian.AbstractMcmcProblem
-	%% AUTORADIOGRAPHYBUILDER2 
+	%% AUTORADIOGRAPHYBUILDER2 builds Bayesian models of autoradiography.
 
 	%  $Revision$ 
  	%  was created $Date$ 

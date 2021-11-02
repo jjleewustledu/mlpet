@@ -76,7 +76,7 @@ classdef (Abstract) TracerKinetics < handle & matlab.mixin.Heterogeneous & matla
     methods (Access = protected)
         function this = TracerKinetics(varargin)
             %  @param devkit is mlpet.IDeviceKit.
-            %  @param sessionData is mlpipeline.ISessionData.
+            %  @param sessionData is mlpipeline.ISessionData, but defers to devkit.sessionData.
             
             ip = inputParser;
             ip.KeepUnmatched = true;
