@@ -30,6 +30,66 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
     end
     
     methods (Static)
+        function ic = constructPhysiologyDateOnly(varargin)
+            %% e.g., constructPhysiologyDateOnly('cbv', 'subjectFolder', 'sub-S58163')
+            
+            import mlpet.AbstractAerobicGlycolysisKit
+            
+            ip = inputParser;
+            addRequired(ip, 'physiology', @ischar)
+            addParameter(ip, 'subjectFolder', '', @ischar)
+            addParameter(ip, 'atlTag', '_111', @ischar)
+            addParameter(ip, 'blurTag', '', @ischar)
+            addParameter(ip, 'region', 'wmparc1', @ischar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            pwd0 = pushd(fullfile(getenv('SINGULARITY_HOME'), 'subjects', ipr.subjectFolder, 'resampling_restricted')); 
+            fnPatt = sprintf('%sdt*%s%s_%s.4dfp.hdr', ipr.physiology, ipr.atlTag, ipr.blurTag, ipr.region);
+            g = globT(fnPatt);
+            if isempty(g); return; end
+            
+            %% segregate by dates
+            
+            m = containers.Map;            
+            for ig = 1:length(g)
+                dstr = AbstractAerobicGlycolysisKit.physiologyObjToDatetimeStr(g{ig}, 'dateonly', true);
+                if ~lstrfind(m.keys, dstr)
+                    m(dstr) = g(ig); % cell
+                else
+                    m(dstr) = [m(dstr) g{ig}];
+                end
+            end 
+            
+            %% average scans by dates
+            
+            for k = asrow(m.keys)
+                fns = m(k{1});
+                ic = mlfourd.ImagingContext2(fns{1});
+                ic = ic.zeros();
+                icfp = strrep(ic.fileprefix, ...
+                    AbstractAerobicGlycolysisKit.physiologyObjToDatetimeStr(fns{1}), ...
+                    AbstractAerobicGlycolysisKit.physiologyObjToDatetimeStr(fns{1}, 'dateonly', true));
+                if isfile([icfp '.4dfp.hdr'])
+                    continue
+                end
+                ic_count = 0;
+                for fn = fns
+                    incr = mlfourd.ImagingContext2(fn{1});
+                    if dipsum(incr) > 0
+                        ic = ic + incr;
+                        ic_count = ic_count + 1;
+                    end
+                end
+                ic = ic / ic_count;
+                ic.fileprefix = icfp;
+                ic.save()
+            end
+            
+            %%
+            
+            popd(pwd0);
+        end 
         function theSD = constructSessionData(varargin)
             
             import mlraichle.*
@@ -69,6 +129,9 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
                                 'metric', ipr.metric);            
                             if sesd.datetime < mlraichle.StudyRegistry.instance.earliestCalibrationDatetime
                                 continue
+                            end
+                            if ~isfile(sesd.wmparc1OnAtlas)
+                                mlpet.AbstractAerobicGlycolysisKit.constructWmparc1OnAtlas(sesd);
                             end
                             tracerfn = sesd.([lower(sesd.tracer) 'OnAtlas']);
                             if ~isfile(tracerfn)
@@ -140,7 +203,9 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             
             assert(isa(fs, 'mlfourd.ImagingContext2'))
             f1 = fs.fourdfp;
-            f1.img = f1.img(:,:,:,1);
+            if 4 == ndims(f1)
+                f1.img = f1.img(:,:,:,1);
+            end
             f1 = mlfourd.ImagingContext2(f1);
             cbf = mlpet.TracerKinetics.f1ToCbf(f1);
             cbf.fileprefix = strrep(fs.fileprefix, 'fs', 'cbf');
@@ -243,45 +308,131 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             cmrglc = v1 .* chi .* (glc/mlpet.AerobicGlycolysisKit.LC);
             cmrglc.fileprefix = strrep(ks.fileprefix, 'ks', 'cmrglc');
         end
+        function [scanList,subList] = listSessionData(varargin)
+            
+            ip = inputParser;
+            addParameter(ip, 'subjectsExpr', 'sub-S*', @ischar)
+            addParameter(ip, 'metric', 'cbv', @ischar)
+            addParameter(ip, 'tracer', 'oc', @ischar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;  
+            
+            % global
+            registry = MatlabRegistry.instance(); %#ok<NASGU>
+            subjectsDir = fullfile(getenv('SINGULARITY_HOME'), 'subjects');
+            setenv('SUBJECTS_DIR', subjectsDir)
+            setenv('PROJECTS_DIR', fileparts(subjectsDir)) 
+            warning('off', 'MATLAB:table:UnrecognizedVarNameCase')
+            warning('off', 'mlnipet:ValueError:getScanFolder')
+            
+            % subjects, sessions            
+            pwd0 = pushd(subjectsDir);
+            theSessionData = mlpet.AbstractAerobicGlycolysisKit.constructSessionData( ...
+                ipr.metric, ...
+                'subjectsExpr', ipr.subjectsExpr, ...
+                'tracer', ipr.tracer); % length(theSessionData) ~ 60
+            popd(pwd0)
+            
+            % form list
+            scanList = {};
+            scanList = [scanList theSessionData.scanFolder];            
+            subList = {};
+            subList = [subList theSessionData.subjectFolder];
+        end
         function oef = os2oef(os)
             %% OS2CHI
             %  @param os is ImagingContext2.
             %  @return oef := k2
             
-            os = os.fourdfp;
-            img = os.img(:,:,:,1);
+            os_ = os.fourdfp;
+            if 4 == ndims(os_)
+                os_.img = os_.img(:,:,:,1);
+            end
+            img = os_.img;
             img(isnan(img)) = 0;
             img(img < 0) = 0;
-            img(img > 1) = 1;
-            
-            oef = copy(os);
-            oef.fileprefix = strrep(os.fileprefix, 'os', 'oef');
+            img(img > 1) = 1;            
+            oef = copy(os_);
+            oef.fileprefix = strrep(os_.fileprefix, 'os', 'oef');
             oef.img = img;
             oef = mlfourd.ImagingContext2(oef);
         end
-        function cmro2 = os2cmro2(os, cbf, model)
+        function [cmro2,oef] = os2cmro2(os, cbf, model)
             %% OS2CMRGLC
             %  @param os is ImagingContext2.
             %  @param cbf is ImagingContext2.
             %  @param model is mlglucose.Huang1980Model.
             %  @return cmro2 is ImagingContext2.
+            %  @return oef is ImagingContext2.
             
             oef = mlpet.AbstractAerobicGlycolysisKit.os2oef(os);
             o2content = model.NOMINAL_O2_CONTENT;
             cmro2 = oef .* cbf .* o2content;
             cmro2.fileprefix = strrep(os.fileprefix, 'os', 'cmro2');
         end
+        function dt = physiologyObjToDatetime(obj)
+            ic = mlfourd.ImagingContext2(obj);            
+            ss = split(ic.fileprefix, '_');
+            re = regexp(ss{1}, '\w+dt(?<datetime>\d{14})\w*', 'names');
+            dt = datetime(re.datetime, 'InputFormat', 'yyyyMMddHHmmss');
+        end
+        function dtstr = physiologyObjToDatetimeStr(varargin)
+            import mlpet.AbstractAerobicGlycolysisKit 
+            ip = inputParser;
+            addRequired(ip, 'obj', @(x) ~isempty(x))
+            addParameter(ip, 'dateonly', false, @islogical)
+            parse(ip, varargin{:})
+            ipr = ip.Results;  
+            if ipr.dateonly
+                dtstr = [datestr(AbstractAerobicGlycolysisKit.physiologyObjToDatetime(ipr.obj), 'yyyymmdd') '000000'];
+            else
+                dtstr = datestr(AbstractAerobicGlycolysisKit.physiologyObjToDatetime(ipr.obj), 'yyyymmddHHMMSS') ;
+            end
+        end
+        function metricOut = reshapeOnWmparc1(wmparc1, metric, wmparc1Out)
+            %% Cf. semantics of pchip or makima.
+            
+            wmparc1 = mlfourd.ImagingContext2(wmparc1);
+            wmparc1 = wmparc1.fourdfp;
+            metric = mlfourd.ImagingContext2(metric);
+            metric = metric.fourdfp;
+            wmparc1Out = mlfourd.ImagingContext2(wmparc1Out);
+            wmparc1Out = wmparc1Out.fourdfp;
+            metricOut = copy(metric);
+            metricOut.img = zeros(size(metric));
+            
+            for idx = mlpet.AbstractAerobicGlycolysisKit.indices % parcs
+                if 6000 == idx % venous structures
+                    continue
+                end
+                roibin = wmparc1.img == idx;
+                if 0 == dipsum(roibin) 
+                    continue
+                end
+                try
+                    m = dipsum(metric.img(roibin))/dipsum(roibin);
+                    roibinOut = wmparc1Out.img == idx;
+                    metricOut.img(roibinOut) = m;
+                catch ME
+                    handwarning(ME)
+                    continue
+                end
+            end
+            metricOut = mlfourd.ImagingContext2(metricOut);
+        end    
         function cbv = vs2cbv(vs)
             %% FS2CBF
             %  @param fs is ImagingContext2.
             %  @return cbf in mL/min/hg
             
             assert(isa(vs, 'mlfourd.ImagingContext2'))
-            vs = vs.fourdfp;
-            vs.img = vs.img(:,:,:,1);
-            vs = mlfourd.ImagingContext2(vs);
-            cbv = mlpet.TracerKinetics.v1ToCbv(vs);
-            cbv.fileprefix = strrep(vs.fileprefix, 'vs', 'cbv');
+            vs_ = vs.fourdfp;
+            if 4 == ndims(vs_)
+                vs_.img = vs_.img(:,:,:,1);
+            end
+            vs_ = mlfourd.ImagingContext2(vs_);
+            cbv = mlpet.TracerKinetics.v1ToCbv(vs_);
+            cbv.fileprefix = strrep(vs_.fileprefix, 'vs', 'cbv');
         end
     end
 
