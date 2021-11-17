@@ -1,6 +1,6 @@
 classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable & ...
                                          mldata.ITiming & mlpet.ITracerData
-	%% ABSTRACTTRACERDATA is an AbstractProduct in an abstract factory pattern.
+	%% ABSTRACTTRACERDATA is an abstract factory pattern.
     %  For concrete subclasses see also:  mlcapintec.CapracData, mlswisstrace.TwiliteData, mlpet.BloodSuckerData, 
     %  mlsiemens.BiographMMRData, mlsiemens.EcatExactHRPlusData, and similarly named classes for project packages such
     %  as mlpowers, mlarbelaez, mlraichle.

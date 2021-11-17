@@ -120,12 +120,14 @@ classdef Radionuclides
                 this.isotope_ = '13N';
                 return
             end
-            if (lstrfind(name,  '15o') || ...
-                lstrfind(name,  'oc') || lstrfind(name, 'co') || lstrfind(name,   'oo') || lstrfind(name, 'ho'))
+            if lstrfind(name, '15o') || ...
+               lstrfind(name, 'oc') || lstrfind(name, 'co') || ...
+               lstrfind(name, 'ho') || lstrfind(name, 'oh') || ...
+               lstrfind(name, 'oo')
                 this.isotope_ = '15O';
                 return
             end
-            if (lstrfind(name,  '18f') || lstrfind(name, 'fdg'))
+            if lstrfind(name,  '18f') || lstrfind(name, 'fdg')
                 this.isotope_ = '18F';
                 return
             end
@@ -146,7 +148,34 @@ classdef Radionuclides
                 return
             end
             error('mlpet:ValueError', 'Radionuclide.ctor.name->%s', name);
- 		end
+        end
+
+        function f = decayCorrectionFactors(this, varargin)
+            %% DECAYCORRECTIONFACTORS
+            %  @param taus are the frame durations in sec.
+            %  @param times are the frame times, starting with start of 1st frame, ending with end of last frame.
+            %  @return f is vector with same shape at taus.
+            %  See also:  https://niftypet.readthedocs.io/en/latest/tutorials/corrqnt.html
+            
+            ip = inputParser;
+            addParameter(ip, 'taus', [], @isnumeric)
+            addParameter(ip, 'times', [], @isnumeric)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            assert(~isempty(ipr.taus) || ~isempty(ipr.times), ...
+                'mlpet.Radionuclides.decayCorrectionFactors requires either times or taus')
+            if ~isempty(ipr.taus)
+                ipr.times = cumsum([0 ipr.taus]);
+            end
+            if isempty(ipr.taus) && ~isempty(ipr.times)
+                ipr.taus = ipr.times(2:end) - ipr.times(1:end-1);
+            end
+            taus_ = ipr.taus;
+            times_ = ipr.times(1:length(taus_));
+            
+            lambda = this.decayRate;
+            f = lambda*taus_./(exp(-lambda*times_).*(1 - exp(-lambda*taus_)));
+        end
     end 
     
     %% PRIVATE
