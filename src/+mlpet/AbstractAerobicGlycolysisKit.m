@@ -1,5 +1,5 @@
 classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
-	%% ABSTRACTAEROBICGLYCOLYSISKIT  
+	%% ABSTRACTAEROBICGLYCOLYSISKIT is an abstract factory pattern
 
 	%  $Revision$
  	%  was created 10-Feb-2021 15:59:15 by jjlee,

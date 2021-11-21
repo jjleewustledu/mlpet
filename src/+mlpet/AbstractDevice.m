@@ -1,8 +1,8 @@
 classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITiming & mlpet.ITracerData
-	%% DEVICE is the AbstractProduct in an abstract factory pattern.
+	%% DEVICE is the abstract product for an abstract factory pattern.
     %  See also factories mlpet.DeviceKit & descendent classes.
     %  See also concrete products:  {mlpowers, mlarbelaez, mlraichle, ....}.{BloodSuckerDevice, CapracDevice, 
-    %  TwiliteDevice, BiographMMRDevice, EcatExactHRPlusDevice}.
+    %  TwiliteDevice, BiographMMRDevice, BiographVisionDevice, EcatExactHRPlusDevice}.
 
 	%  $Revision$
  	%  was created 18-Oct-2018 13:58:30 by jjlee,

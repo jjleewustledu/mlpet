@@ -1,6 +1,6 @@
 classdef (Abstract) IDeviceKit < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
-	%% IDEVICEKIT provides the interface of the abstract factory of the abstract factory pattern comprising
-    %  mlpet.DeviceKit, its concrete subclasses, mlpet.AbstractDevice and its concrete subclasses.
+	%% IDEVICEKIT provides the interface for the abstract factory pattern comprising mlpet.DeviceKit, 
+    %  its concrete subclasses, mlpet.AbstractDevice and its concrete subclasses.
 
 	%  $Revision$
  	%  was created 23-Feb-2020 15:10:25 by jjlee,
