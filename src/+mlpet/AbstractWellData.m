@@ -173,8 +173,8 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
             this = this.readWellFactor;
             this = this.readWellMatrix;
         end
-        function c    = char(this)
-            c = this.fqfilename;
+        function c    = char(this, varargin)
+            c = char(this.fqfilename, varargin{:});
         end
         function len  = length(this)
             assert(length(this.times) == length(this.counts));
@@ -187,6 +187,9 @@ classdef (Abstract) AbstractWellData < mlpet.IWellData & mlio.IOInterface
         function this = saveas(this, fqfn)
             this.petio_.fqfilename = fqfn;
             this.save;
+        end
+        function s    = string(this, varargin)
+            s = string(this.fqfilename, varargin{:});
         end
         function t    = timeInterpolants(this, varargin)
             assert(~isempty(this.times_));
