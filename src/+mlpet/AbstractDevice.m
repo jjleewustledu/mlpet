@@ -276,7 +276,7 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
             
             this.calibration_ = ipr.calibration;
             this.data_ = ipr.data;  
-            this.logger_ = mlpipeline.Logger2(this);
+            this.logger_ = mlpipeline.Logger2('', this);
         end        
         function that = copyElement(this)
             %%  See also web(fullfile(docroot, 'matlab/ref/matlab.mixin.copyable-class.html'))
