@@ -1,4 +1,4 @@
-classdef (Abstract) RadMeasurements < handle & matlab.mixin.Heterogeneous
+classdef (Abstract) RadMeasurements < handle & matlab.mixin.Heterogeneous & matlab.mixin.Copyable
 	%% RADMEASUREMENTS  
 
 	%  $Revision$
