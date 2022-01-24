@@ -112,7 +112,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             ipr = ip.Results;
             this.zoom = ipr.zoom;
             
-            RR = mlraichle.RaichleRegistry.instance();
+            RR = mlraichle.StudyRegistry.instance();
             tBuffer = RR.tBuffer;
             aif = this.dispersedAif(this.artery_interpolated);
             h = figure;

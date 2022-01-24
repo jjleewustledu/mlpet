@@ -277,7 +277,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             end
         end
         function initialize()
-            mlraichle.RaichleRegistry.instance('initialize');
+            mlraichle.StudyRegistry.instance('initialize');
         end
         function chi = ks2chi(ks)
             %% KS2CHI
@@ -493,7 +493,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
         end 
         function setNormalizationFactor(~, scanner)
             assert(isa(scanner, 'mlpet.AbstractDevice'))
-            RR = mlraichle.RaichleRegistry.instance();
+            RR = mlraichle.StudyRegistry.instance();
             if isa(scanner, 'mlsiemens.BiographMMRDevice')
                 RR.normalizationFactor = 1; % 3.8/4.0259; % (Ito mean(cbv)) / (PPG mean(cbv))
             end
@@ -525,7 +525,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             scatter = suv.volumeAveraged(ambientMask);
             prompts = suv.volumeAveraged(headMask);
             
-            RR = mlraichle.RaichleRegistry.instance();
+            RR = mlraichle.StudyRegistry.instance();
             RR.scatterFraction = scatter.fourdfp.img/prompts.fourdfp.img;
         end
         function savefig(this, varargin)

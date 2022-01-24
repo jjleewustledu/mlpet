@@ -87,7 +87,7 @@ classdef (Abstract) TracerKineticsModel
             end
             % artery_interpolated may be shorter than scanner times_sampled
             assert(~isempty(this.times_sampled))
-            RR = mlraichle.RaichleRegistry.instance();
+            RR = mlraichle.StudyRegistry.instance();
             tBuffer = RR.tBuffer;
             if length(s) ~= floor(this.times_sampled(end)) + tBuffer + 1
                 if RR.stableToInterpolation

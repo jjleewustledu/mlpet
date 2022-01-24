@@ -111,7 +111,7 @@ classdef (Abstract) AugmentedData < handle
             addParameter(ip, 'roi', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
             parse(ip, devkit, varargin{:})
             ipr = ip.Results;            
-            RR = mlraichle.RaichleRegistry.instance();
+            RR = mlraichle.StudyRegistry.instance();
             
             % scannerDevs provide calibrations & ROI-volume averaging            
             s = ipr.scanner.volumeAveraged(ipr.roi);
@@ -179,7 +179,7 @@ classdef (Abstract) AugmentedData < handle
             ipr = ip.Results;
             s = ipr.scanner;
             s2 = ipr.scanner2;
-            RR = mlraichle.RaichleRegistry.instance();
+            RR = mlraichle.StudyRegistry.instance();
             
             % align aif with tac, aif2 with tac2
             [tac,timesMid,aif,Dt,datetimePeak] = mixTacAif(devkit, ...
@@ -237,7 +237,7 @@ classdef (Abstract) AugmentedData < handle
         %% GET
         
         function g = get.tBuffer(~)
-            RR = mlraichle.RaichleRegistry.instance();
+            RR = mlraichle.StudyRegistry.instance();
             g = RR.tBuffer;
         end
         
