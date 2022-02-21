@@ -33,10 +33,10 @@ classdef RoisBuilder < mlfourdfp.AbstractSessionBuilder
             
             aa = 'aparcAseg.4dfp.hdr';
             if (~lexist(aa))
-                aa = sessd.aparcAseg('typ', 'mgz');
-                aa = sessd.mri_convert(aa, 'aparcAseg.nii.gz');
-                aa = mybasename(aa);
-                sessd.nifti_4dfp_4(aa);
+                ic = mlfourd.ImagingContext2(sessd.aparcAseg('typ', 'mgz'));
+                ic.selectFourdfpTool();
+                ic.save();
+                aa = ic.fqfileprefix;
             end
             t4rb = ip.Results.t4rb;
             t4 = sprintf('%s_to_%s_t4', sessd.brainmask('typ','fp'), t4rb.resolveTag);

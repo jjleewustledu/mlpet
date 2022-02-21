@@ -72,9 +72,10 @@ classdef TracerSurferBuilder < mlfourdfp.AbstractSessionBuilder
                         case {'.mgz' '.nii.gz' '.nii'}
                             mpr001 = [dtm.fqfp{m} x];
                         case {'.4dfp.ifh' '.4dfp.hdr' '.4dfp.img' '.4dfp.img.rec'}
-                            fv = mlfourdfp.FourdfpVisitor;
-                            fv.nifti_4dfp_n([dtm.fqfp{m} '.4dfp.hdr']);
-                            mpr001 = [dtm.fqfp{m} '.nii.gz'];
+                            ic = mlfourd.ImagingContext2([dtm.fqffp{m} '.4dfp.hdr']);
+                            ic.selectNiftiTool();
+                            ic.save();
+                            mpr001 = ic.fqfn;
                     end
                     if (~isempty(mpr001))
                         origp = fullfile(this.sessionData.sessionPath, 'mri', 'orig', '');

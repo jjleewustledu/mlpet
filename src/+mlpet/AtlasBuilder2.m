@@ -32,7 +32,9 @@ classdef AtlasBuilder2 < mlfourdfp.AbstractSessionBuilder
                 zzo = sd.zeroZeroOne;
                 this.buildVisitor_.mri_convert(zzo.fqfilename, [mpr__ '.nii']);
                 deleteExisting([mpr_ '.4dfp.*'])
-                this.buildVisitor_.nifti_4dfp_4(mpr__);
+                ic = mlfourd.ImagingContext2(myniftiname(mpr__));
+                ic.selectFourdfpTool();
+                ic.save();
                 this.buildVisitor_.flip_4dfp('xz', mpr__, mpr_);
                 deleteExisting([mpr__ '.4dfp.*'])                       
             end

@@ -88,13 +88,13 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
             
             sessd = this.sessionData;
             bmfp  = fullfile(sessd.sessionPath, sessd.brainmask('typ', 'fp'));
-            bmnii = [bmfp '.nii'];
-            bmifh = [bmfp '.4dfp.hdr'];
-            if (~lexist_4dfp(bmifh))
-                sessd.mri_convert(sessd.brainmask('typ', 'fqfn'), bmnii);
-                sessd.nifti_4dfp_4(bmfp);
+            bmfn = [bmfp '.4dfp.hdr'];
+            if (~lexist_4dfp(bmfn))
+                ic = mlfourd.ImagingContext2(sessd.brainmask('typ', 'fqfn'));
+                ic.selectFourdfpTool();
+                ic.save();
             end
-            this.product_ = mlfourd.ImagingContext(bmifh);
+            this.product_ = mlfourd.ImagingContext(bmfn);
  		end
     end 
 

@@ -430,8 +430,9 @@ classdef (Abstract) AbstractHerscovitch1985 < mlfourdfp.AbstractSessionBuilder
                 this.mask_ = this.mask_.numericalNiftid;
             end
             if (~lexist([this.mask_.fqfp '.nii.gz']))
-                this.sessionData.nifti_4dfp_n(this.mask_.fqfp);
-                assert(lexist([this.mask_.fqfp '.nii.gz']));
+                ic = mlfourd.ImagingContext2(strcat(this.mask_.fqfp, '.4dfp.hdr'));
+                ic.selectNiftiTool();
+                ic.save();
             end
         end
     end
