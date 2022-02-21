@@ -110,7 +110,12 @@ classdef (Abstract) AugmentedData < handle
             addParameter(ip, 'arterial', [], @(x) isa(x, 'mlpet.AbstractDevice'))
             addParameter(ip, 'roi', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
             parse(ip, devkit, varargin{:})
-            ipr = ip.Results;            
+            ipr = ip.Results;      
+            if strcmp(class(ipr.scanner), class(ipr.arterial))
+                [tac__,timesMid__,aif__,Dt,datetimePeak] = ...
+                    mlpet.AugmentedData.mixTacIdif(devkit, varargin{:});
+                return
+            end
             RR = mlraichle.StudyRegistry.instance();
             
             % scannerDevs provide calibrations & ROI-volume averaging            
@@ -229,6 +234,42 @@ classdef (Abstract) AugmentedData < handle
             aif2 = interp1(offset + (0:n2-1), aif2, 0:n-1, 'linear', 0);
             aif__ = mix(aif, aif2, ipr.fracMixing); 
             aif__(aif__ < 0) = 0;  
+        end
+        function [tac__,timesMid__,aif__,Dt,datetimePeak] = mixTacIdif(devkit, varargin)
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'devkit', @(x) isa(x, 'mlpet.IDeviceKit'))
+            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.AbstractDevice'))
+            addParameter(ip, 'arterial', [], @(x) isa(x, 'mlpet.AbstractDevice'))
+            addParameter(ip, 'roi', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
+            parse(ip, devkit, varargin{:})
+            ipr = ip.Results;
+            RR = mlraichle.StudyRegistry.instance();
+            
+            % scannerDevs provide calibrations & ROI-volume averaging            
+            s = ipr.scanner.volumeAveraged(ipr.roi);
+            tac = s.activityDensity();
+            tac(tac < 0) = 0;                       
+            tac = RR.normalizationFactor*tac; % empirical normalization
+            tac__ = tac;
+            timesMid__ = s.timesMid;
+            
+            % arterialDevs calibrate & align arterial times-series to localized scanner time-series 
+            aif = a.activityDensity();
+            t = a.timesMid;
+            
+            % use tBuffer to increase fidelity of kinetic model
+            while any(-RR.tBuffer == t)
+                RR.T = RR.T + 1;
+            end
+            aif = interp1([-RR.tBuffer t], [0 aif], -RR.tBuffer:s.timesMid(end), 'linear', 0);
+            aif(aif < 0) = 0;            
+            aif__ = aif;  
+
+            % trivial values
+            Dt = 0;
+            datetimePeak = NaT;
         end
     end 
     

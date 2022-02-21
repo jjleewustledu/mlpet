@@ -7,6 +7,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
  	%% It was developed on Matlab 9.9.0.1570001 (R2020b) Update 4 for MACI64.  Copyright 2021 John Joowon Lee.
  	
     properties (Abstract)
+        aifMethods % containers.Map
         dataFolder
         sessionData
     end
@@ -459,6 +460,39 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
         function obj = aifsOnAtlas(this, varargin)
             tr = lower(this.sessionData.tracer);
             obj = this.metricOnAtlas(['aif_' tr], varargin{:});
+        end
+        function arterial = buildAif(this, devkit, scanner, tac)
+            assert(isa(devkit, 'mlsiemens.BiographKit'))
+            assert(isa(scanner, 'mlsiemens.BiographDevice'))
+            assert(isa(tac, 'mlsiemens.BiographDevice'))
+            assert(isa(this.aifMethods, 'containers.Map'))
+
+            if contains(this.aifMethods(upper(scanner.tracer)), 'idif',  'IgnoreCase', true)
+                arterial = devkit.buildIdif(scanner);
+                arterial.saveas(strcat(scanner.imagingContext.fqfp, '_buildArterialSamplingDevice.mat'));
+                h = plot(arterial);
+                this.savefig(h, 0, 'tags', strcat(scanner.tracer, ' radial artery'))
+                return
+            end
+            if contains(this.aifMethods(upper(scanner.tracer)), 'twilite', 'IgnoreCase', true)
+                arterial = devkit.buildArterialSamplingDevice(tac, 'sameWorldline', false);
+                arterial.radialArteryKit.saveas(strcat(scanner.imagingContext.fqfp, '_buildArterialSamplingDevice.mat'));
+                h = plot(arterial.radialArteryKit);
+                this.savefig(h, 0, 'tags', strcat(scanner.tracer, ' radial artery'), ...
+                    'fqfp', strcat(scanner.imagingContext.fqfp, '_', clientname(true)))
+                return
+            end
+            if contains(this.aifMethods(upper(scanner.tracer)), 'caprac', 'IgnoreCase', true)
+                arterial = devkit.buildCountingDevice(tac);
+                arterial.saveas(strcat(scanner.imagingContext.fqfp, '_buildArterialSamplingDevice.mat'));
+                h = plot(arterial);
+                this.savefig(h, 0, 'tags', strcat(scanner.tracer, ' radial artery'))
+                return
+            end
+            if contains(this.aifMethods(upper(scanner.tracer)), 'twilite+caprac', 'IgnoreCase', true)
+                error('mlpet:NotImplementedError', 'AbstractAerobicGlycolysisKit.buildAif')
+            end
+            error('mlpet:RuntimeError', 'AbstractAerobicGlycolysisKit.buildAif')
         end
         function obj = cbvOnAtlas(this, varargin)
             obj = this.metricOnAtlas('cbv', varargin{:});
