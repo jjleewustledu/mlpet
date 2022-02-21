@@ -17,7 +17,7 @@ classdef Test_StudyResolveBuilder < matlab.unittest.TestCase
         sesFolder2 = 'ses-E00853' % NP995_25 on 20190110, basal
         sesFolder3 = 'ses-E248568' % HYGLY50 on 20180511, hypergly 
         subData
-        subFolder = 'sub-S58163' % NP995_25, HYGLY50
+        subjectFolder = 'sub-S58163' % NP995_25, HYGLY50
         studyData
         
  		registry
@@ -48,7 +48,7 @@ classdef Test_StudyResolveBuilder < matlab.unittest.TestCase
             setenv('SUBJECTS_DIR', '/scratch/jjlee/Singularity/subjects');
             this.studyData = StudyData();
             this.projData = ProjectData('sessionStr', 'ses-E03056');
-            this.subData = SubjectData('subjectFolder', this.subFolder);
+            this.subData = SubjectData('subjectFolder', this.subjectFolder);
             this.sesData = SessionData( ...
                 'studyData', this.studyData, ...
                 'projectData', this.projData, ...

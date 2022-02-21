@@ -15,7 +15,7 @@ classdef Test_SessionResolveBuilder < matlab.unittest.TestCase
         sesFolder = 'ses-E00853' % 'ses-E182863' % HYGLY26
         studyData
         subData
-        subFolder = 'sub-S58163' % 'sub-S40037'
+        subjectFolder = 'sub-S58163' % 'sub-S40037'
  		testObj
         fast = false
  	end
@@ -97,7 +97,7 @@ classdef Test_SessionResolveBuilder < matlab.unittest.TestCase
             setenv('PROJECTS_DIR', '/scratch/jjlee/Singularity');
             setenv('SUBJECTS_DIR', '/scratch/jjlee/Singularity/subjects');
             this.studyData = StudyData();
-            this.subData = SubjectData('subjectFolder', this.subFolder);
+            this.subData = SubjectData('subjectFolder', this.subjectFolder);
             this.sesData = SessionData( ...
                 'studyData', this.studyData, ...
                 'subjectData', this.subData, ...

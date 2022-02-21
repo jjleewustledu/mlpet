@@ -12,7 +12,7 @@ classdef Test_SubjectResolveBuilder < matlab.unittest.TestCase
  	
 	properties
         subData
-        subFolder = 'sub-S40037'
+        subjectFolder = 'sub-S40037'
  		testObj
         fast = false
  	end
@@ -182,7 +182,7 @@ classdef Test_SubjectResolveBuilder < matlab.unittest.TestCase
 		function setupSubjectResolveBuilder(this)
             setenv('PROJECTS_DIR', '/scratch/jjlee/Singularity');
             setenv('SUBJECTS_DIR', '/scratch/jjlee/Singularity/subjects');
-            this.subData = mlraichle.SubjectData('subjectFolder', this.subFolder);
+            this.subData = mlraichle.SubjectData('subjectFolder', this.subjectFolder);
  			this.testObj_ = mlpet.SubjectResolveBuilder('subjectData', this.subData);
  			this.addTeardown(@this.cleanFolders);
  		end
