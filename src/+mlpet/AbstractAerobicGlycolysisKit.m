@@ -563,34 +563,26 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             ip = inputParser;
             addRequired(ip, 'handle', @ishandle) % fig handle
             addOptional(ip, 'idx', 0, @isscalar)
-            addParameter(ip, 'tags', '', @ischar) % for filenames
+            addParameter(ip, 'tags', '', @istext) % for fig title
+            addParameter(ip, 'fqfp', '', @istext)
             parse(ip, varargin{:})
             ipr = ip.Results;
             
-            tags = ipr.tags;
-            if ~isempty(tags)
-                tags_ = ['_' strrep(tags, ' ', '_')];
-            else
-                tags_ = '';
-            end            
-            dbs = dbstack;
-            client = dbs(2).name;
-            client_ = strrep(dbs(2).name, '.', '_');
-            dtStr = datestr(this.sessionData.datetime);
-            title(sprintf('%s.idx == %i\n%s %s', client, ipr.idx, tags, dtStr))
-            try
+            if isempty(ipr.fqfp) % legacy
+                if ~isempty(ipr.tags)
+                    tags_ = ['_' strrep(ipr.tags, ' ', '_')];
+                else
+                    tags_ = '';
+                end
                 dtTag = lower(this.sessionData.doseAdminDatetimeTag);
-                savefig(ipr.handle, ...
-                    fullfile(this.dataPath, ...
-                    sprintf('%s_idx%i%s_%s.fig', client_, ipr.idx, tags_, dtTag)))
-                figs = get(0, 'children');
-                saveas(figs(1), ...
-                    fullfile(this.dataPath, ...
-                    sprintf('%s_idx%i%s_%s.png', client_, ipr.idx, tags_, dtTag)))
-                close(figs(1))
-            catch ME
-                handwarning(ME)
+                client_ = clientname(true);
+                ipr.fqfp = fullfile(this.dataPath, ...
+                    sprintf('%s_idx%i%s_%s', client_, ipr.idx, tags_, dtTag));
+
             end
+            dtStr = datestr(this.sessionData.datetime);
+            title(sprintf('%s.idx == %i\n%s %s', clientname(), ipr.idx, ipr.tags, dtStr))
+            savemyfig(ipr.handle, ipr.fqfp)
         end
         function obj = vsOnAtlas(this, varargin)
             obj = this.metricOnAtlas('vs', varargin{:});
