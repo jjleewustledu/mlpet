@@ -99,8 +99,8 @@ classdef SubjectResolverTools < handle & matlab.mixin.Copyable
             
             for e = exts
                 try
-                    mlbash(sprintf('ln -s %s/T1001%s %s/resampling_restricted/T1001%s', ...
-                        this.subjectPath, e{1}, this.subjectPath, e{1}));
+                    mlbash(sprintf('ln -s %s/T1001%s %s/T1001%s', ...
+                        this.subjectPath, e{1}, this.dataPath, e{1}));
                 catch ME
                     handwarning(ME)
                 end
