@@ -41,6 +41,9 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             
             m = containers.Map;            
             for ig = 1:length(g)
+                if contains(g{ig}, ipr.sessionData.defects)
+                    continue
+                end
                 dstr = AbstractAerobicGlycolysisKit.physiologyObjToDatetimeStr(g{ig}, 'dateonly', true);
                 if ~lstrfind(m.keys, dstr)
                     m(dstr) = g(ig); % cell
@@ -326,6 +329,24 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             scanList = [scanList theSessionData.scanFolder];            
             subList = {};
             subList = [subList theSessionData.subjectFolder];
+        end
+        function t = metric2tracer(m)
+            %% Returns:
+            %      t: lower case tracer code
+
+            assert(istext(m))
+            switch char(lower(m))
+                case {'cbf' 'fs'}
+                    t = 'ho';
+                case {'cbv' 'vs'}
+                    t = 'oc';
+                case {'cmrglc' 'ks'}
+                    t = 'fdg';
+                case {'cmro2' 'oef' 'os'}
+                    t = 'oo';
+                otherwise
+                    error('mlvg:ValueError', 'QuadraticAerobicGlycolysisKit.metric2tracer.m -> %s', m)
+            end
         end
         function oef = os2oef(os)
             %% OS2CHI
