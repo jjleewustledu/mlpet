@@ -1,5 +1,5 @@
 classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
-	%% ABSTRACTAEROBICGLYCOLYSISKIT is an abstract factory pattern
+	%% ABSTRACTAEROBICGLYCOLYSISKIT is an abstract factory pattern.
 
 	%  $Revision$
  	%  was created 10-Feb-2021 15:59:15 by jjlee,
@@ -14,20 +14,6 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
     
     methods (Abstract)
         metricOnAtlas(this)
-    end
-    
-	properties (Constant) 		
-        indices = [6000 1:85 251:255 1000:1035 2000:2035 3000:3035 4000:4035 5001:5002]
-        indices_bilateral = [6000 14:16 21:24 72 77 80 85 251:255]
-        indices_left = [     1:13 17:20 25:39 73 78 81 83 1000:1035 3000:3035 5001]
-        indices_right = [   40:52 53:56 57:71 74 79 82 84 2000:2035 4000:4035 5002]
-    end
-    
-	properties (Dependent)
-        indicesToCheck
-    end
-    
-    properties
     end
     
     methods (Static)
@@ -107,11 +93,11 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             ipr = ip.Results;
             
             idx = 1;
-            subPath = fullfile(getenv('SINGULARITY_HOME'), 'subjects');
-            pwd1 = pushd(subPath);
+            subjectPath = fullfile(getenv('SINGULARITY_HOME'), 'subjects');
+            pwd1 = pushd(subjectPath);
             subjects = globFoldersT(ipr.subjectsExpr); % e.g., 'sub-S3*'
             for sub = subjects
-                pwd0 = pushd(fullfile(subPath, sub{1}));
+                pwd0 = pushd(fullfile(subjectPath, sub{1}));
                 subd = SubjectData('subjectFolder', sub{1});
                 sesfs = subd.subFolder2sesFolders(sub{1});
 
@@ -435,6 +421,17 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             cbv = mlpet.TracerKinetics.v1ToCbv(vs_);
             cbv.fileprefix = strrep(vs_.fileprefix, 'vs', 'cbv');
         end
+    end
+    
+	properties (Constant)
+        indices = [6000 1:85 251:255 1000:1035 2000:2035 3000:3035 4000:4035 5001:5002]
+        indices_bilateral = [6000 14:16 21:24 72 77 80 85 251:255]
+        indices_left = [     1:13 17:20 25:39 73 78 81 83 1000:1035 3000:3035 5001]
+        indices_right = [   40:52 53:56 57:71 74 79 82 84 2000:2035 4000:4035 5002]
+    end
+    
+	properties (Dependent)
+        indicesToCheck
     end
 
 	methods 
