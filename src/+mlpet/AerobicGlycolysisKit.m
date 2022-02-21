@@ -83,16 +83,6 @@ classdef AerobicGlycolysisKit < handle & mlpet.TracerKinetics
             matfn = [ic.fqfileprefix '.mat'];
             save(matfn, 'img')
         end   
-        function          jitOn111(fexp)
-            %  @param fexp is char, e.g., 'subjects/sub-S58163/resampling_restricted/ocdt20190523122016_222.4dfp.hdr'
-            
-            mlnipet.ResolvingSessionData.jitOn111(fexp);
-        end      
-        function          jitOnT1001(fexp)
-            %  @param fexp is char, e.g., 'subjects/sub-S58163/resampling_restricted/ocdt20190523122016_on_T1001.4dfp.hdr'
-            
-            mlnipet.ResolvingSessionData.jitOnT1001(fexp);
-        end
         function chi    = ks2chi(ksobj)
             %  @param ksobj
             %  @return chi := k1 k3/(k2 + k3) in 1/s, without v1.

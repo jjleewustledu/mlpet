@@ -135,7 +135,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
                             end
                             tracerfn = sesd.([lower(sesd.tracer) 'OnAtlas']);
                             if ~isfile(tracerfn)
-                                sesd.jitOn111(tracerfn)
+                                sesd.jitOnAtlas(tracerfn)
                             end
                             theSD(idx) = sesd; %#ok<AGROW>
                             idx = idx + 1;
@@ -160,10 +160,10 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             
             % constructWmparcOnAtlas            
             if ~isfile(sesd.brainOnAtlas)
-                sesd.jitOn111(sesd.brainOnAtlas)
+                sesd.jitOnAtlas(sesd.brainOnAtlas)
             end
             if ~isfile(sesd.wmparcOnAtlas)
-                sesd.jitOn111(sesd.wmparcOnAtlas)
+                sesd.jitOnAtlas(sesd.wmparcOnAtlas)
             end
             
             % define CSF; idx := 1
@@ -177,7 +177,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             globbed_ven = glob('ocdt*_avgt.4dfp.hdr');
             assert(~isempty(globbed_ven))
             venfn = fullfile(pwd, [myfileprefix(globbed_ven{end}) '_111.4dfp.hdr']);
-            sesd.jitOn111(venfn)
+            sesd.jitOnAtlas(venfn)
             ven = mlfourd.ImagingContext2(venfn);
             ven = ven.thresh(dipmax(ven)/2);
             ven = ven.binarized();
