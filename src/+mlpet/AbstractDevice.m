@@ -1,14 +1,22 @@
-classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITiming & mlpet.ITracerData
+classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mixin.Copyable & mldata.ITiming & mlpet.ITracerData
 	%% DEVICE is the abstract product for an abstract factory pattern.
     %  See also factories mlpet.DeviceKit & descendent classes.
-    %  See also concrete products:  {mlpowers, mlarbelaez, mlraichle, ....}.{BloodSuckerDevice, CapracDevice, 
-    %  TwiliteDevice, BiographMMRDevice, BiographVisionDevice, EcatExactHRPlusDevice}.
+    %  See also concrete products:  BloodSuckerDevice, CapracDevice, 
+    %  TwiliteDevice, BiographMMRDevice, BiographVisionDevice, EcatExactHRPlusDevice, Idif.
 
 	%  $Revision$
  	%  was created 18-Oct-2018 13:58:30 by jjlee,
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
- 	
+ 	    
+    methods (Static)
+        function sesd = findCalibrationSession(sesd0, varargin)
+            assert(isa(sesd0, 'mlpipeline.ISessionData'))
+            scanfold = globFoldersT(fullfile(sesd0.sessionPath, 'FDG_DT*-Converted-AC'));
+            sesd = sesd0.create(fullfile(sesd0.projectFolder, sesd0.sessionFolder, mybasename(scanfold{end})));
+        end
+    end
+
 	properties (Dependent)
         datetimeForDecayCorrection  
         decayCorrected
@@ -41,14 +49,6 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
         timesMid
         timeWindow        
     end    
-    
-    methods (Static)
-        function sesd = findCalibrationSession(sesd0, varargin)
-            assert(isa(sesd0, 'mlpipeline.ISessionData'))
-            scanfold = globFoldersT(fullfile(sesd0.sessionPath, 'FDG_DT*-Converted-AC'));
-            sesd = sesd0.create(fullfile(sesd0.projectFolder, sesd0.sessionFolder, mybasename(scanfold{end})));
-        end
-    end
 
 	methods 
         
@@ -241,7 +241,7 @@ classdef (Abstract) AbstractDevice < handle & matlab.mixin.Copyable & mldata.ITi
             end
             title(sprintf('%s.plot(%s)', class(this), this.data_.tracer))
         end
-        function     resetTimeLimits(this)
+        function resetTimeLimits(this)
             this.data_.resetTimeLimits();
         end
         function this = shiftWorldlines(this, timeShift)
