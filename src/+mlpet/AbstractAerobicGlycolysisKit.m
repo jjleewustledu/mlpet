@@ -28,10 +28,11 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             addParameter(ip, 'atlTag', '_111', @ischar)
             addParameter(ip, 'blurTag', '', @ischar)
             addParameter(ip, 'region', 'wmparc1', @ischar)
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'))
             parse(ip, varargin{:})
             ipr = ip.Results;
             
-            pwd0 = pushd(fullfile(getenv('SINGULARITY_HOME'), 'subjects', ipr.subjectFolder, 'resampling_restricted')); 
+            pwd0 = pushd(ipr.sessionData.dataPath);
             fnPatt = sprintf('%sdt*%s%s_%s.4dfp.hdr', ipr.physiology, ipr.atlTag, ipr.blurTag, ipr.region);
             g = globT(fnPatt);
             if isempty(g); return; end
@@ -536,7 +537,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             parse(ip, scanner, varargin{:})
             ipr = ip.Results;
             
-            g = globT(fullfile(this.sessionData.subjectPath, 'resampling_restricted', 'T1001*222*hdr'));
+            g = globT(fullfile(this.sessionData.dataPath, 'T1001*222*hdr'));
             assert(~isempty(g))
             T1001 = mlfourd.ImagingContext2(g{1});
             ambientMask = T1001.numlt(1);
