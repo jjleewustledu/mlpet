@@ -106,7 +106,7 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
             dt = DirTool('ses-*');
             for ses = dt.dns
                 prjData = this.subjectData.createProjectData('sessionStr', ses{1});
-                prj_ses_pth = prjData.projectSessionPath(ses{1});
+                prj_ses_pth = fullfile(prjData.projectPath, ses{1}, '');
                 jsons = glob(fullfile(prj_ses_pth, '*_DT*.000000-Converted-AC', 'output', 'PET', '*_DT*.json'));
                 for j = asrow(jsons)
                     if ~isfile(basename(j{1}))
