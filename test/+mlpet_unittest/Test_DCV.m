@@ -15,14 +15,14 @@ classdef Test_DCV < matlab.unittest.TestCase
 
 	properties 
         sessd
-        sessp = '/data/cvl/np755/mm01-007_p7267_2008jun16'
+        sessp = '~/Singularity/cvl/np755/mm01-007_p7267_2008jun16'
  		testObj
-        unittest_home = '/data/cvl/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet'
+        unittest_home = '~/Singularity/cvl/np755/mm01-007_p7267_2008jun16/ECAT_EXACT/pet'
  	end 
 
 	methods (Test) 
         function test_ctor(this)
-            this.assertEqual(this.testObj.fqfilename, fullfile(this.unittest_home, 'p7267ho1.dcv'));
+            this.assertEqual(this.testObj.filename, 'p7267ho1.dcv');
             this.assertEqual(this.testObj.scanIndex, 1);
             this.assertEqual(this.testObj.length, 117);
             this.assertEqual(this.testObj.scanDuration, 128);
@@ -59,8 +59,8 @@ classdef Test_DCV < matlab.unittest.TestCase
  	methods (TestClassSetup) 
  		function setupDCV(this)  
             cd(this.unittest_home);
-            studyd = mlderdeyn.StudyDataSingleton.instance;
-            this.sessd = mlderdeyn.SessionData('studyData', studyd, 'sessionPath', this.sessp);
+%            studyd = mlderdeyn.StudyDataSingleton.instance;
+%            this.sessd = mlderdeyn.SessionData('studyData', studyd, 'sessionPath', this.sessp);
  			this.testObj = mlpet.DCV.load('p7267ho1'); 
  		end 
  	end 
