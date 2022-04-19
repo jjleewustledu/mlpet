@@ -137,8 +137,8 @@ classdef Test_TracerResolveBuilder < matlab.unittest.TestCase
                 multiEpochOfSummed(c) = multiEpochOfSummed(c).setNeverTouch(true);
             end            
             uncorrected = reconstitutedSummed.motionUncorrectToFrames(umapOnFrame9, multiEpochOfSummed);
-            this.verifyEqual(uncorrected(1).product.fileprefix, 'umapSynth_op_fdge1to9r1_frame1');
-            this.verifyEqual(uncorrected(8).product.fileprefix, 'umapSynth_op_fdge1to9r1_frame8');
+            this.verifyEqual(uncorrected{1}.product.fileprefix, 'umapSynth_op_fdge1to9r1_frame1');
+            this.verifyEqual(uncorrected{8}.product.fileprefix, 'umapSynth_op_fdge1to9r1_frame8');
         end
         function test_motionUncorrectUmap(this)
             this.testObj = this.testObj.partitionMonolith;
