@@ -544,13 +544,6 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
         function resetModelSampler(~)
             mlpet.TracerKineticsModel.solutionOnScannerFrames([], [])
         end 
-        function setNormalizationFactor(~, scanner)
-            assert(isa(scanner, 'mlpet.AbstractDevice'))
-            RR = mlraichle.StudyRegistry.instance();
-            if isa(scanner, 'mlsiemens.BiographMMRDevice')
-                RR.normalizationFactor = 1; % 3.8/4.0259; % (Ito mean(cbv)) / (PPG mean(cbv))
-            end
-        end
         function setScatterFraction(this, scanner, varargin)
             ip = inputParser;
             addRequired(ip, 'scanner', @(x) isa(x, 'mlpet.AbstractDevice'))
@@ -578,8 +571,8 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             scatter = suv.volumeAveraged(ambientMask);
             prompts = suv.volumeAveraged(headMask);
             
-            RR = mlraichle.StudyRegistry.instance();
-            RR.scatterFraction = scatter.fourdfp.img/prompts.fourdfp.img;
+            sr = mlraichle.StudyRegistry.instance();
+            sr.scatterFraction = scatter.fourdfp.img/prompts.fourdfp.img;
         end
         function savefig(this, varargin)
             ip = inputParser;
@@ -590,17 +583,15 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             parse(ip, varargin{:})
             ipr = ip.Results;
             
+            if ~isempty(ipr.tags)
+                ipr.tags = strcat("_", strip(ipr.tags, "_"));
+            end            
             if isempty(ipr.fqfp) % legacy
-                if ~isempty(ipr.tags)
-                    tags_ = ['_' strrep(ipr.tags, ' ', '_')];
-                else
-                    tags_ = '';
-                end
-                dtTag = lower(this.sessionData.doseAdminDatetimeTag);
+                ipr.tags = strrep(ipr.tags, " ", "_");
+                dtTag = strcat("_", lower(this.sessionData.doseAdminDatetimeTag));
                 client_ = clientname(true);
                 ipr.fqfp = fullfile(this.dataPath, ...
-                    sprintf('%s_idx%i%s_%s', client_, ipr.idx, tags_, dtTag));
-
+                    sprintf('%s_idx%i%s%s', client_, ipr.idx, ipr.tags, dtTag));
             end
             dtStr = datestr(this.sessionData.datetime);
             title(sprintf('%s.idx == %i\n%s %s', clientname(), ipr.idx, ipr.tags, dtStr))
