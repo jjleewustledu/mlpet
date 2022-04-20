@@ -87,11 +87,12 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
             g = this.data_.timeForDecayCorrection;
         end    
         function g = get.threshOfPeak(this)
-            if strcmpi('15O', this.isotope)
-                g = 0.5;
-            else
-                g = 0.5;
-            end
+%             if strcmpi('15O', this.isotope)
+%                 g = 0.5;
+%             else
+%                 g = 0.5;
+%             end
+            g = 0.5;
         end
         function g = get.tracer(this)
             g = this.data_.tracer;
