@@ -87,10 +87,10 @@ classdef (Abstract) TracerKineticsModel
             end
             % artery_interpolated may be shorter than scanner times_sampled
             assert(~isempty(this.times_sampled))
-            RR = mlraichle.StudyRegistry.instance();
-            tBuffer = RR.tBuffer;
+            ad = mlaif.AifData.instance();
+            tBuffer = ad.tBuffer;
             if length(s) ~= floor(this.times_sampled(end)) + tBuffer + 1
-                if RR.stableToInterpolation
+                if ad.stableToInterpolation
                     this.artery_interpolated = ...
                         makima(-tBuffer:(length(s)-tBuffer-1), s, -tBuffer:this.times_sampled(end));
                 else

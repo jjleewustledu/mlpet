@@ -116,20 +116,21 @@ classdef (Abstract) AugmentedData < handle
                     mlpet.AugmentedData.mixTacIdif(devkit, varargin{:});
                 return
             end
-            RR = mlraichle.StudyRegistry.instance();
+            ad = mlaif.AifData.instance();
             
             % scannerDevs provide calibrations & ROI-volume averaging            
             s = ipr.scanner.volumeAveraged(ipr.roi);
             tac = s.activityDensity();
             tac(tac < 0) = 0;                       
-            tac = RR.normalizationFactor*tac; % empirical normalization
+            tac = ad.normalizationFactor*tac; % empirical normalization
             tac__ = tac;
             timesMid__ = s.timesMid;
             Nt = ceil(timesMid__(end));
             
             % arterialDevs calibrate & align arterial times-series to localized scanner time-series            
             a0 = ipr.arterial;
-            [a, datetimePeak] = devkit.alignArterialToScanner(a0, s, 'sameWorldline', false);
+            [a, datetimePeak] = devkit.alignArterialToScanner( ...
+                a0, s, ad, 'sameWorldline', false);
             aif = a.activityDensity('Nt', Nt);
             switch class(a)
                 case 'mlswisstrace.TwiliteDevice'
@@ -141,23 +142,11 @@ classdef (Abstract) AugmentedData < handle
                         'class(AugmentedData.mixTacAif.a) = %s', class(a))
             end
             
-            % extrapolate aif beyond cliff
-%             if isfinite(ipr.arterial.timeCliff)
-%                 Nt = ceil(timesMid__(end));
-%                 Na = length(aif);
-%                 tacint = interp1(timesMid__, tac__, 0:Nt-1);
-%                 indexCliff = ipr.arterial.timeCliff + 1;
-%                 fracCliff = aif(indexCliff) / tacint(indexCliff);
-%                 aif(indexCliff:Na) = fracCliff * tacint(indexCliff:Na);
-%                 aif(Na+1:Nt) = fracCliff * tacint(Na+1:Nt);
-%                 t = (0:Nt-1) - seconds(s.datetime0 - a.datetime0);
-%             end
-            
             % use tBuffer to increase fidelity of kinetic model
-            while any(-RR.tBuffer == t)
-                RR.T = RR.T + 1;
+            while any(-ad.tBuffer == t)
+                ad.T = ad.T + 1;
             end
-            aif = interp1([-RR.tBuffer t], [0 aif], -RR.tBuffer:s.timesMid(end), 'linear', 0);
+            aif = interp1([-ad.tBuffer t], [0 aif], -ad.tBuffer:s.timesMid(end), 'linear', 0);
             aif(aif < 0) = 0;            
             aif__ = aif;            
             Dt = a.Dt;
@@ -184,7 +173,7 @@ classdef (Abstract) AugmentedData < handle
             ipr = ip.Results;
             s = ipr.scanner;
             s2 = ipr.scanner2;
-            RR = mlraichle.StudyRegistry.instance();
+            ad = mlaif.AifData.instance();
             
             % align aif with tac, aif2 with tac2
             [tac,timesMid,aif,Dt,datetimePeak] = mixTacAif(devkit, ...
@@ -198,26 +187,6 @@ classdef (Abstract) AugmentedData < handle
             offset = seconds(datetimePeak - s.datetime0) - ...
                      seconds(datetimePeak2 - s2.datetime0) + ...
                      ipr.DtMixing;
-
-            % extrapolate aifs beyond cliffs
-%             if isfinite(ipr.arterial.timeCliff)
-%                 Nt = ceil(timesMid(end));
-%                 Na = length(aif);
-%                 tacint = interp1(timesMid, tac, 0:Nt-1);
-%                 indexCliff = ipr.arterial.timeCliff + 1;
-%                 fracCliff = aif(indexCliff) / tacint(indexCliff);
-%                 aif(indexCliff:Na) = fracCliff * tacint(indexCliff:Na);
-%                 aif(Na+1:Nt) = fracCliff * tacint(Na+1:Nt);
-%             end            
-%             if isfinite(ipr.arterial2.timeCliff)
-%                 Nt2 = ceil(timesMid2(end));
-%                 Na2 = length(aif2);
-%                 tacint2 = interp1(timesMid2, tac2, 0:Nt2-1);
-%                 indexCliff2 = ipr.arterial2.timeCliff + 1;
-%                 fracCliff2 = aif(indexCliff2) / tacint2(indexCliff2);
-%                 aif2(indexCliff2:Na2) = fracCliff2 * tacint2(indexCliff2:Na2);
-%                 aif2(Na2+1:Nt2) = fracCliff2 * tacint2(Na2+1:Nt2);
-%             end
             
             % align tac2 with tac
             tac = interp1([-1 s.timesMid], [0 tac], s.timesMid(1):s.timesMid(end), 'linear', 0);
@@ -225,7 +194,7 @@ classdef (Abstract) AugmentedData < handle
             tac__ = mix(tac, tac2, ipr.fracMixing); 
             tac__ = interp1(s.timesMid(1):s.timesMid(end), tac__, s.timesMid, 'linear', 0);
             tac__(tac__ < 0) = 0;                       
-            tac__ = RR.normalizationFactor*tac__; % empirical normalization
+            tac__ = ad.normalizationFactor*tac__; % empirical normalization
             timesMid__ = timesMid;
             
             % align aif2 with aif
@@ -245,13 +214,13 @@ classdef (Abstract) AugmentedData < handle
             addParameter(ip, 'roi', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
             parse(ip, devkit, varargin{:})
             ipr = ip.Results;
-            RR = mlraichle.StudyRegistry.instance();
+            ad = mlaif.AifData.instance();
             
             % scannerDevs provide calibrations & ROI-volume averaging            
             s = ipr.scanner.volumeAveraged(ipr.roi);
             tac = s.activityDensity();
             tac(tac < 0) = 0;                       
-            tac = RR.normalizationFactor*tac; % empirical normalization
+            tac = ad.normalizationFactor*tac; % empirical normalization
             tac__ = tac;
             timesMid__ = s.timesMid;
             
@@ -260,10 +229,10 @@ classdef (Abstract) AugmentedData < handle
             t = a.timesMid;
             
             % use tBuffer to increase fidelity of kinetic model
-            while any(-RR.tBuffer == t)
-                RR.T = RR.T + 1;
+            while any(-ad.tBuffer == t)
+                ad.T = ad.T + 1;
             end
-            aif = interp1([-RR.tBuffer t], [0 aif], -RR.tBuffer:s.timesMid(end), 'linear', 0);
+            aif = interp1([-ad.tBuffer t], [0 aif], -ad.tBuffer:s.timesMid(end), 'linear', 0);
             aif(aif < 0) = 0;            
             aif__ = aif;  
 
@@ -278,8 +247,8 @@ classdef (Abstract) AugmentedData < handle
         %% GET
         
         function g = get.tBuffer(~)
-            RR = mlraichle.StudyRegistry.instance();
-            g = RR.tBuffer;
+            ad = mlaif.AifData.instance();
+            g = ad.tBuffer;
         end
         
         %%
