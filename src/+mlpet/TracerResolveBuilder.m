@@ -101,7 +101,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  @param  this.product := composite multi-epoch of frames created by partitionMonolith.
             %  @return this := composite epochs of TracerResolveBuilder, each epoch containing motion-corrected frames.            %          
             %  @return epochs := composite epochs of TracerResolveBuilder, each containing summed motion-corrected frames.         
-            %  @return reconstituted := singlet ImagingFormatContext containing time sum of motion-corrected frames.
+            %  @return reconstituted := singlet ImagingFormatContext2 containing time sum of motion-corrected frames.
                 
             % recursion over epochs to generate composite
             if (length(this) > 1)
@@ -315,7 +315,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             sessdr1.resolveTag = sessdr2e1toN.resolveTag;
             
             pwd0 = pushd(sessdr2.tracerLocation);
-            ffp0 = ImagingFormatContext(sessdr1.tracerRevision('typ', 'fqfn'));
+            ffp0 = ImagingFormatContext2(sessdr1.tracerRevision('typ', 'fqfn'));
             ffp0.img = zeros(size(ffp0));
             ffp0.fqfileprefix = sessdr2.tracerResolved('typ', 'fqfp'); % fdgv1r2_op_fdgv1e1to4r1_frame4
             
@@ -335,11 +335,11 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 fpDest = [sessde.tracerRevision('typ','fp') '_' sessdr2e1toN.resolveTag]; % fdgv1e1r2_op_fdgv1e1to4r1_frame4
                 if (lexist(t4, 'file'))
                     this.buildVisitor.t4img_4dfp(t4, fp, 'out', fpDest, 'options', ['-O' fp]);
-                    ffp = ImagingFormatContext([fpDest '.4dfp.hdr']);
+                    ffp = ImagingFormatContext2([fpDest '.4dfp.hdr']);
                 else
                     % e.g., for case in which most of epoch 1 is empty because of late
                     % dose administration
-                    ffp = ImagingFormatContext([fp '.4dfp.hdr']);
+                    ffp = ImagingFormatContext2([fp '.4dfp.hdr']);
                 end
                 ffp0.img(:,:,:,(e-1)*this.maxLengthEpoch+1:e*this.maxLengthEpoch) = ffp.img; % FDG_V1-AC/fdgv1r2_op_fdgv1e1to4r1_frame4.4dfp.hdr
                 popd(pwd1);
@@ -356,7 +356,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 
                 % single frame remaining
                 fp = sprintf('%sr1', sessde.tracerEpoch('typ','fp')); % fdgv1e4r1
-                ffp = ImagingFormatContext([fp '.4dfp.hdr']);
+                ffp = ImagingFormatContext2([fp '.4dfp.hdr']);
                 ffp0.img(:,:,:,remainingFrames) = ffp.img;
                 popd(pwd1);                
                 ffp0.save;
@@ -370,7 +370,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                 sessde.tracerRevision('typ','fp'), ...
                 sessde.tracerEpoch('typ','fp'), ...
                 nFrames - nEpochs*this.maxLengthEpoch); % fdgv1e4r2_op_fdgv1e4r1_frame1, previously RESAMPLED
-            ffp = ImagingFormatContext([fp '.4dfp.hdr']);
+            ffp = ImagingFormatContext2([fp '.4dfp.hdr']);
             ffp0.img(:,:,:,remainingFrames) = ffp.img;
             popd(pwd1);            
             ffp0.save;
@@ -492,7 +492,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  @return this.{resolveBuilder,sessionData,product} := updated motion-correction objects.
             %  @return this.product := ImagingContext of time-resolved motion-corrected frames;
             %          E.g., this.product := files E*/fdgv1e*r2_op_fdgv1e*r1_frame*.
-            %  @return averaged := ImagingFormatContext with time-average of motion-corrected frames.
+            %  @return averaged := ImagingFormatContext2 with time-average of motion-corrected frames.
             %          E.g., averaged.product := files E*/fdgv1e*r2_op_fdgv1e*r1_frame*_avgt.
             %  @return this unchanged and averaged := this for ndims(sessionData.tracerRevision) < 4.
             
@@ -704,7 +704,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             for u = 1:length(unco)
                 multi = multiEpochOfSummed(u).motionUncorrectEpoch( ...
                     unco(u).product, multiEpochOfSummed(u), u == length(unco));
-                unco1(u,1:length(multi)) = multi;
+                unco1{u} = multi;
             end
         end  
         function cRB  = reconcileUmapFilenames(~, cRB, varargin)
@@ -734,7 +734,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             bv = this.buildVisitor;
             backup_4dfp = [this.sessionData.tracerRevision('typ','fqfp') '_beforeReplaceMonolithFrames'];
             bv.copy_4dfp(this.sessionData.tracerRevision('typ','fqfp'), backup_4dfp);
-            tr = mlfourd.ImagingFormatContext(this.sessionData.tracerRevision('typ', '.4dfp.hdr'));
+            tr = mlfourd.ImagingFormatContext2(this.sessionData.tracerRevision('typ', '.4dfp.hdr'));
             imgsrc = tr.img(:,:,:,this.fsrc);
             for f = 1:length(this.f2rep)
                 tr.img(:,:,:,this.f2rep(f)) = imgsrc;
@@ -822,7 +822,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             sessd1.resolveTag = sessd1.resolveTagFrame(this.maxLengthEpoch, 'reset', true);
             umap = ImagingContext2(sessd1.umapTagged(sessd1.resolveTag));
             umapFfp = umap.fourdfp;
-            umapFfp.fqfilename = [sessd.umapTagged('') '.4dfp.hdr'];
+            umapFfp.fqfilename = sessd.umapTagged('');
             umapSz = umapFfp.size;
             umapFfp.img = zeros(umapSz(1),umapSz(2),umapSz(3),tracerSz(4));
             for ep = 1:nEpoch
@@ -831,7 +831,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                         sessd_ = sessd;
                         sessd_.epoch = ep;
                         sessd_.resolveTag = sessd_.resolveTagFrame(fr, 'reset', true);
-                        frame_ = ImagingFormatContext(sessd_.umapTagged(sessd_.resolveTag));
+                        frame_ = ImagingFormatContext2(sessd_.umapTagged(sessd_.resolveTag));
                         umapFfp.img(:,:,:,this.maxLengthEpoch*(ep-1)+fr) = frame_.img;
                     end
                 else                    
@@ -842,14 +842,19 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                                 sessd_ = sessd;
                                 sessd_.epoch = ep;
                                 sessd_.resolveTag = sessd_.resolveTagFrame(fr, 'reset', true);
-                                frame_ = ImagingFormatContext(sessd_.umapTagged(sessd_.resolveTag));
+                                frame_ = ImagingFormatContext2(sessd_.umapTagged(sessd_.resolveTag));
                                 umapFfp.img(:,:,:,this.maxLengthEpoch*(ep-1)+fr) = frame_.img;
                             end                    
                         case 1
                             sessd_ = sessd;
                             sessd_.epoch = 1:ep; % E1to9
                             sessd_.resolveTag = sessd_.resolveTagFrame(ep, 'reset', true);
-                            frame_ = ImagingFormatContext(sessd_.umapTagged(['op_T1001_b43r1_' sessd_.resolveTag]));
+                            fn = sessd_.umapTagged(['op_T1001_b43r1_' sessd_.resolveTag]);
+                            fn1 = sessd_.umapTagged(['on_T1001_b43r1_' sessd_.resolveTag]);
+                            if ~isfile(fn) && isfile(fn1)
+                                fn = fn1;
+                            end
+                            frame_ = ImagingFormatContext2(fn);
                             umapFfp.img(:,:,:,this.maxLengthEpoch*(ep-1)+1) = frame_.img;  
                             % e.g., umapSynth_op_T1001_b43r1_op_fdgv1e1to9r1_frame9.4dfp.hdr                      
                         otherwise
@@ -857,7 +862,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
                                 sessd_ = sessd;
                                 sessd_.epoch = ep;
                                 sessd_.resolveTag = sessd_.resolveTagFrame(fr, 'reset', true);
-                                frame_ = ImagingFormatContext(sessd_.umapTagged(sessd_.resolveTag));
+                                frame_ = ImagingFormatContext2(sessd_.umapTagged(sessd_.resolveTag));
                                 umapFfp.img(:,:,:,this.maxLengthEpoch*(ep-1)+fr) = frame_.img;
                             end
                     end
@@ -867,7 +872,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
         end
         function this = expandFovOfUmap(this)
             nii  = this.product_.nifti;
-            nii.datatype = 'single';
+            %nii.datatype = 'single';
             umap = mlfourd.ImagingContext2(nii);
             fov  = this.FULL_FOV;
             umap = umap.zoomed(-fov(1)/4, fov(1), -fov(2)/4, fov(2), 0, -1, 0, -1); 
@@ -882,7 +887,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             nii.filepath = sess.scanPath;
             nii.fileprefix = mybasename(sess.umapTagged);
             nii.filesuffix = '.nii.gz';
-            nii.datatype = 'single';
+            nii.ensureSingle();
             this = this.packageProduct( ...
                 ImagingContext2(nii, 'hist', info.hdr.hist));
         end
@@ -922,22 +927,22 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  See also mlpet.TracerResolveBuilder.motionCorrectFrames.
             
             import mlfourd.*;
-            aufbau4dfp = ImagingFormatContext(those(1).product.fqfilename);
+            aufbau4dfp = ImagingFormatContext2(those(1).product.fqfilename);
             for e = 2:length(those)
                 if (e < length(those))                    
-                    ffp = ImagingFormatContext(those(e).tracerResolvedAvgt()); % fdgv1e*r2_sumt                    
+                    ffp = ImagingFormatContext2(those(e).tracerResolvedAvgt()); % fdgv1e*r2_sumt                    
                 else
                     % append last remaining frames, which may be singleton without time-sum, to aufbau4dfp
                     this_r1 = those(e);
                     this_r1.rnumber = 1;
                     if (lexist_4dfp(               those(e).tracerResolvedAvgt()))
-                        ffp = ImagingFormatContext(those(e).tracerResolvedAvgt()); % fdgv1e*r2_avgt
+                        ffp = ImagingFormatContext2(those(e).tracerResolvedAvgt()); % fdgv1e*r2_avgt
                     elseif (lexist_4dfp(            this_r1.tracerResolvedAvgt()))
-                        ffp = ImagingFormatContext(those(e).tracerResolvedAvgt()); % fdgv1e*r1_avgt
+                        ffp = ImagingFormatContext2(those(e).tracerResolvedAvgt()); % fdgv1e*r1_avgt
                     elseif (lexist_4dfp(           those(e).tracerRevision()))
-                        ffp = ImagingFormatContext(those(e).tracerRevision()); % fdgv1e*r2
+                        ffp = ImagingFormatContext2(those(e).tracerRevision()); % fdgv1e*r2
                     elseif (lexist_4dfp(            this_r1.tracerRevision()))
-                        ffp = ImagingFormatContext( this_r1.tracerRevision()); % fdgv1e*r1
+                        ffp = ImagingFormatContext2( this_r1.tracerRevision()); % fdgv1e*r1
                     else
                         error('mlpet:runtimeError', ...
                             ['TracerResolveBuilder.reconstituteComposites failed to reconstitute %s;\n' ...
@@ -1058,7 +1063,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             if (~bv.lexist_4dfp(dest_))
                 t4rb.t4img_4dfp(t4_, ffp.fileprefix, 'out', dest_, 'options', ['-O' ffp.fqfileprefix]);
             end
-            ffp   = mlfourd.ImagingFormatContext([dest_ '.4dfp.hdr']);
+            ffp   = mlfourd.ImagingFormatContext2([dest_ '.4dfp.hdr']);
             
             deleteExisting([dest_ '__.4dfp.*']);
             deleteExisting([dest_ '___.4dfp.*']);
@@ -1104,7 +1109,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %end
             bv.cropfrac_4dfp(0.5, sif_, fqfp0);
             %deleteExisting([sif_ '.4dfp.*']);
-            ffp = mlfourd.ImagingFormatContext([fqfp0 '.4dfp.hdr']);
+            ffp = mlfourd.ImagingFormatContext2([fqfp0 '.4dfp.hdr']);
             popd(pwd0);
             %ffp.fqfileprefix = this.sessionData_.tracerRevision('typ', 'fqfp');
             %ffp.img = zeros(size(ffp));
@@ -1113,7 +1118,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %  @param named sessionData is an mlpipeline.SessionData.
             %  @param this.sessionData.tracerNipet exists.
             %  @param named fqfp is the f. q. fileprefix of the tracer scan.
-            %  @return ffp is an mlfourd.ImagingFormatContext containing the tracers scan.
+            %  @return ffp is an mlfourd.ImagingFormatContext2 containing the tracers scan.
             
             fqfp0 = this.sessionData_.tracerNipet('typ', 'fqfp');
             ip = inputParser;
@@ -1125,7 +1130,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             sd = ip.Results.sessionData;
             sd.epoch = [];
             fqfp0 = ip.Results.fqfp;
-            ffp = mlfourd.ImagingFormatContext([fqfp0 '.4dfp.hdr']);
+            ffp = mlfourd.ImagingFormatContext2([fqfp0 '.4dfp.hdr']);
         end
         function sess   = recallOtherTracerResolvedFinalAvgt(this, varargin)
             ip = inputParser;

@@ -88,7 +88,7 @@ classdef ResamplingRestrictedResolveBuilder < mlfourdfp.AbstractSessionBuilder
             
             cd(pthFdg);
             tra = lower(this.sessionData.tracer);
-            ifc = mlfourd.ImagingFormatContext(sprintf('%sr1.4dfp.hdr', tra));
+            ifc = mlfourd.ImagingFormatContext2(sprintf('%sr1.4dfp.hdr', tra));
             ifc.fileprefix = sprintf('%sr2_op_%sr1_frame%i', tra, tra, size(ifc,4));
             
             cd(pthT4);
@@ -127,7 +127,7 @@ classdef ResamplingRestrictedResolveBuilder < mlfourdfp.AbstractSessionBuilder
                                     'out', comp_4dfp, ...
                                     'options', sprintf('-O../%sr1_frame%i', tra, fr));
                             end
-                            ifc_op = mlfourd.ImagingFormatContext([comp_4dfp '.4dfp.hdr']);
+                            ifc_op = mlfourd.ImagingFormatContext2([comp_4dfp '.4dfp.hdr']);
                             ifc.img(:,:,:,fr) = ifc_op.img;
                             deleteExisting([comp_4dfp '.4dfp.*'])
                         catch ME

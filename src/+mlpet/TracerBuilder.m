@@ -57,7 +57,7 @@ classdef TracerBuilder < mlfourdfp.AbstractSessionBuilder
         function fqfn = scrubTracer(fqfn, toScrub)
             assert(lexist(fqfn, 'file'));
             assert(isnumeric(toScrub));
-            ffp = mlfourd.ImagingFormatContext(fqfn);
+            ffp = mlfourd.ImagingFormatContext2(fqfn);
             ffp.fileprefix = [ffp.fileprefix '_scrubbed'];
             lenScrubbed = ffp.size(4) - length(toScrub);
             img = zeros(ffp.size(1), ffp.size(2), ffp.size(3), lenScrubbed);

@@ -143,7 +143,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             popd(pwd1);
         end    
         function ic = constructWmparc1OnAtlas(sesd)
-            import mlfourd.ImagingFormatContext
+            import mlfourd.ImagingFormatContext2
             import mlfourd.ImagingContext2
             
             pwd0 = pushd(sesd.wmparc1OnAtlas('typ', 'filepath'));            
@@ -158,8 +158,8 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             end
             
             % define CSF; idx := 1
-            wmparc = ImagingFormatContext(sesd.wmparcOnAtlas());
-            wmparc1 = ImagingFormatContext(sesd.brainOnAtlas());
+            wmparc = ImagingFormatContext2(sesd.wmparcOnAtlas());
+            wmparc1 = ImagingFormatContext2(sesd.brainOnAtlas());
             wmparc1.fileprefix = sesd.wmparc1OnAtlas('typ', 'fp');
             wmparc1.img(wmparc1.img > 0) = 1; % co-opting left cerebral exterior
             wmparc1.img(wmparc.img > 0) = wmparc.img(wmparc.img > 0);
@@ -260,7 +260,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
                     h = 'w';
                 case num2cell([9:13 16 18 48:52 54 101 102 104 105 107 110 111 113 114 116])
                     h = 's'; % subcortical
-                case {6000}
+                case {40 6000}
                     h = 'v'; % venous
                 case {1 4 5 43 44}
                     h = 'c'; % csf
