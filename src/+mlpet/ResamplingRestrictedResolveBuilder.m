@@ -89,6 +89,7 @@ classdef ResamplingRestrictedResolveBuilder < mlfourdfp.AbstractSessionBuilder
             cd(pthFdg);
             tra = lower(this.sessionData.tracer);
             ifc = mlfourd.ImagingFormatContext2(sprintf('%sr1.4dfp.hdr', tra));
+            ifc.selectFourdfpTool();
             ifc.fileprefix = sprintf('%sr2_op_%sr1_frame%i', tra, tra, size(ifc,4));
             
             cd(pthT4);
