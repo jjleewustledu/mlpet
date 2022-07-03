@@ -102,7 +102,7 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
             comm  = copy(ipr.commonRef);
             cross = copy(ipr.crossRef);
             
-            pwd0 = pushd(this.workpath); 
+            pwd0 = pushd(this.product{1}.filepath); 
             
             comm.t4imgDynamicImages(comm.tracer); % comm.product := dynamic aligned to time-summed comm.product{1}
             comm_to_cross_t4 = cross.selectT4s('sourceTracer', lower(comm.tracer)); % construct t4s{r} for comm.product to cross.product{1}    
@@ -157,15 +157,18 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
             parse(ip, varargin{:});         
             
             try
-                files = this.collectionRB.lns_with_DateTime( ...
-                    fullfile(this.collectionRB.sessionData.subjectPath, ...
-                             this.collectionRB.sessionData.sessionFolder, ...
-                             sprintf('%s_DT*.000000-Converted-AC/%s%s.4dfp.*', ...
-                                     upper(ip.Results.tracer), lower(ip.Results.tracer), ip.Results.suffix)));
+                trc_fqfn = fullfile(this.collectionRB.sessionData.subjectPath, ...
+                    this.collectionRB.sessionData.sessionFolder, ...
+                    sprintf('%s_DT*.000000-Converted-AC/%s%s.4dfp.*', ...
+                    upper(ip.Results.tracer), lower(ip.Results.tracer), ip.Results.suffix));
+                files = this.collectionRB.lns_with_DateTime(trc_fqfn);
                 prefixes = this.collectionRB.uniqueFileprefixes(files);
                 prefixes = this.refreshTracerAvgt(prefixes);
-            catch ME
-                handwarning(ME)
+            catch
+                try
+                catch ME
+                    handexcept(ME);
+                end
             end
         end
         function prefixes = refreshTracerAvgt(~, prefixes)
@@ -210,9 +213,17 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
             globbed = {};
             globbed0 = glob('hodt*_avgtr1_to_op_hodt*_t4');
             for g = asrow(globbed0)
-                re = regexp(g{1}, '^hodt\d+_avgtr1_to_op_hodt\d+r1_t4$', 'once');
+                re = regexp(g{1}, '^hodt\d+_avgtr1_to_op_hodt\d+r1_t4$', 'once');              
                 if ~isempty(re)
                     globbed = [globbed g{1}]; %#ok<AGROW>
+                    continue
+                end
+                re1 = regexp(g{1}, '^hodt\d+_avgtr1_to_op_hodt\d+_avgtr1_t4$', 'once');  
+                if ~isempty(re1)
+                    g_link = strrep(g{1}, '_avgtr1_t4', 'r1_t4');
+                    mlbash(sprintf('ln -s %s/%s %s/%s', pwd, g{1}, pwd, g_link))
+                    globbed = [globbed g_link]; %#ok<AGROW>
+                    continue
                 end
             end 
         end
@@ -223,6 +234,14 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
                 re = regexp(g{1}, '^oodt\d+_avgtr1_to_op_oodt\d+r1_t4$', 'once');
                 if ~isempty(re)
                     globbed = [globbed g{1}]; %#ok<AGROW>
+                    continue
+                end
+                re1 = regexp(g{1}, '^oodt\d+_avgtr1_to_op_oodt\d+_avgtr1_t4$', 'once');
+                if ~isempty(re1)
+                    g_link = strrep(g{1}, '_avgtr1_t4', 'r1_t4');
+                    mlbash(sprintf('ln -s %s/%s %s/%s', pwd, g{1}, pwd, g_link))
+                    globbed = [globbed g_link]; %#ok<AGROW>
+                    continue
                 end
             end 
         end
@@ -233,6 +252,13 @@ classdef SessionResolverToTracer < handle & mlpet.ResolverToTracerStrategy
                 re = regexp(g{1}, '^ocdt\d+_avgtr1_to_op_ocdt\d+r1_t4$', 'once');
                 if ~isempty(re)
                     globbed = [globbed g{1}]; %#ok<AGROW>
+                end
+                re1 = regexp(g{1}, '^ocdt\d+_avgtr1_to_op_ocdt\d+_avgtr1_t4$', 'once');
+                if ~isempty(re1)
+                    g_link = strrep(g{1}, '_avgtr1_t4', 'r1_t4');
+                    mlbash(sprintf('ln -s %s/%s %s/%s', pwd, g{1}, pwd, g_link))
+                    globbed = [globbed g_link]; %#ok<AGROW>
+                    continue
                 end
             end
         end    

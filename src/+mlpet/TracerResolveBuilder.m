@@ -929,8 +929,18 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             import mlfourd.*;
             aufbau4dfp = ImagingFormatContext2(those(1).product.fqfilename);
             for e = 2:length(those)
-                if (e < length(those))                    
-                    ffp = ImagingFormatContext2(those(e).tracerResolvedAvgt()); % fdgv1e*r2_sumt                    
+                if (e < length(those))                
+                    assert(isfile(those(e).tracerResolvedAvgt()));
+                    ffp = ImagingFormatContext2(those(e).tracerResolvedAvgt()); % fdgv1e*r2_avgt
+                     
+                    %% KLUDGE: work with the best available
+                    % 
+                    % warning('mlpet:Kludge', ...
+                    %     'TracerResolveBuilder.reconstituteComposites could not find %s.  Trying alternatives.', ...
+                    %     those(e).tracerResolvedAvgt());
+                    % ffps_ = glob(those(e).tracerRevisionAvgt('rLabel', 'r*')); % fdgv1e*r*_avgt
+                    % assert(~isempty(ffps_));
+                    % ffp = ImagingFormatContext2(ffps_{end});
                 else
                     % append last remaining frames, which may be singleton without time-sum, to aufbau4dfp
                     this_r1 = those(e);

@@ -21,16 +21,18 @@ classdef SessionResolverToHO < handle & mlpet.SessionResolverToTracer
                        theOc.productAverage('OC');            
             theHo    = copy(this.alignCommonModal('HO'));
                        theHo.productAverage('HO');
-                                 
             prefixes = { theHo.product{1}.fileprefix ...
                          theOo.product{1}.fileprefix ...
                          theOc.product{1}.fileprefix };
+            
             this = copy(theHo);  
+            pwd1 = pushd(this.product{1}.filepath);
             this.resolve(prefixes, ...
                 'compAlignMethod', 'align_crossModal', ...
                 'NRevisions', 1, ...
                 'maskForImages', 'Msktgen', ...
                 'client', 'alignCrossModal_this');
+            popd(pwd1);
             
             that = copy(this);
             that.alignDynamicImages('commonRef', theOo, 'crossRef', this);

@@ -71,7 +71,8 @@ classdef SubjectResolverTools < handle & matlab.mixin.Copyable
             ip = inputParser;
             addRequired(ip, 'tracer', @ischar);
             addOptional(ip, 'suffix', '', @ischar);
-            parse(ip, varargin{:});         
+            parse(ip, varargin{:});      
+            ipr = ip.Results;
             
             fps = {};
             dt = mlsystem.DirTool( ...
@@ -79,11 +80,26 @@ classdef SubjectResolverTools < handle & matlab.mixin.Copyable
             for ses = dt.fqdns
                 try
                     toglob = sprintf('%s.4dfp.hdr', this.resolver_.finalTracerGlob(ip.Results.tracer, 'path', ses{1}));
-                    toglob = basename(toglob);
-                    files = this.resolver_.collectionRB.lns_with_datetime(fullfile(ses{1}, toglob));
-                    fps = [fps this.resolver_.collectionRB.uniqueFileprefixes(files)]; %#ok<AGROW>
-                catch ME
-                    handwarning(ME)
+                    toglob = fullfile(ses{1}, basename(toglob));
+                    assert(~isempty(glob(toglob)));
+                    files = this.resolver_.collectionRB.lns_with_datetime(toglob);
+                    fps = [fps ...
+                        fullfile(ses{1}, this.resolver_.collectionRB.uniqueFileprefixes(files))]; %#ok<AGROW>
+                catch
+                    try
+                        for g = glob(fullfile(ses{1}, ...
+                                strcat(upper(ipr.tracer), '_DT*.000000-Converted-AC'), ...
+                                strcat('*', ipr.suffix, '.4dfp.hdr')))'
+                            if contains(g{1}, 'T1001')
+                                continue
+                            end
+                            files = this.lns_with_datetime(g{1});
+                            fps = [fps files]; %#ok<AGROW>
+                        end
+                        fps = cellfun(@(x) myfileprefix(x), fps, 'UniformOutput', false);
+                    catch ME
+                        handexcept(ME)
+                    end
                 end
             end
             fps = unique(fps);
@@ -100,7 +116,7 @@ classdef SubjectResolverTools < handle & matlab.mixin.Copyable
             for e = exts
                 try
                     mlbash(sprintf('ln -s %s/T1001%s %s/T1001%s', ...
-                        this.subjectPath, e{1}, this.dataPath, e{1}));
+                        this.subjectPath, e{1}, this.resamplingRestrictedPath, e{1}));
                 catch ME
                     handwarning(ME)
                 end
@@ -123,6 +139,13 @@ classdef SubjectResolverTools < handle & matlab.mixin.Copyable
             end
             
             popd(pwd0)
+        end
+        function files = lns_with_datetime(this, file)
+            if contains(file, '.4dfp.')
+                files = this.lns_4dfp_with_datetime(file);
+                return
+            end
+            files = this.lns_imaging_with_datetime(file);
         end
 		  
  		function this = SubjectResolverTools(varargin)
@@ -235,9 +258,14 @@ classdef SubjectResolverTools < handle & matlab.mixin.Copyable
                 g = glob([t4fp 'dt*.4dfp.*']);
                 tdt = strsplit(g{1}, '.');
                 tdt = tdt{1};
-            catch ME
-                handwarning(ME)
-                tdt = singletondt(t4fp, ip.Results.sesfold);
+            catch 
+                try
+                    tdt = singletondt(t4fp, ip.Results.sesfold);
+                    fprintf('mlpet.SubjectResolverTools.tracerdt:\n');
+                    fprintf('\tfound singleton %s, so returning %s\n', t4fp, tdt);
+                catch ME
+                    handexcept(ME);
+                end
             end
         end
         function tdt = tracerpref(t4)
@@ -593,6 +621,26 @@ classdef SubjectResolverTools < handle & matlab.mixin.Copyable
                     end
                 end
             end
+        end
+        function targ = lns_4dfp_with_datetime(this, src)
+            [pth,fp] = myfileparts(src);
+            fqfp = fullfile(pth, fp);
+            targ = this.lns_imaging_with_datetime(strcat(fqfp, '.4dfp.hdr'));
+            for x = {'.4dfp.ifh', '.4dfp.img', '.4dfp.img.rec'}
+                this.lns_imaging_with_datetime(strcat(fqfp, x{1}));
+            end
+        end
+        function targ = lns_imaging_with_datetime(~, src)
+            [pth,fp,x] = myfileparts(src);
+            re = regexp(pth, '\S+/(?<TRC>[A-Z]+)_DT(?<date>\d{8})(?<time>\d{6}).000000-Converted-AC', 'names');
+            re1 = regexp(fp, '(?<trc>[a-z]+)(?<proc>_\w+)*', 'names');
+
+            ss = strsplit(pth, filesep);
+            [~,idx] = max(contains(ss, 'ses-'));
+            targ_pth = fullfile(filesep, ss{1:idx});
+            targ_fp = sprintf('%sdt%s%s%s', re1.trc, re.date, re.time, re1.proc);
+            targ = fullfile(targ_pth, strcat(targ_fp, x));
+            mlbash(sprintf('ln -s %s %s', src, targ));
         end
     end
     

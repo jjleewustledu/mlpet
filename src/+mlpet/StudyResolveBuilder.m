@@ -69,6 +69,9 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
         function g    = get.workpath(this)
             g = this.resolverStrategy_.collectionRB.workpath;
         end
+        function        set.workpath(this, s)
+            this.resolverStrategy_.collectionRB.workpath = s;
+        end
         
         %%
         
@@ -81,7 +84,7 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
             this.resolverStrategy_.alignCrossModal();
         end
         
-        function that = clone(this)
+        function that     = clone(this)
             that = copy(this);
         end
         function            constructReferenceTracerToT1001T4(this)
@@ -192,7 +195,7 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
             for ses = dt.dns
 
                 pwd1 = pushd(ses{1});
-                srcpth = fullfile(this.sessionData.projectPath, ses{1}, '');
+                srcpth = fullfile(this.sessionData.subjectPath, ses{1}, '');
                 if isfile(fullfile(srcpth, 'ct.4dfp.hdr')) && ~isfile('ct.4dfp.hdr')
                     mlfourdfp.FourdfpVisitor.lns_4dfp(fullfile(srcpth, 'ct'))
                 end

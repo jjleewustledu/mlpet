@@ -11,10 +11,6 @@ classdef ITracerData < handle
         decayCorrected % logical
         timeForDecayCorrection % numeric
     end	
-    
-	methods (Abstract, Static)
-        this = createFromSession()
-    end
 
 	methods 
         a = activity(this) % Bq

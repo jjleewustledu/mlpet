@@ -59,7 +59,7 @@ classdef (Abstract) ResolverToTracerStrategy < handle & matlab.mixin.Copyable
     
     methods
         
-        %% GET
+        %% GET, SET
         
         function g = get.collectionRB(this)
             g = this.collectionRB_;
@@ -89,6 +89,9 @@ classdef (Abstract) ResolverToTracerStrategy < handle & matlab.mixin.Copyable
         end
         function g = get.workpath(this)
             g = this.collectionRB.workpath;
+        end
+        function     set.workpath(this, s)
+            this.collectionDB.workpath = s;
         end
         
         %%        
