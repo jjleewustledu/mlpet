@@ -122,7 +122,7 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
         end
         function tf = isotopeSelection(this)
             rm = this.radMeasurements;
-            tf = logical(cell2mat(strfind(rm.wellCounter.TRACER, this.radionuclide.isotope)));
+            tf = contains(rm.wellCounter.TRACER, this.radionuclide.isotope);
         end
     end
 
