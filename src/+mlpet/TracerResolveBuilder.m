@@ -930,7 +930,8 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             aufbau4dfp = ImagingFormatContext2(those(1).product.fqfilename);
             for e = 2:length(those)
                 if (e < length(those))                
-                    assert(isfile(those(e).tracerResolvedAvgt()));
+                    assert(isfile(those(e).tracerResolvedAvgt()), ...
+                        '%s: file %s not found', clientname(false, 2), those(e).tracerResolvedAvgt());
                     ffp = ImagingFormatContext2(those(e).tracerResolvedAvgt()); % fdgv1e*r2_avgt
                      
                     %% KLUDGE: work with the best available
