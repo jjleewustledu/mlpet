@@ -159,9 +159,11 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             
             % define CSF; idx := 1
             wmparc = ImagingFormatContext2(sesd.wmparcOnAtlas());
+            wmparc.selectFourdfpTool();
             wmparc1 = ImagingFormatContext2(sesd.brainOnAtlas());
+            wmparc1.selectFourdfpTool();
             wmparc1.fileprefix = sesd.wmparc1OnAtlas('typ', 'fp');
-            wmparc1.img(wmparc1.img > 0) = 1; % co-opting left cerebral exterior
+            wmparc1.img(wmparc1.img > 0) = 1; % use brainOnAtlas to establish CSF + parenchyma
             wmparc1.img(wmparc.img > 0) = wmparc.img(wmparc.img > 0);
             
             % define venous; idx := 40
