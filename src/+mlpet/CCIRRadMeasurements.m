@@ -452,6 +452,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 fqfn = this.date2filename(datetime(this.session_));
                 matfn = [myfileprefix(fqfn) '.mat'];
                 if isfile(matfn)
+                    fprintf('mlpet.CCIRRadMeasurements.ctor: reading cache from %s\n', matfn);
                     load(matfn, 'this')
                     return
                 end

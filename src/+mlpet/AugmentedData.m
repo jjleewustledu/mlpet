@@ -130,7 +130,7 @@ classdef (Abstract) AugmentedData < handle
             % arterialDevs calibrate & align arterial times-series to localized scanner time-series            
             a0 = ipr.arterial;
             [a, datetimePeak] = devkit.alignArterialToScanner( ...
-                a0, s, ad, 'sameWorldline', false);
+                a0, s, 'sameWorldline', false);
             aif = a.activityDensity('Nt', Nt);
             switch class(a)
                 case 'mlswisstrace.TwiliteDevice'
