@@ -123,7 +123,7 @@ classdef DTA < mlpet.AbstractWellData
         end
         function this = loadSessionData(sessDat, varargin)
             ip = inputParser;
-            addRequired(ip, 'sessDat',          @(x) isa(x, 'mlpipeline.SessionData'));
+            addRequired(ip, 'sessDat',          @(x) isa(x, 'mlpipeline.ISessionData'));
             addOptional(ip, 'shortHead', false, @islogical);
             parse(ip, sessDat, varargin{:});
             

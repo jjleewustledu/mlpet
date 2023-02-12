@@ -56,7 +56,7 @@ classdef (Abstract) AbstractAifData_alt < mlio.AbstractIO & mlpet.IAifData
             g = this.scannerData_.sessionData;
         end
         function this = set.sessionData(this, s)
-            assert(isa(s, 'mlpipeline.SessionData'));
+            assert(isa(s, 'mlpipeline.ISessionData'));
             this.scannerData_.sessionData = s;
         end
         function g    = get.datetime0(this)

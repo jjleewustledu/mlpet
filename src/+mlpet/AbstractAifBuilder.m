@@ -32,7 +32,7 @@ classdef AbstractAifBuilder
 
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
             addParameter(ip, 'scannerData', [], @(x) isa(x, 'mlpet.IScannerData') || isempty(x));
             addParameter(ip, 'manualData', [], @(x) isa(x, 'mldata.IManualMeasurements'));
             parse(ip, varargin{:});            

@@ -125,24 +125,21 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
     %
     % Calibration Window                 70.036073271028                      55.1810333333333                0.24               336.47           NaN
     
-    % fromPamStone
-    % this.fromPamStone -> 12x1 table
-    %                        Var1
-    %                   _______________
-    %
-    % Row1              {'measurement'}
-    % Hct               {'39.8'       }
-    % glc Baseline      {'102'        }
-    % glc OC1           {'113'        }
-    % glc OO1           {'112'        }
-    % glc HO1           {'107'        }
-    % glc OC2           {'101'        }
-    % glc OO2           {'97'         }
-    % glc HO2           {'100'        }
-    % glc FDG 0 min     {'104'        }
-    % glc FDG 30 min    {'104'        }
-    % glc FDG 60 min    {'101'        }
-    
+    % laboratory
+    % this.laboratory -> 9×2 table
+        
+    %                       measurement     TimeOfMeasurement  
+    %                       ___________    ____________________
+    %  
+    % Hct                      46.8        21-Apr-2021 10:09:00
+    % glc                        79        21-Apr-2021 12:00:00
+    % Total hemoglobin         16.1        21-Apr-2021 10:09:00
+    % oxyhemoglobin             NaN                         NaT
+    % carboxyhemoglobin         NaN                         NaT
+    % Methemoglobin             NaN                         NaT
+    % Aerial blood gases        NaN                         NaT
+    % SpO2                     97.5                         NaT
+    % SpO2_1                   97.5                         NaT
     
     %  $Revision$
     %  was created 21-Oct-2018 23:44:15 by jjlee,
@@ -156,7 +153,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             'clocks' 'doseCalibrator' 'phantom' ...
             'wellCounter' 'twilite' 'mMR' ...
             'pmod' ...
-            'fromPamStone'}
+            'laboratory'}
         sheetNames = { ...
             'Radiation Counts Log - Table 1' ...
             'Radiation Counts Log - Runs' 'Radiation Counts Log - Runs-1' 'Radiation Counts Log - Runs-2' ...
@@ -205,7 +202,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addRequired(ip, 'sesd', @(x) isa(x, 'mlpipeline.ISessionData'))
+            addRequired(ip, 'sesd', @(x) isa(x, 'mlpipeline.ISessionData') || isa(x, 'mlpipeline.ImagingMediator'))
             parse(ip, sesd, varargin{:})
             ipr = ip.Results;            
             this = mlpet.CCIRRadMeasurements('session', ipr.sesd, varargin{:});
@@ -373,13 +370,14 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 this.tracerCode(ip.Results.tracer, ip.Results.snumber)));
         end
         function        disp(this)
-            disp(this.clocks)
+            %disp(this.clocks)
             disp(this.tracerAdmin)
             disp(this.countsFdg)
             disp(this.countsOcOo)
             disp(this.wellCounter)
             disp(this.twilite)
             disp(this.mMR)
+            disp(this.laboratory)
         end
         function wcrs = wellCounterRefSrc(this, varargin)
             %% WELLCOUNTERREFSRC
@@ -439,7 +437,10 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             this = this@mldata.Xlsx(varargin{:});
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'session', mlxnat.Session, @(x) isa(x, 'mlxnat.Session') || isa(x, 'mlpipeline.ISessionData'));
+            addParameter(ip, 'session', mlxnat.Session, @(x) ...
+                isa(x, 'mlxnat.Session') || ...
+                isa(x, 'mlpipeline.ISessionData') || ...
+                isa(x, 'mlpipeline.ImagingMediator'));
             addParameter(ip, 'alwaysUseSessionDate', true, @islogical);
             parse(ip, varargin{:});
             this.session_ = ip.Results.session;
@@ -486,6 +487,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             this.twilite = this.correctDates2(this.twilite, 'PMOD workstation');
             this.mMR = this.correctDates2(this.mMR);
             %this.pmod
+            this.laboratory = this.correctDates2(this.laboratory);
         end
         function tbl  = readtable(this, fqfn, sheet, hasVarNames, hasRowNames, datetimeType)
             %% READTABLE

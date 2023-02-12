@@ -8,23 +8,25 @@ classdef (Abstract) ScannerKit < handle & mlpet.IDeviceKit
    
     methods (Static)
         function this = createFromSession(sesd)
-            %  @param sesd is a concrete implementation of mlpipeline.ISessionData.
+            %  @param sesd is a concrete implementation of mlpipeline.{ISessionData,ImagingData}.
             %  @returns a concrete implementation of ScannerKit appropriate for the instance of ISessionData.
 
             switch class(sesd)
                 case 'mlraichle.SessionData'
                     this = mlsiemens.BiographMMRKit.createFromSession(sesd);
-                case 'mlvg.SessionData'
-                    switch sesd.scannerKit
-                        case 'mlsiemens.EcatExactHRPlusKit'
-                            this = mlsiemens.EcatExactHRPlusKit.createFromSession(sesd);
-                        case 'mlsiemens.BiographMMRKit'                            
-                            this = mlsiemens.BiographMMRKit.createFromSession(sesd);
-                        case 'mlsiemens.BiographVisionKit'                            
-                            this = mlsiemens.BiographVisionKit.createFromSession(sesd);
-                        otherwise 
-                            error('mlpet:ValueError', 'ScannerKit does not support %s', sesd.scannerKit)
-                    end
+                case 'mlvg.Ccir1211Mediator'
+                    this = mlsiemens.BiographVisionKit.createFromSession(sesd);
+
+%                     switch sesd.scannerKit
+%                         case 'mlsiemens.EcatExactHRPlusKit'
+%                             this = mlsiemens.EcatExactHRPlusKit.createFromSession(sesd);
+%                         case 'mlsiemens.BiographMMRKit'                            
+%                             this = mlsiemens.BiographMMRKit.createFromSession(sesd);
+%                         case 'mlsiemens.BiographVisionKit'                            
+%                             this = mlsiemens.BiographVisionKit.createFromSession(sesd);
+%                         otherwise 
+%                             error('mlpet:ValueError', 'ScannerKit does not support %s', sesd.scannerKit)
+%                     end
                 case 'mlan.SessionData'
                     this = mlsiemens.BiographMMRKit.createFromSession(sesd);
                 otherwise

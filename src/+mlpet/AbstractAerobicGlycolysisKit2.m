@@ -1,5 +1,5 @@
-classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycolysisKit
-	%% ABSTRACTAEROBICGLYCOLYSISKIT is an abstract factory pattern.
+classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
+	%% ABSTRACTAEROBICGLYCOLYSISKIT2 is an abstract factory pattern.
 
 	%  $Revision$
  	%  was created 10-Feb-2021 15:59:15 by jjlee,
@@ -10,20 +10,20 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
         function ic = constructPhysiologyDateOnly(varargin)
             %% e.g., constructPhysiologyDateOnly('cbv', 'subjectFolder', 'sub-S58163')
             
-            import mlpet.AbstractAerobicGlycolysisKit
+            import mlpet.AbstractAerobicGlycolysisKit2
             
             ip = inputParser;
             addRequired(ip, 'physiology', @ischar)
             addParameter(ip, 'subjectFolder', '', @ischar)
-            addParameter(ip, 'atlTag', '_111', @ischar)
+            addParameter(ip, 'atlTag', '_on_T1w', @ischar)
             addParameter(ip, 'blurTag', '', @ischar)
-            addParameter(ip, 'region', 'wmparc1', @ischar)
-            addParameter(ip, 'sessionData', []);
+            addParameter(ip, 'region', 'voxels', @ischar)
+            addParameter(ip, 'imagingData', []);
             parse(ip, varargin{:})
             ipr = ip.Results;
             
-            pwd0 = pushd(ipr.sessionData.dataPath);
-            fnPatt = sprintf('%sdt*%s%s_%s.4dfp.hdr', ipr.physiology, ipr.atlTag, ipr.blurTag, ipr.region);
+            pwd0 = pushd(ipr.imagingData.dataPath);
+            fnPatt = sprintf('*_proc-dyn-%s-%s*%s%s.nii.gz', ipr.physiology, ipr.region, ipr.atlTag, ipr.blurTag);
             g = globT(fnPatt);
             if isempty(g); return; end
             
@@ -31,10 +31,10 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             
             m = containers.Map;            
             for ig = 1:length(g)
-                if contains(g{ig}, ipr.sessionData.defects)
+                if contains(g{ig}, ipr.imagingData.defects)
                     continue
                 end
-                dstr = AbstractAerobicGlycolysisKit.physiologyObjToDatetimeStr(g{ig}, 'dateonly', true);
+                dstr = AbstractAerobicGlycolysisKit2.physiologyObjToDatetimeStr(g{ig}, 'dateonly', true);
                 if ~lstrfind(m.keys, dstr)
                     m(dstr) = g(ig); % cell
                 else
@@ -49,9 +49,9 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
                 ic = mlfourd.ImagingContext2(fns{1});
                 ic = ic.zeros();
                 icfp = strrep(ic.fileprefix, ...
-                    AbstractAerobicGlycolysisKit.physiologyObjToDatetimeStr(fns{1}), ...
-                    AbstractAerobicGlycolysisKit.physiologyObjToDatetimeStr(fns{1}, 'dateonly', true));
-                if isfile([icfp '.4dfp.hdr'])
+                    AbstractAerobicGlycolysisKit2.physiologyObjToDatetimeStr(fns{1}), ...
+                    AbstractAerobicGlycolysisKit2.physiologyObjToDatetimeStr(fns{1}, 'dateonly', true));
+                if isfile([icfp '.nii.gz'])
                     continue
                 end
                 ic_count = 0;
@@ -112,7 +112,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
                                 continue
                             end
                             if ~isfile(sesd.wmparc1OnAtlas)
-                                mlpet.AbstractAerobicGlycolysisKit.constructWmparc1OnAtlas(sesd);
+                                mlpet.AbstractAerobicGlycolysisKit2.constructWmparc1OnAtlas(sesd);
                             end
                             tracerfn = sesd.([lower(sesd.tracer) 'OnAtlas']);
                             if ~isfile(tracerfn)
@@ -173,7 +173,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             catch ME
                 handwarning(ME)
             end
-            selected = logical(ven.fourdfp.img) & wmparc1.img < 2;
+            selected = logical(ven.imagingFormat.img) & wmparc1.img < 2;
             wmparc1.img(selected) = 40; % co-opting right cerebral exterior
             
             % construct wmparc1
@@ -182,13 +182,25 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             
             popd(pwd0)
         end    
+        function this = create(immediator)
+            arguments
+                immediator mlpipeline.ImagingMediator
+            end
+            
+            switch class(immediator)
+                case 'mlvg.Ccir1211Mediator'
+                    this = mlvg.QuadraticAerobicGlycolysisKit(immediator);
+                otherwise
+                    error('mlpet:ValueError', stackstr())
+            end
+        end
         function cbf = fs2cbf(fs)
             %% FS2CBF
             %  @param fs is ImagingContext2.
             %  @return cbf in mL/min/hg
             
             assert(isa(fs, 'mlfourd.ImagingContext2'))
-            f1 = fs.fourdfp;
+            f1 = fs.imagingFormat;
             if 4 == ndims(f1)
                 f1.img = f1.img(:,:,:,1);
             end
@@ -202,11 +214,11 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             
             msk = mlfourd.ImagingContext2(fullfile(getenv('REFDIR'), '711-2B_222_brain.4dfp.hdr'));
             msk = msk.binarized();
-            bin = msk.fourdfp.img > 0;
+            bin = msk.imagingFormat.img > 0;
             bin = flip(bin, 2);
             
             sz = size(ic);
-            img = ic.fourdfp.img;            
+            img = ic.imagingFormat.img;            
             if length(sz) < 3
                 dat = img;
                 matfn = [ic.fqfileprefix '.mat'];
@@ -270,7 +282,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             %  @param ks is ImagingContext2.
             %  @return chi := k1 k3/(k2 + k3) in 1/s, without v1.
             
-            ks = ks.fourdfp;            
+            ks = ks.imagingFormat;            
             img = ks.img(:,:,:,1).*ks.img(:,:,:,3)./(ks.img(:,:,:,2) + ks.img(:,:,:,3)); % 1/s
             img(isnan(img)) = 0;
             
@@ -286,7 +298,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             %  @param model is mlglucose.Huang1980Model.
             %  @return cmrglc is ImagingContext2.
             
-            chi = mlpet.AbstractAerobicGlycolysisKit.ks2chi(ks); % 1/s
+            chi = mlpet.AbstractAerobicGlycolysisKit2.ks2chi(ks); % 1/s
             chi = chi * 60; % 1/min
             v1 = cbv * 0.0105;
             glc = mlglucose.Huang1980.glcConversion(model.glc, 'mg/dL', 'umol/hg');
@@ -313,7 +325,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             
             % subjects, sessions            
             pwd0 = pushd(subjectsDir);
-            theSessionData = mlpet.AbstractAerobicGlycolysisKit.constructSessionData( ...
+            theSessionData = mlpet.AbstractAerobicGlycolysisKit2.constructSessionData( ...
                 ipr.metric, ...
                 'subjectsExpr', ipr.subjectsExpr, ...
                 'tracer', ipr.tracer); % length(theSessionData) ~ 60
@@ -348,7 +360,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             %  @param os is ImagingContext2.
             %  @return oef := k2
             
-            os_ = os.fourdfp;
+            os_ = os.imagingFormat;
             if 4 == ndims(os_)
                 os_.img = os_.img(:,:,:,1);
             end
@@ -369,10 +381,13 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             %  @return cmro2 is ImagingContext2.
             %  @return oef is ImagingContext2.
             
-            oef = mlpet.AbstractAerobicGlycolysisKit.os2oef(os);
+            oef = mlpet.AbstractAerobicGlycolysisKit2.os2oef(os);
             o2content = model.NOMINAL_O2_CONTENT;
             cmro2 = oef .* cbf .* o2content;
             cmro2.fileprefix = strrep(os.fileprefix, 'os', 'cmro2');
+        end
+        function ps = petPointSpread()
+            ps = [];
         end
         function dt = physiologyObjToDatetime(obj)
             ic = mlfourd.ImagingContext2(obj);            
@@ -381,31 +396,31 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             dt = datetime(re.datetime, 'InputFormat', 'yyyyMMddHHmmss');
         end
         function dtstr = physiologyObjToDatetimeStr(varargin)
-            import mlpet.AbstractAerobicGlycolysisKit 
+            import mlpet.AbstractAerobicGlycolysisKit2 
             ip = inputParser;
             addRequired(ip, 'obj', @(x) ~isempty(x))
             addParameter(ip, 'dateonly', false, @islogical)
             parse(ip, varargin{:})
             ipr = ip.Results;  
             if ipr.dateonly
-                dtstr = [datestr(AbstractAerobicGlycolysisKit.physiologyObjToDatetime(ipr.obj), 'yyyymmdd') '000000'];
+                dtstr = [datestr(AbstractAerobicGlycolysisKit2.physiologyObjToDatetime(ipr.obj), 'yyyymmdd') '000000'];
             else
-                dtstr = datestr(AbstractAerobicGlycolysisKit.physiologyObjToDatetime(ipr.obj), 'yyyymmddHHMMSS') ;
+                dtstr = datestr(AbstractAerobicGlycolysisKit2.physiologyObjToDatetime(ipr.obj), 'yyyymmddHHMMSS') ;
             end
         end
         function metricOut = reshapeOnWmparc1(wmparc1, metric, wmparc1Out)
             %% Cf. semantics of pchip or makima.
             
             wmparc1 = mlfourd.ImagingContext2(wmparc1);
-            wmparc1 = wmparc1.fourdfp;
+            wmparc1 = wmparc1.imagingFormat;
             metric = mlfourd.ImagingContext2(metric);
-            metric = metric.fourdfp;
+            metric = metric.imagingFormat;
             wmparc1Out = mlfourd.ImagingContext2(wmparc1Out);
-            wmparc1Out = wmparc1Out.fourdfp;
+            wmparc1Out = wmparc1Out.imagingFormat;
             metricOut = copy(metric);
             metricOut.img = zeros(size(metric));
             
-            for idx = mlpet.AbstractAerobicGlycolysisKit.indices % parcs
+            for idx = mlpet.AbstractAerobicGlycolysisKit2.indices % parcs
                 if 6000 == idx % venous structures
                     continue
                 end
@@ -430,7 +445,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             %  @return cbf in mL/min/hg
             
             assert(isa(vs, 'mlfourd.ImagingContext2'))
-            vs_ = vs.fourdfp;
+            vs_ = vs.imagingFormat;
             if 4 == ndims(vs_)
                 vs_.img = vs_.img(:,:,:,1);
             end
@@ -443,9 +458,9 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
     properties
         aifMethods
         aifSuffixedMat
+        imagingData
         indexCliff
         model
-        sessionData
     end
     
 	properties (Constant)
@@ -480,7 +495,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
         %%
 		  
         function obj = aifsOnAtlas(this, varargin)
-            tr = lower(this.sessionData.tracer);
+            tr = lower(this.imagingData.tracer);
             obj = this.metricOnAtlas(['aif_' tr], varargin{:});
         end
         function arterial = buildAif(this, devkit, scanner, tac)
@@ -522,9 +537,13 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
                 return
             end
             if contains(this.aifMethods(TR), 'twilite+caprac', 'IgnoreCase', true)
-                error('mlpet:NotImplementedError', 'AbstractAerobicGlycolysisKit.buildAif')
+                error('mlpet:NotImplementedError', 'AbstractAerobicGlycolysisKit2.buildAif')
             end
-            error('mlpet:RuntimeError', 'AbstractAerobicGlycolysisKit.buildAif')
+            error('mlpet:RuntimeError', 'AbstractAerobicGlycolysisKit2.buildAif')
+        end
+
+        function obj = cbfOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('cbf', varargin{:});
         end
         function obj = cbvOnAtlas(this, varargin)
             obj = this.metricOnAtlas('cbv', varargin{:});
@@ -551,7 +570,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             obj = this.metricOnPet('os', varargin{:});
         end
         function ic = maskOnAtlasTagged(this, varargin)
-            fqfp = this.sessionData.wmparc1OnAtlas('typ', 'fqfp');
+            fqfp = this.imagingData.metricOnAtlas('wmparc1');
             fqfp_bin = [fqfp '_binarized'];
             
             % 4dfp exists
@@ -576,7 +595,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             parse(ip, scanner, varargin{:})
             ipr = ip.Results;
             
-            g = globT(fullfile(this.sessionData.dataPath, 'T1001*222*hdr'));
+            g = globT(fullfile(this.imagingData.dataPath, 'T1001*222*hdr'));
             assert(~isempty(g))
             T1001 = mlfourd.ImagingContext2(g{1});
             ambientMask = T1001.numlt(1);
@@ -588,7 +607,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
                     ipr.times = ipr.times + abs(ipr.times(1)) + 1;
                 end               
                 idxWindow = ipr.times(1) <= scanner.timesMid & scanner.timesMid <= ipr.times(end);
-                ifc = ic.fourdfp;
+                ifc = ic.imagingFormat;
                 ifc.img = ifc.img(:,:,:,idxWindow);
                 ic = mlfourd.ImagingContext2(ifc);
             end
@@ -597,7 +616,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             prompts = suv.volumeAveraged(headMask);
             
             sr = mlraichle.StudyRegistry.instance();
-            sr.scatterFraction = scatter.fourdfp.img/prompts.fourdfp.img;
+            sr.scatterFraction = scatter.imagingFormat.img/prompts.imagingFormat.img;
         end
         function savefig(this, varargin)
             ip = inputParser;
@@ -613,12 +632,12 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             end            
             if isempty(ipr.fqfp) % legacy
                 ipr.tags = strrep(ipr.tags, " ", "_");
-                dtTag = strcat("_", lower(this.sessionData.doseAdminDatetimeTag));
+                dtTag = strcat("_", lower(string(this.imagingData.datetime(Format='yyyyMMddHHmmss'))));
                 client_ = clientname(true);
                 ipr.fqfp = fullfile(this.dataPath, ...
                     sprintf('%s_idx%i%s%s', client_, ipr.idx, ipr.tags, dtTag));
             end
-            dtStr = datestr(this.sessionData.datetime);
+            dtStr = char(this.imagingData.datetime());
             title(sprintf('%s.idx == %i\n%s %s', clientname(), ipr.idx, ipr.tags, dtStr))
             savemyfig(ipr.handle, ipr.fqfp)
         end
@@ -630,14 +649,35 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
     %% PROTECTED
     
     methods (Access = protected)
- 		function this = AbstractAerobicGlycolysisKit(varargin)
-            this.resetModelInternal()
+ 		function this = AbstractAerobicGlycolysisKit2(varargin)
+            am = containers.Map;
+            am('CO') = 'twilite';
+            am('OC') = 'twilite';
+            am('OO') = 'twilite';
+            am('HO') = 'twilite';
+            am('FDG') = 'twilite+caprac';
+
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            ip.PartialMatching = false;
+            addRequired(ip, 'imagingData', @(x) isa(x, 'mlpipeline.ImagingMediator'))
+            addParameter(ip, 'indexCliff', [], @isnumeric)
+            addParameter(ip, 'aifMethods', am, @(x) isa(x, 'containers.Map'))
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+
+            this.imagingData = ipr.imagingData;
+            this.indexCliff = ipr.indexCliff;
+            this.aifMethods = ipr.aifMethods;
 
             this.aifSuffixedMat = containers.Map;
             this.aifSuffixedMat('idif') = '_buildAif-idif.mat';
             this.aifSuffixedMat('twilite') = '_buildAif-twilite.mat';
             this.aifSuffixedMat('twilite_osvd') = '_buildAif-twilite-osvd.mat';
             this.aifSuffixedMat('caprac') = '_buildAif-caprac.mat';
+            this.aifSuffixedMat('hybrid') = '_buildAif-hybrid.mat';
+
+            this.resetModelInternal()
  		end
  	end 
 

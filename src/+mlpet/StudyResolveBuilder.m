@@ -8,6 +8,7 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
  	%% It was developed on Matlab 9.5.0.1067069 (R2018b) Update 4 for MACI64.  Copyright 2019 John Joowon Lee.
  	
     properties (Dependent)
+        projectData
         sessionData
         subjectData
         subjectsJson
@@ -57,6 +58,9 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
         
         %% GET/SET
         
+        function g    = get.projectData(this)
+            g = this.sessionData.projectData;
+        end
         function g    = get.sessionData(this)
             g = this.sessionData_;
         end
@@ -108,7 +112,7 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
             pwd0 = pushd(this.subjectData.subjectPath);            
             dt = DirTool('ses-*');
             for ses = dt.dns
-                prjData = this.subjectData.createProjectData('sessionStr', ses{1});
+                prjData = this.projectData;
                 prj_ses_pth = fullfile(prjData.projectPath, ses{1}, '');
                 jsons = glob(fullfile(prj_ses_pth, '*_DT*.000000-Converted-AC', 'output', 'PET', '*_DT*.json'));
                 for j = asrow(jsons)
@@ -128,11 +132,11 @@ classdef (Abstract) StudyResolveBuilder < handle & matlab.mixin.Copyable
 		  
  		function this = StudyResolveBuilder(varargin)
  			%% STUDYRESOLVEBUILDER
- 			%  @param sessionData is an mlpipeline.ISessionData and must be well-defined.
+ 			%  @param sessionData is an mlpipeline.{ISessionData,ImagingData} or an mlpipeline.ImagingMediator
             
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'))
+            addParameter(ip, 'sessionData', []);
             addParameter(ip, 'makeClean', true, @islogical)
             parse(ip, varargin{:});            
             ipr = ip.Results;

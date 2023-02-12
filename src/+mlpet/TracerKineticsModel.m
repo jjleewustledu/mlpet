@@ -25,6 +25,7 @@ classdef (Abstract) TracerKineticsModel
     
     methods (Static)
         function q1 = solutionOnScannerFrames(q, times_sampled)
+            %% Samples scanner scalar activity on times of midpoints of scanner frames.
             %  @param q that is empty resets internal data for times and q1 := [].
             %  @param q is activity that is uniformly sampled in time.
             %  @param times_sampled are the times of the midpoints of scanner frames, all times_sampled > 0.
@@ -39,6 +40,7 @@ classdef (Abstract) TracerKineticsModel
             if isempty(times)
                 times = zeros(1, length(times_sampled)+1);
                 for it = 2:length(times)
+                    % times of midpoints of scanner frames
                     times(it) = times_sampled(it-1) + (times_sampled(it-1) - times(it-1));
                 end
             end

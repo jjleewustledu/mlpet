@@ -7,12 +7,12 @@ classdef (Abstract) IAerobicGlycolysisKit < handle & matlab.mixin.Heterogeneous 
  	%% It was developed on Matlab 9.7.0.1319299 (R2019b) Update 5 for MACI64.  Copyright 2020 John Joowon Lee.
     
     properties (Abstract)
+        aifMethods % containers.Map
         dataFolder
         sessionData
     end
     
     methods (Abstract)
-        metricOnAtlas(this)
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy

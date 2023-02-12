@@ -11,9 +11,19 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
  	    
     methods (Static)
         function sesd = findCalibrationSession(sesd0, varargin)
-            assert(isa(sesd0, 'mlpipeline.ISessionData'))
-            scanfold = globFoldersT(fullfile(sesd0.sessionPath, 'FDG_DT*-Converted-AC'));
-            sesd = sesd0.create(fullfile(sesd0.projectFolder, sesd0.sessionFolder, mybasename(scanfold{end})));
+            %% assumed calibration is performed at end of session
+
+            if isa(sesd0, 'mlnipet.SessionData')
+                scanfold = globFoldersT(fullfile(sesd0.sessionPath, 'FDG_DT*-Converted-AC'));
+                sesd = sesd0.create(fullfile(sesd0.projectFolder, sesd0.sessionFolder, mybasename(scanfold{end})));
+                return
+            end
+            if isa(sesd0, 'mlpipeline.ImagingMediator')
+                scans = glob(fullfile(sesd0.scanPath, '*trc-fdg_proc-static_pet.nii.gz'))';
+                sesd = sesd0.create(scans{end}); 
+                return
+            end
+            error('mlpet:RuntimeError', stackstr())
         end
     end
 
@@ -48,7 +58,7 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
         times
         timesMid
         timeWindow        
-    end    
+    end
 
 	methods 
         
@@ -194,7 +204,7 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
             this.data_.timeWindow = s;
         end  
         
-        %%        
+        %%
         
         function d = datetime(this, varargin)
             d = this.data_.datetime(varargin{:});

@@ -19,7 +19,9 @@ classdef (Abstract) TracerKinetics < handle & matlab.mixin.Heterogeneous & matla
     end
     
     properties (Dependent)
+        blurTag
         devkit
+        regionTag
         sessionData % defers to nonempty devkit
     end
     
@@ -50,12 +52,15 @@ classdef (Abstract) TracerKinetics < handle & matlab.mixin.Heterogeneous & matla
         end
     end
     
-    methods
-        
-        %% GET        
-        
+    methods % GET        
+        function g = get.blurTag(~)
+            g = mlraichle.StudyRegistry.instance.blurTag;
+        end
         function g = get.devkit(this)
             g = this.devkit_;
+        end
+        function g = get.regionTag(this)
+            g = this.sessionData.regionTag;
         end
         function g = get.sessionData(this)
             if ~isempty(this.devkit)
@@ -76,7 +81,7 @@ classdef (Abstract) TracerKinetics < handle & matlab.mixin.Heterogeneous & matla
     methods (Access = protected)
         function this = TracerKinetics(varargin)
             %  @param devkit is mlpet.IDeviceKit.
-            %  @param sessionData is mlpipeline.ISessionData, but defers to devkit.sessionData.
+            %  @param sessionData is mlpipeline.{ISessionData,ImagingData}, but defers to devkit.sessionData.
             
             ip = inputParser;
             ip.KeepUnmatched = true;
@@ -88,6 +93,9 @@ classdef (Abstract) TracerKinetics < handle & matlab.mixin.Heterogeneous & matla
             
             this.devkit_ = ipr.devkit;
             this.sessionData_ = ipr.sessionData;
+            if isempty(this.sessionData_)
+                this.sessionData_ = this.devkit_.sessionData;
+            end
         end
         function that = copyElement(this)
             %%  See also web(fullfile(docroot, 'matlab/ref/matlab.mixin.copyable-class.html'))

@@ -164,7 +164,7 @@ classdef Test_SubjectResolveBuilder < matlab.unittest.TestCase
             mulled = this.testObj.t4mulR('testdest_to_testdest2_t4'); 
             this.verifyEqual(mulled{1}{1}, 'testsrc_to_testdest2_t4');
             this.verifyEqual(mulled{1}{2}, 'testsrc_to_testdest2_t4');
-            mlbash(['cat ' mulled{1}{1}], 'echo', true);
+            mysystem(['cat ' mulled{1}{1}], '-echo');
         end
         function test_t4imgc(this) 
             fv = mlfourdfp.FourdfpVisitor;

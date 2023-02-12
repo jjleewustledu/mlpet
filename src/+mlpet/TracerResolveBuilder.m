@@ -517,8 +517,12 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             t4rB_                = t4rB_.resolve;
             this.resolveBuilder_ = t4rB_;
             this.sessionData_    = t4rB_.sessionData; 
-            if isfile(t4rB_.product.fqfilename) % if t4rB_ fails, keep the original product
+            if isfile(t4rB_.product.fqfilename)
                 this.product_ = t4rB_.product;
+            else
+                error('mlpet:RuntimeError', ...
+                    'TracerResolvedBuilder.motionCorrectEpochs:  product %s not found', ...
+                    t4rB_.product.fqfilename)
             end
             averaged = this.avgtProduct;
             popd(pwd0);
@@ -1094,7 +1098,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             e1 = mod(  nacFrame,this.maxLengthEpoch) + 1;  
         end
         function ffp    = reconstituteFrame_e7(this, varargin)
-            %  @param named sessionData is an mlpipeline.SessionData.
+            %  @param named sessionData is an mlpipeline.ISessionData.
             %  @param this.sessionData.tracerListmodeMhdr exists.
             %  @param named frame is numeric.
             %  @param named fqfp is the f. q. fileprefix of a frame of the tracer study.
@@ -1102,7 +1106,7 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             
             fqfp0 = this.sessionData_.tracerRevision('frame', this.sessionData_.frame, 'typ', 'fqfp');
             ip = inputParser;
-            addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             addOptional(ip, 'frame', nan, @isnumeric);
             addParameter(ip, 'fqfp', fqfp0, @ischar);
             parse(ip, varargin{:});       
@@ -1126,14 +1130,14 @@ classdef TracerResolveBuilder < mlpet.TracerBuilder
             %ffp.img = zeros(size(ffp));
         end
         function ffp    = reconstituteFrame_nipet(this, varargin)
-            %  @param named sessionData is an mlpipeline.SessionData.
+            %  @param named sessionData is an mlpipeline.ISessionData.
             %  @param this.sessionData.tracerNipet exists.
             %  @param named fqfp is the f. q. fileprefix of the tracer scan.
             %  @return ffp is an mlfourd.ImagingFormatContext2 containing the tracers scan.
             
             fqfp0 = this.sessionData_.tracerNipet('typ', 'fqfp');
             ip = inputParser;
-            addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.SessionData'));
+            addRequired(ip, 'sessionData', @(x) isa(x, 'mlpipeline.ISessionData'));
             addOptional(ip, 'frame', nan, @isnumeric);
             addParameter(ip, 'fqfp', fqfp0, @ischar);
             parse(ip, varargin{:});       

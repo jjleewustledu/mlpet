@@ -110,7 +110,8 @@ classdef Radionuclides
             %  @param name is a string containing one of this.SUPPORTED_ISOTOPES.
             %  @throws mlpet:ValueError.
 
-            assert(ischar(name));
+            assert(istext(name));
+            name = convertStringsToChars(name);
             name = lower(name);
             if (lstrfind(name,  '11c'))
                 this.isotope_ = '11C';

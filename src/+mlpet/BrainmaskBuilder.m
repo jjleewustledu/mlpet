@@ -59,7 +59,7 @@ classdef BrainmaskBuilder < mlpet.RoisBuilder
         function teardown(this, varargin)
             ip = inputParser;
             addParameter(ip, 'tracer', [],  @(x) isa(x, 'mlfourd.ImagingContext')); 
-            addParameter(ip, 'sessionData', this.sessionData, @(x) isa(x, 'mlpipeline.SessionData'));
+            addParameter(ip, 'sessionData', this.sessionData, @(x) isa(x, 'mlpipeline.ISessionData'));
             parse(ip, varargin{:});            
             return
             
