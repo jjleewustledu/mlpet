@@ -386,9 +386,6 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
             cmro2 = oef .* cbf .* o2content;
             cmro2.fileprefix = strrep(os.fileprefix, 'os', 'cmro2');
         end
-        function ps = petPointSpread()
-            ps = [];
-        end
         function dt = physiologyObjToDatetime(obj)
             ic = mlfourd.ImagingContext2(obj);            
             ss = split(ic.fileprefix, '_');
