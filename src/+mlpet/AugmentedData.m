@@ -283,14 +283,15 @@ classdef (Abstract) AugmentedData < handle
             avec = this.model.solutionOnScannerFrames(artery_interpolated1, this.times_sampled);
             
             roibin = logical(this.roi);
-            a = copy(this.roi.fourdfp);
+            a = copy(this.roi.imagingFormat);
             a.img = zeros([size(this.roi) length(avec)]);
             for t = 1:length(avec)
                 img = zeros(size(this.roi), 'single');
                 img(roibin) = avec(t);
                 a.img(:,:,:,t) = img;
             end
-            a.fileprefix = this.sessionData.aifsOnAtlas('typ', 'fp', 'tags', [this.blurTag this.regionTag]);
+            a.fileprefix = this.sessionData.aifsOnAtlas( ...
+                'typ', 'fp', 'tags', [this.blurTag this.regionTag]);
             a = imagingType(ipr.typ, a);
         end 
     end

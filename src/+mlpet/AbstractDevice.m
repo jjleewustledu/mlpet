@@ -19,7 +19,7 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
                 return
             end
             if isa(sesd0, 'mlpipeline.ImagingMediator')
-                scans = glob(fullfile(sesd0.scanPath, '*trc-fdg_proc-static_pet.nii.gz'))';
+                scans = glob(fullfile(sesd0.scanPath, '*trc-fdg_proc-static-phantom_pet.nii.gz'))';
                 sesd = sesd0.create(scans{end}); 
                 return
             end
@@ -95,7 +95,10 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
         end
         function g = get.timeForDecayCorrection(this)
             g = this.data_.timeForDecayCorrection;
-        end    
+        end   
+        function     set.timeForDecayCorrection(this, s)
+            this.data_.timeForDecayCorrection_ = s;
+        end
         function g = get.threshOfPeak(this)
 %             if strcmpi('15O', this.isotope)
 %                 g = 0.5;

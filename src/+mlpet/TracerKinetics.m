@@ -53,8 +53,8 @@ classdef (Abstract) TracerKinetics < handle & matlab.mixin.Heterogeneous & matla
     end
     
     methods % GET        
-        function g = get.blurTag(~)
-            g = mlraichle.StudyRegistry.instance.blurTag;
+        function g = get.blurTag(this)
+            g = this.sessionData.registry.blurTag;
         end
         function g = get.devkit(this)
             g = this.devkit_;

@@ -14,8 +14,6 @@ classdef TracerKineticsStrategy < handle & mlpet.TracerKinetics
     
 	properties (Dependent) 	
         artery_interpolated
-        blurTag
-        regionTag
         roi % mlfourd.ImagingContext2
         times_sampled
  	end
@@ -26,13 +24,7 @@ classdef TracerKineticsStrategy < handle & mlpet.TracerKinetics
         
         function g = get.artery_interpolated(this)
             g = this.strategy_.artery_interpolated;
-        end    
-        function g = get.blurTag(~)
-           g = mlraichle.StudyRegistry.instance.blurTag;
         end 
-        function g = get.regionTag(this)
-            g = this.devkit_.sessionData.regionTag;
-        end
         function g = get.roi(this)
             g = this.roi_;
         end    

@@ -1,4 +1,4 @@
-classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
+classdef CCIRRadMeasurements2 < handle & mldata.Xlsx & mlpet.RadMeasurements
     %% CCIRRADMEASUREMENTS has dynamic properties named by this.tableNames.
     
     % capracHeader
@@ -190,11 +190,11 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
     
     methods (Static)
         function this = createFromDate(aDate, varargin)
-            import mlpet.CCIRRadMeasurements.*;
+            import mlpet.CCIRRadMeasurements2.*;
             this = createFromFilename(date2filename(aDate), varargin{:});
         end
         function this = createFromFilename(fqfn, varargin)
-            this = mlpet.CCIRRadMeasurements(varargin{:});
+            this = mlpet.CCIRRadMeasurements2(varargin{:});
             this = this.readtables(fqfn);
         end
         function this = createFromSession(sesd, varargin)
@@ -204,11 +204,11 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             ip.KeepUnmatched = true;
             addRequired(ip, 'sesd', @(x) isa(x, 'mlpipeline.ISessionData') || isa(x, 'mlpipeline.ImagingMediator'))
             parse(ip, sesd, varargin{:})
-            ipr = ip.Results;       
+            ipr = ip.Results;  
             if isa(ipr.sesd, 'mlpipeline.ImagingMediator')
-                this = mlpet.CCIRRadMeasurements2.createFromSession(sesd, varargin{:});
+                this = mlpet.CCIRRadMeasurements2('session', ipr.sesd, varargin{:});
             else
-                this = mlpet.CCIRRadMeasurements('session', ipr.sesd, varargin{:});
+                this = mlpet.CCIRRadMeasurements.createFromSession(sesd, varargin{:});
             end
         end
         function fqfn = date2filename(aDate)
@@ -256,7 +256,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                     cath.enclosedLength = 20;
                     cath.length = 48;
                 otherwise
-                    error('mlpet:ValueError', 'CCIRRadMeasurements.catheterInfo');
+                    error('mlpet:ValueError', 'CCIRRadMeasurements2.catheterInfo');
             end
         end
         function tbl  = correctDates2(this, tbl, varargin)
@@ -288,13 +288,13 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
         function dt   = datetime(this)
             %% DATETIME for all the measurements as determined from internal mlpet.Session or readtables.
             
-            dt1 = datetime(this.session_);
+            dt1 = datetime_bids_filename(this.session_);
             dt2 = this.datetimeTracerAdmin('earliest', true);
             dt  = NaT;
             if ~isnat(dt1) && ~isnat(dt2)
                 if ~this.equivDates(dt1, dt2)
                     warning('mlpet:ValueWarning', ...
-                        'CCIRRadMeasurements.datetime().dt1->%s but dt2->%s; using dt1 for session', dt1, dt2)
+                        'CCIRRadMeasurements2.datetime().dt1->%s but dt2->%s; using dt1 for session', dt1, dt2)
                 end
                 dt = dt1;
                 return
@@ -306,7 +306,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 dt = dt2;
             end
             if isnat(dt)
-                re = regexp(this.fileprefix, 'CCIRRadMeasurements (?<dt>\d{4}\w{3}\d+)', 'names');
+                re = regexp(this.fileprefix, 'CCIRRadMeasurements(|2) (?<dt>\d{4}\w{3}\d+)', 'names');
                 if ~isempty(re)
                     dt = datetime(re.dt, 'InputFormat', 'yyyyMMMdd');
                 end
@@ -333,7 +333,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 case 'FDG'
                     iso = '18F';
                 otherwise
-                    error('mlpet:NotImplementedError', 'CCIRRadMeasurements.datetime2isotope for tracer %s', trac)
+                    error('mlpet:NotImplementedError', 'CCIRRadMeasurements2.datetime2isotope for tracer %s', trac)
             end
         end
         function dt   = datetimeCapracHeader(this)
@@ -345,7 +345,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 seconds(this.clocks{'2nd PEVCO lab', 'TimeOffsetWrtNTS____s'});
         end
         function dt   = datetimeSession(this)
-            dt = datetime(this.session_);
+            dt = datetime_bids_filename(this.session_);
         end
         function dt   = datetimeTracerAdmin(this, varargin)
             %% DATETIMETRACERADMIN is the datetime recorded in table tracerAdmin for a tracer and snumber.
@@ -432,7 +432,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
     %% PROTECTED
     
     methods (Access = protected)
-        function this = CCIRRadMeasurements(varargin)
+        function this = CCIRRadMeasurements2(varargin)
             %% CCIRRADMEASUREMENTS reads tables from measurement files specified by env var CCIR_RAD_MEASUREMENTS_DIR
             %  and a datetime for the measurements.
             %  @param session is mlpet.Session; default := trivial ctor.
@@ -450,14 +450,16 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             this.session_ = ip.Results.session;
             this.alwaysUseSessionDate_ = ip.Results.alwaysUseSessionDate;
             
-            if (isnat(datetime(this.session_)))
+            if (isnat(datetime_bids_filename(this.session_)))
                 return
             end
             try
-                fqfn = this.date2filename(datetime(this.session_));
-                matfn = [myfileprefix(fqfn) '.mat'];
+                fqfn = this.date2filename(datetime_bids_filename(this.session_));
+                [pth,fp] = fileparts(fqfn);
+                matfn = fullfile( ...
+                    pth, strcat(strrep(fp, 'CCIRRadMeasurements', 'CCIRRadMeasurements2'), '.mat'));
                 if isfile(matfn)
-                    fprintf('mlpet.CCIRRadMeasurements.ctor: reading cache from %s\n', matfn);
+                    fprintf('mlpet.CCIRRadMeasurements2.ctor: reading cache from %s\n', matfn);
                     load(matfn, 'this')
                     return
                 end
@@ -469,7 +471,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             end
         end
         function this = readtables(this, fqfn)
-            fprintf('mlpet.CCIRRadMeasurements.readtables:  reading %s\n', fqfn);
+            fprintf('mlpet.CCIRRadMeasurements2.readtables:  reading %s\n', fqfn);
             for t = 1:length(this.tableNames)
                 try
                     this.addgetprop( ...
@@ -554,7 +556,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                     return
                 end
             else
-                error('mlpet:ValueError', 'CCIRRadMeasurements.convertClocks2sec');
+                error('mlpet:ValueError', 'CCIRRadMeasurements2.convertClocks2sec');
             end
             dur = seconds(0);
         end
@@ -584,7 +586,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                     c.TIMEOFFSETWRTNTS____S(ic) = this.excelNum2sec(c.TIMEOFFSETWRTNTS____S(ic));
                 end
             else
-                error('mlpet:ValueError', 'CCIRRadMeasurements.convertClocks2sec');
+                error('mlpet:ValueError', 'CCIRRadMeasurements2.convertClocks2sec');
             end
         end
         function tf   = hasTimings(~, var)
@@ -626,7 +628,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 case 'HO'
                     tc = 'H2[15O]';
                 otherwise
-                    error('mlpet:ValueError', 'CCIRRadMeasurements.tracerCode');
+                    error('mlpet:ValueError', 'CCIRRadMeasurements2.tracerCode');
             end
             if (snumber > 1)
                 tc = sprintf('%s_%i', tc, snumber-1);

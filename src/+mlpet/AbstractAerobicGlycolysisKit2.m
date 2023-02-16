@@ -18,11 +18,11 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
             addParameter(ip, 'atlTag', '_on_T1w', @ischar)
             addParameter(ip, 'blurTag', '', @ischar)
             addParameter(ip, 'region', 'voxels', @ischar)
-            addParameter(ip, 'imagingData', []);
+            addParameter(ip, 'immediator', []);
             parse(ip, varargin{:})
             ipr = ip.Results;
             
-            pwd0 = pushd(ipr.imagingData.dataPath);
+            pwd0 = pushd(ipr.immediator.scanPath);
             fnPatt = sprintf('*_proc-dyn-%s-%s*%s%s.nii.gz', ipr.physiology, ipr.region, ipr.atlTag, ipr.blurTag);
             g = globT(fnPatt);
             if isempty(g); return; end
@@ -31,7 +31,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
             
             m = containers.Map;            
             for ig = 1:length(g)
-                if contains(g{ig}, ipr.imagingData.defects)
+                if contains(g{ig}, ipr.immediator.defects)
                     continue
                 end
                 dstr = AbstractAerobicGlycolysisKit2.physiologyObjToDatetimeStr(g{ig}, 'dateonly', true);
@@ -71,67 +71,6 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
             
             popd(pwd0);
         end 
-        function theSD = constructSessionData(varargin)
-            
-            import mlraichle.*
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addRequired( ip, 'metric', @ischar)
-            addParameter(ip, 'subjectsExpr', 'sub-S*', @ischar)
-            addParameter(ip, 'tracer', '', @ischar)
-            addParameter(ip, 'debug', ~isempty(getenv('DEBUG')), @islogical)
-            addParameter(ip, 'region', 'wmparc1', @ischar)
-            addParameter(ip, 'scanIndex', 1:4, @isnumeric)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            
-            idx = 1;
-            subjectPath = fullfile(getenv('SINGULARITY_HOME'), 'subjects');
-            pwd1 = pushd(subjectPath);
-            subjects = globFoldersT(ipr.subjectsExpr); % e.g., 'sub-S3*'
-            for sub = subjects
-                pwd0 = pushd(fullfile(subjectPath, sub{1}));
-                subd = SubjectData('subjectFolder', sub{1});
-                sesfs = subd.subFolder2sesFolders(sub{1});
-
-                for ses = sesfs
-                    for scan_idx = ipr.scanIndex
-                        try
-                            sesd = SessionData( ...
-                                'studyData', StudyData(), ...
-                                'projectData', ProjectData('sessionStr', ses{1}), ...
-                                'subjectData', subd, ...
-                                'sessionFolder', ses{1}, ...
-                                'scanIndex', scan_idx, ...
-                                'tracer', upper(ipr.tracer), ...
-                                'ac', true, ...
-                                'region', ipr.region, ...
-                                'metric', ipr.metric);            
-                            if sesd.datetime < mlraichle.StudyRegistry.instance.earliestCalibrationDatetime
-                                continue
-                            end
-                            if ~isfile(sesd.wmparc1OnAtlas)
-                                mlpet.AbstractAerobicGlycolysisKit2.constructWmparc1OnAtlas(sesd);
-                            end
-                            tracerfn = sesd.([lower(sesd.tracer) 'OnAtlas']);
-                            if ~isfile(tracerfn)
-                                sesd.jitOnAtlas(tracerfn)
-                            end
-                            theSD(idx) = sesd; %#ok<AGROW>
-                            idx = idx + 1;
-                        catch ME
-                            if strcmpi('mlnipet:ValueError:getScanFolder', ME.identifier)
-                                continue
-                            end
-                            handwarning(ME)
-                        end
-                    end
-                end
-                popd(pwd0);
-            end
-            popd(pwd1);
-        end
         function ic = constructWmparc1OnAtlas(sesd)
             %% idx == 40:  venuos voxels
             %  idx == 1:   extraparenchymal CSF, not ventricles
@@ -274,22 +213,20 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
                 otherwise
             end
         end
-        function initialize()
-            mlraichle.StudyRegistry.instance('initialize');
-        end
         function chi = ks2chi(ks)
             %% KS2CHI
             %  @param ks is ImagingContext2.
             %  @return chi := k1 k3/(k2 + k3) in 1/s, without v1.
             
-            ks = ks.imagingFormat;            
+            ks = ks.nifti;            
             img = ks.img(:,:,:,1).*ks.img(:,:,:,3)./(ks.img(:,:,:,2) + ks.img(:,:,:,3)); % 1/s
             img(isnan(img)) = 0;
             
             chi = copy(ks);            
             chi.fileprefix = strrep(ks.fileprefix, 'ks', 'chi');
-            chi.img = img;
+            chi.img = img * 60;
             chi = mlfourd.ImagingContext2(chi);
+            chi.save()
         end
         function cmrglc = ks2cmrglc(ks, cbv, model)
             %% KS2CMRGLC
@@ -298,44 +235,19 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
             %  @param model is mlglucose.Huang1980Model.
             %  @return cmrglc is ImagingContext2.
             
-            chi = mlpet.AbstractAerobicGlycolysisKit2.ks2chi(ks); % 1/s
-            chi = chi * 60; % 1/min
+            if isempty(cbv)
+                chi = mlpet.AbstractAerobicGlycolysisKit2.ks2chi(ks); % 1/s
+                glc = mlglucose.Huang1980.glcConversion(model.glc, 'mg/dL', 'umol/hg');                
+                cmrglc = chi .* (glc/mlpet.AbstractAerobicGlycolysisKit2.LC);
+                cmrglc.fileprefix = strrep(ks.fileprefix, 'ks', 'cmrglc-no-v1');
+                return
+            end
+
             v1 = cbv * 0.0105;
-            glc = mlglucose.Huang1980.glcConversion(model.glc, 'mg/dL', 'umol/hg');
-            
-            cmrglc = v1 .* chi .* (glc/mlpet.AerobicGlycolysisKit.LC);
+            chi = mlpet.AbstractAerobicGlycolysisKit2.ks2chi(ks); % 1/s
+            glc = mlglucose.Huang1980.glcConversion(model.glc, 'mg/dL', 'umol/hg');            
+            cmrglc = v1 .* chi .* (glc/mlpet.AbstractAerobicGlycolysisKit2.LC);
             cmrglc.fileprefix = strrep(ks.fileprefix, 'ks', 'cmrglc');
-        end
-        function [scanList,subList] = listSessionData(varargin)
-            
-            ip = inputParser;
-            addParameter(ip, 'subjectsExpr', 'sub-S*', @ischar)
-            addParameter(ip, 'metric', 'cbv', @ischar)
-            addParameter(ip, 'tracer', 'oc', @ischar)
-            parse(ip, varargin{:})
-            ipr = ip.Results;  
-            
-            % global
-            registry = MatlabRegistry.instance(); %#ok<NASGU>
-            subjectsDir = fullfile(getenv('SINGULARITY_HOME'), 'subjects');
-            setenv('SUBJECTS_DIR', subjectsDir)
-            setenv('PROJECTS_DIR', fileparts(subjectsDir)) 
-            warning('off', 'MATLAB:table:UnrecognizedVarNameCase')
-            warning('off', 'mlnipet:ValueError:getScanFolder')
-            
-            % subjects, sessions            
-            pwd0 = pushd(subjectsDir);
-            theSessionData = mlpet.AbstractAerobicGlycolysisKit2.constructSessionData( ...
-                ipr.metric, ...
-                'subjectsExpr', ipr.subjectsExpr, ...
-                'tracer', ipr.tracer); % length(theSessionData) ~ 60
-            popd(pwd0)
-            
-            % form list
-            scanList = {};
-            scanList = [scanList theSessionData.scanFolder];            
-            subList = {};
-            subList = [subList theSessionData.subjectFolder];
         end
         function t = metric2tracer(m)
             %% Returns:
@@ -360,7 +272,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
             %  @param os is ImagingContext2.
             %  @return oef := k2
             
-            os_ = os.imagingFormat;
+            os_ = os.nifti;
             if 4 == ndims(os_)
                 os_.img = os_.img(:,:,:,1);
             end
@@ -455,26 +367,29 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
     properties
         aifMethods
         aifSuffixedMat
-        imagingData
+        immediator
         indexCliff
         model
     end
     
 	properties (Constant)
-        indices = [6000 1:85 251:255 1000:1035 2000:2035 3000:3035 4000:4035 5001:5002]
-        indices_bilateral = [6000 14:16 21:24 72 77 80 85 251:255]
+        indices = [6000 1:85 213 251:255 1000:1035 2000:2035 3000:3035 4000:4035 5001:5002]
+        indices_bilateral = [6000 4 14:16 21:24 43 72 77 80 85 251:255]
         indices_left = [     1:13 17:20 25:39 73 78 81 83 1000:1035 3000:3035 5001]
         indices_right = [   40:52 53:56 57:71 74 79 82 84 2000:2035 4000:4035 5002]
+
+        LC = 0.81 % Wu, et al., Molecular Imaging and Biology, 5(1), 32-41, 2003.
     end
     
 	properties (Dependent)
+        bids
         indicesToCheck
     end
 
-	methods 
-        
-        %% GET
-        
+	methods % GET   
+        function g = get.bids(this)
+            g = this.immediator.bids;
+        end
         function g = get.indicesToCheck(this)
             if ~isempty(getenv('DEBUG'))
                 g = this.indices;
@@ -488,11 +403,11 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
             % limited indices for checking
             g = [1 7:13 16:20 24 26:28 1000:1009 2000:2009 3000:3009 4000:4009 5001 5002 6000];
         end
-        
-        %%
-		  
+    end
+
+    methods
         function obj = aifsOnAtlas(this, varargin)
-            tr = lower(this.imagingData.tracer);
+            tr = lower(this.immediator.tracer);
             obj = this.metricOnAtlas(['aif_' tr], varargin{:});
         end
         function arterial = buildAif(this, devkit, scanner, tac)
@@ -503,6 +418,29 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
 
             TR = upper(scanner.tracer);
             suff = this.aifSuffixedMat;
+            if contains(this.aifMethods(TR), 'twilite+caprac', 'IgnoreCase', true)
+                arterial1 = devkit.buildArterialSamplingDevice(tac, 'sameWorldline', false);
+                arterial1.radialArteryKit.saveas(strcat(scanner.imagingContext.fqfp, suff('twilite')));
+                h = plot(arterial1.radialArteryKit);
+                this.savefig(h, 0, 'tags', strcat(scanner.tracer, ' radial artery twilite'), ...
+                    'fqfp', strcat(scanner.imagingContext.fqfp, '_', clientname(true), '_twilite'))
+               
+                arterial2 = devkit.buildCountingDevice(tac);
+                arterial2.saveas(strcat(scanner.imagingContext.fqfp, suff('caprac')));
+                h = plot(arterial2, 'this.times');
+                this.savefig(h, 0, 'tags', strcat(scanner.tracer, ' radial artery caprac'), ...
+                    'fqfp', strcat(scanner.imagingContext.fqfp, '_', clientname(true), '_caprac'))
+
+                arterial = {arterial1, arterial2};
+
+                % combine
+                %dt2 = seconds(arterial2.times) + arterial2.datetime0;
+                %dt2 = dt2(arterial2.isWholeBlood');
+                %activityDensity2 = arterial2.activityDensity();
+                %activityDensity2 = activityDensity2(arterial2.isWholeBlood');
+                %arterial.appendActivityDensity(dt2, activityDensity2);
+                return
+            end
             if contains(this.aifMethods(TR), 'idif',  'IgnoreCase', true)
                 arterial = devkit.buildIdif(scanner);
                 arterial.saveas(strcat(scanner.imagingContext.fqfp, suff('idif')));
@@ -533,9 +471,6 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
                 this.savefig(h, 0, 'tags', strcat(scanner.tracer, ' radial artery'))
                 return
             end
-            if contains(this.aifMethods(TR), 'twilite+caprac', 'IgnoreCase', true)
-                error('mlpet:NotImplementedError', 'AbstractAerobicGlycolysisKit2.buildAif')
-            end
             error('mlpet:RuntimeError', 'AbstractAerobicGlycolysisKit2.buildAif')
         end
 
@@ -547,6 +482,15 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
         end
         function obj = cbvOnPet(this, varargin)
             obj = this.metricOnPet('cbv', varargin{:});
+        end
+        function obj = cmrgclOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('cmrglc', varargin{:});            
+        end
+        function obj = cmro2OnAtlas(this, varargin)
+            obj = this.metricOnAtlas('cmro2', varargin{:});            
+        end
+        function obj = dlicv(this, varargin)
+            obj = this.bids.dlicv_ic(varargin{:});
         end
         function obj = fsOnAtlas(this, varargin)
             obj = this.metricOnAtlas('fs', varargin{:});
@@ -566,25 +510,12 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
         function obj = osOnPet(this, varargin)
             obj = this.metricOnPet('os', varargin{:});
         end
-        function ic = maskOnAtlasTagged(this, varargin)
-            fqfp = this.imagingData.metricOnAtlas('wmparc1');
-            fqfp_bin = [fqfp '_binarized'];
-            
-            % 4dfp exists
-            if isfile([fqfp_bin '.4dfp.hdr'])
-                ic = mlfourd.ImagingContext2([fqfp_bin '.4dfp.hdr']);
-                return
-            end
-            if isfile([fqfp '.4dfp.hdr'])
-                ic = mlfourd.ImagingContext2([fqfp '.4dfp.hdr']);
-                ic = ic.binarized();
-                ic.save()
-                return
-            end
-        end
         function resetModelInternal(~)
             mlpet.TracerKineticsModel.solutionOnScannerFrames([], [])
         end 
+        function obj = roiOnAtlas(this, idx, varargin)
+            obj = this.metricOnAtlas(sprintf('index%g', idx), varargin{:});
+        end
         function setScatterFraction(this, scanner, varargin)
             ip = inputParser;
             addRequired(ip, 'scanner', @(x) isa(x, 'mlpet.AbstractDevice'))
@@ -592,7 +523,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
             parse(ip, scanner, varargin{:})
             ipr = ip.Results;
             
-            g = globT(fullfile(this.imagingData.dataPath, 'T1001*222*hdr'));
+            g = globT(fullfile(this.immediator.scanPath, 'T1001*222*hdr'));
             assert(~isempty(g))
             T1001 = mlfourd.ImagingContext2(g{1});
             ambientMask = T1001.numlt(1);
@@ -629,21 +560,99 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
             end            
             if isempty(ipr.fqfp) % legacy
                 ipr.tags = strrep(ipr.tags, " ", "_");
-                dtTag = strcat("_", lower(string(this.imagingData.datetime(Format='yyyyMMddHHmmss'))));
+                dtTag = strcat("_", lower(string(this.immediator.datetime(Format='yyyyMMddHHmmss'))));
                 client_ = clientname(true);
-                ipr.fqfp = fullfile(this.dataPath, ...
+                ipr.fqfp = fullfile(this.immediator.scanPath, ...
                     sprintf('%s_idx%i%s%s', client_, ipr.idx, ipr.tags, dtTag));
             end
-            dtStr = char(this.imagingData.datetime());
+            dtStr = char(this.immediator.datetime());
             title(sprintf('%s.idx == %i\n%s %s', clientname(), ipr.idx, ipr.tags, dtStr))
             savemyfig(ipr.handle, ipr.fqfp)
         end
+        function obj = venousOnAtlas(this, varargin)
+            obj = this.metricOnAtlas('venous', varargin{:});
+        end
         function obj = vsOnAtlas(this, varargin)
             obj = this.metricOnAtlas('vs', varargin{:});
-        end       
+        end
+        function obj = wmparc1OnAtlas(this, varargin)
+            %% idx == 40:  venuos voxels
+            %  idx == 1:   extraparenchymal CSF, not ventricles
+
+            import mlfourd.ImagingFormatContext2
+            import mlfourd.ImagingContext2
+
+            if ~isempty(this.wmparc1OnAtlas_)
+                obj = this.wmparc1OnAtlas_;
+                return
+            end
+
+            obj = this.metricOnAtlas('wmparc1', varargin{:});
+            fqfn = obj.fqfn;
+            if isfile(fqfn)
+                this.wmparc1OnAtlas_ = obj;
+                return
+            end
+            
+            pwd0 = pushd(myfileparts(fqfn));
+            
+            % constructWmparcOnAtlas
+            bids_ = this.bids;
+            out_ = fullfile(bids_.t1w_ic.filepath, 'T1_on_T1w.nii.gz');
+            omat_ = strrep(out_, '.nii.gz', '.mat');
+            flirting = mlfsl.Flirt( ...
+                'in', bids_.T1_ic.fqfn, ...
+                'ref', bids_.t1w_ic.fqfn, ...
+                'out', out_, ...
+                'omat', omat_, ...
+                'bins', 256, ...
+                'cost', 'corratio', ...
+                'dof', 6, ...
+                'interp', 'nearestneighbour');
+            flirting.flirt();
+            flirting.in = bids_.wmparc_ic.fqfn;
+            flirting.out = this.metricOnAtlas('wmparc', varargin{:}).fqfn;
+            flirting.applyXfm();
+            
+            % define CSF; idx := 1
+            wmparc = flirting.out.imagingFormat;
+            %wmparc.selectNiftiTool();
+            wmparc1 = this.dlicv.imagingFormat; % establish ICV := CSF + parenchyma
+            %wmparc1.selectNiftiTool();
+            
+            % define venous; idx := 40
+            ven = this.cbvOnAtlas();
+            ven = ven.blurred(this.immediator.petPointSpread);
+            ven = ven.thresh(dipmax(ven)/2);
+            ven = ven.binarized();
+            ven.fqfn = this.venousOnAtlas().fqfn;
+            try
+                ven.save();
+            catch ME
+                handwarning(ME)
+            end
+            selected = logical(ven.imagingFormat.img) & 1 == wmparc1.img;
+            wmparc1.img(selected) = 40; % co-opting right cerebral exterior            
+
+            % assign wmparc indices
+            wmparc1.img = int32(wmparc1.img);
+            wmparc1.img(wmparc.img > 0) = wmparc.img(wmparc.img > 0);
+
+            % construct wmparc1
+            obj = ImagingContext2(wmparc1);
+            obj.fqfn = fqfn;
+            obj.save();
+            this.wmparc1OnAtlas_ = obj;
+
+            popd(pwd0)
+        end
     end
     
     %% PROTECTED
+
+    properties (Access = protected)
+        wmparc1OnAtlas_
+    end
     
     methods (Access = protected)
  		function this = AbstractAerobicGlycolysisKit2(varargin)
@@ -657,13 +666,13 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
             ip = inputParser;
             ip.KeepUnmatched = true;
             ip.PartialMatching = false;
-            addRequired(ip, 'imagingData', @(x) isa(x, 'mlpipeline.ImagingMediator'))
+            addRequired(ip, 'immediator', @(x) isa(x, 'mlpipeline.ImagingMediator'))
             addParameter(ip, 'indexCliff', [], @isnumeric)
             addParameter(ip, 'aifMethods', am, @(x) isa(x, 'containers.Map'))
             parse(ip, varargin{:})
             ipr = ip.Results;
 
-            this.imagingData = ipr.imagingData;
+            this.immediator = ipr.immediator;
             this.indexCliff = ipr.indexCliff;
             this.aifMethods = ipr.aifMethods;
 
@@ -672,7 +681,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
             this.aifSuffixedMat('twilite') = '_buildAif-twilite.mat';
             this.aifSuffixedMat('twilite_osvd') = '_buildAif-twilite-osvd.mat';
             this.aifSuffixedMat('caprac') = '_buildAif-caprac.mat';
-            this.aifSuffixedMat('hybrid') = '_buildAif-hybrid.mat';
+            this.aifSuffixedMat('twilite+caprac') = '_buildAif-twilite-caprac.mat';
 
             this.resetModelInternal()
  		end
