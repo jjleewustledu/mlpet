@@ -247,7 +247,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
             chi = mlpet.AbstractAerobicGlycolysisKit2.ks2chi(ks); % 1/s
             glc = mlglucose.Huang1980.glcConversion(model.glc, 'mg/dL', 'umol/hg');            
             cmrglc = v1 .* chi .* (glc/mlpet.AbstractAerobicGlycolysisKit2.LC);
-            cmrglc.fileprefix = strrep(ks.fileprefix, 'ks', 'cmrglc');
+            cmrglc.fileprefix = strrep(ks.fileprefix, 'ks', 'cmrglc-umol');
         end
         function t = metric2tracer(m)
             %% Returns:
@@ -422,14 +422,22 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
                 arterial1 = devkit.buildArterialSamplingDevice(tac, 'sameWorldline', false);
                 arterial1.radialArteryKit.saveas(strcat(scanner.imagingContext.fqfp, suff('twilite')));
                 h = plot(arterial1.radialArteryKit);
-                this.savefig(h, 0, 'tags', strcat(scanner.tracer, ' radial artery twilite'), ...
-                    'fqfp', strcat(scanner.imagingContext.fqfp, '_', clientname(true), '_twilite'))
+                try
+                    this.savefig(h, 0, 'tags', strcat(scanner.tracer, ' radial artery twilite'), ...
+                        'fqfp', strcat(scanner.imagingContext.fqfp, '_', clientname(true), '_twilite'))
+                catch ME
+                    handwarning(ME)
+                end
                
                 arterial2 = devkit.buildCountingDevice(tac);
                 arterial2.saveas(strcat(scanner.imagingContext.fqfp, suff('caprac')));
                 h = plot(arterial2, 'this.times');
-                this.savefig(h, 0, 'tags', strcat(scanner.tracer, ' radial artery caprac'), ...
-                    'fqfp', strcat(scanner.imagingContext.fqfp, '_', clientname(true), '_caprac'))
+                try
+                    this.savefig(h, 0, 'tags', strcat(scanner.tracer, ' radial artery caprac'), ...
+                        'fqfp', strcat(scanner.imagingContext.fqfp, '_', clientname(true), '_caprac'))
+                catch ME
+                    handwarning(ME)
+                end
 
                 arterial = {arterial1, arterial2};
 
