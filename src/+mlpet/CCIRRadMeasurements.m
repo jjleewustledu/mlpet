@@ -204,12 +204,8 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             ip.KeepUnmatched = true;
             addRequired(ip, 'sesd', @(x) isa(x, 'mlpipeline.ISessionData') || isa(x, 'mlpipeline.ImagingMediator'))
             parse(ip, sesd, varargin{:})
-            ipr = ip.Results;       
-            if isa(ipr.sesd, 'mlpipeline.ImagingMediator')
-                this = mlpet.CCIRRadMeasurements2.createFromSession(sesd, varargin{:});
-            else
-                this = mlpet.CCIRRadMeasurements('session', ipr.sesd, varargin{:});
-            end
+            ipr = ip.Results;    
+            this = mlpet.CCIRRadMeasurements('session', ipr.sesd, varargin{:});
         end
         function fqfn = date2filename(aDate)
             %% DATE2FILENAME looks in env var CCIR_RAD_MEASUREMENTS_DIR for a measurements file matching the
@@ -285,10 +281,14 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 tbl.(vars{v}) = col;
             end
         end
-        function dt   = datetime(this)
+        function dt   = datetime(this, varargin)
             %% DATETIME for all the measurements as determined from internal mlpet.Session or readtables.
             
-            dt1 = datetime(this.session_);
+            if any(contains(methods(this.session_), 'datetime_bids_filename'))
+                dt1 = datetime_bids_filename(this.session_, varargin);
+            else
+                dt1 = datetime(this.session_);
+            end
             dt2 = this.datetimeTracerAdmin('earliest', true);
             dt  = NaT;
             if ~isnat(dt1) && ~isnat(dt2)
@@ -344,8 +344,8 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             dt = this.datetimeConvertFromExcel(str2double(this.doseCalibrator{'residual dose', 'time_Hh_mm_ss'})) - ...
                 seconds(this.clocks{'2nd PEVCO lab', 'TimeOffsetWrtNTS____s'});
         end
-        function dt   = datetimeSession(this)
-            dt = datetime(this.session_);
+        function dt   = datetimeSession(this, varargin)
+            dt = this.datetime(this.session_);
         end
         function dt   = datetimeTracerAdmin(this, varargin)
             %% DATETIMETRACERADMIN is the datetime recorded in table tracerAdmin for a tracer and snumber.
@@ -450,11 +450,12 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             this.session_ = ip.Results.session;
             this.alwaysUseSessionDate_ = ip.Results.alwaysUseSessionDate;
             
-            if (isnat(datetime(this.session_)))
+            if isnat(this.datetime(this.session_))
                 return
             end
+            
             try
-                fqfn = this.date2filename(datetime(this.session_));
+                fqfn = this.date2filename(this.datetime(this.session_));
                 matfn = [myfileprefix(fqfn) '.mat'];
                 if isfile(matfn)
                     fprintf('mlpet.CCIRRadMeasurements.ctor: reading cache from %s\n', matfn);
