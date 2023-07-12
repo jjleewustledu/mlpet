@@ -1,5 +1,5 @@
 classdef Radionuclides 
-	%% RADIONUCLIDES  
+	%% RADIONUCLIDES is a data object providing information specific for nuclear isotopes.
 
 	%  $Revision$
  	%  was created 03-Mar-2017 17:21:28 by jjlee,
@@ -7,7 +7,7 @@ classdef Radionuclides
  	%% It was developed on Matlab 9.1.0.441655 (R2016b) for MACI64.  Copyright 2017 John Joowon Lee.
  	
     properties (Constant)
-        SUPPORTED_ISOTOPES = {'11C' '13N' '15O' '18F' '22Na' '68Ga' '68Ge' '137Cs'}
+        SUPPORTED_ISOTOPES = {'11C' '64Cu' '137Cs' '18F' '68Ga' '68Ge' '124I' '13N' '22Na' '15O' '82Rb' '89Zr'}
     end
     
 	properties (Dependent)
@@ -29,18 +29,24 @@ classdef Radionuclides
             switch (this.isotope)
                 case '11C'
                     g = 0.998;
-                case '13N'
-                    g = 0.998;
-                case '15O'
-                    g = 0.999;
+                case '64Cu'
+                    g = 0.1752;
                 case '18F'
                     g = 0.967;
+                case {'68Ga', '68Ge'}
+                    g = 0.891;
+                case '124I'
+                    g = 0.26;
+                case '13N'
+                    g = 0.998;
                 case '22Na'
                     g = 0.9;
-                case '68Ga'
-                    g = 0.891;
-                case '68Ge'
-                    g = 0.891;
+                case '15O'
+                    g = 0.999;
+                case '82Rb'
+                    g = 0.95;
+                case '89Zr'
+                    g = 0.22;
                 otherwise
                     g = nan;
             end
@@ -89,17 +95,14 @@ classdef Radionuclides
 
     methods (Static)
         function dc = decayConstantOf(name)
-            import mlpet.Radionuclides;
-            dc = Radionuclides.decayRateOf(name);
+            dc = mlpet.Radionuclides.decayRateOf(name);
         end
         function dc = decayRateOf(name)
-            import mlpet.Radionuclides;
-            this = Radionuclides(name);
+            this = mlpet.Radionuclides(name);
             dc = this.decayRate;
         end
         function hl = halflifeOf(name)
-            import mlpet.Radionuclides;
-            this = Radionuclides(name);
+            this = mlpet.Radionuclides(name);
             hl = this.halflife;
         end
     end
@@ -151,28 +154,34 @@ classdef Radionuclides
             error('mlpet:ValueError', 'Radionuclide.ctor.name->%s', name);
         end
 
-        function f = decayCorrectionFactors(this, varargin)
-            %% DECAYCORRECTIONFACTORS
-            %  @param taus are the frame durations in sec.
-            %  @param times are the frame times, starting with start of 1st frame, ending with end of last frame.
-            %  @return f is vector with same shape at taus.
-            %  See also:  https://niftypet.readthedocs.io/en/latest/tutorials/corrqnt.html
+        function f = decayCorrectionFactors(this, opts)
+            %% DECAYCORRECTIONFACTORS provides decay correction, managing cases for which decay rates are not
+            %  small compared to sampling rates.  See also:  https://niftypet.readthedocs.io/en/latest/tutorials/corrqnt.html
+            %
+            %  this mlpet.Radionuclides
+            %  opts.taus double = [] % sampling durations
+            %  opts.times double = [] % sampling times, preferably times of mid-point of sampling interval            
             
-            ip = inputParser;
-            addParameter(ip, 'taus', [], @isnumeric)
-            addParameter(ip, 'times', [], @isnumeric)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            assert(~isempty(ipr.taus) || ~isempty(ipr.times), ...
+            arguments
+                this mlpet.Radionuclides
+                opts.taus double = [] % sampling durations
+                opts.times double = [] % sampling times, preferably times of mid-point of sampling interval
+            end
+            assert(~isempty(opts.taus) || ~isempty(opts.times), ...
                 'mlpet.Radionuclides.decayCorrectionFactors requires either times or taus')
-            if ~isempty(ipr.taus)
-                ipr.times = cumsum([0 ipr.taus]);
+            if ~isempty(opts.taus)
+                opts.times = cumsum([0 opts.taus]);
             end
-            if isempty(ipr.taus) && ~isempty(ipr.times)
-                ipr.taus = ipr.times(2:end) - ipr.times(1:end-1);
+            if isempty(opts.taus) && ~isempty(opts.times)
+                opts.taus = opts.times(2:end) - opts.times(1:end-1);
             end
-            taus_ = ipr.taus;
-            times_ = ipr.times(1:length(taus_));
+            taus_ = opts.taus;
+            times_ = opts.times(1:length(taus_));
+
+            if max(taus_)/this.halflife < 1e-6
+                f = 2.^(times_/this.halflife);
+                return
+            end
             
             lambda = this.decayRate;
             f = lambda*taus_./(exp(-lambda*times_).*(1 - exp(-lambda*taus_)));
@@ -186,5 +195,5 @@ classdef Radionuclides
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
- end
+end
 

@@ -45,200 +45,20 @@ classdef (Abstract) AugmentedData < handle
             end            
         end
         function [scan_,timesMid_,aif_] = mixScannersAifs(varargin)
-            
-            import mlpet.AugmentedData
-            import mlpet.AugmentedData.mix
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'scanner2', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'arterial', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'arterial2', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'roi', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
-            addParameter(ip, 'roi2', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
-            addParameter(ip, 'DtMixing', 0, @isscalar)
-            addParameter(ip, 'fracMixing', 0.9, @isscalar)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            DtMixing = ipr.DtMixing;
-            
-            % scanners provide calibrations, ancillary data            
-            
-            scanner = ipr.scanner.volumeAveraged(ipr.roi);
-            scan = scanner.activityDensity();
-            scanner2 = ipr.scanner2.volumeAveraged(ipr.roi2);            
-            scan2 = scanner2.activityDensity();
-            
-            % arterials also have calibrations
-            
-            a = ipr.arterial;
-            aif = a.activityDensity();         
-            a2 = ipr.arterial2;
-            aif2 = a2.activityDensity();
-            
-            % reconcile timings  
-              
-            t_a = 0:a.timeWindow;
-            t_a2 = 0:a2.timeWindow;
-            
-            if DtMixing < 0 % shift aif2, scan2 to left             
-                aif = makima(t_a + a.Dt, aif, 0:scanner.times(end));
-                aif2 = makima(t_a2 + a2.Dt + DtMixing, aif2, 0:scanner.times(end));
-                scan2 = makima(scanner2.times + DtMixing, scan2, scanner.times); 
-                timesMid_ = scanner.timesMid;
-            else % shift aif, scan to left
-                aif2 = makima(t_a2 + a2.Dt, aif2, 0:scanner2.times(end));
-                aif = makima(t_a + a.Dt - DtMixing, aif, 0:scanner2.times(end));
-                scan = makima(scanner.times - DtMixing, scan, scanner2.times);  
-                timesMid_ = scanner2.timesMid;
-            end 
-            aif(aif < 0) = 0;
-            scan(scan < 0) = 0;
-            aif2(aif2 < 0) = 0;
-            scan2(scan2 < 0) = 0;
-            
-            scan_ = mix(scan, scan2, ipr.fracMixing); % calibrated, decaying
-            aif_ = mix(aif, aif2, ipr.fracMixing);
+            [scan_,timesMid_,aif_] = ...
+                mlkinetics.ScannerKit.mixScannersAifsAugmented(varargin{:});
         end            
         function [tac__,timesMid__,aif__,Dt,datetimePeak] = mixTacAif(devkit, varargin)
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addRequired(ip, 'devkit', @(x) isa(x, 'mlpet.IDeviceKit'))
-            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'arterial', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'roi', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
-            parse(ip, devkit, varargin{:})
-            ipr = ip.Results;      
-            if strcmp(class(ipr.scanner), class(ipr.arterial))
-                [tac__,timesMid__,aif__,Dt,datetimePeak] = ...
-                    mlpet.AugmentedData.mixTacIdif(devkit, varargin{:});
-                return
-            end
-            ad = mlaif.AifData.instance();
-            
-            % scannerDevs provide calibrations & ROI-volume averaging            
-            s = ipr.scanner.volumeAveraged(ipr.roi);
-            tac = s.activityDensity();
-            tac(tac < 0) = 0;                       
-            tac = ad.normalizationFactor*tac; % empirical normalization
-            tac__ = tac;
-            timesMid__ = s.timesMid;
-            Nt = ceil(timesMid__(end));
-            
-            % arterialDevs calibrate & align arterial times-series to localized scanner time-series            
-            a0 = ipr.arterial;
-            [a, datetimePeak] = devkit.alignArterialToScanner( ...
-                a0, s, 'sameWorldline', false);
-            aif = a.activityDensity('Nt', Nt);
-            switch class(a)
-                case 'mlswisstrace.TwiliteDevice'
-                    t = (0:Nt-1) - seconds(s.datetime0 - a.datetime0);
-                case 'mlcapintec.CapracDevice'
-                    t = a.times - seconds(s.datetime0 - a.datetime0);
-                otherwise
-                    error('mlpet:ValueError', ...
-                        'class(AugmentedData.mixTacAif.a) = %s', class(a))
-            end
-            
-            % use tBuffer to increase fidelity of kinetic model
-            while any(-ad.tBuffer == t)
-                ad.T = ad.T + 1;
-            end
-            aif = interp1([-ad.tBuffer t], [0 aif], -ad.tBuffer:s.timesMid(end), 'linear', 0);
-            aif(aif < 0) = 0;            
-            aif__ = aif;            
-            Dt = a.Dt;
+            [tac__,timesMid__,aif__,Dt,datetimePeak] = ...
+                mlkinetics.ScannerKit.mixTacAifAugmented(devkit, varargin{:});
         end
         function [tac__,timesMid__,aif__,Dt] = mixTacsAifs(devkit, devkit2, varargin)
-            
-            import mlpet.AugmentedData
-            import mlpet.AugmentedData.mixTacAif
-            import mlpet.AugmentedData.mix
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addRequired(ip, 'devkit', @(x) isa(x, 'mlpet.IDeviceKit'))
-            addRequired(ip, 'devkit2', @(x) isa(x, 'mlpet.IDeviceKit'))
-            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'scanner2', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'arterial', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'arterial2', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'roi', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
-            addParameter(ip, 'roi2', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
-            addParameter(ip, 'DtMixing', 0, @isscalar) % sec > 0
-            addParameter(ip, 'fracMixing', 0.9, @isscalar)
-            parse(ip, devkit, devkit2, varargin{:})
-            ipr = ip.Results;
-            s = ipr.scanner;
-            s2 = ipr.scanner2;
-            ad = mlaif.AifData.instance();
-            
-            % align aif with tac, aif2 with tac2
-            [tac,timesMid,aif,Dt,datetimePeak] = mixTacAif(devkit, ...
-                                                           'scanner', ipr.scanner, ...
-                                                           'arterial', ipr.arterial, ...
-                                                           'roi', ipr.roi);                                                
-            [tac2,~,aif2,~,datetimePeak2] = mixTacAif(devkit2, ...
-                                                      'scanner', ipr.scanner2, ...
-                                                      'arterial', ipr.arterial2, ...
-                                                      'roi', ipr.roi2);
-            offset = seconds(datetimePeak - s.datetime0) - ...
-                     seconds(datetimePeak2 - s2.datetime0) + ...
-                     ipr.DtMixing;
-            
-            % align tac2 with tac
-            tac = interp1([-1 s.timesMid], [0 tac], s.timesMid(1):s.timesMid(end), 'linear', 0);
-            tac2 = interp1((offset + [-1 s2.timesMid]), [0 tac2], s.timesMid(1):s.timesMid(end), 'linear', 0);
-            tac__ = mix(tac, tac2, ipr.fracMixing); 
-            tac__ = interp1(s.timesMid(1):s.timesMid(end), tac__, s.timesMid, 'linear', 0);
-            tac__(tac__ < 0) = 0;                       
-            tac__ = ad.normalizationFactor*tac__; % empirical normalization
-            timesMid__ = timesMid;
-            
-            % align aif2 with aif
-            n = length(aif);
-            n2 = length(aif2);
-            aif2 = interp1(offset + (0:n2-1), aif2, 0:n-1, 'linear', 0);
-            aif__ = mix(aif, aif2, ipr.fracMixing); 
-            aif__(aif__ < 0) = 0;  
+            [tac__,timesMid__,aif__,Dt] = ...
+                mlkinetics.ScannerKit.mixTacsAifsAugmented(devkit, devkit2, varargin{:});
         end
         function [tac__,timesMid__,aif__,Dt,datetimePeak] = mixTacIdif(devkit, varargin)
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addRequired(ip, 'devkit', @(x) isa(x, 'mlpet.IDeviceKit'))
-            addParameter(ip, 'scanner', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'arterial', [], @(x) isa(x, 'mlpet.AbstractDevice'))
-            addParameter(ip, 'roi', [], @(x) isa(x, 'mlfourd.ImagingContext2'))
-            parse(ip, devkit, varargin{:})
-            ipr = ip.Results;
-            ad = mlaif.AifData.instance();
-            
-            % scannerDevs provide calibrations & ROI-volume averaging            
-            s = ipr.scanner.volumeAveraged(ipr.roi);
-            tac = s.activityDensity();
-            tac(tac < 0) = 0;                       
-            tac = ad.normalizationFactor*tac; % empirical normalization
-            tac__ = tac;
-            timesMid__ = s.timesMid;
-            
-            % arterialDevs calibrate & align arterial times-series to localized scanner time-series 
-            aif = a.activityDensity();
-            t = a.timesMid;
-            
-            % use tBuffer to increase fidelity of kinetic model
-            while any(-ad.tBuffer == t)
-                ad.T = ad.T + 1;
-            end
-            aif = interp1([-ad.tBuffer t], [0 aif], -ad.tBuffer:s.timesMid(end), 'linear', 0);
-            aif(aif < 0) = 0;            
-            aif__ = aif;  
-
-            % trivial values
-            Dt = 0;
-            datetimePeak = NaT;
+            [tac__,timesMid__,aif__,Dt,datetimePeak] = ...
+                mlkinetics.ScannerKit.mixTacIdifAugmented(devkit, varargin{:});
         end
     end 
     
@@ -290,8 +110,8 @@ classdef (Abstract) AugmentedData < handle
                 img(roibin) = avec(t);
                 a.img(:,:,:,t) = img;
             end
-            a.fileprefix = this.sessionData.aifsOnAtlas( ...
-                'typ', 'fp', 'tags', [this.blurTag this.regionTag]);
+            a.fileprefix = this.sessionData.metricOnAtlas( ...
+                stackstr(), [this.blurTag this.regionTag]);
             a = imagingType(ipr.typ, a);
         end 
     end

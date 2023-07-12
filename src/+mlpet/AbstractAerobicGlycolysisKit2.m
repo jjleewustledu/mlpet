@@ -8,23 +8,38 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
  	    
     methods (Static)
         function ic = constructPhysiologyDateOnly(varargin)
-            %% e.g., constructPhysiologyDateOnly('cbv', 'subjectFolder', 'sub-S58163')
+            %% e.g., constructPhysiologyDateOnly('cbv', 'immediator', obj) % pwd includes sub-108293            
+            %  e.g., constructPhysiologyDateOnly('cbv', 'immediator', obj, ...
+            %                                    'workpath', '/path/to/sub-108293/resampling_restricted')
+            %  e.g., constructPhysiologyDateOnly('cbv', 'immediator', obj, ...
+            %                                    'workpath', '/path/to/sub-108293/resampling_restricted', ...
+            %                                    'filepatt', 'ocdt2021*_111_voxels.4dfp.hdr')
             
-            import mlpet.AbstractAerobicGlycolysisKit2
+            import mlvg.QuadraticAerobicGlycolysisKit
             
+            reg = mlvg.Ccir1211Registry.instance();
             ip = inputParser;
-            addRequired(ip, 'physiology', @ischar)
-            addParameter(ip, 'subjectFolder', '', @ischar)
-            addParameter(ip, 'atlTag', '_on_T1w', @ischar)
-            addParameter(ip, 'blurTag', '', @ischar)
-            addParameter(ip, 'region', 'voxels', @ischar)
-            addParameter(ip, 'immediator', []);
+            addRequired(ip, 'physiology', @istext)
+            addParameter(ip, 'immediator', [], @(x) isa(x, 'mlpipeline.ImagingData') || isa(x, 'mlpipeline.ImagingMediator'))
+            addParameter(ip, 'workpath', pwd, @isfolder)
+            addParameter(ip, 'subjectFolder', '', @istext) 
+            addParameter(ip, 'filepatt', '', @istext)
+            addParameter(ip, 'atlTag', reg.atlasTag, @istext)
+            addParameter(ip, 'blurTag', reg.blurTag, @istext)
+            addParameter(ip, 'region', 'voxels', @istext)
             parse(ip, varargin{:})
             ipr = ip.Results;
+            if isempty(ipr.subjectFolder)
+                ipr.subjectFolder = reg.workpath2subject(ipr.workpath);
+            end
+            if isempty(ipr.filepatt)
+                ipr.filepatt = sprintf('%sdt*%s%s_%s.4dfp.hdr', ipr.physiology, ipr.atlTag, ipr.blurTag, ipr.region);
+                %ipr.filepatt = sprintf('%s_ses-*_trac-*_proc-%s_pet%s_%s.4dfp.hdr', ...
+                %    ipr.subjectFolder, ipr.physiology, ipr.atlTag, ipr.region);
+            end
             
-            pwd0 = pushd(ipr.immediator.scanPath);
-            fnPatt = sprintf('*_proc-dyn-%s-%s*%s%s.nii.gz', ipr.physiology, ipr.region, ipr.atlTag, ipr.blurTag);
-            g = globT(fnPatt);
+            pwd0 = pushd(ipr.workpath);
+            g = globT(ipr.filepatt);
             if isempty(g); return; end
             
             %% segregate by dates
@@ -34,7 +49,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
                 if contains(g{ig}, ipr.immediator.defects)
                     continue
                 end
-                dstr = AbstractAerobicGlycolysisKit2.physiologyObjToDatetimeStr(g{ig}, 'dateonly', true);
+                dstr = AbstractAerobicGlycolysisKit.physiologyObjToDatetimeStr(g{ig}, 'dateonly', true);
                 if ~lstrfind(m.keys, dstr)
                     m(dstr) = g(ig); % cell
                 else
@@ -49,9 +64,9 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
                 ic = mlfourd.ImagingContext2(fns{1});
                 ic = ic.zeros();
                 icfp = strrep(ic.fileprefix, ...
-                    AbstractAerobicGlycolysisKit2.physiologyObjToDatetimeStr(fns{1}), ...
-                    AbstractAerobicGlycolysisKit2.physiologyObjToDatetimeStr(fns{1}, 'dateonly', true));
-                if isfile([icfp '.nii.gz'])
+                    QuadraticAerobicGlycolysisKit.physiologyObjToDatetimeStr(fns{1}), ...
+                    QuadraticAerobicGlycolysisKit.physiologyObjToDatetimeStr(fns{1}, 'dateonly', true));
+                if isfile([icfp '.4dfp.hdr'])
                     continue
                 end
                 ic_count = 0;
@@ -70,7 +85,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
             %%
             
             popd(pwd0);
-        end 
+        end
         function ic = constructWmparc1OnAtlas(sesd)
             %% idx == 40:  venuos voxels
             %  idx == 1:   extraparenchymal CSF, not ventricles
@@ -301,7 +316,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
         function dt = physiologyObjToDatetime(obj)
             ic = mlfourd.ImagingContext2(obj);            
             ss = split(ic.fileprefix, '_');
-            re = regexp(ss{1}, '\w+dt(?<datetime>\d{14})\w*', 'names');
+            re = regexp(ss{2}, 'ses-(?<datetime>\d{14})\w*', 'names');
             dt = datetime(re.datetime, 'InputFormat', 'yyyyMMddHHmmss');
         end
         function dtstr = physiologyObjToDatetimeStr(varargin)
@@ -409,6 +424,12 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
         function obj = aifsOnAtlas(this, varargin)
             tr = lower(this.immediator.tracer);
             obj = this.metricOnAtlas(['aif_' tr], varargin{:});
+        end        
+        function obj = applyBrainMask(this, obj)
+            msk = this.dlicv();
+            fp = obj.fileprefix;
+            obj = obj .* msk;
+            obj.fileprefix = strrep(fp, '_pet', '-dlicv_pet');            
         end
         function arterial = buildAif(this, devkit, scanner, tac)
             assert(isa(devkit, 'mlsiemens.BiographKit'))
@@ -488,9 +509,6 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
         function obj = cbvOnAtlas(this, varargin)
             obj = this.metricOnAtlas('cbv', varargin{:});
         end
-        function obj = cbvOnPet(this, varargin)
-            obj = this.metricOnPet('cbv', varargin{:});
-        end
         function obj = cmrgclOnAtlas(this, varargin)
             obj = this.metricOnAtlas('cmrglc', varargin{:});            
         end
@@ -503,20 +521,59 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
         function obj = fsOnAtlas(this, varargin)
             obj = this.metricOnAtlas('fs', varargin{:});
         end
-        function obj = fsOnPet(this, varargin)
-            obj = this.metricOnPet('fs', varargin{:});
-        end
         function obj = ksOnAtlas(this, varargin)
             obj = this.metricOnAtlas('ks', varargin{:});
         end
-        function obj = ksOnPet(this, varargin)
-            obj = this.metricOnPet('ks', varargin{:});
-        end
+        function obj = metricOnAtlas(this, metric, varargin)
+            %% METRICONATLAS appends fileprefixes with information from this.dataAugmentation
+            %  @param required metric is char.
+            %  @param datetime is datetime or char, .e.g., '20200101000000' | ''.
+            %  @param dateonly is logical.
+            %  @param tags is char, e.g., 'b43_wmparc1', default ''.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'metric', @ischar)
+            addParameter(ip, 'datetime', this.immediator.datetime, @(x) isdatetime(x) || ischar(x))
+            addParameter(ip, 'dateonly', false, @islogical)
+            addParameter(ip, 'tags', '', @ischar)
+            parse(ip, metric, varargin{:})
+            ipr = ip.Results;
+
+            try
+                g = glob(fullfile(this.immediator.scanPath, ...
+                    sprintf('*_%s_*%s*.nii.gz', metric, ipr.tags)));
+                if ~isempty(g)
+                    obj = mlfourd.ImagingContext2(g{1});
+                    return
+                end
+            catch ME
+                handexcept(ME)
+            end
+            
+            if ~isempty(ipr.tags)
+                ipr.tags = strip(ipr.tags, "_");
+            end   
+            if ischar(ipr.datetime)
+                adatestr = ipr.datetime;
+            end
+            if isdatetime(ipr.datetime)
+                if ipr.dateonly
+                    adatestr = ['ses-' datestr(ipr.datetime, 'yyyymmdd') '000000'];
+                else
+                    adatestr = ['ses-' datestr(ipr.datetime, 'yyyymmddHHMMSS')];
+                end
+            end
+            
+            s = this.bids.filename2struct(this.immediator.imagingContext.fqfn);
+            s.ses = adatestr;
+            s.modal = ipr.metric;
+            s.tag = ipr.tags;
+            fqfn = this.bids.struct2filename(s);
+            obj = mlfourd.ImagingContext2(fqfn);
+        end	
         function obj = osOnAtlas(this, varargin)
             obj = this.metricOnAtlas('os', varargin{:});
-        end
-        function obj = osOnPet(this, varargin)
-            obj = this.metricOnPet('os', varargin{:});
         end
         function resetModelInternal(~)
             mlpet.TracerKineticsModel.solutionOnScannerFrames([], [])

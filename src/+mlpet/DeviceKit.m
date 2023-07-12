@@ -1,4 +1,4 @@
-classdef (Abstract) DeviceKit < handle
+classdef DeviceKit < handle
 	%% INSTRUMENTKIT is the AbstractFactory in an abstract factory pattern.
     %  For concrete factory subclasses see also:  
     %      mlpowers.DeviceKit, mlarbelaez.DeviceKit, mlraichle.DeviceKit.  
@@ -10,10 +10,6 @@ classdef (Abstract) DeviceKit < handle
  	%  was created 18-Oct-2018 01:51:54 by jjlee,
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
- 	
-    methods (Abstract)
-        obj = doMakeClass(this)
-    end
     
     properties (Dependent)
         preferredTimeZone
@@ -49,7 +45,8 @@ classdef (Abstract) DeviceKit < handle
             import mlpet.DeviceKit;
             
             ip = inputParser;
-            addParameter(ip, 'session', [], @(x) isa(x, 'mlpipeline.ISessionData'));
+            addParameter(ip, 'session', [], ...
+                @(x) isa(x, 'mlpipeline.ISessionData') || isa(x, 'mlpipeline.ImagingMediator'));
             parse(ip, varargin{:});
             
             tz = mlpipeline.ResourcesRegistry.instance().preferredTimeZone;
@@ -59,7 +56,7 @@ classdef (Abstract) DeviceKit < handle
                 'activityUnits', 'nCi', ...
                 'sourceId', '1231-8-87', ...
                 'refDate', datetime(2007,4,1, 'TimeZone', tz));
-            if (datetime(ip.Results.session) > datetime(2016,4,7, 'TimeZone', 'America/Chicago'))
+            if datetime(ip.Results.session) > datetime(2016,4,7, 'TimeZone', tz)
                 rs(2) = ReferenceSource( ...
                     'isotope', '22Na', ...
                     'activity', 101.4, ...
@@ -67,7 +64,7 @@ classdef (Abstract) DeviceKit < handle
                     'sourceId', '1382-54-1', ...
                     'refDate', datetime(2009,8,1, 'TimeZone', tz));
             end
-            if (datetime(ip.Results.session) > datetime(2018,9,11, 'TimeZone', 'America/Chicago'))
+            if datetime(ip.Results.session) > datetime(2018,9,11, 'TimeZone', tz)
                 rs(3) = ReferenceSource( ...
                     'isotope', '68Ge', ...
                     'activity', 101.3, ...
@@ -75,6 +72,15 @@ classdef (Abstract) DeviceKit < handle
                     'sourceId', '1932-53', ...
                     'refDate', datetime(2017,11,1, 'TimeZone', tz), ...
                     'productCode', 'MGF-068-R3');
+            end
+            if datetime(ip.Results.session) > datetime(2022,2,1, 'TimeZone', tz)
+                rs(4) = ReferenceSource( ...
+                    'isotope', '68Ge', ...
+                    'activity', 0.1052, ...
+                    'activityUnits', 'uCi', ...
+                    'sourceId', '2277-57', ...
+                    'refDate', datetime(2022,2,1, 'TimeZone', tz), ...
+                    'productCode', 'GF-068-R3');
             end
             for irs = 1:length(rs)
                 assert(datetime(ip.Results.session) > rs(irs).refDate);

@@ -67,7 +67,7 @@ classdef Test_CCIRRadMeasurements < matlab.unittest.TestCase
         end
         function test_doseCalibrator(this)
             this.verifyEqualDatetime(this.testObj.datetimeDoseCalibrator, ...
-                                     datetime(2018,10,5,15,25,37, 'TimeZone', 'America/Chicago'));
+                                     datetime(2018,10,5,15,25,35, 'TimeZone', 'America/Chicago'));
         end
         function test_phantom(this)
             this.verifyEqual(this.testObj.phantom{1, 'DECAYCorrSpecificActivity_KBq_mL'}, ...

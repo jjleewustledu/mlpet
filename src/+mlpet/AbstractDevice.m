@@ -24,16 +24,6 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
                 return
             end
             error('mlpet:RuntimeError', stackstr())
-        end        
-        function rop = rbcOverPlasma(t)
-            %% RBCOVERPLASMA is [FDG(RBC)]/[FDG(plasma)]
-            
-            t   = t/60;      % sec -> min
-            a0  = 0.814104;  % FINAL STATS param  a0 mean  0.814192	 std 0.004405
-            a1  = 0.000680;  % FINAL STATS param  a1 mean  0.001042	 std 0.000636
-            a2  = 0.103307;  % FINAL STATS param  a2 mean  0.157897	 std 0.110695
-            tau = 50.052431; % FINAL STATS param tau mean  116.239401	 std 51.979195
-            rop = a0 + a1*t + a2*(1 - exp(-t/tau));
         end
     end
 
@@ -70,10 +60,7 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
         timeWindow        
     end
 
-	methods 
-        
-        %% GET
-        
+	methods %% GET        
         function g = get.datetimeForDecayCorrection(this)
             g = this.data_.datetimeForDecayCorrection;
         end
@@ -215,30 +202,18 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
         end
         function     set.timeWindow(this, s)
             this.data_.timeWindow = s;
-        end  
-        
-        %%        
+        end
+    end
 
-        function a = blood2plasma(this, a, t, hct)
-            arguments
-                this mlpet.AbstractDevice
-                a double
-                t double = 1:length(a)
-                hct double {mustBeScalarOrEmpty} = 0.44 % mean(mean for M, mean for F)
-            end            
-            if ~isnan(hct) && hct > 1
-                hct = hct/100;
-            end
+    methods
+        function a = wb2plasma(this, a, hct, t)
+            %% for safety, also checks this.tracer == 'FDG', which is supported by mlraichle.RBCPartition
+
             switch upper(this.tracer)
                 case 'FDG'
-                    % https://www.sciencedirect.com/science/article/pii/S0169260708000503?casa_token=3oyJP6avAxkAAAAA:kvntSJM-oV_3mHHGO2mR8V9AEUpB4toIgWAvrECaTrWm4_IpMM2SiTGF15BISRrADkunipYS#bib9
-                    tau = 7*60;
-                    num = 1 - hct.*(1 - exp(-t/tau));
-                    a = a.*num/(1 - hct);
-
-                    %lambda_t = mlcapintec.CapracDevice.rbcOverPlasma(t);
-                    %a = a./(1 + hct*(lambda_t - 1));
+                    a = mlraichle.RBCPartition.wb2plasma(a, hct, t);
                 otherwise
+                    return
             end
         end
         function d = datetime(this, varargin)

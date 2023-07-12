@@ -13,7 +13,7 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
 
 	methods (Abstract, Static)
         %buildCalibration()
-        createFromSession()
+        %createFromSession()
         invEfficiencyf()
     end 
     
@@ -59,10 +59,7 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
         end
     end
         
-    methods 
-        
-        %% GET
-        
+    methods %% GET        
         function g = get.branchingRatio(this)
             g = this.radionuclide.branchingRatio;
         end
@@ -75,15 +72,14 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
         function g = get.sessionData(this)
             g = this.radMeasurements.sessionData;
         end
-        
-        %% 
-        
+    end
+
+    methods
         function [trainedModel, validationRMSE] = trainRegressionModel(~, trainingData)
             assert(istable(trainingData));
             trainedModel = [];
             validationRMSE = [];
-        end
-        
+        end        
     end
     
     %% PROTECTED
@@ -102,7 +98,8 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
             ip.KeepUnmatched = true;
             addParameter(ip, 'radMeas', [], @(x) isa(x, 'mlpet.RadMeasurements') || isempty(x));
             addParameter(ip, 'radMeasurements', [], @(x) isa(x, 'mlpet.RadMeasurements') || isempty(x));
-            addParameter(ip, 'isotope', '18F', @(x) ismember(x, mlpet.Radionuclides.SUPPORTED_ISOTOPES));
+            addParameter(ip, 'isotope', '', @(x) ismember(x, mlpet.Radionuclides.SUPPORTED_ISOTOPES));
+            addParameter(ip, 'radionuclide', mlpet.Radionuclides('18F'), @(x) isa(x, 'mlpet.Radionuclides'))
             parse(ip, varargin{:});   
             ipr = ip.Results;
             
@@ -112,7 +109,12 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
             if ~isempty(ipr.radMeasurements)
                 this.radMeasurements_ = ipr.radMeasurements;
             end 
-            this.radionuclide_ = mlpet.Radionuclides(ipr.isotope);
+            if ~isempty(ipr.isotope)
+                this.radionuclide_ = mlpet.Radionuclides(ipr.isotope);
+            end            
+            if ~isempty(ipr.radionuclide)
+                this.radionuclide_ = ipr.radionuclide;
+            end
         end
         
         function that = copyElement(this)

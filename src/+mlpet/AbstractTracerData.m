@@ -41,10 +41,7 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
         timeWindow
     end
 
-	methods 
-        
-        %% GET, SET
-        
+	methods %% GET, SET
         function g = get.branchingRatio(this)
             g = this.radionuclides_.branchingRatio;
         end
@@ -172,9 +169,9 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
         function g = get.tracer(this)
             g = this.tracer_;
         end
-        
-        %% 
-        
+    end
+       
+    methods
         function d = datetime(this)
             d = this.timingData_.datetime();
         end

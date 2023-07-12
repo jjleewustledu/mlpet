@@ -27,7 +27,7 @@ classdef (Abstract) ScannerKit < handle & mlpet.IDeviceKit
 %                         otherwise 
 %                             error('mlpet:ValueError', 'ScannerKit does not support %s', sesd.scannerKit)
 %                     end
-                case 'mlan.SessionData'
+                case {'mlan.Ccir993Mediator', 'mlan.SessionData'}
                     this = mlsiemens.BiographMMRKit.createFromSession(sesd);
                 otherwise
                     error('mlpet:ValueError', 'ScannerKit does not support %s', class(sesd))

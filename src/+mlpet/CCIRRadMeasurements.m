@@ -1,4 +1,4 @@
-classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
+classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMeasurements
     %% CCIRRADMEASUREMENTS has dynamic properties named by this.tableNames.
     
     % capracHeader
@@ -188,55 +188,33 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
         sessionData
     end
     
-    methods (Static)
-        function this = createFromDate(aDate, varargin)
-            import mlpet.CCIRRadMeasurements.*;
-            this = createFromFilename(date2filename(aDate), varargin{:});
-        end
-        function this = createFromFilename(fqfn, varargin)
-            this = mlpet.CCIRRadMeasurements(varargin{:});
-            this = this.readtables(fqfn);
-        end
-        function this = createFromSession(sesd, varargin)
-            %  @param required sessionData is an mlpipeline.ISessionData.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addRequired(ip, 'sesd', @(x) isa(x, 'mlpipeline.ISessionData') || isa(x, 'mlpipeline.ImagingMediator'))
-            parse(ip, sesd, varargin{:})
-            ipr = ip.Results;    
-            this = mlpet.CCIRRadMeasurements('session', ipr.sesd, varargin{:});
-        end
-        function fqfn = date2filename(aDate)
-            %% DATE2FILENAME looks in env var CCIR_RAD_MEASUREMENTS_DIR for a measurements file matching the
-            %  requested datetime.
-            %  @param aDate is datetime.
-            
-            assert(isdatetime(aDate));
-            CRMD = getenv('CCIR_RAD_MEASUREMENTS_DIR');
-            assert(isfolder(CRMD), ...
-                'mlpet:ValueError', ...
-                'environment variable CCIR_RAD_MEASUREMENTS_DIR->%s must be a dir', CRMD);
-            mon = lower(month(aDate, 'shortname'));
-            fqfn = fullfile( ...
-                getenv('CCIR_RAD_MEASUREMENTS_DIR'), ...
-                sprintf('CCIRRadMeasurements %i%s%i.xlsx', aDate.Year, mon{1}, aDate.Day));
-            assert(lexist(fqfn, 'file'), ...
-                'mlpet:FileNotFoundError', ...
-                'file %s must be accessible', fqfn)
-        end
-    end
-    
-    methods
-        
-        %% GET
-        
+    methods %% GET        
         function g = get.sessionData(this)
             g = this.session_;
         end
-        
-        %%
-        
+    end
+
+    methods
+        function        addgetprop(this, varargin)
+            ip = inputParser;
+            addRequired(ip, 'prop', @ischar);
+            addOptional(ip, 'init_val', []);
+            parse(ip, varargin{:});
+            
+            p = addprop(this, ip.Results.prop);
+            p.NonCopyable = false;
+            this.(ip.Results.prop) = ip.Results.init_val;
+            p.GetMethod = @getter;
+            p.SetMethod = @setter;
+            
+            function g = getter(this)
+                g = this.(ip.Results.prop);
+            end
+            function     setter(this, s)
+                this.(ip.Results.prop) = s;
+                %throwAsCaller(MException('mldata:AttributeError', 'Xlsx.addgetprop only permits getting dyn props'));
+            end
+        end
         function cath = catheterInfo(this)
             switch (this.twilite{1,1})
                 case 'Medex REF 536035, 152.4 cm  Ext. W/M/FLL Clamp APV = 1.1 mL'
@@ -341,7 +319,8 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             dt = this.datetimeConvertFromExcel(str2double(this.capracHeader{1,2}));
         end
         function dt   = datetimeDoseCalibrator(this)
-            dt = this.datetimeConvertFromExcel(str2double(this.doseCalibrator{'residual dose', 'time_Hh_mm_ss'})) - ...
+            this.doseCalibrator = this.correctDates2(this.doseCalibrator);
+            dt = this.doseCalibrator{'residual dose', 'time_Hh_mm_ss'} - ...
                 seconds(this.clocks{'2nd PEVCO lab', 'TimeOffsetWrtNTS____s'});
         end
         function dt   = datetimeSession(this, varargin)
@@ -374,14 +353,13 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 this.tracerCode(ip.Results.tracer, ip.Results.snumber)));
         end
         function        disp(this)
-            %disp(this.clocks)
-            disp(this.tracerAdmin)
-            disp(this.countsFdg)
-            disp(this.countsOcOo)
-            disp(this.wellCounter)
-            disp(this.twilite)
-            disp(this.mMR)
-            disp(this.laboratory)
+            for tni = this.tableNames
+                try
+                    disp(this.(tni{1}))
+                catch ME
+                    handwarning(ME)
+                end
+            end
         end
         function wcrs = wellCounterRefSrc(this, varargin)
             %% WELLCOUNTERREFSRC
@@ -410,7 +388,7 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             wc   = this.wellCounter;
             sel  = cellfun(@(x) strcmpi(x, ip.Results.isotope), wc.TRACER);
             wcrs = table(wc.TRACER(sel), wc.TIMECOUNTED_Hh_mm_ss(sel), wc.CF_Kdpm(sel), wc.Ge_68_Kdpm(sel), ...
-                'VariableNames', {'TRACER' 'TIMECOUNTED_Hh_mm_ss' 'CF_Kdpm' 'Ge_68_Kdpm' ''});
+                VariableNames={'TRACER' 'TIMECOUNTED_Hh_mm_ss' 'CF_Kdpm' 'Ge_68_Kdpm'});
         end
         function wcrs = wellCounterRefSyringes(this, varargin)
             %% WELLCOUNTERREFSYRINGES
@@ -426,6 +404,45 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             wcrs = table( ...
                 wc.TRACER(sel), wc.TIMECOUNTED_Hh_mm_ss(sel), wc.CF_Kdpm(sel), wc.Ge_68_Kdpm(sel), wc.MASSSAMPLE_G(sel), ...
                 'VariableNames', {'TRACER' 'TIMECOUNTED_Hh_mm_ss' 'CF_Kdpm' 'Ge_68_Kdpm' 'MASSSAMPLE_G'});
+        end
+    end    
+
+    methods (Static)
+        function this = createFromDate(aDate, varargin)
+            import mlpet.CCIRRadMeasurements.*;
+            this = createFromFilename(date2filename(aDate), varargin{:});
+        end
+        function this = createFromFilename(fqfn, varargin)
+            this = mlpet.CCIRRadMeasurements(varargin{:});
+            this = this.readtables(fqfn);
+        end
+        function this = createFromSession(sesd, varargin)
+            %  @param required sessionData is an mlpipeline.ISessionData.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'sesd', @(x) isa(x, 'mlpipeline.ISessionData') || isa(x, 'mlpipeline.ImagingMediator'))
+            parse(ip, sesd, varargin{:})
+            ipr = ip.Results;    
+            this = mlpet.CCIRRadMeasurements('session', ipr.sesd, varargin{:});
+        end
+        function fqfn = date2filename(aDate)
+            %% DATE2FILENAME looks in env var CCIR_RAD_MEASUREMENTS_DIR for a measurements file matching the
+            %  requested datetime.
+            %  @param aDate is datetime.
+            
+            assert(isdatetime(aDate));
+            CRMD = getenv('CCIR_RAD_MEASUREMENTS_DIR');
+            assert(isfolder(CRMD), ...
+                'mlpet:ValueError', ...
+                'environment variable CCIR_RAD_MEASUREMENTS_DIR->%s must be a dir', CRMD);
+            mon = lower(month(aDate, 'shortname'));
+            fqfn = fullfile( ...
+                getenv('CCIR_RAD_MEASUREMENTS_DIR'), ...
+                sprintf('CCIRRadMeasurements %i%s%i.xlsx', aDate.Year, mon{1}, aDate.Day));
+            assert(lexist(fqfn, 'file'), ...
+                'mlpet:FileNotFoundError', ...
+                'file %s must be accessible', fqfn)
         end
     end
     
@@ -450,12 +467,12 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
             this.session_ = ip.Results.session;
             this.alwaysUseSessionDate_ = ip.Results.alwaysUseSessionDate;
             
-            if isnat(this.datetime(this.session_))
+            if isnat(datetime(this.session_))
                 return
             end
             
             try
-                fqfn = this.date2filename(this.datetime(this.session_));
+                fqfn = this.date2filename(datetime(this.session_));
                 matfn = [myfileprefix(fqfn) '.mat'];
                 if isfile(matfn)
                     fprintf('mlpet.CCIRRadMeasurements.ctor: reading cache from %s\n', matfn);
@@ -468,6 +485,9 @@ classdef CCIRRadMeasurements < handle & mldata.Xlsx & mlpet.RadMeasurements
                 handwarning(ME)
                 this = [];
             end
+        end
+        function that = copyElement(this)
+            that = copyElement@matlab.mixin.Copyable(this);
         end
         function this = readtables(this, fqfn)
             fprintf('mlpet.CCIRRadMeasurements.readtables:  reading %s\n', fqfn);
