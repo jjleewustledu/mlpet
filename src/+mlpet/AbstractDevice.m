@@ -20,6 +20,7 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
             end
             if isa(sesd0, 'mlpipeline.ImagingMediator')
                 scans = glob(fullfile(sesd0.scanPath, '*trc-fdg_proc-static-phantom*_pet.nii.gz'))';
+                assert(~isempty(scans), stackstr())
                 sesd = sesd0.create(scans{end}); 
                 return
             end
@@ -60,7 +61,7 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
         timeWindow        
     end
 
-	methods %% GET        
+	methods %% GET
         function g = get.datetimeForDecayCorrection(this)
             g = this.data_.datetimeForDecayCorrection;
         end

@@ -261,7 +261,7 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
             ip = inputParser;
             ip.KeepUnmatched = true;
             addParameter(ip, 'isotope', '', @(x) ismember(x, mlpet.Radionuclides.SUPPORTED_ISOTOPES))
-            addParameter(ip, 'tracer', '', @ischar)
+            addParameter(ip, 'tracer', '', @istext)
             addParameter(ip, 'datetimeMeasured', NaT, @isdatetime);
             addParameter(ip, 'datetimeForDecayCorrection', NaT, @isdatetime)
             addParameter(ip, 'dt', 1, @isnumeric);

@@ -180,7 +180,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
             ic = ImagingContext2(wmparc1);
             ic.save()
             
-            popd(pwd0)
+            popd(pwd0);
         end    
         function cbf = fs2cbf(fs)
             %% FS2CBF
@@ -317,7 +317,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit < handle & mlpet.IAerobicGlycol
                 ipr.metric, ...
                 'subjectsExpr', ipr.subjectsExpr, ...
                 'tracer', ipr.tracer); % length(theSessionData) ~ 60
-            popd(pwd0)
+            popd(pwd0);
             
             % form list
             scanList = {};

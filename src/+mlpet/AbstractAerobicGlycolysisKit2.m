@@ -134,7 +134,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
             ic = ImagingContext2(wmparc1);
             ic.save()
             
-            popd(pwd0)
+            popd(pwd0);
         end    
         function this = create(immediator)
             arguments
@@ -709,7 +709,7 @@ classdef (Abstract) AbstractAerobicGlycolysisKit2 < handle
             obj.save();
             this.wmparc1OnAtlas_ = obj;
 
-            popd(pwd0)
+            popd(pwd0);
         end
     end
     

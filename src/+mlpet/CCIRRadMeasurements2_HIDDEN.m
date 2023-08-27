@@ -1,8 +1,8 @@
-classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMeasurements
+classdef CCIRRadMeasurements2 < handle & mldata.Xlsx & mlpet.RadMeasurements
     %% CCIRRADMEASUREMENTS has dynamic properties named by this.tableNames.
     
     % capracHeader
-    % this.capracHeader -> 4×4 table
+    % this.capracHeader -> 4â—Š4 table
     %     Var1             Var2                   Var3                   Var4
     % _____________    _____________    _________________________    ____________
     %
@@ -12,7 +12,7 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
     % 'COMMENTS:'      ''               'OPERATOR:'                  'JJL'
     
     % countsFdg
-    % this.fdg -> 40×16 table
+    % this.fdg -> 40â—Š16 table
     %          Time_Hh_mm_ss        COUNTS_Cpm    countsS_E__Cpm    ENTERED     TRACER       TIMEDRAWN_Hh_mm_ss     TIMECOUNTED_Hh_mm_ss    W_01_Kcpm    CF_Kdpm     Ge_68_Kdpm    MASSDRY_G    MASSWET_G      MASSSAMPLE_G       apertureCorrGe_68_Kdpm_G    TRUEDECAY_APERTURECORRGe_68_Kdpm_G    COMMENTS
     %       ____________________    __________    ______________    _______    _________    ____________________    ____________________    _________    ________    __________    _________    _________    _________________    ________________________    __________________________________    ________
     %
@@ -34,7 +34,7 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
     % 20                     NaT       NaN              NaN          false     '[18F]DG'    05-Oct-2018 14:27:50    05-Oct-2018 16:14:59      197.2         583.1        445.1      3.8075       4.3445                  0.537         816.113155081437                 1617.67707088754              NaN
     
     % countsOcOo
-    % this.oo -> 8×16 table
+    % this.oo -> 8â—Š16 table
     %          Time_Hh_mm_ss        COUNTS_Cpm    countsS_E__Cpm    ENTERED     TRACER      TIMEDRAWN_Hh_mm_ss     TIMECOUNTED_Hh_mm_ss    W_01_Kcpm    CF_Kdpm    Ge_68_Kdpm    MASSDRY_G    MASSWET_G      MassSample_G       apertureCorrGe_68_Kdpm_G    DECAY_APERTURECORRGe_68_Kdpm_G    COMMENTS
     %       ____________________    __________    ______________    _______    ________    ____________________    ____________________    _________    _______    __________    _________    _________    _________________    ________________________    ______________________________    ________
     %
@@ -48,7 +48,7 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
     % P4                     NaT       NaN              NaN          false     'O[15O]'                     NaT    05-Oct-2018 13:40:51      47.16       139.4       97.93        3.8142       4.4457                 0.6315        153.610739365271                 749.985717973356         'Plasma'
     
     % tracerAdmin
-    % this.tracerAdmin -> 7×4 table
+    % this.tracerAdmin -> 7â—Š4 table
     %              ADMINistrationTime_Hh_mm_ss    TrueAdmin_Time_Hh_mm_ss    dose_MCi     COMMENTS
     %              ___________________________    _______________________    ________    ___________
     %
@@ -61,7 +61,7 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
     % [18F]DG         05-Oct-2018 14:26:36         05-Oct-2018 14:26:38         5.2      ''
     
     % clocks
-    % this.clocks -> 6×1 table
+    % this.clocks -> 6â—Š1 table
     %                     TimeOffsetWrtNTS____s
     %                     _____________________
     %
@@ -73,7 +73,7 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
     % 2nd PEVCO lab                  0
     
     % doseCalibrator
-    % this.doseCalibrator -> 3×8 table
+    % this.doseCalibrator -> 3â—Š8 table
     %                       time_Hh_mm_ss        dose_MCi        CYCLOTRONLOTID    CYCLOTRONTIME    CyclotronActivity_MCi_ML    CyclotronVolume_ML    ExpectedDose_MCi         COMMENTS
     %                       _____________    ________________    ______________    _____________    ________________________    __________________    ________________    ___________________
     %
@@ -82,14 +82,14 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
     % net dose              ''               1.51384029354954         NaN               NaT                   NaN                      NaN                  NaN           ''
     
     % phantom
-    % this.phantom -> 1×5 table
+    % this.phantom -> 1â—Š5 table
     % PHANTOM    OriginalVolume_ML    NetVolume_phantom_Dose__ML    DECAYCorrSpecificActivity_KBq_mL    COMMENTS
     % _______    _________________    __________________________    ________________________________    ________
     %
     %   NaN             690                      690                        73.9990112792118              NaN
     
     % wellCounter
-    % this.wellCounter -> 15×18 table
+    % this.wellCounter -> 15â—Š18 table
     %            Time_Hh_mm_ss        COUNTS_Cpm    countsS_E__Cpm    ENTERED     TRACER      TIMEDRAWN_Hh_mm_ss    TIMECOUNTED_Hh_mm_ss    W_01_Kcpm    CF_Kdpm    Ge_68_Kdpm    MASSDRY_G    MASSWET_G      MassSample_G       apertureCorrGe_68_Kdpm_G    DECAY_APERTURECORRGe_68_Kdpm_G    DECAYCorrSpecificActivity_KBq_mL    S_A__S_A_OFDOSECALIB_           COMMENTS
     %         ____________________    __________    ______________    _______    _________    __________________    ____________________    _________    _______    __________    _________    _________    _________________    ________________________    ______________________________    ________________________________    _____________________    ______________________
     %
@@ -101,7 +101,7 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
     % C3                       NaT       NaN              NaN          false     '[18F]DG'           NaT            05-Oct-2018 15:31:14       1413        4178        3384        3.8075       4.7977                 0.9902        3531.40291678455               3336.11613151312                   58.3820323014796              0.788956923778259      ''
     
     % twilite
-    % this.twilite -> 3×10 table
+    % this.twilite -> 3â—Š10 table
     %                                                     CathPlace_mentTime_Hh_mm_ss    EnclosedCatheterLength_Cm    VISIBLEVolume_ML    TwiliteBaseline_CoincidentCps    TwiliteLoaded_CoincidentCps    SpecificCountRate_Kcps_mL    SpecificACtivity_KBq_mL    DECAYCORRSpecificActivity_KBq_mL    S_A__S_A_OFDOSECALIB_    COMMENTS
     %                                                     ___________________________    _________________________    ________________    _____________________________    ___________________________    _________________________    _______________________    ________________________________    _____________________    ________
     %
@@ -110,7 +110,7 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
     % Braun_1                                                  40454.6529513889                     20                     0.2675                      84                              316                    0.867289719626168            70.036073271028                 70.036073271028              0.946446068134197        NaN
     
     % mMR
-    % this.mMR -> 3×9 table
+    % this.mMR -> 3â—Š9 table
     %         scanStartTime_Hh_mm_ss    ROIMean_KBq_mL    ROIS_d__KBq_mL    ROIArea_Cm2    ROIPIXELS    ROIMin_KBq_mL    ROIMax_KBq_mL    DECAYCorrSpecificActivity_KBq_mL    S_A__S_A_OFDOSECALIB_
     %         ______________________    ______________    ______________    ___________    _________    _____________    _____________    ________________________________    _____________________
     %
@@ -119,14 +119,14 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
     % ROI3     05-Oct-2018 15:39:03        55.7337            3.7927           56.45         1398          42.257           70.529                    55.7337                   0.753168171257135
     
     % pmod
-    % this.pmod -> 1×5 table
+    % this.pmod -> 1â—Š5 table
     %                       TwiliteSpecificActivity_CoincidentKcps_mL    mMRSPECIFICActivity_KBq_mL    REPORTEDPMODFACTOR    MAGICPMODFACTOR    COMMENTS
     %                       _________________________________________    __________________________    __________________    _______________    ________
     %
     % Calibration Window                 70.036073271028                      55.1810333333333                0.24               336.47           NaN
     
     % laboratory
-    % this.laboratory -> 9×2 table
+    % this.laboratory -> 9â—Š2 table
         
     %                       measurement     TimeOfMeasurement  
     %                       ___________    ____________________
@@ -188,33 +188,59 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
         sessionData
     end
     
-    methods %% GET        
+    methods (Static)
+        function this = createFromDate(aDate, varargin)
+            import mlpet.CCIRRadMeasurements2.*;
+            this = createFromFilename(date2filename(aDate), varargin{:});
+        end
+        function this = createFromFilename(fqfn, varargin)
+            this = mlpet.CCIRRadMeasurements2(varargin{:});
+            this = this.readtables(fqfn);
+        end
+        function this = createFromSession(sesd, varargin)
+            %  @param required sessionData is an mlpipeline.ISessionData.
+            
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            addRequired(ip, 'sesd', @(x) isa(x, 'mlpipeline.ISessionData') || isa(x, 'mlpipeline.ImagingMediator'))
+            parse(ip, sesd, varargin{:})
+            ipr = ip.Results;  
+            if isa(ipr.sesd, 'mlpipeline.ImagingMediator')
+                this = mlpet.CCIRRadMeasurements2('session', ipr.sesd, varargin{:});
+            else
+                this = mlpet.CCIRRadMeasurements.createFromSession(sesd, varargin{:});
+            end
+        end
+        function fqfn = date2filename(aDate)
+            %% DATE2FILENAME looks in env var CCIR_RAD_MEASUREMENTS_DIR for a measurements file matching the
+            %  requested datetime.
+            %  @param aDate is datetime.
+            
+            assert(isdatetime(aDate));
+            CRMD = getenv('CCIR_RAD_MEASUREMENTS_DIR');
+            assert(isfolder(CRMD), ...
+                'mlpet:ValueError', ...
+                'environment variable CCIR_RAD_MEASUREMENTS_DIR->%s must be a dir', CRMD);
+            mon = lower(month(aDate, 'shortname'));
+            fqfn = fullfile( ...
+                getenv('CCIR_RAD_MEASUREMENTS_DIR'), ...
+                sprintf('CCIRRadMeasurements %i%s%i.xlsx', aDate.Year, mon{1}, aDate.Day));
+            assert(lexist(fqfn, 'file'), ...
+                'mlpet:FileNotFoundError', ...
+                'file %s must be accessible', fqfn)
+        end
+    end
+    
+    methods
+        
+        %% GET
+        
         function g = get.sessionData(this)
             g = this.session_;
         end
-    end
-
-    methods
-        function        addgetprop(this, varargin)
-            ip = inputParser;
-            addRequired(ip, 'prop', @ischar);
-            addOptional(ip, 'init_val', []);
-            parse(ip, varargin{:});
-            
-            p = addprop(this, ip.Results.prop);
-            p.NonCopyable = false;
-            this.(ip.Results.prop) = ip.Results.init_val;
-            p.GetMethod = @getter;
-            p.SetMethod = @setter;
-            
-            function g = getter(this)
-                g = this.(ip.Results.prop);
-            end
-            function     setter(this, s)
-                this.(ip.Results.prop) = s;
-                %throwAsCaller(MException('mldata:AttributeError', 'Xlsx.addgetprop only permits getting dyn props'));
-            end
-        end
+        
+        %%
+        
         function cath = catheterInfo(this)
             switch (this.twilite{1,1})
                 case 'Medex REF 536035, 152.4 cm  Ext. W/M/FLL Clamp APV = 1.1 mL'
@@ -230,7 +256,7 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
                     cath.enclosedLength = 20;
                     cath.length = 48;
                 otherwise
-                    error('mlpet:ValueError', 'CCIRRadMeasurements.catheterInfo');
+                    error('mlpet:ValueError', 'CCIRRadMeasurements2.catheterInfo');
             end
         end
         function tbl  = correctDates2(this, tbl, varargin)
@@ -259,20 +285,16 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
                 tbl.(vars{v}) = col;
             end
         end
-        function dt   = datetime(this, varargin)
+        function dt   = datetime(this)
             %% DATETIME for all the measurements as determined from internal mlpet.Session or readtables.
             
-            if any(contains(methods(this.session_), 'datetime_bids_filename'))
-                dt1 = datetime_bids_filename(this.session_, varargin);
-            else
-                dt1 = datetime(this.session_);
-            end
+            dt1 = datetime_bids_filename(this.session_);
             dt2 = this.datetimeTracerAdmin('earliest', true);
             dt  = NaT;
             if ~isnat(dt1) && ~isnat(dt2)
                 if ~this.equivDates(dt1, dt2)
                     warning('mlpet:ValueWarning', ...
-                        'CCIRRadMeasurements.datetime().dt1->%s but dt2->%s; using dt1 for session', dt1, dt2)
+                        'CCIRRadMeasurements2.datetime().dt1->%s but dt2->%s; using dt1 for session', dt1, dt2)
                 end
                 dt = dt1;
                 return
@@ -284,7 +306,7 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
                 dt = dt2;
             end
             if isnat(dt)
-                re = regexp(this.fileprefix, 'CCIRRadMeasurements (?<dt>\d{4}\w{3}\d+)', 'names');
+                re = regexp(this.fileprefix, 'CCIRRadMeasurements(|2) (?<dt>\d{4}\w{3}\d+)', 'names');
                 if ~isempty(re)
                     dt = datetime(re.dt, 'InputFormat', 'yyyyMMMdd');
                 end
@@ -311,7 +333,7 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
                 case 'FDG'
                     iso = '18F';
                 otherwise
-                    error('mlpet:NotImplementedError', 'CCIRRadMeasurements.datetime2isotope for tracer %s', trac)
+                    error('mlpet:NotImplementedError', 'CCIRRadMeasurements2.datetime2isotope for tracer %s', trac)
             end
         end
         function dt   = datetimeCapracHeader(this)
@@ -319,12 +341,11 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
             dt = this.datetimeConvertFromExcel(str2double(this.capracHeader{1,2}));
         end
         function dt   = datetimeDoseCalibrator(this)
-            this.doseCalibrator = this.correctDates2(this.doseCalibrator);
-            dt = this.doseCalibrator{'residual dose', 'time_Hh_mm_ss'} - ...
+            dt = this.datetimeConvertFromExcel(str2double(this.doseCalibrator{'residual dose', 'time_Hh_mm_ss'})) - ...
                 seconds(this.clocks{'2nd PEVCO lab', 'TimeOffsetWrtNTS____s'});
         end
-        function dt   = datetimeSession(this, varargin)
-            dt = this.datetime(this.session_);
+        function dt   = datetimeSession(this)
+            dt = datetime_bids_filename(this.session_);
         end
         function dt   = datetimeTracerAdmin(this, varargin)
             %% DATETIMETRACERADMIN is the datetime recorded in table tracerAdmin for a tracer and snumber.
@@ -353,13 +374,14 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
                 this.tracerCode(ip.Results.tracer, ip.Results.snumber)));
         end
         function        disp(this)
-            for tni = this.tableNames
-                try
-                    disp(this.(tni{1}))
-                catch ME
-                    handwarning(ME)
-                end
-            end
+            %disp(this.clocks)
+            disp(this.tracerAdmin)
+            disp(this.countsFdg)
+            disp(this.countsOcOo)
+            disp(this.wellCounter)
+            disp(this.twilite)
+            disp(this.mMR)
+            disp(this.laboratory)
         end
         function wcrs = wellCounterRefSrc(this, varargin)
             %% WELLCOUNTERREFSRC
@@ -388,7 +410,7 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
             wc   = this.wellCounter;
             sel  = cellfun(@(x) strcmpi(x, ip.Results.isotope), wc.TRACER);
             wcrs = table(wc.TRACER(sel), wc.TIMECOUNTED_Hh_mm_ss(sel), wc.CF_Kdpm(sel), wc.Ge_68_Kdpm(sel), ...
-                VariableNames={'TRACER' 'TIMECOUNTED_Hh_mm_ss' 'CF_Kdpm' 'Ge_68_Kdpm'});
+                'VariableNames', {'TRACER' 'TIMECOUNTED_Hh_mm_ss' 'CF_Kdpm' 'Ge_68_Kdpm' ''});
         end
         function wcrs = wellCounterRefSyringes(this, varargin)
             %% WELLCOUNTERREFSYRINGES
@@ -405,51 +427,12 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
                 wc.TRACER(sel), wc.TIMECOUNTED_Hh_mm_ss(sel), wc.CF_Kdpm(sel), wc.Ge_68_Kdpm(sel), wc.MASSSAMPLE_G(sel), ...
                 'VariableNames', {'TRACER' 'TIMECOUNTED_Hh_mm_ss' 'CF_Kdpm' 'Ge_68_Kdpm' 'MASSSAMPLE_G'});
         end
-    end    
-
-    methods (Static)
-        function this = createFromDate(aDate, varargin)
-            import mlpet.CCIRRadMeasurements.*;
-            this = createFromFilename(date2filename(aDate), varargin{:});
-        end
-        function this = createFromFilename(fqfn, varargin)
-            this = mlpet.CCIRRadMeasurements(varargin{:});
-            this = this.readtables(fqfn);
-        end
-        function this = createFromSession(sesd, varargin)
-            %  @param required sessionData is an mlpipeline.ISessionData.
-            
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addRequired(ip, 'sesd', @(x) isa(x, 'mlpipeline.ISessionData') || isa(x, 'mlpipeline.ImagingMediator'))
-            parse(ip, sesd, varargin{:})
-            ipr = ip.Results;    
-            this = mlpet.CCIRRadMeasurements('session', ipr.sesd, varargin{:});
-        end
-        function fqfn = date2filename(aDate)
-            %% DATE2FILENAME looks in env var CCIR_RAD_MEASUREMENTS_DIR for a measurements file matching the
-            %  requested datetime.
-            %  @param aDate is datetime.
-            
-            assert(isdatetime(aDate));
-            CRMD = getenv('CCIR_RAD_MEASUREMENTS_DIR');
-            assert(isfolder(CRMD), ...
-                'mlpet:ValueError', ...
-                'environment variable CCIR_RAD_MEASUREMENTS_DIR->%s must be a dir', CRMD);
-            mon = lower(month(aDate, 'shortname'));
-            fqfn = fullfile( ...
-                getenv('CCIR_RAD_MEASUREMENTS_DIR'), ...
-                sprintf('CCIRRadMeasurements %i%s%i.xlsx', aDate.Year, mon{1}, aDate.Day));
-            assert(lexist(fqfn, 'file'), ...
-                'mlpet:FileNotFoundError', ...
-                'file %s must be accessible', fqfn)
-        end
     end
     
     %% PROTECTED
     
     methods (Access = protected)
-        function this = CCIRRadMeasurements(varargin)
+        function this = CCIRRadMeasurements2(varargin)
             %% CCIRRADMEASUREMENTS reads tables from measurement files specified by env var CCIR_RAD_MEASUREMENTS_DIR
             %  and a datetime for the measurements.
             %  @param session is mlpet.Session; default := trivial ctor.
@@ -467,31 +450,28 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
             this.session_ = ip.Results.session;
             this.alwaysUseSessionDate_ = ip.Results.alwaysUseSessionDate;
             
-            %if isnat(datetime(this.session_)) % proposed for deletion since try-catch below may suffice
-            %    return
-            %end
-            
+            if (isnat(datetime_bids_filename(this.session_)))
+                return
+            end
             try
-                fqfn = this.date2filename(datetime(this.session_));
-                matfn = [myfileprefix(fqfn) '.mat'];
+                fqfn = this.date2filename(datetime_bids_filename(this.session_));
+                [pth,fp] = fileparts(fqfn);
+                matfn = fullfile( ...
+                    pth, strcat(strrep(fp, 'CCIRRadMeasurements', 'CCIRRadMeasurements2'), '.mat'));
                 if isfile(matfn)
-                    fprintf('mlpet.CCIRRadMeasurements.ctor: reading cache from %s\n', matfn);
+                    fprintf('mlpet.CCIRRadMeasurements2.ctor: reading cache from %s\n', matfn);
                     load(matfn, 'this')
                     return
                 end
                 this = this.readtables(fqfn);
                 save(matfn, 'this')
             catch ME
-                if ~strcmp(ME.identifier, 'mlpet:FileNotFoundError')
-                    handwarning(ME)
-                end
+                handwarning(ME)
+                this = [];
             end
         end
-        function that = copyElement(this)
-            that = copyElement@matlab.mixin.Copyable(this);
-        end
         function this = readtables(this, fqfn)
-            fprintf('mlpet.CCIRRadMeasurements.readtables:  reading %s\n', fqfn);
+            fprintf('mlpet.CCIRRadMeasurements2.readtables:  reading %s\n', fqfn);
             for t = 1:length(this.tableNames)
                 try
                     this.addgetprop( ...
@@ -576,7 +556,7 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
                     return
                 end
             else
-                error('mlpet:ValueError', 'CCIRRadMeasurements.convertClocks2sec');
+                error('mlpet:ValueError', 'CCIRRadMeasurements2.convertClocks2sec');
             end
             dur = seconds(0);
         end
@@ -606,7 +586,7 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
                     c.TIMEOFFSETWRTNTS____S(ic) = this.excelNum2sec(c.TIMEOFFSETWRTNTS____S(ic));
                 end
             else
-                error('mlpet:ValueError', 'CCIRRadMeasurements.convertClocks2sec');
+                error('mlpet:ValueError', 'CCIRRadMeasurements2.convertClocks2sec');
             end
         end
         function tf   = hasTimings(~, var)
@@ -648,7 +628,7 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
                 case 'HO'
                     tc = 'H2[15O]';
                 otherwise
-                    error('mlpet:ValueError', 'CCIRRadMeasurements.tracerCode');
+                    error('mlpet:ValueError', 'CCIRRadMeasurements2.tracerCode');
             end
             if (snumber > 1)
                 tc = sprintf('%s_%i', tc, snumber-1);
