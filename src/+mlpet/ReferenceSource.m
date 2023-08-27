@@ -91,7 +91,7 @@ classdef ReferenceSource
             end
             if isdatetime(s)
                 try
-                    this = createFromDatetime(s);
+                    this = mlpet.ReferenceSource.createFromDatetime(s);
                     return
                 catch ME
                     handexcept(ME)
@@ -141,9 +141,47 @@ classdef ReferenceSource
                     'productCode', 'GF-068-R3');
             end
         end
+        function this = createFromTag(tag)
+            arguments
+                tag {mustBeTextScalar} = ""
+            end
+            import mlpet.ReferenceSource;
+
+            tz = 'local';
+            switch tag
+                case "Tu NIST"
+                    this = ReferenceSource( ...
+                        'isotope', '68Ge', ...
+                        'activity', 0.111, ...
+                        'activityUnits', 'uCi', ...
+                        'refDate', datetime(2021,11,10, 'TimeZone', tz));
+                case "Tu new"
+                    this = ReferenceSource( ...
+                        'isotope', '68Ge', ...
+                        'activity', 0.1125, ...
+                        'activityUnits', 'uCi', ...
+                        'refDate', datetime(2023,6,7, 'TimeZone', tz));
+                case "PCIF new"
+                    this = ReferenceSource( ...
+                        'isotope', '68Ge', ...
+                        'activity', 0.1174, ...
+                        'activityUnits', 'uCi', ...
+                        'refDate', datetime(2023,6,7, 'TimeZone', tz));
+                otherwise
+                    this = ReferenceSource();
+            end
+        end
     end
 
-	methods         
+	methods        
+        function dc = decayCorrection(this, targetDatetime)
+            arguments
+                this mlpet.ReferenceSource
+                targetDatetime datetime
+            end
+
+            dc = 1 ./ 2.^(days(targetDatetime - this.refDate)/this.halflifeDays);
+        end
         function d = halflifeDays(this)
             d = mlpet.Radionuclides.halflifeOf(this.isotope)/86400; % sec->days
         end
@@ -165,6 +203,12 @@ classdef ReferenceSource
                  isempty(this.refDate);
         end
         function a = predictedActivity(this, targetDatetime, targetActivityUnits)
+            arguments
+                this mlpet.ReferenceSource
+                targetDatetime datetime
+                targetActivityUnits {mustBeTextScalar}
+            end
+
             a = this.activity ./ 2.^(days(targetDatetime - this.refDate)/this.halflifeDays);
             a = this.convertUnits(a, this.activityUnits, targetActivityUnits);            
         end
@@ -182,7 +226,7 @@ classdef ReferenceSource
  			ip = inputParser;
             addParameter(ip, 'isotope', '', @ischar);
             addParameter(ip, 'activity', [], @isnumeric);
-            addParameter(ip, 'activityUnits', 'nCi', @ischar);
+            addParameter(ip, 'activityUnits', '', @ischar);
             addParameter(ip, 'sourceId', '', @ischar);
             addParameter(ip, 'refDate', NaT, @isdatetime);
             addParameter(ip, 'manufacturer', 'Eckert & Ziegler', @ischar);

@@ -18,6 +18,7 @@ classdef Radionuclides
         isotope
         lifetime
         nuclide % legacy synonym for isotope
+        tracer_tags
     end
  		
     methods 
@@ -91,6 +92,9 @@ classdef Radionuclides
         function g = get.nuclide(this)
             g = this.isotope;
         end
+        function g = get.tracer_tags(this)
+            g = this.tracer_tags_;
+        end
     end
 
     methods (Static)
@@ -110,47 +114,49 @@ classdef Radionuclides
 	methods		  
  		function this = Radionuclides(name)
  			%% RADIONUCLIDES
-            %  @param name is a string containing one of this.SUPPORTED_ISOTOPES.
+            %  @param name is text containing one of this.SUPPORTED_ISOTOPES or common tracers.
             %  @throws mlpet:ValueError.
 
-            assert(istext(name));
+            arguments
+                name {mustBeText}
+            end
             name = convertStringsToChars(name);
+            this.tracer_tags_ = name;
+
             name = lower(name);
-            if (lstrfind(name,  '11c'))
+            if any(contains(name,  {'11c','raclopride','s1p1'}, IgnoreCase=true))
                 this.isotope_ = '11C';
                 return
             end
-            if (lstrfind(name,  '13n'))
+            if contains(name,  '13n', IgnoreCase=true)
                 this.isotope_ = '13N';
                 return
             end
-            if lstrfind(name, '15o') || ...
-               lstrfind(name, 'oc') || lstrfind(name, 'co') || ...
-               lstrfind(name, 'ho') || lstrfind(name, 'oh') || ...
-               lstrfind(name, 'oo')
+            if any(contains(name, {'15o','co','oc','oo','ho'}, IgnoreCase=true))
                 this.isotope_ = '15O';
                 return
             end
-            if lstrfind(name,  '18f') || lstrfind(name, 'fdg')
+            if any(contains(name,  {'18f','fdg','azan','asem','ro948','mk6240','av','florbeta','vat','tz'}, IgnoreCase=true))
                 this.isotope_ = '18F';
                 return
             end
-            if (lstrfind(name,  '22na'))
+            if contains(name,  '22na', IgnoreCase=true)
                 this.isotope_ = '22Na';
                 return
             end
-            if (lstrfind(name,  '68ga'))
+            if contains(name,  '68ga', IgnoreCase=true)
                 this.isotope_ = '68Ga';
                 return
             end
-            if (lstrfind(name,  '68ge'))
+            if contains(name,  '68ge', IgnoreCase=true)
                 this.isotope_ = '68Ge';
                 return
             end
-            if (lstrfind(name,  '137cs'))
+            if contains(name,  '137cs', IgnoreCase=true)
                 this.isotope_ = '137Cs';
                 return
             end
+            %this.isotope_ = '18F'; % ubiquitous default
             error('mlpet:ValueError', 'Radionuclide.ctor.name->%s', name);
         end
 
@@ -192,6 +198,7 @@ classdef Radionuclides
     
     properties (Access = private)
         isotope_
+        tracer_tags_
     end
 
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
