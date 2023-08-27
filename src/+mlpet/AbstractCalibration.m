@@ -43,15 +43,17 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
             
             assert(isnumeric(arr)) % activities
             assert(isnumeric(shift)) % time-shift
-            assert(isscalar(halflife)) 
+            assert(isnumeric(halflife)) 
             
             if isrow(arr)
                 shift = asrow(shift);
+                halflife = asrow(halflife);
                 arr = arr .* 2.^(-shift/halflife);
                 return
             end
             if iscolumn(arr)
                 shift = ascolumn(shift);
+                halflife = ascolumn(halflife);
                 arr = arr .* 2.^(-shift/halflife);
                 return
             end
@@ -84,6 +86,10 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
     
     %% PROTECTED
     
+    properties (Constant)
+        CAL_TRACER = '[18F]DG'
+    end
+
     properties (Access = protected)
         radionuclide_
         radMeasurements_
@@ -117,6 +123,14 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
             end
         end
         
+        function hl = calibration_halflife(this)
+            rm = this.radMeasurements_;            
+            rowSelect = strcmp(rm.wellCounter.TRACER, this.CAL_TRACER) & ...
+                isnice(rm.wellCounter.MassSample_G) & ...
+                isnice(rm.wellCounter.Ge_68_Kdpm);
+            hl = ones(size(rm.wellCounter.TRACER))*mlpet.Radionuclides.halflifeOf(this.CAL_TRACER);
+            hl = hl(rowSelect);
+        end
         function that = copyElement(this)
             %%  See also web(fullfile(docroot, 'matlab/ref/matlab.mixin.copyable-class.html'))
             
