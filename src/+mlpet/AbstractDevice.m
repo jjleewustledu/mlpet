@@ -61,7 +61,7 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
         timeWindow        
     end
 
-	methods %% GET
+	methods %% GET, SET
         function g = get.datetimeForDecayCorrection(this)
             g = this.data_.datetimeForDecayCorrection;
         end
@@ -223,9 +223,33 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
         function this = decayCorrect(this)
             this = decayCorrect(this.data_);
         end
+        function ic = decayCorrectImaging(this, ic)
+            %  @param ic is understood by mlfourd.ImagingContext2.
+            
+            ic = mlfourd.ImagingContext2(ic);
+            ifc = ic.imagingFormat;
+            mat = this.data_.reshape_native_to_2d(ifc.img);
+            mat = mat .* this.data_.decayCorrectionFactors;
+            ifc.img = this.data_.reshape_2d_to_native(mat);
+                
+            ic = mlfourd.ImagingContext2(ifc, ...
+                'fileprefix', sprintf('%s_decayCorrect%g', ifc.fileprefix, this.timeForDecayCorrection));
+        end
         function this = decayUncorrect(this)
             this = decayUncorrect(this.data_);
         end
+        function ic = decayUncorrectImaging(this, ic)
+            %  @param ic is understood by mlfourd.ImagingContext2.
+            
+            ic = mlfourd.ImagingContext2(ic);
+            ifc = ic.imagingFormat;
+            mat = this.data_.reshape_native_to_2d(ifc.img);
+            mat = mat ./ this.data_.decayCorrectionFactors;
+            ifc.img = this.data_.reshape_2d_to_native(mat);
+                
+            ic = mlfourd.ImagingContext2(ifc, ...
+                'fileprefix', sprintf('%s_decayUncorrect%g', ifc.fileprefix, this.timeForDecayCorrection));
+        end   
         function d = duration(this, varargin)
             d = this.data_.duration(varargin{:});
         end        

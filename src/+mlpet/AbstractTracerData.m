@@ -255,6 +255,7 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
  			%  @param time0 >= this.times(1).
  			%  @param timeF <= this.times(end).
  			%  @param times are frame starts.
+            %  @oaran decayCorrected is false for most tracer data sources
             
             import mldata.TimingData
             
@@ -269,9 +270,11 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
             addParameter(ip, 'time0', -inf, @isnumeric); % time0 > times(1) drops early times
             addParameter(ip, 'timeF', inf, @isnumeric);  % timeF < times(end) drops late times
             addParameter(ip, 'times', [], @TimingData.isniceDat);
+            addParameter(ip, 'decayCorrected', false, @islogical); % false for most tracer data sources
             parse(ip, varargin{:})
             ipr = ip.Results;
             
+            this.decayCorrected_ = ipr.decayCorrected;
             this.radionuclides_ = mlpet.Radionuclides(ipr.isotope);
             this.tracer_ = ipr.tracer;
             this.constructTimingData(ipr)
