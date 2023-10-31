@@ -105,43 +105,48 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
         function h = plot(this, varargin)
             ip = inputParser;
             addParameter(ip, 'showAif', true, @islogical)
-            addParameter(ip, 'xlim', [-10 500], @isnumeric)
+            addParameter(ip, 'xlim', [-30 1000], @isnumeric)            
             addParameter(ip, 'ylim', [], @isnumeric)
-            addParameter(ip, 'zoom', 3, @isnumeric)
+            addParameter(ip, 'zoom', 4, @isnumeric)
             parse(ip, varargin{:})
             ipr = ip.Results;
-            this.zoom = ipr.zoom;
+            this.zoom = ipr.zoom;            
             
             ad = mlaif.AifData.instance();
-            tBuffer = ad.tBuffer;
+            tBuffer = ad.tBuffer;           
             aif = this.dispersedAif(this.artery_interpolated);
             h = figure;
             times = this.times_sampled;
-            sampled = this.model.sampled(this.ks, aif, times);
+            sampled = this.model.sampled(this.ks, this.v1, aif, times);
             
             if ipr.zoom > 1
                 leg_meas = sprintf('measurement x%i', ipr.zoom);
             else
                 leg_meas = 'measurement';
             end
+            if ipr.zoom > 1
+                leg_est = sprintf('estimation x%i', ipr.zoom);
+            else
+                leg_est = 'estimation';
+            end
             if ipr.showAif
                 plot(times, ipr.zoom*this.Measurement, ':o', ...
                     times(1:length(sampled)), ipr.zoom*sampled, '-', ...
-                    -tBuffer:length(aif)-tBuffer-1, aif, '--')
-                legend(leg_meas, 'estimation', 'aif')
+                    -tBuffer:length(aif)-tBuffer-1, aif, '--')   
+                legend(leg_meas, leg_est, 'aif')
             else
                 plot(times, ipr.zoom*this.Measurement, 'o', ...
                     times(1:length(sampled)), ipr.zoom*sampled, '-')                
-                legend(leg_meas, 'estimation')
+                legend(leg_meas, leg_est)
             end
             if ~isempty(ipr.xlim); xlim(ipr.xlim); end
             if ~isempty(ipr.ylim); ylim(ipr.ylim); end
             xlabel('times / s')
             ylabel('activity / (Bq/mL)')
-            annotation('textbox', [.25 .5 .3 .3], 'String', sprintfModel(this), 'FitBoxToText', 'on', 'FontSize', 8, 'LineStyle', 'none')
+            annotation('textbox', [.175 .5 .3 .3], 'String', sprintfModel(this), 'FitBoxToText', 'on', 'FontSize', 8, 'LineStyle', 'none')
             dbs = dbstack;
             title(dbs(1).name)
-        end 
+        end
         function save(this)
             save([this.fileprefix '.mat'], this);
         end
