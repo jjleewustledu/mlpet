@@ -61,6 +61,11 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             this.ArteryInterpolated = this.model.artery_interpolated;
         end
         
+        function D = Delta(this)
+            %% override as needed, e.g., D <- 0
+
+            D = this.ks(end);
+        end
         function disp(this)
             fprintf('\n')
             fprintf(class(this))
@@ -75,10 +80,9 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             disp(this.product_.output.rngstate)
             disp(this.product_.output.temperature)
         end
-        function aif1 = dispersedAif(this, aif)
+        function aif1 = dispersedAif(~, aif, Delta)
             n = length(aif);
             times = 0:n-1;
-            Delta = this.ks(end);
             
             auc0 = trapz(aif);
             aif1 = conv(aif, exp(-Delta*times));
