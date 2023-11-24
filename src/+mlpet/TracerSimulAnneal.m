@@ -20,31 +20,6 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
 	properties (Dependent)   
         ks
     end
-    
-    methods (Static)        
-        function conc = slide_fast(conc, Dt)
-            %% SLIDE_FAST slides discretized function conc(t) to conc(t - Dt);
-            %  @param conc is row vector without NaN.
-            %  @param t is row vector with same size as conc.
-            %  @param Dt is scalar rounded to integer.
-            %
-            %  Dt > 0 will slide conc(t) towards later times t.
-            %  Dt < 0 will slide conc(t) towards earlier times t.
-            
-            Dt = round(Dt);
-            if Dt == 0
-                return
-            end
-            if Dt < 0
-               T_ = length(conc);
-               conc_ = conc(end)*ones(1, length(conc));
-               conc_(1:T_+Dt) = conc(1-Dt:end);
-               conc = conc_;
-               return
-            end
-            conc_ = zeros(size(conc));
-            conc_(1+Dt:end) = conc(1:end-Dt);
-            conc = conc_;
 
     methods %% GET
         function g = get.ks(this)
@@ -209,15 +184,46 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
         end
  	end 
     
+    methods (Static)        
+        function conc = slide_fast(conc, Dt)
+            %% SLIDE_FAST slides discretized function conc(t) to conc(t - Dt);
+            %  @param conc is row vector without NaN.
+            %  @param t is row vector with same size as conc.
+            %  @param Dt is scalar rounded to integer.
+            %
+            %  Dt > 0 will slide conc(t) towards later times t.
+            %  Dt < 0 will slide conc(t) towards earlier times t.
+            
+            Dt = round(Dt);
+            if Dt == 0
+                return
+            end
+            if Dt < 0
+               T_ = length(conc);
+               conc_ = conc(end)*ones(1, length(conc));
+               conc_(1:T_+Dt) = conc(1-Dt:end);
+               conc = conc_;
+               return
+            end
+            conc_ = zeros(size(conc));
+            conc_(1+Dt:end) = conc(1:end-Dt);
+            conc = conc_;
+        end
+    end
+    
     %% PROTECTED
     
     methods (Access = protected)
         function [m,sd] = find_result(this, lbl)
-            ks_ = this.ks;
-            assert(strcmp(lbl(1), 'k'))
-            ik = str2double(lbl(2));
-            m = ks_(ik);
-            sd = 0;
+            re = regexp(lbl, "[a-zA-Z](?<digits>\d+)", "names");
+            ik = str2double(re.digits);
+            if ik <= length(this.ks)
+                m = this.ks(ik);
+                sd = 0;
+            else
+                m = nan;
+                sd = nan;
+            end
         end
         function [lb,ub,ks0] = remapper(this)
             for i = 1:this.map.Count
