@@ -230,10 +230,10 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
             ifc = ic.imagingFormat;
             mat = this.data_.reshape_native_to_2d(ifc.img);
             mat = mat .* this.data_.decayCorrectionFactors;
-            ifc.img = this.data_.reshape_2d_to_native(mat);
-                
-            ic = mlfourd.ImagingContext2(ifc, ...
-                'fileprefix', sprintf('%s_decayCorrect%g', ifc.fileprefix, this.timeForDecayCorrection));
+            ifc.img = this.data_.reshape_2d_to_native(mat);                
+            ifc.fileprefix = mlpipeline.Bids.adjust_fileprefix( ...
+                ifc.fileprefix, post_proc="decayCorrect"+this.timeForDecayCorrection);
+            ic = mlfourd.ImagingContext2(ifc);
         end
         function this = decayUncorrect(this)
             this = decayUncorrect(this.data_);
@@ -245,10 +245,10 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
             ifc = ic.imagingFormat;
             mat = this.data_.reshape_native_to_2d(ifc.img);
             mat = mat ./ this.data_.decayCorrectionFactors;
-            ifc.img = this.data_.reshape_2d_to_native(mat);
-                
-            ic = mlfourd.ImagingContext2(ifc, ...
-                'fileprefix', sprintf('%s_decayUncorrect%g', ifc.fileprefix, this.timeForDecayCorrection));
+            ifc.img = this.data_.reshape_2d_to_native(mat);                
+            ifc.fileprefix = mlpipeline.Bids.adjust_fileprefix( ...
+                ifc.fileprefix, post_proc="decayUncorrect"+this.timeForDecayCorrection);
+            ic = mlfourd.ImagingContext2(ifc);
         end   
         function d = duration(this, varargin)
             d = this.data_.duration(varargin{:});

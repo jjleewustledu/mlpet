@@ -19,12 +19,16 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
     
 	properties (Dependent)   
         ks
+        ks_names
     end
 
     methods %% GET
         function g = get.ks(this)
             assert(~isempty(this.product_))
             g = this.product_.ks;
+        end
+        function g = get.ks_names(this)
+            g = this.model.knames;
         end
     end
 
@@ -68,13 +72,15 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             end
         end
         function fprintfModel(this)
-            fprintf('Simulated Annealing:\n');            
+            fprintf('%s:\n', stackstr());
             for ky = 1:length(this.ks)
-                fprintf('\tk%i = %f\n', ky, this.ks(ky));
+                fprintf('\t%s = %g\n', this.ks_names{ky}, this.ks(ky));
             end
-            fprintf('\tsigma0 = %f\n', this.sigma0);
-            for ky = this.map.keys
-                fprintf('\tmap(''%s'') => %s\n', ky{1}, struct2str(this.map(ky{1})));
+            fprintf('\tloss = %g\n', this.loss())
+            keys = natsort(this.map.keys);
+            for ky = 1:length(this.ks)
+                fprintf('\tmap(''%s'') => %s\n', this.ks_names{ky}, ...
+                    join(struct2str(this.map(keys{ky}), orientation='horz')));
             end
         end
         function Q = loss(this)
@@ -86,6 +92,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             addParameter(ip, 'xlim', [-10 500], @isnumeric)            
             addParameter(ip, 'ylim', [], @isnumeric)
             addParameter(ip, 'zoom', 4, @isnumeric)
+            addParameter(ip, 'tag', '', @istext)
             parse(ip, varargin{:})
             ipr = ip.Results;
             this.zoom = ipr.zoom;            
@@ -110,7 +117,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             if ipr.showAif
                 plot(times, ipr.zoom*this.Measurement, ':o', ...
                     times(1:length(sampled)), ipr.zoom*sampled, '-', ...
-                    -tBuffer:length(aif)-tBuffer-1, aif, '--') 
+                    0:(length(aif)-1), aif, '--') 
                 legend(leg_meas, leg_est, 'aif')
             else
                 plot(times, ipr.zoom*this.Measurement, 'o', ...
@@ -123,7 +130,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             ylabel('activity / (Bq/mL)')
             annotation('textbox', [.25 .5 .3 .3], 'String', sprintfModel(this), 'FitBoxToText', 'on', 'FontSize', 8, 'LineStyle', 'none')
             dbs = dbstack;
-            title(dbs(1).name)
+            title(string(dbs(1).name)+"\n"+string(ipr.tag))
         end 
         function save(this)
             save([this.fileprefix '.mat'], this);
@@ -173,13 +180,15 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             end
         end
         function s = sprintfModel(this)
-            s = sprintf('Simulated Annealing:\n');
+            s = sprintf('%s:\n', stackstr());
             for ky = 1:length(this.ks)
-                s = [s sprintf('\tk%i = %f\n', ky, this.ks(ky))]; %#ok<AGROW>
+                s = [s sprintf('\t%s = %g\n', this.ks_names{ky}, this.ks(ky))]; %#ok<AGROW>
             end
-            s = [s sprintf('\tsigma0 = %f\n', this.sigma0)];
-            for ky = this.map.keys
-                s = [s sprintf('\tmap(''%s'') => %s\n', ky{1}, struct2str(this.map(ky{1})))]; %#ok<AGROW>
+            s = [s sprintf('\tloss = %g\n', this.loss())];
+            keys = natsort(this.map.keys);
+            for ky = 1:length(this.ks)
+                s = [s sprintf('\tmap(''%s'') => %s\n', this.ks_names{ky}, ...
+                    join(struct2str(this.map(keys{ky}), orientation='horz')))]; %#ok<AGROW>
             end
         end
  	end 
