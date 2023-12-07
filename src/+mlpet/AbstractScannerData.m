@@ -1,448 +1,305 @@
-classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData & mlfourd.INumerical
-	%% ABSTRACTSCANNERDATA 
-    %  TODO:  add methods numel, numelMasked
-
-	%  $Revision$
- 	%  was created 03-Jan-2018 00:55:01 by jjlee,
- 	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/Local/src/mlcvl/mlpet/src/+mlpet.
- 	%% It was developed on Matlab 9.3.0.713579 (R2017b) for MACI64.  Copyright 2018 John Joowon Lee.
- 	
-    properties
-        time0Shift = -2 % sec
+classdef (Abstract) AbstractScannerData < handle & mlpet.AbstractTracerData
+    %% line1
+    %  line2
+    %  
+    %  Created 27-Nov-2023 16:01:09 by jjlee in repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
+    %  Developed on Matlab 23.2.0.2428915 (R2023b) Update 4 for MACA64.  Copyright 2023 John J. Lee.
+    
+	properties (Dependent)
+        imagingContext % synonym for activityDensity without params, returning ImagingContext2
+ 		visibleVolume
     end
-    
-    properties (Dependent)
-        times
-        taus  
-        time0
-        timeF
-        timeWindow
-        datetime0 % start of scan
-        index0
-        indexF 
-        dt
-             
-        decayCorrection
-        doseAdminDatetime
-        isDecayCorrected 
-        isotope       
-        mask 
-        sessionData  
-        tracer
-        W % legacy notation from Videen
-    end    
-    
-    methods (Static)
-        function dt = dicominfo2datetime(info)
-            %% DICOMINFO2DATETIME
-            %  @param info is struct from dicominfo.
-            %  @return dt is datetime.
+
+	methods %% GET/SET 
+        function g = get.imagingContext(this)
+            g = this.activityDensity('typ', 'mlfourd.ImagingContext2');
+        end
+        function g = get.visibleVolume(this)
+            %% mL
             
-            assert(isstruct(info));
-            assert(ischar(info.SeriesDate));
-            assert(8 == length(info.SeriesDate));
-            
-            Y  = uint16(str2double(info.SeriesDate(1:4)));
-            M  = uint16(str2double(info.SeriesDate(5:6)));
-            D  = uint16(str2double(info.SeriesDate(7:8)));
-            [sextet,decimals] = strtok(info.SeriesDate, '.');
-            H  = uint8(str2double(sextet(1:2)));
-            MI = uint8(str2double(sextet(3:4)));
-            S  = uint8(str2double(sextet(5:6)));
-            MS = 1000*str2double(decimals);
-            dt = datetime(Y, M, D, H, MI, S, MS);
+            g = this.imagingContext_.imagingFormat;
+            g = prod(g.mmppix)/1e3;
         end
     end
-    
-	methods 
-        
-        %% GET, SET
-        
-        % IAifData
-        function g    = get.times(this)
-            g = this.timingData_.times;
-        end 
-        function g    = get.taus(this)
-            g = this.timingData_.taus;
-        end 
-        function g    = get.time0(this)
-            g = this.timingData_.time0;
-        end
-        function this = set.time0(this, s)
-            this.timingData_.time0 = s;
-        end
-        function g    = get.timeF(this)
-            g = this.timingData_.timeF;
-        end
-        function this = set.timeF(this, s)
-            this.timingData_.timeF = s;
-        end
-        function g    = get.timeWindow(this)
-            g = this.timingData_.timeWindow;
-        end
-        function this = set.timeWindow(this, s)
-            this.timingData_.timeWindow = s;
-        end
-        function g    = get.datetime0(this)
-            g = this.timingData_.datetime0;
-        end
-        function this = set.datetime0(this, s)
-            assert(isdatetime(s));
-            this.timingData_.datetime0 = s;
-        end
-        function g    = get.index0(this)
-            g = this.timingData_.index0;
-        end
-        function this = set.index0(this, s)
-            this.timingData_.index0 = s;
-        end
-        function g    = get.indexF(this)
-            g = this.timingData_.indexF;
-        end
-        function this = set.indexF(this, s)
-            this.timingData_.indexF = s;
-       end
-        function g    = get.dt(this)
-            g = this.timingData_.dt;
-        end
-        function this = set.dt(this, s)
-            this.timingData_.dt = s;
-        end
-        
-        function g    = get.decayCorrection(this)
-            g = this.decayCorrection_;
-        end
-        function g    = get.doseAdminDatetime(this)
-            g = this.doseAdminDatetime_;
-        end
-        function this = set.doseAdminDatetime(this, s)
-            assert(isa(s, 'datetime'));
-            if (isempty(s.TimeZone))
-                s.TimeZone = mlpipeline.ResourcesRegistry.instance().preferredTimeZone;
-            end
-            this.doseAdminDatetime_ = s;
-        end
-        function g    = get.isDecayCorrected(this)
-            g = this.isDecayCorrected_;
-        end
-        function this = set.isDecayCorrected(this, s)
-            assert(islogical(s));
-            if (this.isDecayCorrected_ == s)
-                return
-            end
-            if (this.isDecayCorrected_)  
-                this.img = this.decayCorrection_.uncorrectedActivities(this.img, this.time0);
-            else
-                this.img = this.decayCorrection_.correctedActivities(this.img, this.time0);
-            end     
-            this.isDecayCorrected_ = s;
-        end
-        function g    = get.isotope(this)
-            if (~isempty(this.isotope_))
-                g = this.isotope_;
-                return
-            end
-            if (~isempty(this.sessionData) && ~isempty(this.sessionData.isotope))
-                g = this.sessionData.isotope;
-                return
-            end
-            g = '';
-        end   
-        function g    = get.mask(this)
-            g = this.mask_;
-        end  
-        function this = set.mask(this, s)
-            assert(isa(s, 'mlfourd.INIfTI') || isa(s, 'mlfourd.ImagingContext'))
-            this.mask_ = s;
-        end
-        function g    = get.sessionData(this)
-            g = this.sessionData_;
-        end
-        function this = set.sessionData(this, s)
-            assert(isa(s, 'mlpipeline.ISessionData'));
-            this.sessionData_ = s;
-        end      
-        function g    = get.tracer(this)
-            g = this.get_tracer__;
-        end
-        function g    = get.W(this)
-            g = this.invEfficiency;
-        end  
-        function this = set.W(this, s)
-            this.invEfficiency = s;
-        end           
 
-        %%
-        
-        function dt_  = datetime(this)
-            dt_ = this.timingData_.datetime;
+    methods
+        function a = activity(this, varargin)
+            %% Bq
+            %  decayCorrected logical = false.
+ 			%  datetimeForDecayCorrection datetime = NaT, updates internal.
+            %  index0 double {@isnumeric} = this.index0
+            %  indexF double {@isnumeric} = this.indexF
+            %  timeAveraged logical = false
+            %  volumeAveraged logical = false.
+            %  diff logical = false.
+            %  uniformTimes logical = false, applicable only if volumeAveraged.
+            %  typ text = 'single'.
+            
+            a = this.activityDensity(varargin{:})*this.visibleVolume;
         end
-        function n    = numel(this)
-            n = numel(this.img);
+        function a = activityDensity(this, varargin)
+            %% Bq/mL
+            %  decayCorrected logical = false.
+ 			%  datetimeForDecayCorrection datetime = NaT, updates internal.
+            %  index0 double {@isnumeric} = this.index0
+            %  indexF double {@isnumeric} = this.indexF
+            %  timeAveraged logical = false
+            %  volumeAveraged logical = false.
+            %  diff logical = false.
+            %  uniformTimes logical = false, applicable only if volumeAveraged.
+            %  typ text = 'single'.
+            
+            a = this.measurement(varargin{:});
         end
-        function n    = numelMasked(this)
-            if (isempty(this.mask_))
-                n = this.numel;
-                return
-            end
-            if (isa(this.mask_, 'mlfourd.ImagingContext'))
-                this.mask_ = this.mask_.niftid;
-            end
-            assert(isa(this.mask_, 'mlfourd.INIfTI'));
-            n = double(sum(sum(sum(this.mask_.img))));            
+        function that = blurred(this, varargin)
+            that = copy(this);
+            that.imagingContext_ = that.imagingContext_.blurred(varargin{:});
         end
-        function        plot(this)
-            if (isscalar(this.img))
-                fprintf(this.img);
-                return
-            end
-            if (isvector(this.img))
-                plot(this.times, this.img);
-                xlabel(sprintf('%s.times', class(this)));
-                ylabel(sprintf('%s.img',   class(this)));
-                return
-            end
-            this.view;
+        function c = countRate(this, varargin)
+            %% Bq/mL, decay-corrected.
+            %  decayCorrected logical = false.
+ 			%  datetimeForDecayCorrection datetime = NaT, updates internal.
+            %  index0 double {@isnumeric} = this.index0
+            %  indexF double {@isnumeric} = this.indexF
+            %  timeAveraged logical = false
+            %  volumeAveraged logical = false.
+            %  diff logical = false.
+            %  uniformTimes logical = false, applicable only if volumeAveraged.
+            %  typ text = 'single'.
+            
+            c = this.activityDensity('decayCorrected', true, varargin{:});
         end
-        function this = setTime0ToInflow(this)
-            sc = this;
-            sc = sc.volumeAveraged;
-            d2img = diff(pchip(sc.times, sc.img, sc.time0:sc.timeF), 2);            
-            [~,t0] = max(d2img > max(d2img)/20);
-            this.time0 = max(this.time0, t0 + this.time0Shift);
+        function this = decayCorrect(this)
+            if ~this.decayCorrected_
+                ifc = this.imagingContext_.imagingFormat;
+                mat = this.reshape_native_to_2d(ifc.img);
+                mat = mat .* this.decayCorrectionFactors;
+                ifc.img = this.reshape_2d_to_native(mat);
+                
+                this.imagingContext_ = mlfourd.ImagingContext2(ifc, ...
+                    'fileprefix', sprintf('%s_decayCorrect%g', ifc.fileprefix, this.timeForDecayCorrection));
+                this.decayCorrected_ = true;
+            end
         end
-        function this = shiftTimes(this, Dt)
-            if (0 == Dt)
-                return; 
+        function f = decayCorrectionFactors(this, varargin)
+            %% DECAYCORRECTIONFACTORS
+            %  @return f is vector with same shape at this.times.
+            %  See also:  https://niftypet.readthedocs.io/en/latest/tutorials/corrqnt.html
+            
+            ip = inputParser;
+            addParameter(ip, 'timeShift', 0, @isscalar)
+            parse(ip, varargin{:})
+            
+            lambda = log(2)/this.halflife;
+            times1 = this.times - this.timeForDecayCorrection - ip.Results.timeShift;
+            Dtimes = (times1(2:end) - times1(1:end-1));
+            Dtimes = [Dtimes this.taus(end)];
+            f = lambda*Dtimes ./ (exp(-lambda*times1).*(1 - exp(-lambda*Dtimes)));
+            f = reshape(f, size(asrow(times1)));
+        end
+        function this = decayUncorrect(this)
+            if this.decayCorrected_
+                ifc = this.imagingContext_.imagingFormat;
+                mat = this.reshape_native_to_2d(ifc.img);
+                mat = mat ./ this.decayCorrectionFactors;
+                ifc.img = this.reshape_2d_to_native(mat);
+                
+                this.imagingContext_ = mlfourd.ImagingContext2(ifc);
+                this.imagingContext_.fileprefix = ...
+                    sprintf('%s_decayUncorrect%g', ifc.fileprefix, this.timeForDecayCorrection);
+                this.decayCorrected_ = false;
             end
-            if (2 == length(this.size))                
-                [this.timingData_.times,this.img] = shiftVector(this.timingData_.times, this.img, Dt);
-                return
+        end
+        function that = masked(this, varargin)
+            that = copy(this);
+            that.imagingContext_ = that.imagingContext_.masked(varargin{:});
+        end
+        function h = plot(this, varargin)
+            %% PLOT
+            %  @param optional abscissa in {'datetimesMid' 'datetime', 'times', 'indices'}
+            %  @param optional ordinate in {'countRate', 'activity', 'actvityDensity'}.
+            
+            ip = inputParser;
+            addOptional(ip, 'abscissa', 'this.datetimesMid', @ischar)
+            addOptional(ip, 'ordinate', 'this.activityDensity', @ischar)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            that = copy(this);
+            try
+                that.imagingContext_ = that.imagingContext_.volumeAveraged();
+            catch ME
+                handwarning(ME)
             end
-            [this.timingData_.times,this.img] = shiftTensor(this.timingData_.times, this.img, Dt);
+            h = plot@mlpet.AbstractTracerData(that, ipr.abscissa, ipr.ordinate);
+        end
+        function this = read(this, varargin)
+            this.imagingContext_ = mlfourd.ImagingContext2(varargin{:});
+        end
+        function img = reshape_native_to_2d(this, img)
+            sz  = size(this.imagingContext_.imagingFormat);
+            switch length(sz)
+                case 2
+                    return
+                case 3                    
+                    img = reshape(img, [sz(1)*sz(2) sz(3)]);
+                case 4
+                    szimg = size(img);
+                    img = reshape(img, [sz(1)*sz(2)*sz(3) max(sz(4), szimg(end))]);
+                otherwise
+                    error('mlsiemens:RuntimeError', 'BiographData.reshape_native_to_2d')
+            end
+        end
+        function img = reshape_2d_to_native(this, img)
+            sz  = size(this.imagingContext_.imagingFormat);
+            switch length(sz)
+                case 2
+                    return
+                case 3                    
+                    img = reshape(img, [sz(1) sz(2) sz(3)]);
+                case 4
+                    szimg = size(img);
+                    img = reshape(img, [sz(1) sz(2) sz(3) max(sz(4), szimg(end))]);
+                otherwise
+                    error('mlsiemens:RuntimeError', 'BiographData.reshape_2d_to_native')
+            end
         end
         function this = shiftWorldlines(this, Dt, varargin)
-            %% SHIFTWORLDLINES
-            %  @param required Dt, or \Delta t of worldline. 
-            %  Dt > 0 => event occurs at later time and further away in space; boluses are smaller and arrive later.
-            %  Dt < 0 => event occurs at earlier time and closer in space; boluses are larger and arrive earlier.
-            %  @param optional tzero sets the Lorentz coord for decay-correction and uncorrection.
+            %% shifts worldline of internal data self-consistently
+            %  @param required Dt is scalar:  timeShift > 0 shifts into future; timeShift < 0 shifts into past.
+            %  @param shiftDatetimeMeasured is logical.
             
             ip = inputParser;
-            addParameter(ip, 'tzero', this.time0, @isnumeric);
-            parse(ip, varargin{:});
+            addRequired(ip, 'timeShift', @isscalar)
+            addParameter(ip, 'shiftDatetimeMeasured', true, @islogical)
+            parse(ip, Dt, varargin{:})
+            assert(isscalar(this.halflife))
             
-            if (0 == Dt)
-                return; 
-            end
-            this.img = this.decayCorrection_.correctedActivities(this.img, ip.Results.tzero);
-            this = this.shiftTimes(Dt);            
-            this.img = this.decayCorrection_.uncorrectedActivities(this.img, ip.Results.tzero);
-        end
-        function [t,this] = timeInterpolants(this, varargin)
-            [t,this] = this.timingData_.timeInterpolants(varargin{:});
-        end
-        
-        % mlfourd.INumerical
-        function this = blurred(this, varargin)
-            bn = mlfourd.NumericalNIfTId(this.component);
-            bn = bn.blurred(varargin{:});
-            this.component_ = bn.component;
-        end     
-        function this = masked(this, msk)
-            nn = mlfourd.NumericalNIfTId(this.component);
-            nn = nn.masked(msk);
-            this.component_ = nn.component;
-            this.mask_ = msk;
-        end     
-        function this = thresh(this, varargin)
-            nn = mlfourd.NumericalNIfTId(this.component);
-            nn = nn.thresh(varargin{:});
-            this.component_ = nn.component;
-        end
-        function this = threshp(this, varargin)
-            nn = mlfourd.NumericalNIfTId(this.component);
-            nn = nn.threshp(varargin{:});
-            this.component_ = nn.component;
-        end
-        function this = timeAveraged(this, varargin)
-            nn = mlfourd.NumericalNIfTId(this.component); 
-            nn = nn.timeAveraged(varargin{:});
-            this.component_ = nn.component;
-        end        
-        function this = timeContracted(this, varargin)
-            nn = mlfourd.NumericalNIfTId(this.component); 
-            nn = nn.timeContracted(varargin{:});
-            this.component_ = nn.component;
-        end        
-        function this = timeSummed(this, varargin)
-            nn = mlfourd.NumericalNIfTId(this.component); 
-            nn = nn.timeSummed(varargin{:});
-            this.component_ = nn.component;
-        end
-        function this = uthresh(this, varargin)
-            nn = mlfourd.NumericalNIfTId(this.component);
-            nn = nn.uthresh(varargin{:});
-            this.component_ = nn.component;
-        end
-        function this = uthreshp(this, varargin)
-            nn = mlfourd.NumericalNIfTId(this.component);
-            nn = nn.uthreshp(varargin{:});
-            this.component_ = nn.component;
-        end
-        function this = volumeAveraged(this, varargin)
-            nn = mlfourd.NumericalNIfTId(this.component); 
-            nn = nn.volumeAveraged(varargin{:});
-            this.component_ = nn.component;
-        end
-        function this = volumeContracted(this, varargin)
-            nn = mlfourd.NumericalNIfTId(this.component); 
-            nn = nn.volumeContracted(varargin{:});
-            this.component_ = nn.component;
-        end
-        function this = volumeSummed(this, varargin)
-            nn = mlfourd.NumericalNIfTId(this.component); 
-            nn = nn.volumeSummed(varargin{:});
-            this.component_ = nn.component;
-        end
-        
- 		function this = AbstractScannerData(cmp, varargin)
- 			%% ABSTRACTSCANNERDATA
-            %  @param named manualData is required
-            %  @param named sessionData is required
-
-            if (isa(cmp, 'mlfourd.ImagingContext'))
-                cmp = cmp.niftid;
-            end
- 			this = this@mlfourd.NIfTIdecoratorProperties(cmp);
+            ifc = this.imagingContext_.imagingFormat;
+            ifc.img = ifc.img * 2^(-Dt/this.halflife);            
+            this.imagingContext_ = mlfourd.ImagingContext2(ifc, ...
+                'fileprefix', sprintf('%s_shiftWorldlines%g', ifc.fileprefix, Dt));
             
-            ip = inputParser;
-            ip.KeepUnmatched = true;
-            addParameter(ip, 'manualData',  [], @(x) isa(x, 'mldata.IManualMeasurements'));
-            addParameter(ip, 'sessionData', [], @(x) isa(x, 'mlpipeline.ISessionData'));
-            addParameter(ip, 'doseAdminDatetime', NaT, @(x) isa(x, 'datetime'));
-            addParameter(ip, 'mask', this.ones, @(x) isa(x, 'mlfourd.INIfTI') || isa(x, 'mlfourd.ImagingContext'));
-            addParameter(ip, 'isotope', '', @ischar);
-            parse(ip, varargin{:});
-            this.manualData_ = ip.Results.manualData;
-            this.sessionData_ = ip.Results.sessionData;
-            this.doseAdminDatetime_ = ip.Results.doseAdminDatetime;
-            if (isempty(this.doseAdminDatetime_.TimeZone))
-                this.doseAdminDatetime_.TimeZone = mlpipeline.ResourcesRegistry.instance().preferredTimeZone;
+            if ip.Results.shiftDatetimeMeasured
+                this.datetimeMeasured = this.datetimeMeasured + seconds(Dt);
             end
-            this.mask_ = ip.Results.mask;   
-            if (isa(ip.Results.mask, 'mlfourd.ImagingContext'))
-                this.mask_ = this.mask_.niftid;
-            end
-            this.isotope_ = ip.Results.isotope;
-            
-            if (~isempty(this.sessionData) && ~isempty(this.sessionData.region))
-                assert(~isempty(this.mask), ...
-                    'mlpet:prerequisitParamIsEmpty', 'AbstractScannerData.ctor.this.mask is empty');
-                this = this.volumeAveraged(this.mask);
-            end            
-            this.decayCorrection_ = mlpet.DecayCorrection.factoryFor(this);
- 		end
- 	end 
+        end
+        function that = timeAveraged(this, varargin)
+            that = copy(this);
+            that.imagingContext_ = that.imagingContext_.timeAveraged(varargin{:});
+        end
+        function that = volumeAveraged(this, varargin)
+            that = copy(this);
+            that.imagingContext_ = that.imagingContext_.volumeAveraged(varargin{:});
+        end
+    end
     
     %% PROTECTED
     
     properties (Access = protected)
-        decayCorrection_
-        doseAdminDatetime_
-        isDecayCorrected_
-        isotope_
-        dt_
-        manualData_
-        mask_
-        sessionData_        
-        taus_
-        time0_
-        timeF_
-        timeInterpolants_
-        times_
-        timingData_
-        W_
+        imagingContext_
     end
-    
-    methods (Access = protected)
-        function img  = activity2counts(this, img)
-            %% BECQUERELS2PETCOUNTS; does not divide out number of pixels.
+
+	methods (Access = protected)
+        function this = AbstractScannerData(varargin)
+ 			%% biographdata
+
+ 			this = this@mlpet.AbstractTracerData(varargin{:});
             
-            img = double(img);
-            switch (length(size(img))) 
-                case 2
-                    img = ensureRowVector(img) .* ensureRowVector(this.taus);
-                case 3
-                    for t = 1:size(img, 3)
-                        img(:,:,t) = img(:,:,t) * this.taus(t);
-                    end
-                case 4
-                    for t = 1:size(img, 4)
-                        img(:,:,:,t) = img(:,:,:,t) * this.taus(t);
-                    end
-                otherwise
-                    error('mlsiemens:unsupportedArraySize', ...
-                          'size(AbstractScannerData.activity2counts.img) -> %s', mat2str(size(img)));
-            end
+            this.decayCorrected_ = true;
+            this.datetimeMeasured = this.datetimeMeasured;
         end
-        function img  = counts2activity(this, img)
-            %% BECQUERELS2PETCOUNTS; does not divide out number of pixels.
+        function that = copyElement(this)
+            %%  See also web(fullfile(docroot, 'matlab/ref/matlab.mixin.copyable-class.html'))
             
-            img = double(img);
-            switch (length(size(img))) 
-                case 2
-                    img = ensureRowVector(img) ./ ensureRowVector(this.taus);
-                case 3
-                    for t = 1:size(img, 3)
-                        img(:,:,t) = img(:,:,t) / this.taus(t);
-                    end
-                case 4
-                    for t = 1:size(img, 4)
-                        img(:,:,:,t) = img(:,:,:,t) / this.taus(t);
-                    end
-                otherwise
-                    error('mlsiemens:unsupportedArraySize', ...
-                          'size(AbstractScannerData.counts2activity.img) -> %s', mat2str(size(img)));
+            that = copyElement@matlab.mixin.Copyable(this);
+            that.imagingContext_ = copy(this.imagingContext_);
+        end
+        function ic = ensure_times_mid(this, ic)
+            arguments
+                this mlpet.AbstractScannerData
+                ic mlfourd.ImagingContext2
             end
-        end    
-        function mi   = interpolateMetric(this, m, varargin)
-            mi = this.pchip(this.times, m, this.timeInterpolants);            
-            if (~isempty(varargin))
-                mi = mi(varargin{:}); end            
-        end       
-        function sec  = manualDataClocksTimeOffsetMMRConsole(this)
-            try
-                sec = seconds(this.manualData_.clocks.TimeOffsetWrtNTS____s('mMR console'));
-            catch 
-                sec = seconds(this.manualData_.clocks.TIMEOFFSETWRTNTS____S('mMR console'));
-            end
-        end 
-        function yi   = pchip(~, x, y, xi)
-            %% PCHIP accomodates y with rank <= 4.
-            
-            lenxi = length(xi);
-            if (xi(end) < x(end) && all(x(1:lenxi) == xi)) % xi \subset x
-                switch (length(size(y)))
-                    case 2
-                        yi = y(:,1:lenxi);
-                    case 3
-                        yi = y(:,:,1:lenxi);
-                    case 4
-                        yi = y(:,:,:,1:lenxi);
-                    otherwise
-                        error('mlsiemens:unsupportedArrayShape', 'AbstractScannerData.pchip');
-                end
+
+            j = ic.json_metadata;
+            if isfield(j, 'timesMid')
                 return
             end
-            
-            yi = pchip(x, y, xi);
+            ic.addJsonMetadata(struct("timeMid", this.timesMid));
+            ic.addJsonMetadata(struct("timeMidUnits", "seconds"));
         end
-        function g    = get_tracer__(this)
-            g = this.sessionData.tracer;
+        function ic = measurement(this, varargin)
+            %% Bq/mL
+
+            ip = inputParser;
+            ip.KeepUnmatched = true;
+            ip.PartialMatching= false;
+            addParameter(ip, 'datetimeForDecayCorrection', NaT, @(x) isnat(x) || isdatetime(x))
+            addParameter(ip, 'index0', this.index0, @isnumeric)
+            addParameter(ip, 'indexF', this.indexF, @isnumeric)
+            addParameter(ip, 'timeAveraged', false, @islogical)
+            addParameter(ip, 'volumeAveraged', false, @islogical)
+            addParameter(ip, 'diff', false, @islogical)
+            addParameter(ip, 'uniformTimes', false, @islogical)
+            addParameter(ip, 'typ', 'single', @istext)
+            parse(ip, varargin{:})
+            ipr = ip.Results;
+            
+            if ~isnat(ipr.datetimeForDecayCorrection)
+                this.datetimeForDecayCorrection = ipr.datetimeForDecayCorrection;
+            end
+            
+            ic = copy(this.imagingContext_);
+            ic = this.ensure_times_mid(ic);
+            if ipr.index0 ~= this.index0 || ipr.indexF ~= this.indexF
+                ic = this.selectIndex0IndexF(ic, ipr.index0, ipr.indexF);
+            end
+            if ipr.timeAveraged
+                ic = ic.timeAveraged();
+            end
+            if ipr.volumeAveraged && ndims(ic) >= 3 %#ok<ISMAT>
+                ic = ic.volumeAveraged();  
+                if ipr.uniformTimes
+                    taus_ = asrow(this.timeInterpolants(2:end) - this.timeInterpolants(1:end-1));
+                    taus_ = [taus_, taus_(end)];
+
+                    ifc = ic.imagingFormat;
+                    ifc.img = interp1(this.timesMid, ifc.img, this.timeInterpolants);
+                    ifc.json_metadata.taus = taus_;
+                    ifc.json_metadata.times = this.timeInterpolants;
+                    ifc.json_metadata.timesMid = this.timeInterpolants + taus_/2;
+                    ifc.json_metadata.timeUnit = "second";
+                    ic = mlfourd.ImagingContext2(ifc);                    
+                end
+            end
+            if ipr.diff
+                ic = diff(ic);
+            end
+            ic.addJsonMetadata(ip);
+            % m = m/this.branchingRatio; % BUG FIX: this is already performed by Siemens Biograph scanners
+        end
+        function ic = selectIndex0IndexF(this, ic, index0, indexF)
+            arguments
+                this mlsiemens.BiographData %#ok<INUSA>
+                ic mlfourd.ImagingContext2
+                index0 double {mustBeInteger}
+                indexF double {mustBeInteger}
+            end
+
+            ifc = ic.imagingFormat;
+            switch ifc.ndims
+                case 2
+                    ifc.img = ifc.img(index0:indexF);
+                case 3
+                    ifc.img = ifc.img(:,:,index0:indexF);
+                case 4
+                    ifc.img = ifc.img(:,:,:,index0:indexF);
+                otherwise
+                    error('mlsiemens:ValueError', 'BiographData.selectIndex0IndexF')
+            end
+            ic = mlfourd.ImagingContext2(ifc);
         end
     end
-
-	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
- end
-
+    
+    %  Created with mlsystem.Newcl, inspired by Frank Gonzalez-Morphy's newfcn.
+end
