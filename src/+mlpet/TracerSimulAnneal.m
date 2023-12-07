@@ -156,16 +156,20 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             set(h, position=[100,100,1000,618])
         end 
         function save(this)
-            save([this.fileprefix '.mat'], this);
+            save(strcat(this.fileprefix, ".mat"), "this");
         end
         function saveas(this, fn)
-            save(fn, this);
+            save(fn, "this");
         end
-        function this = solve(this, varargin)
-            ip = inputParser;
-            addRequired(ip, 'loss_function', @(x) isa(x, 'function_handle'))
-            parse(ip, varargin{:})
-            ipr = ip.Results;
+        function this = solve(this, loss_function)
+            %% Args:
+            %      this mlpet.TracerSimulAnneal
+            %      loss_function function_handle
+            
+            arguments
+                this mlpet.TracerSimulAnneal
+                loss_function function_handle
+            end
             
             options_fmincon = optimoptions('fmincon', ...
                 'FunctionTolerance', 1e-9, ...
