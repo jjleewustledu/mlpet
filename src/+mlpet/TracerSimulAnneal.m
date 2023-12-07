@@ -46,7 +46,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             end
             fprintf('initial ks0: '); disp(this.product_.ks0)
             fprintf('est.     ks: '); disp(this.product_.ks)
-            fprintf('        sse: '); disp(this.product_.sse)
+            fprintf('       loss: '); disp(this.product_.loss)
             fprintf('   exitflag: '); disp(this.product_.exitflag)
             disp(this.product_.output)
             disp(this.product_.output.rngstate)
@@ -77,7 +77,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             end
         end
         function Q = loss(this)
-            Q = this.product_.sse;
+            Q = this.product_.loss;
         end
         function h = plot(this, varargin)
             ip = inputParser;
@@ -159,12 +159,12 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
                     'ReannealInterval', 200, ...
                     'TemperatureFcn', 'temperatureexp');
             end
- 			[ks_,sse,exitflag,output] = simulannealbnd( ...
-                @(ks__) ipr.loss_function( ...
+ 			[ks_,loss,exitflag,output] = simulannealbnd( ...
+                @(ks__) loss_function( ...
                         ks__, this.Data, this.ArteryInterpolated, this.TimesSampled, double(this.Measurement)), ...
                         this.ks0, this.ks_lower, this.ks_upper, options);
             
-            this.product_ = struct('ks0', this.ks0, 'ks', ks_, 'sse', sse, 'exitflag', exitflag, 'output', output); 
+            this.product_ = struct('ks0', this.ks0, 'ks', ks_, 'loss', loss, 'exitflag', exitflag, 'output', output); 
             if ~this.quiet
                 fprintfModel(this)
             end

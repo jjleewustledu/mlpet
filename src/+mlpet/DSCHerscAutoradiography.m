@@ -200,7 +200,7 @@ classdef DSCHerscAutoradiography < mlpet.AutoradiographyBuilder
             if (S < eps)
                 S = S + (1 + rand(1))*eps; 
             end
-            %assert(isfinite(sse) && ~isnan(sse), 'AbstractBayesianProblem.p -> %s', cell2str(p));
+            %assert(isfinite(loss) && ~isnan(loss), 'AbstractBayesianProblem.p -> %s', cell2str(p));
         end
         function this = estimateParameters(this, varargin)
             ip = inputParser;
