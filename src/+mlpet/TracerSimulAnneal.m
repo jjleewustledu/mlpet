@@ -79,51 +79,76 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
         function Q = loss(this)
             Q = this.product_.loss;
         end
-        function h = plot(this, varargin)
-            ip = inputParser;
-            addParameter(ip, 'showAif', true, @islogical)
-            addParameter(ip, 'xlim', [-10 500], @isnumeric)            
-            addParameter(ip, 'ylim', [], @isnumeric)
-            addParameter(ip, 'zoom', 4, @isnumeric)
-            addParameter(ip, 'tag', '', @istext)
-            parse(ip, varargin{:})
-            ipr = ip.Results;
-            this.zoom = ipr.zoom;            
+        function h = plot(this, opts)
+            %% PLOT 0:length() -> this.dispersedAif();
+            %       this.TimesSampled -> this.Measurement;
+            %       this.TimesSampled -> this.model.sampled();
+            %       
+            %  also plot xs{i} -> ys{i};           
+
+            arguments
+                this mlpet.TracerSimulAnneal
+                opts.activityUnits {mustBeTextScalar} = "Bq/mL"
+                opts.tag {mustBeTextScalar} = ""
+                opts.xlim {mustBeNumeric} = [-10 500] % sec
+                opts.ylim {mustBeNumeric} = []
+                opts.xs cell = {} % additional xs to plot
+                opts.ys cell = {} % additional ys to plot
+                opts.legends cell = {} % of additional xs, ys
+                opts.colorArt {mustBeTextScalar} = "#A2142F" % maroon
+                opts.colorMeas {mustBeTextScalar} = "#0072BD" % navy
+                opts.colorModel {mustBeTextScalar} = "0072BD" % navy
+                opts.colors cell = {} % consider #EDB120 ~ mustard
+                opts.zoomArt double = 1
+                opts.zoomMeas double = 4 
+                opts.zoomModel double = 4 
+                opts.zooms cell = {}
+            end
+            assert(length(opts.xs) == length(opts.ys))
+            if ~isempty(opts.xs) && isempty(opts.colors)
+                opts.colors = repmat("#EDB120", size(opts.xs));
+            end
+            this.zoom = struct( ...
+                'zoomArt', opts.zoomArt, ...
+                'zoomMeas', opts.zoomMeas, ...
+                'zoomModel', opts.zoomModel, ...
+                'zooms', opts.zooms);
             
-            ad = mlaif.AifData.instance();
-            tBuffer = ad.tBuffer;
-            aif = this.dispersedAif(this.ArteryInterpolated, this.Delta);
+            % var notations
+            %ad = mlaif.AifData.instance();
+            %tBuffer = ad.tBuffer;
+            TS = this.TimesSampled;
+            TSInt = 0:TS(end);
+            ArtInt = this.dispersedAif(this.ArteryInterpolated, this.Delta);  
+            Meas = this.Measurement;
+            Model = this.M0*this.model.sampled(this.ks, this.Data, ArtInt, TS);
+            
+            % build legends
+            legendCell = {};
+            legendCell = [legendCell, sprintf('Arterial x%i', opts.zoomArt)];
+            legendCell = [legendCell, sprintf('Measurement x%i', opts.zoomMeas)];
+            legendCell = [legendCell, sprintf('Model x%i', opts.zoomModel)];
+            legendCell = [legendCell, opts.legends]; % of additional xs, ys
+
+            % plotting implementation
             h = figure;
-            times = this.TimesSampled;
-            sampled = this.model.sampled(this.ks, this.Data, aif, times);            
-            
-            if ipr.zoom > 1
-                leg_meas = sprintf('Measurement x%i', ipr.zoom);
-            else
-                leg_meas = 'Measurement';
+            hold("on");
+            plot(TSInt, opts.zoomArt*ArtInt, '-', LineWidth=2, Color=opts.colorArt)
+            plot(TS, opts.zoomMeas*Meas, 'o', MarkerSize=8, Color=opts.colorMeas)
+            plot(TS, opts.zoomModel*Model, '--', LineWidth=2, Color=opts.colorMeas)
+            for ci = 1:length(opts.xs)
+                plot(opts.xs{ci}, opts.ys{ci}, ':', LineWidth=1.5, Color=opts.colors{ci})
             end
-            if ipr.zoom > 1
-                leg_est = sprintf('estimation x%i', ipr.zoom);
-            else
-                leg_est = 'estimation';
-            end
-            if ipr.showAif
-                plot(times, ipr.zoom*this.Measurement, ':o', ...
-                    times(1:length(sampled)), ipr.zoom*sampled, '-', ...
-                    0:(length(aif)-1), aif, '--') 
-                legend(leg_meas, leg_est, 'aif')
-            else
-                plot(times, ipr.zoom*this.Measurement, 'o', ...
-                    times(1:length(sampled)), ipr.zoom*sampled, '-')                
-                legend(leg_meas, leg_est)
-            end
-            if ~isempty(ipr.xlim); xlim(ipr.xlim); end
-            if ~isempty(ipr.ylim); ylim(ipr.ylim); end
+            legend(legendCell);
+            if ~isempty(opts.xlim); xlim(opts.xlim); end
+            if ~isempty(opts.ylim); ylim(opts.ylim); end
             xlabel('times / s')
-            ylabel('activity / (Bq/mL)')
-            annotation('textbox', [.25 .5 .3 .3], 'String', sprintfModel(this), 'FitBoxToText', 'on', 'FontSize', 8, 'LineStyle', 'none')
-            dbs = dbstack;
-            title(string(dbs(1).name)+"\n"+string(ipr.tag))
+            ylabel(sprintf('activity / (%s)', opts.activityUnits))
+            annotation('textbox', [.25 .5 .3 .3], 'String', sprintfModel(this), 'FitBoxToText', 'on', 'FontSize', 10, 'LineStyle', 'none')
+            opts.tag = strrep(opts.tag, "_", " ");
+            title([stackstr(use_spaces=true)+";"; string(opts.tag); ""], FontSize=6)
+            hold("off");
+            set(h, position=[100,100,1000,618])
         end 
         function save(this)
             save([this.fileprefix '.mat'], this);
