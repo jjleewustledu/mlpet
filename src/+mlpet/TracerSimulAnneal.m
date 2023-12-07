@@ -28,18 +28,11 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             g = this.product_.ks;
         end
         function g = get.ks_names(this)
-            g = this.model.knames;
+            g = this.model.ks_names;
         end
     end
 
-	methods	
- 		function this = TracerSimulAnneal(varargin)
- 			this = this@mloptimization.SimulatedAnnealing(varargin{:});
-            
-            [this.ks_lower,this.ks_upper,this.ks0] = remapper(this);
-            this.ArteryInterpolated = this.model.artery_interpolated;
-        end
-        
+	methods	        
         function D = Delta(this)
             %% override as needed, e.g., D <- 0
 
