@@ -53,6 +53,11 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             disp(this.product_.output.temperature)
         end
         function aif1 = dispersedAif(~, aif, Delta)
+            if isempty(Delta) || Delta <= 0
+                aif1 = aif;
+                return
+            end
+
             n = length(aif);
             times = 0:n-1;
             
