@@ -214,6 +214,13 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
                     join(struct2str(this.map(keys{ky}), orientation='horz')))]; %#ok<AGROW>
             end
         end
+
+ 		function this = TracerSimulAnneal(varargin)
+ 			this = this@mloptimization.SimulatedAnnealing(varargin{:});
+            
+            [this.ks_lower,this.ks_upper,this.ks0] = remapper(this);
+            this.ArteryInterpolated = asrow(this.model.artery_interpolated);
+        end
  	end 
     
     methods (Static)        
