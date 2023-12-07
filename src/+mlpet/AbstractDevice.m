@@ -328,7 +328,10 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
             %%  See also web(fullfile(docroot, 'matlab/ref/matlab.mixin.copyable-class.html'))
             
             that = copyElement@matlab.mixin.Copyable(this);
-            that.calibration_ = copy(this.calibration_);
+            try
+                that.calibration_ = copy(this.calibration_);
+            catch %#ok<CTCH>
+            end
             that.data_ = copy(this.data_);
             that.logger_ = copy(this.logger_);
         end
