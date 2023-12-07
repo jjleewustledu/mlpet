@@ -474,6 +474,7 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
             try
                 fqfn = this.date2filename(datetime(this.session_));
                 matfn = [myfileprefix(fqfn) '.mat'];
+                this.fqfn = matfn;
                 if isfile(matfn)
                     fprintf('mlpet.CCIRRadMeasurements.ctor: reading cache from %s\n', matfn);
                     load(matfn, 'this')
