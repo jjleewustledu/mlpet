@@ -153,7 +153,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             opts.tag = strrep(opts.tag, "_", " ");
             title([stackstr(use_spaces=true)+";"; string(opts.tag); ""], FontSize=6)
             hold("off");
-            set(h, position=[100,100,1000,618])
+            set(h, position=[300,100,1000,618])
         end 
         function save(this)
             save(strcat(this.fileprefix, ".mat"), "this");
