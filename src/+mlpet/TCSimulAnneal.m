@@ -6,11 +6,6 @@ classdef TCSimulAnneal < mlpet.TracerSimulAnneal
     
     methods
         function this = TCSimulAnneal(varargin)
- 			%% TCSIMULANNEAL
-            %  @param context is mlglucose.Huang1980.
-            %  @param sigma0.
-            %  @param fileprefix.
-            
             this = this@mlpet.TracerSimulAnneal(varargin{:});
         end
         
