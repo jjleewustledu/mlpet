@@ -36,7 +36,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
         function D = Delta(this)
             %% override as needed, e.g., D <- 0
 
-            D = this.ks(end);
+            D = 0;
         end
         function disp(this)
             fprintf('\n')
@@ -125,6 +125,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             TS = this.TimesSampled;
             TSInt = 0:TS(end);
             ArtInt = this.dispersedAif(this.ArteryInterpolated, this.Delta);  
+            ArtInt = ArtInt(1:length(TSInt));
             Meas = this.Measurement;
             Model = this.M0*this.model.sampled(this.ks, this.Data, ArtInt, TS);
             
