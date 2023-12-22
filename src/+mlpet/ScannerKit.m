@@ -1,5 +1,5 @@
 classdef (Abstract) ScannerKit < handle & mlpet.IDeviceKit
-	%% SCANNERKIT 
+	%% SCANNERKIT.  It is DEPRECATED.
 
 	%  $Revision$
  	%  was created 23-Feb-2020 15:42:18 by jjlee,
