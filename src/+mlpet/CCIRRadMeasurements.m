@@ -262,10 +262,14 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
         function dt   = datetime(this, varargin)
             %% DATETIME for all the measurements as determined from internal mlpet.Session or readtables.
             
-            if any(contains(methods(this.session_), 'datetime_bids_filename'))
-                dt1 = datetime_bids_filename(this.session_, varargin);
-            else
-                dt1 = datetime(this.session_);
+            try
+                if any(contains(methods(this.session_), 'datetime_bids_filename'))
+                    dt1 = datetime_bids_filename(this.session_, varargin);
+                else
+                    dt1 = datetime(this.session_);
+                end
+            catch ME
+                handexcept(ME)
             end
             dt2 = this.datetimeTracerAdmin('earliest', true);
             dt  = NaT;
@@ -472,16 +476,16 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
             %end
             
             try
-                fqfn = this.date2filename(datetime(this.session_));
-                matfn = [myfileprefix(fqfn) '.mat'];
-                this.fqfn = matfn;
-                if isfile(matfn)
-                    fprintf('mlpet.CCIRRadMeasurements.ctor: reading cache from %s\n', matfn);
-                    load(matfn, 'this')
-                    return
-                end
-                this = this.readtables(fqfn);
-                save(matfn, 'this')
+                this.fqfn = this.date2filename(datetime(this.session_));
+                %matfn = [myfileprefix(fqfn) '.mat'];
+                %this.fqfn = matfn;
+                % if isfile(matfn)
+                %     fprintf('mlpet.CCIRRadMeasurements.ctor: reading cache from %s\n', matfn);
+                %     load(matfn, 'this')
+                %     return
+                % end
+                this = this.readtables(this.fqfn);
+                % save(matfn, 'this') % bug for M3 Max
             catch ME
                 if ~strcmp(ME.identifier, 'mlpet:FileNotFoundError')
                     handwarning(ME)
