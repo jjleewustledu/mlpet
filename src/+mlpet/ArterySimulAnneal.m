@@ -19,10 +19,18 @@ classdef ArterySimulAnneal < mlpet.TracerSimulAnneal
             g = this.model.kernel;
         end
         function g = get.model_kind(this)
-            g = this.model.model_kind;
+            try
+                g = this.model.Data.model_kind;
+            catch % legacy support
+                g = this.model.model_kind;
+            end
         end
         function g = get.tracer(this)
-            g = this.model.tracer;
+            try
+                g = this.model.Data.tracer;
+            catch % legacy support
+                g = this.model.tracer;
+            end
         end
     end
 
