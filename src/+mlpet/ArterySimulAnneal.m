@@ -44,6 +44,42 @@ classdef ArterySimulAnneal < mlpet.TracerSimulAnneal
 
             D = 0;
         end
+        function [k,sk] = k1(this, varargin)
+            [k,sk] = find_result(this, 'k1');
+        end
+        function [k,sk] = k2(this, varargin)
+            [k,sk] = find_result(this, 'k2');
+        end
+        function [k,sk] = k3(this, varargin)
+            [k,sk] = find_result(this, 'k3');
+        end    
+        function [k,sk] = k4(this, varargin)
+            [k,sk] = find_result(this, 'k4');
+        end          
+        function [k,sk] = k5(this, varargin)
+            [k,sk] = find_result(this, 'k5');
+        end  
+        function [k,sk] = k6(this, varargin)
+            [k,sk] = find_result(this, 'k6');
+        end
+        function [k,sk] = k7(this, varargin)
+            [k,sk] = find_result(this, 'k7');
+        end
+        function [k,sk] = k8(this, varargin)
+            [k,sk] = find_result(this, 'k8');
+        end
+        function [k,sk] = k9(this, varargin)
+            [k,sk] = find_result(this, 'k9');
+        end
+        function [k,sk] = k10(this, varargin)
+            [k,sk] = find_result(this, 'k10');
+        end
+        function [k,sk] = k11(this, varargin)
+            [k,sk] = find_result(this, 'k11');
+        end
+        function [k,sk] = k12(this, varargin)
+            [k,sk] = find_result(this, 'k12');
+        end
         function Q = loss(this)
             Q = this.product_.loss;
         end
@@ -114,7 +150,7 @@ classdef ArterySimulAnneal < mlpet.TracerSimulAnneal
             ylabel(sprintf('activity / (%s)', opts.activityUnits))
             annotation('textbox', [.25 .5 .3 .3], 'String', sprintfModel(this), 'FitBoxToText', 'on', 'FontSize', 10, 'LineStyle', 'none')
             opts.tag = strrep(opts.tag, "_", " ");
-            title([stackstr(use_spaces=true)+";"; string(opts.tag); ""], FontSize=6)
+            title([stackstr(use_spaces=true)+";"; string(opts.tag); ""], FontSize=6, Interpreter="none")
             hold("off");
             set(h, position=[300,100,1000,618])
         end 
