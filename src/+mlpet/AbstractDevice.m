@@ -9,25 +9,6 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
  	    
-    methods (Static)
-        function sesd = findCalibrationSession(sesd0, varargin)
-            %% assumed calibration is performed at end of session
-
-            if isa(sesd0, 'mlnipet.SessionData')
-                scanfold = globFoldersT(fullfile(sesd0.sessionPath, 'FDG_DT*-Converted-AC'));
-                sesd = sesd0.create(fullfile(sesd0.projectFolder, sesd0.sessionFolder, mybasename(scanfold{end})));
-                return
-            end
-            if isa(sesd0, 'mlpipeline.ImagingMediator')
-                scans = glob(fullfile(sesd0.scanPath, '*trc-fdg_proc-static-phantom*_pet.nii.gz'))';
-                assert(~isempty(scans), stackstr())
-                sesd = sesd0.create(scans{end}); 
-                return
-            end
-            error('mlpet:RuntimeError', stackstr())
-        end
-    end
-
 	properties (Dependent)
         datetimeForDecayCorrection  
         decayCorrected
@@ -297,13 +278,30 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
             this.data_.shiftWorldlines(timeShift);
         end
     end 
+
+    methods (Static)
+        function sesd = findCalibrationSession(sesd0, varargin)
+            %% assumed calibration is performed at end of session
+
+            if isa(sesd0, 'mlnipet.SessionData')
+                scanfold = globFoldersT(fullfile(sesd0.sessionPath, 'FDG_DT*-Converted-AC'));
+                sesd = sesd0.create(fullfile(sesd0.projectFolder, sesd0.sessionFolder, mybasename(scanfold{end})));
+                return
+            end
+            if isa(sesd0, 'mlpipeline.ImagingMediator')
+                scans = glob(fullfile(sesd0.scanPath, '*trc-fdg_proc-static-phantom*_pet.nii.gz'))';
+                assert(~isempty(scans), stackstr())
+                sesd = sesd0.create(scans{end}); 
+                return
+            end
+            error('mlpet:RuntimeError', stackstr())
+        end
+    end
     
     %% PROTECTED
     
     properties (Access = protected)
-        calibration_
         doNotInterpolate_
-        data_
         logger_
     end
     
@@ -332,9 +330,19 @@ classdef (Abstract) AbstractDevice < handle & mlio.AbstractHandleIO & matlab.mix
                 that.calibration_ = copy(this.calibration_);
             catch %#ok<CTCH>
             end
-            that.data_ = copy(this.data_);
+            try
+                that.data_ = copy(this.data_);
+            catch %#ok<CTCH>
+            end
             that.logger_ = copy(this.logger_);
         end
+    end
+
+    %% HIDDEN
+
+    properties (Hidden)
+        calibration_
+        data_
     end
     
 	%  Created with Newcl by John J. Lee after newfcn by Frank Gonzalez-Morphy
