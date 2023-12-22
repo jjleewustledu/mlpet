@@ -16,19 +16,27 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
         visualize_anneal = false
         zoom = 1
     end
-    
-	properties (Dependent)   
+
+	properties (Dependent)
+        int_dt_M
         ks
         ks_names
+        M0
     end
 
-    methods %% GET
+	methods	%% GET  
+        function g = get.int_dt_M(this)
+            g = trapz(this.TimesSampled, this.Measurement);
+        end
         function g = get.ks(this)
             assert(~isempty(this.product_))
             g = this.product_.ks;
         end
         function g = get.ks_names(this)
             g = this.model.ks_names;
+        end
+        function g = get.M0(this)
+            g = max(this.Measurement);
         end
     end
 
@@ -81,9 +89,6 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
                     join(struct2str(this.map(keys{ky}), orientation='horz')));
             end
         end
-        function Q = loss(this)
-            Q = this.product_.loss;
-        end
         function h = plot(this, opts)
             %% PLOT 0:length() -> this.dispersedAif();
             %       this.TimesSampled -> this.Measurement;
@@ -127,7 +132,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             ArtInt = this.dispersedAif(this.ArteryInterpolated, this.Delta);  
             ArtInt = ArtInt(1:length(TSInt));
             Meas = this.Measurement;
-            Model = this.M0*this.model.sampled(this.ks, this.Data, ArtInt, TS);
+            Model = this.rescaleModelEstimate(this.model.sampled(this.ks, this.Data, ArtInt, TS));
             
             % build legends
             legendCell = {};
@@ -152,15 +157,27 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             ylabel(sprintf('activity / (%s)', opts.activityUnits))
             annotation('textbox', [.25 .5 .3 .3], 'String', sprintfModel(this), 'FitBoxToText', 'on', 'FontSize', 10, 'LineStyle', 'none')
             opts.tag = strrep(opts.tag, "_", " ");
-            title([stackstr(use_spaces=true)+";"; string(opts.tag); ""], FontSize=6)
+            title([stackstr(use_spaces=true)+";"; string(opts.tag); ""], FontSize=6, Interpreter="none")
             hold("off");
             set(h, position=[300,100,1000,618])
         end 
-        function save(this)
-            save(strcat(this.fileprefix, ".mat"), "this");
-        end
-        function saveas(this, fn)
-            save(fn, "this");
+        function est = rescaleModelEstimate(this, est, opts)
+            arguments
+                this mloptimization.SimulatedAnnealing
+                est {mustBeNumeric}
+                opts.norm {mustBeTextScalar} = "max"
+            end
+
+            if strcmpi(opts.norm, "max")
+                %est = est/max(est);
+                est = this.M0*est;
+                return
+            end
+
+            % rescale by this.int_dt_M
+            %est = est/max(est); % for floating-point density
+            int_dt_est = trapz(this.TimesSampled, est);
+            est = est*this.int_dt_M/int_dt_est;
         end
         function this = solve(this, loss_function)
             %% Args:
@@ -270,11 +287,14 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             end
         end
         function [lb,ub,ks0] = remapper(this)
+            lb = zeros(size(this.map.keys));
+            ub = zeros(size(this.map.keys));
+            ks0 = zeros(size(this.map.keys));
             for i = 1:this.map.Count
                 lbl = sprintf('k%i', i);
-                lb(i)  = this.map(lbl).min; %#ok<AGROW>
-                ub(i)  = this.map(lbl).max; %#ok<AGROW>
-                ks0(i) = this.map(lbl).init; %#ok<AGROW>
+                lb(i) = this.map(lbl).min;
+                ub(i) = this.map(lbl).max;
+                ks0(i) = this.map(lbl).init;
             end
         end
     end
