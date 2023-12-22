@@ -89,7 +89,7 @@ classdef ArterySimulAnneal < mlpet.TracerSimulAnneal
             TSInt = 0:TS(end);
             ArtInt = this.ArteryInterpolated;  
             Meas = this.Measurement;
-            Model = this.M0*this.model.sampled(this.ks, this.Data, ArtInt, TS);
+            Model = this.rescaleModelEstimate(this.model.sampled(this.ks, this.Data, ArtInt, TS));
             
             % build legends
             legendCell = {};
