@@ -21,7 +21,6 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
         int_dt_M
         ks
         ks_names
-        M0
     end
 
 	methods	%% GET  
@@ -34,9 +33,6 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
         end
         function g = get.ks_names(this)
             g = this.model.ks_names;
-        end
-        function g = get.M0(this)
-            g = max(this.Measurement);
         end
     end
 
@@ -78,7 +74,10 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             end
         end
         function fprintfModel(this)
-            fprintf('%s:\n', stackstr());
+            try
+                fprintf('model kind, tracer: %s, %s\n', this.Data.model_kind, this.Data.tracer);
+            catch 
+            end
             for ky = 1:length(this.ks)
                 fprintf('\t%s = %g\n', this.ks_names{ky}, this.ks(ky));
             end
@@ -88,6 +87,9 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
                 fprintf('\tmap(''%s'') => %s\n', this.ks_names{ky}, ...
                     join(struct2str(this.map(keys{ky}), orientation='horz')));
             end
+        end
+        function g = M0(this)
+            g = max(this.Measurement);
         end
         function h = plot(this, opts)
             %% PLOT 0:length() -> this.dispersedAif();
@@ -110,8 +112,8 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
                 opts.colorModel {mustBeTextScalar} = "0072BD" % navy
                 opts.colors cell = {} % consider #EDB120 ~ mustard
                 opts.zoomArt double = 1
-                opts.zoomMeas double = 4 
-                opts.zoomModel double = 4 
+                opts.zoomMeas double = 1 
+                opts.zoomModel double = 1 
                 opts.zooms cell = {}
             end
             assert(length(opts.xs) == length(opts.ys))
@@ -129,10 +131,11 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             %tBuffer = ad.tBuffer;
             TS = this.TimesSampled;
             TSInt = 0:TS(end);
-            ArtInt = this.dispersedAif(this.ArteryInterpolated, this.Delta);  
-            ArtInt = ArtInt(1:length(TSInt));
+            ArtInt = this.ArteryInterpolated;  
             Meas = this.Measurement;
-            Model = this.rescaleModelEstimate(this.model.sampled(this.ks, this.Data, ArtInt, TS));
+
+            [qs,A] = this.model.sampled(this.ks, this.Data, ArtInt, TS);
+            Fitted = this.rescaleModelEstimate(A*qs);
             
             % build legends
             legendCell = {};
@@ -145,21 +148,21 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             h = figure;
             hold("on");
             plot(TSInt, opts.zoomArt*ArtInt, '-', LineWidth=2, Color=opts.colorArt)
-            plot(TS, opts.zoomMeas*Meas, 'o', MarkerSize=8, Color=opts.colorMeas)
-            plot(TS, opts.zoomModel*Model, '--', LineWidth=2, Color=opts.colorMeas)
+            plot(TS, opts.zoomMeas*Meas, 'o', MarkerSize=12, Color=opts.colorMeas)
+            plot(TS, opts.zoomModel*Fitted, '--', LineWidth=2, Color=opts.colorMeas)
             for ci = 1:length(opts.xs)
-                plot(opts.xs{ci}, opts.ys{ci}, ':', LineWidth=1.5, Color=opts.colors{ci})
+                plot(opts.xs{ci}, opts.zooms{ci}*opts.ys{ci}, ':', LineWidth=2, Color=opts.colors{ci})
             end
             legend(legendCell);
             if ~isempty(opts.xlim); xlim(opts.xlim); end
             if ~isempty(opts.ylim); ylim(opts.ylim); end
             xlabel('times / s')
             ylabel(sprintf('activity / (%s)', opts.activityUnits))
-            annotation('textbox', [.25 .5 .3 .3], 'String', sprintfModel(this), 'FitBoxToText', 'on', 'FontSize', 10, 'LineStyle', 'none')
+            annotation('textbox', [.5 .1 .3 .8], 'String', sprintfModel(this), 'FitBoxToText', 'on', 'LineStyle', 'none') % 'FontSize', 10, 
             opts.tag = strrep(opts.tag, "_", " ");
-            title([stackstr(use_spaces=true)+";"; string(opts.tag); ""], FontSize=6, Interpreter="none")
+            title([stackstr(use_spaces=true)+";"; string(opts.tag); ""], Interpreter="none")
             hold("off");
-            set(h, position=[300,100,1000,618])
+            set(h, position=[100,100,1000,700]) % position and size of window on display
         end 
         function est = rescaleModelEstimate(this, est, opts)
             arguments
@@ -169,13 +172,13 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             end
 
             if strcmpi(opts.norm, "max")
-                %est = est/max(est);
+                % est = est/max(est); % this is a bug!
                 est = this.M0*est;
                 return
             end
 
             % rescale by this.int_dt_M
-            %est = est/max(est); % for floating-point density
+            est = est/max(est); % for floating-point density
             int_dt_est = trapz(this.TimesSampled, est);
             est = est*this.int_dt_M/int_dt_est;
         end
@@ -225,7 +228,11 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             end
         end
         function s = sprintfModel(this)
-            s = sprintf('%s:\n', stackstr());
+            try
+                s = sprintf('model kind, tracer: %s, %s\n', this.Data.model_kind, this.Data.tracer);
+            catch 
+                s = '';
+            end
             for ky = 1:length(this.ks)
                 s = [s sprintf('\t%s = %g\n', this.ks_names{ky}, this.ks(ky))]; %#ok<AGROW>
             end
@@ -240,7 +247,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
  		function this = TracerSimulAnneal(varargin)
  			this = this@mloptimization.SimulatedAnnealing(varargin{:});
             
-            [this.ks_lower,this.ks_upper,this.ks0] = remapper(this);
+            this = remap(this);
             this.ArteryInterpolated = asrow(this.model.artery_interpolated);
         end
  	end 
@@ -285,6 +292,9 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
                 m = nan;
                 sd = nan;
             end
+        end
+        function this = remap(this)
+            [this.ks_lower,this.ks_upper,this.ks0] = remapper(this);
         end
         function [lb,ub,ks0] = remapper(this)
             lb = zeros(size(this.map.keys));

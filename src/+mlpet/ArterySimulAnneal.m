@@ -83,77 +83,24 @@ classdef ArterySimulAnneal < mlpet.TracerSimulAnneal
         function Q = loss(this)
             Q = this.product_.loss;
         end
-        function h = plot(this, opts)
-            %% PLOT 0:length() -> this.dispersedAif();
-            %       this.TimesSampled -> this.Measurement;
-            %       this.TimesSampled -> this.model.sampled();
-            %       
-            %  also plot xs{i} -> ys{i};           
-
+        function est = rescaleModelEstimate(this, est, opts)
             arguments
-                this mlpet.TracerSimulAnneal
-                opts.activityUnits {mustBeTextScalar} = "Bq/mL"
-                opts.tag {mustBeTextScalar} = ""
-                opts.xlim {mustBeNumeric} = [-10 500] % sec
-                opts.ylim {mustBeNumeric} = []
-                opts.xs cell = {} % additional xs to plot
-                opts.ys cell = {} % additional ys to plot
-                opts.legends cell = {} % of additional xs, ys
-                opts.colorArt {mustBeTextScalar} = "#A2142F" % maroon
-                opts.colorMeas {mustBeTextScalar} = "#0072BD" % navy
-                opts.colorModel {mustBeTextScalar} = "0072BD" % navy
-                opts.colors cell = {} % consider #EDB120 ~ mustard
-                opts.zoomArt double = 1
-                opts.zoomMeas double = 4 
-                opts.zoomModel double = 4 
-                opts.zooms cell = {}
+                this mloptimization.SimulatedAnnealing
+                est {mustBeNumeric}
+                opts.norm {mustBeTextScalar} = "max"
             end
-            assert(length(opts.xs) == length(opts.ys))
-            if ~isempty(opts.xs) && isempty(opts.colors)
-                opts.colors = repmat("#EDB120", size(opts.xs));
-            end
-            this.zoom = struct( ...
-                'zoomArt', opts.zoomArt, ...
-                'zoomMeas', opts.zoomMeas, ...
-                'zoomModel', opts.zoomModel, ...
-                'zooms', opts.zooms);
-            
-            % var notations
-            %ad = mlaif.AifData.instance();
-            %tBuffer = ad.tBuffer;
-            TS = this.TimesSampled;
-            TSInt = 0:TS(end);
-            ArtInt = this.ArteryInterpolated;  
-            Meas = this.Measurement;
-            Model = this.rescaleModelEstimate(this.model.sampled(this.ks, this.Data, ArtInt, TS));
-            
-            % build legends
-            legendCell = {};
-            legendCell = [legendCell, sprintf('Arterial x%i', opts.zoomArt)];
-            legendCell = [legendCell, sprintf('Measurement x%i', opts.zoomMeas)];
-            legendCell = [legendCell, sprintf('Model x%i', opts.zoomModel)];
-            legendCell = [legendCell, opts.legends]; % of additional xs, ys
 
-            % plotting implementation
-            h = figure;
-            hold("on");
-            plot(TSInt, opts.zoomArt*ArtInt, '-', LineWidth=2, Color=opts.colorArt)
-            plot(TS, opts.zoomMeas*Meas, 'o', MarkerSize=12, Color=opts.colorMeas)
-            plot(TS, opts.zoomModel*Model, '--', LineWidth=2, Color=opts.colorMeas)
-            for ci = 1:length(opts.xs)
-                plot(opts.xs{ci}, opts.ys{ci}, ':', LineWidth=1.5, Color=opts.colors{ci})
+            if strcmpi(opts.norm, "max")
+                % est = est/max(est); % this is a bug!
+                est = this.M0*est;
+                return
             end
-            legend(legendCell);
-            if ~isempty(opts.xlim); xlim(opts.xlim); end
-            if ~isempty(opts.ylim); ylim(opts.ylim); end
-            xlabel('times / s')
-            ylabel(sprintf('activity / (%s)', opts.activityUnits))
-            annotation('textbox', [.25 .5 .3 .3], 'String', sprintfModel(this), 'FitBoxToText', 'on', 'FontSize', 10, 'LineStyle', 'none')
-            opts.tag = strrep(opts.tag, "_", " ");
-            title([stackstr(use_spaces=true)+";"; string(opts.tag); ""], FontSize=6, Interpreter="none")
-            hold("off");
-            set(h, position=[300,100,1000,618])
-        end 
+
+            % rescale by this.int_dt_M
+            est = est/max(est); % for floating-point density
+            int_dt_est = trapz(this.TimesSampled, est);
+            est = est*this.int_dt_M/int_dt_est;
+        end
         function save(this)
             save([this.fileprefix '.mat'], this);
         end
