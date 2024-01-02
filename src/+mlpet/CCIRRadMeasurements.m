@@ -192,10 +192,13 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
         function g = get.sessionData(this)
             g = this.session_;
         end
+        function set.sessionData(this, s)
+            this.session_ = s;
+        end
     end
 
     methods
-        function        addgetprop(this, varargin)
+        function p = addgetprop(this, varargin)
             ip = inputParser;
             addRequired(ip, 'prop', @ischar);
             addOptional(ip, 'init_val', []);
@@ -499,19 +502,33 @@ classdef CCIRRadMeasurements < handle & dynamicprops & mldata.Xlsx & mlpet.RadMe
             fprintf('mlpet.CCIRRadMeasurements.readtables:  reading %s\n', fqfn);
             for t = 1:length(this.tableNames)
                 try
-                    this.addgetprop( ...
-                        this.tableNames{t}, ...
-                        this.readtable(fqfn, this.sheetNames{t}, this.hasVarNames(t), this.hasRowNames(t), this.datetimeTypes{t}));
+                    T = this.readtable(fqfn, this.sheetNames{t}, this.hasVarNames(t), this.hasRowNames(t), this.datetimeTypes{t});
+                    switch this.tableNames{t} % manage document variations
+                        case 'tracerAdmin' % anomaly after 20210421
+                            if ~any(contains(T.Properties.VariableNames, "ADMINistrationTime_Hh_mm_ss"))
+                                T = this.readtable(fqfn, 'Radiation Counts Log - Runs-2-1', 1, 1, 'exceldatenum');
+                            end
+                        otherwise
+                    end
+                    this.addgetprop(this.tableNames{t}, T);
                 catch ME
-                    handwarning(ME)
+                    fprintf("%s: %s\n this.%s not assigned\n", stackstr(), ME.message, this.tableNames{t})
                 end
             end
-            
+
             this.clocks = this.convertClocks2sec(this.clocks); % needed for dependencies
             this.tracerAdmin = this.correctDates2(this.tracerAdmin); % provides datetime(this)
             %this.capracHeader
-            this.countsFdg = this.correctDates2(this.countsFdg);
-            this.countsOcOo = this.correctDates2(this.countsOcOo);
+            try
+                this.countsFdg = this.correctDates2(this.countsFdg);
+            catch ME
+                fprintf("%s: %s\n this.countsFdg not assigned\n", stackstr(), ME.message)
+            end
+            try
+                this.countsOcOo = this.correctDates2(this.countsOcOo);
+            catch ME
+                fprintf("%s: %s\n this.countsFdg not assigned\n", stackstr(), ME.message)
+            end
             %this.doseCalibrator
             %this.phantom
             this.wellCounter = this.correctDates2(this.wellCounter, 'CT radiation lab');

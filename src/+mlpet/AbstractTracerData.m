@@ -269,10 +269,15 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
             addParameter(ip, 'taus', [], @TimingData.isniceDur);
             addParameter(ip, 'time0', -inf, @isnumeric); % time0 > times(1) drops early times
             addParameter(ip, 'timeF', inf, @isnumeric);  % timeF < times(end) drops late times
-            addParameter(ip, 'times', [], @TimingData.isniceDat);
+            addParameter(ip, 'times', [], @isnumeric);
             addParameter(ip, 'decayCorrected', false, @islogical); % false for most tracer data sources
             parse(ip, varargin{:})
             ipr = ip.Results;
+
+            if ~TimingData.isniceDat(ipr.times)
+                warning("mlpet:ValueWarning", ...
+                    "%s: ipr.times of class %s had content %g.", stackstr(), class(ipr.times), ipr.times)
+            end
             
             this.decayCorrected_ = ipr.decayCorrected;
             this.radionuclides_ = mlpet.Radionuclides(ipr.isotope);

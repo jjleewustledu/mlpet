@@ -29,6 +29,13 @@ classdef (Abstract) InputFuncDevice < handle & mlpet.AbstractDevice
         function g = new_fqfileprefix(this, varargin)
             g = this.fqfp(varargin{:});
         end
+        function save(this)
+            fqfn = this.new_fqfp + ".mat";
+            this.saveas(fqfn);
+        end
+        function saveas(this, fn)
+            save(fn, "this");
+        end
     end
 
     methods (Static)

@@ -44,7 +44,7 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
             assert(isnumeric(arr)) % activities
             assert(isnumeric(shift)) % time-shift
             assert(isnumeric(halflife)) 
-            
+
             if isrow(arr)
                 shift = asrow(shift);
                 halflife = asrow(halflife);
@@ -130,6 +130,9 @@ classdef (Abstract) AbstractCalibration < handle & matlab.mixin.Heterogeneous & 
                 isnice(rm.wellCounter.Ge_68_Kdpm);
             hl = ones(size(rm.wellCounter.TRACER))*mlpet.Radionuclides.halflifeOf(this.CAL_TRACER);
             hl = hl(rowSelect);
+            if std(hl) < eps % collapse to scalar
+                hl = hl(1);
+            end
         end
         function that = copyElement(this)
             %%  See also web(fullfile(docroot, 'matlab/ref/matlab.mixin.copyable-class.html'))
