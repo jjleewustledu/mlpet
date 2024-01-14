@@ -275,8 +275,7 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
             ipr = ip.Results;
 
             if ~TimingData.isniceDat(ipr.times)
-                warning("mlpet:ValueWarning", ...
-                    "%s: ipr.times of class %s had content %g.", stackstr(), class(ipr.times), ipr.times)
+                fprintf("%s: ipr.times of class %s had content %g.\n", stackstr(), class(ipr.times), ipr.times)
             end
             
             this.decayCorrected_ = ipr.decayCorrected;
