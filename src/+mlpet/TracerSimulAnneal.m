@@ -101,6 +101,7 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             arguments
                 this mlpet.TracerSimulAnneal
                 opts.activityUnits {mustBeTextScalar} = "Bq/mL"
+                opts.timeUnits {mustBeTextScalar} = "s"
                 opts.tag {mustBeTextScalar} = ""
                 opts.xlim {mustBeNumeric} = [-10 500] % sec
                 opts.ylim {mustBeNumeric} = []
@@ -145,19 +146,23 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             legendCell = [legendCell, opts.legends]; % of additional xs, ys
 
             % plotting implementation
+            [TSInt,ArtInt] = this.match_lengths(TSInt,ArtInt);
+            [TS, Meas] = this.match_lengths(TS, Meas);
+            [TS1, Fitted] = this.match_lengths(TS, Fitted);
             h = figure;
             hold("on");
             plot(TSInt, opts.zoomArt*ArtInt, '-', LineWidth=2, Color=opts.colorArt)
             plot(TS, opts.zoomMeas*Meas, 'o', MarkerSize=12, Color=opts.colorMeas)
-            plot(TS, opts.zoomModel*Fitted, '--', LineWidth=2, Color=opts.colorMeas)
+            plot(TS1, opts.zoomModel*Fitted, '--', LineWidth=2, Color=opts.colorMeas)
             for ci = 1:length(opts.xs)
-                plot(opts.xs{ci}, opts.zooms{ci}*opts.ys{ci}, ':', LineWidth=2, Color=opts.colors{ci})
+                [xs,ys] = this.match_lengths(opts.xs{ci}, opts.ys{ci});
+                plot(xs, opts.zooms{ci}*ys, ':', LineWidth=2, Color=opts.colors{ci})
             end
             legend(legendCell);
             if ~isempty(opts.xlim); xlim(opts.xlim); end
             if ~isempty(opts.ylim); ylim(opts.ylim); end
-            xlabel('times / s')
-            ylabel(sprintf('activity / (%s)', opts.activityUnits))
+            xlabel(sprintf('times (%s)', opts.timeUnits))
+            ylabel(sprintf('activity (%s)', opts.activityUnits))
             annotation('textbox', [.5 .1 .3 .8], 'String', sprintfModel(this), 'FitBoxToText', 'on', 'LineStyle', 'none') % 'FontSize', 10, 
             opts.tag = strrep(opts.tag, "_", " ");
             title([stackstr(use_spaces=true)+";"; string(opts.tag); ""], Interpreter="none")
@@ -252,7 +257,28 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
         end
  	end 
     
-    methods (Static)        
+    methods (Static)
+        function [x1,y1] = match_lengths(x, y, opts)
+            arguments
+                x double {mustBeVector,mustBeNonempty}
+                y double {mustBeVector,mustBeNonempty}
+                opts.asrow logical = true;
+                opts.ascol logical = false;
+            end
+
+            N = min(length(x), length(y));
+            x1 = x(1:N);
+            y1 = y(1:N);
+
+            if opts.asrow
+                x1 = asrow(x1);
+                y1 = asrow(y1);
+            end
+            if opts.ascol
+                x1 = ascol(x1);
+                y1 = ascol(y1);
+            end
+        end
         function conc = slide_fast(conc, Dt)
             %% SLIDE_FAST slides discretized function conc(t) to conc(t - Dt);
             %  @param conc is row vector without NaN.
