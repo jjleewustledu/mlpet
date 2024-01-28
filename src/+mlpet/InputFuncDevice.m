@@ -311,6 +311,16 @@ classdef (Abstract) InputFuncDevice < handle & mlpet.AbstractDevice
         function sesd = findCalibrationSession(varargin)
             sesd = mlsiemens.BiographDevice.findCalibrationSession(varargin{:});
         end
+        function arterialDev = setArterialTimingToReference(opts)
+            arguments
+                opts.arterialDev mlpet.InputFuncDevice
+                opts.referenceDev mlpet.AbstractDevice
+            end   
+
+            arterialDev = opts.arterialDev;
+            dindex0 = round(seconds(opts.arterialDev.datetime0 - opts.referenceDev.datetime0));
+            arterialDev.index0 = arterialDev.index0 - dindex0;
+        end
     end
 
     %% PROTECTED
