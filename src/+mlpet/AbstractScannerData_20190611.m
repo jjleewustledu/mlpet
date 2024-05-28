@@ -1,4 +1,4 @@
-classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData & mlfourd.INumerical
+classdef AbstractScannerData_20190611 < mlfourd.NIfTIdecoratorProperties & mlpet.IScannerData & mlfourd.INumerical
 	%% ABSTRACTSCANNERDATA 
     %  TODO:  add methods numel, numelMasked
 
@@ -306,7 +306,7 @@ classdef AbstractScannerData < mlfourd.NIfTIdecoratorProperties & mlpet.IScanner
             this.component_ = nn.component;
         end
         
- 		function this = AbstractScannerData(cmp, varargin)
+ 		function this = AbstractScannerData_20190611(cmp, varargin)
  			%% ABSTRACTSCANNERDATA
             %  @param named manualData is required
             %  @param named sessionData is required

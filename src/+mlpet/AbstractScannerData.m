@@ -204,9 +204,8 @@ classdef (Abstract) AbstractScannerData < handle & mlpet.AbstractTracerData
         function this = AbstractScannerData(varargin)
  			%% biographdata
 
- 			this = this@mlpet.AbstractTracerData(varargin{:});
+ 			this = this@mlpet.AbstractTracerData(varargin{:}, decayCorrected = true);
             
-            this.decayCorrected_ = true;
             this.datetimeMeasured = this.datetimeMeasured;
         end
         function that = copyElement(this)

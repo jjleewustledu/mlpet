@@ -13,10 +13,7 @@ classdef BloodSuckerData < handle & mlpet.AbstractTracerData
 	methods 
 		  
  		function this = BloodSuckerData(varargin)
- 			%% BLOODSUCKERDATA
- 			%  @param .
-
- 			this = this@mlpet.AbstractTracerData(varargin{:});
+ 			this = this@mlpet.AbstractTracerData(varargin{:}, decayCorrected = true);
  		end
  	end 
 

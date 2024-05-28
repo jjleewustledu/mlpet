@@ -311,7 +311,7 @@ classdef (Abstract) InputFuncDevice < handle & mlpet.AbstractDevice
         function sesd = findCalibrationSession(varargin)
             sesd = mlsiemens.BiographDevice.findCalibrationSession(varargin{:});
         end
-        function arterialDev = setArterialTimingToReference(opts)
+        function arterialDev = setArterialTimingByReference(opts)
             arguments
                 opts.arterialDev mlpet.InputFuncDevice
                 opts.referenceDev mlpet.AbstractDevice

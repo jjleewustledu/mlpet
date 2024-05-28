@@ -10,13 +10,17 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
  	%  last modified $LastChangedDate$ and placed into repository /Users/jjlee/MATLAB-Drive/mlpet/src/+mlpet.
  	%% It was developed on Matlab 9.4.0.813654 (R2018a) for MACI64.  Copyright 2018 John Joowon Lee.
     
+    methods (Abstract)
+        clocksTimeOffsetWrtNTS
+    end
+
 	properties (Dependent) 
         branchingRatio
-        datetimeForDecayCorrection  
+        datetimeForDecayCorrection % datetimeMeasured < _ < datetimeF
         decayCorrected
         halflife
         isotope
-        timeForDecayCorrection
+        timeForDecayCorrection % 0 < _ < timeF
         tracer
         
         %% mldata.ITiming, mldata.TimingData
@@ -58,11 +62,11 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
             this.timingData_.datetimeF = s;
         end
         function g = get.datetimeForDecayCorrection(this)
-            g = this.datetimeMeasured + seconds(this.timeForDecayCorrection);
+            g = this.datetimeForDecayCorrection_;
         end
         function     set.datetimeForDecayCorrection(this, s)
             assert(isdatetime(s) && ~isnat(s))
-            this.timeForDecayCorrection = this.timing2num(s - this.datetimeMeasured);
+            this.datetimeForDecayCorrection_ = s;
         end
         function g = get.datetimeInterpolants(this)
             g = this.timingData_.datetimeInterpolants;
@@ -134,15 +138,10 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
             this.timingData_.timeF = s;
         end
         function g = get.timeForDecayCorrection(this)
-            if isnan(this.timeForDecayCorrection_) || ~isnumeric(this.timeForDecayCorrection_) || isempty(this.timeForDecayCorrection_)
-                g = this.timingData_.time0;
-                return
-            end
-            g = this.timeForDecayCorrection_;
+             g = this.timing2num(this.datetimeForDecayCorrection - this.datetimeMeasured);
         end
         function     set.timeForDecayCorrection(this, s)
-            assert(~isnan(s) && isnumeric(s) && ~isempty(s))
-            this.timeForDecayCorrection_ = s;
+            this.datetimeForDecayCorrection = this.datetimeMeasured + seconds(s);
         end
         function g = get.timeInterpolants(this)
             %% GET.TIMEINTERPOLANTS are uniformly separated by this.dt
@@ -236,9 +235,10 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
     %% PROTECTED
     
     properties (Access = protected)
+        datetimeForDecayCorrection_
         decayCorrected_
         radionuclides_
-        timeForDecayCorrection_
+        radMeasurements_
         timingData_
         tracer_
     end
@@ -257,45 +257,39 @@ classdef (Abstract) AbstractTracerData < handle & matlab.mixin.Heterogeneous & m
  			%  @param times are frame starts.
             %  @oaran decayCorrected is false for most tracer data sources
             
-            import mldata.TimingData
-            
             ip = inputParser;
             ip.KeepUnmatched = true;
-            addParameter(ip, 'isotope', '', @(x) ismember(x, mlpet.Radionuclides.SUPPORTED_ISOTOPES))
-            addParameter(ip, 'tracer', '', @istext)
+            addParameter(ip, 'radMeasurements', []);
+            addParameter(ip, 'isotope', '', @(x) ismember(x, mlpet.Radionuclides.SUPPORTED_ISOTOPES));
+            addParameter(ip, 'tracer', '', @istext);
+            addParameter(ip, 'decayCorrected', false, @islogical); % false for most tracer data sources
             addParameter(ip, 'datetimeMeasured', NaT, @isdatetime);
-            addParameter(ip, 'datetimeForDecayCorrection', NaT, @isdatetime)
             addParameter(ip, 'dt', 1, @isnumeric);
-            addParameter(ip, 'taus', [], @TimingData.isniceDur);
+            addParameter(ip, 'taus', [], @mldata.TimingData.isniceDur);
+            addParameter(ip, 'times', [], @isnumeric);
             addParameter(ip, 'time0', -inf, @isnumeric); % time0 > times(1) drops early times
             addParameter(ip, 'timeF', inf, @isnumeric);  % timeF < times(end) drops late times
-            addParameter(ip, 'times', [], @isnumeric);
-            addParameter(ip, 'decayCorrected', false, @islogical); % false for most tracer data sources
+            addParameter(ip, 'datetimeForDecayCorrection', NaT, @isdatetime);
             parse(ip, varargin{:})
             ipr = ip.Results;
 
-            if ~TimingData.isniceDat(ipr.times)
-                fprintf("%s: ipr.times of class %s had content %g.\n", stackstr(), class(ipr.times), ipr.times)
+            this.radMeasurements_ = ipr.radMeasurements;
+            if isempty(this.radMeasurements_)
+                % attempt recovery
+                this.radMeasurements_ = mlpet.CCIRRadMeasurements.createFromDate(ipr.datetimeMeasured);
             end
-            
-            this.decayCorrected_ = ipr.decayCorrected;
             this.radionuclides_ = mlpet.Radionuclides(ipr.isotope);
             this.tracer_ = ipr.tracer;
-            this.constructTimingData(ipr)
-            this.timingData_.datetimeMeasured = ipr.datetimeMeasured;
-            if isnat(ipr.datetimeForDecayCorrection) || ~isdatetime(ipr.datetimeForDecayCorrection)
-                ipr.datetimeForDecayCorrection = ipr.datetimeMeasured;
-            end
-            this.timeForDecayCorrection_ = this.timing2num(ipr.datetimeForDecayCorrection - ipr.datetimeMeasured);
- 		end
-        function constructTimingData(this, ipr)
+            this.decayCorrected_ = ipr.decayCorrected;
+
             this.timingData_ = mldata.TimingData( ...
-                'taus', ipr.taus, ...
-                'times', ipr.times, ...
-                'time0', ipr.time0, ...
-                'timeF', ipr.timeF, ...
-                'datetimeMeasured', ipr.datetimeMeasured, ...
-                'dt', ipr.dt);
+                datetimeMeasured=ipr.datetimeMeasured - this.clocksTimeOffsetWrtNTS, ...
+                dt=ipr.dt, taus=ipr.taus, times=ipr.times, time0=ipr.time0, timeF=ipr.timeF);
+
+            this.datetimeForDecayCorrection_ = ipr.datetimeForDecayCorrection;
+            if isnat(this.datetimeForDecayCorrection)
+                this.datetimeForDecayCorrection_ = this.datetime0;
+            end
         end
         function that = copyElement(this)
             %%  See also web(fullfile(docroot, 'matlab/ref/matlab.mixin.copyable-class.html'))
