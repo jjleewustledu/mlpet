@@ -149,11 +149,15 @@ classdef TracerSimulAnneal < mloptimization.SimulatedAnnealing
             [TSInt,ArtInt] = this.match_lengths(TSInt,ArtInt);
             [TS, Meas] = this.match_lengths(TS, Meas);
             [TS1, Fitted] = this.match_lengths(TS, Fitted);
+
+            %% KLUDGE
+            MoverF = max(Meas)/max(Fitted);
+
             h = figure;
             hold("on");
             plot(TSInt, opts.zoomArt*ArtInt, '-', LineWidth=2, Color=opts.colorArt)
             plot(TS, opts.zoomMeas*Meas, 'o', MarkerSize=12, Color=opts.colorMeas)
-            plot(TS1, opts.zoomModel*Fitted, '--', LineWidth=2, Color=opts.colorMeas)
+            plot(TS1, opts.zoomModel*MoverF*Fitted, '--', LineWidth=2, Color=opts.colorMeas)
             for ci = 1:length(opts.xs)
                 [xs,ys] = this.match_lengths(opts.xs{ci}, opts.ys{ci});
                 plot(xs, opts.zooms{ci}*ys, ':', LineWidth=2, Color=opts.colors{ci})
